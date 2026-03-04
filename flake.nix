@@ -85,7 +85,7 @@
 
         checks.formatting = treefmtEval.config.build.check self;
 
-        legacyPackages = reverseContrastNesting pkgs;
+        legacyPackages = nixpkgs.lib.mapAttrs (_name: reverseContrastNesting) sets;
       }
     );
 

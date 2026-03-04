@@ -30,6 +30,8 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: write
+    env:
+      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -42,12 +44,12 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run code generations & tidying
         run: |
-          nix run .#scripts.generate
+          nix run ".#${SET}.scripts.generate"
       - name: Check for modifications, commit changes on renovate PRs
         uses: ./.github/actions/pushdiff
         with:
           error: Generated code needs to be updated, check the GitHub run summary for the diff.
-          suggested-fix: Run \`nix run .#scripts.generate\` to run code generation.
+          suggested-fix: Run \`nix run ".#${SET}.scripts.generate"\` to run code generation.
           renovate-commit-msg: "fixup: update generated code"
 
   govulncheck:
@@ -55,6 +57,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -65,13 +69,15 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run govulncheck
         run: |
-          nix run .#scripts.govulncheck
+          nix run ".#${SET}.scripts.govulncheck"
 
   golangci-lint:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -82,13 +88,15 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run golangci-lint
         run: |
-          nix run .#scripts.golangci-lint
+          nix run ".#${SET}.scripts.golangci-lint"
 
   go-licenses:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -99,7 +107,7 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run go-licenses
         run: |
-          nix run .#scripts.go-licenses-check
+          nix run ".#${SET}.scripts.go-licenses-check"
 
   sdk-wasm-compat:
     runs-on: ubuntu-24.04

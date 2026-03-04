@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+    env:
+      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -24,7 +26,7 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Update RIM IDs
         run: |
-          nix run .#scripts.get-nvidia-rim-ids > dev-docs/nvidia/rim-ids.json
+          nix run ".#${SET}.scripts.get-nvidia-rim-ids" > dev-docs/nvidia/rim-ids.json
       - name: Create PR
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
         with:

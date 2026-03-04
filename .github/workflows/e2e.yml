@@ -51,6 +51,7 @@ jobs:
       TEST_NAME: ${{ inputs.test-name }}
       CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
       DEBUG_SHELL: ${{ inputs.debug-shell }}
+      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -75,6 +76,7 @@ jobs:
           node_installer_target_conf_type=${NODE_INSTALLER_TARGET_CONF_TYPE}
           debug=${DEBUG_SHELL}
           namespace_suffix="-ci"
+          set="${SET}"
           EOF
       - name: Build and push container images
         run: |
@@ -89,8 +91,8 @@ jobs:
           just get-credentials
       - name: E2E Test
         run: |
-          nix build .#scripts.get-logs
-          nix run .#scripts.get-logs start workspace/just.namespace &
+          nix build ".#${SET}.scripts.get-logs"
+          nix run ".#${SET}.scripts.get-logs" start workspace/just.namespace &
           just e2e "${TEST_NAME}"
       - name: Check for skipped
         id: skipped
@@ -104,7 +106,7 @@ jobs:
       - name: Download logs
         if: always() && steps.skipped.outputs.skipped == 'false'
         run: |
-          nix run .#scripts.get-logs download workspace/just.namespace
+          nix run ".#${SET}.scripts.get-logs" download workspace/just.namespace
       - name: Upload logs
         if: always() && steps.skipped.outputs.skipped == 'false'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

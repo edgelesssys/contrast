@@ -131,6 +131,7 @@ jobs:
       VERSION: ${{ inputs.version }}
       MAJOR_MINOR: ${{ needs.process-inputs.outputs.MAJOR_MINOR }}
       MAJOR_MINOR_PATCH: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
+      SET: base
     steps:
       - name: Checkout working branch
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -156,8 +157,8 @@ jobs:
         if: inputs.kind == 'minor'
         working-directory: contrast-main/docs
         run: |
-          nix run .#nixpkgs.yarn install
-          nix run .#nixpkgs.yarn docusaurus docs:version "${MAJOR_MINOR}"
+          nix run ".#${SET}.nixpkgs.yarn install"
+          nix run ".#${SET}.nixpkgs.yarn" docusaurus docs:version "${MAJOR_MINOR}"
           git add .
           git commit -am "docs: release ${MAJOR_MINOR}"
           # Clean up auxiliary files, so next steps run on a clean tree
@@ -169,7 +170,7 @@ jobs:
           name: image-replacements
       - name: Update release urls in docs with tags
         working-directory: contrast-main
-        run: nix run .#scripts.update-release-urls
+        run: nix run ".#${SET}.scripts.update-release-urls"
       - name: Commit updated docs
         working-directory: contrast-main
         run: |
@@ -184,7 +185,7 @@ jobs:
           path: ./contrast-main
       - name: Update contrast-releases.json with new release
         working-directory: contrast-main
-        run: nix run .#scripts.update-contrast-releases
+        run: nix run ".#${SET}.scripts.update-contrast-releases"
       - name: Commit updated contrast-releases.json
         working-directory: contrast-main
         run: |
@@ -318,6 +319,7 @@ jobs:
     needs: [process-inputs, release, nightly]
     env:
       VERSION: ${{ inputs.version }}
+      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -355,9 +357,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p workspace
-          nix build .#scripts.get-logs
-          nix run .#scripts.get-logs start workspace/just.namespace &
-          nix shell -L .#contrast.e2e --command release.test \
+          nix build ".#${SET}.scripts.get-logs"
+          nix run ".#${SET}.scripts.get-logs start" workspace/just.namespace &
+          nix shell -L ".#${SET}.contrast.e2e" --command release.test \
             -test.v \
             --tag "${VERSION}" \
             --platform ${{ matrix.platform.name }} \
@@ -366,7 +368,7 @@ jobs:
       - name: Download logs
         if: always()
         run: |
-          nix run .#scripts.get-logs download workspace/just.namespace
+          nix run ".#${SET}.scripts.get-logs download" workspace/just.namespace
       - name: Cleanup
         if: always()
         run: |

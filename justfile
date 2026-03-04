@@ -1,13 +1,19 @@
+default_cli := "contrast.cli"
+default_deploy_target := "openssl"
+default_platform := "${default_platform}"
+default_set := "${set}"
+workspace_dir := "workspace"
+
 # Undeploy, rebuild, deploy.
 default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
-push target:
+push target set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p {{ workspace_dir }}
     echo "Pushing container $container_registry/contrast/{{ target }}"
-    pushedImg=$(nix run -L .#containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
+    pushedImg=$(nix run -L .#{{ set }}.containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
     printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "{{ target }}" "$pushedImg" >> {{ workspace_dir }}/just.containerlookup
 
 coordinator: (push "coordinator")
@@ -26,17 +32,12 @@ debugshell: (push "debugshell")
 
 k8s-log-collector: (push "k8s-log-collector")
 
-containerd-reproducer:
+containerd-reproducer set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
-    read tag digest < <(nix run -L .#scripts.push-containerd-reproducer -- $container_registry | tail -n 1)
+    read tag digest < <(nix run -L .#{{ set }}.scripts.push-containerd-reproducer -- $container_registry | tail -n 1)
     echo "ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-tag=$container_registry/contrast/containerd-reproducer:$tag" >> {{ workspace_dir }}/just.containerlookup
     echo "ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-digest=$container_registry/contrast/containerd-reproducer@$digest" >> {{ workspace_dir }}/just.containerlookup
-
-default_cli := "contrast.cli"
-default_deploy_target := "openssl"
-default_platform := "${default_platform}"
-workspace_dir := "workspace"
 
 # Build the node-installer, containerize and push it.
 node-installer platform=default_platform:
@@ -56,16 +57,16 @@ node-installer platform=default_platform:
     esac
 
 # Get all used platform names in a comma-separated string
-collect-platforms platform=default_platform:
+collect-platforms platform=default_platform set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     deployment=$( [[ -e "./{{ workspace_dir }}/deployment" ]] && printf '%s' "./{{ workspace_dir }}/deployment" || printf '' )
-    nix shell .#contrast.resourcegen --command resourcegen \
+    nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
         --platform {{ platform }} \
         --deployment "$deployment" \
         collect-platforms
 
-e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform)
+e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
@@ -82,7 +83,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
     if [[ {{ target }} == "containerd-11644-reproducer" ]]; then
         just containerd-reproducer
     fi
-    nix shell .#contrast.e2e --command {{ target }}.test -test.v \
+    nix shell .#{{ set }}.contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --platform {{ platform }} \
@@ -91,26 +92,26 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket \
             --insecure-enable-debug-shell-access=${debug:-false}
 
-e2e-release version platform=default_platform: soft-clean
+e2e-release version platform=default_platform set=default_set: soft-clean
     #!/usr/bin/env bash
     set -euo pipefail
-    nix build .#scripts.get-logs
+    nix build .#{{ set }}.scripts.get-logs
     mkdir -p ./{{ workspace_dir }}
-    nix run .#scripts.get-logs start ./{{ workspace_dir }}/just.namespace &
+    nix run .#{{ set }}.scripts.get-logs start ./{{ workspace_dir }}/just.namespace &
     trap "kubectl delete -f ./{{ workspace_dir }}/log-collector.yaml; rm -f ./{{ workspace_dir }}/just.namespace" EXIT
-    nix shell .#contrast.e2e --command release.test -test.v \
+    nix shell .#{{ set }}.contrast.e2e --command release.test -test.v \
             --tag {{ version }} \
             --platform {{ platform }} \
             --node-installer-target-conf ${node_installer_target_conf_type} \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --use-loadbalancer=true
-    nix run .#scripts.get-logs download ./{{ workspace_dir }}/just.namespace
+    nix run .#{{ set }}.scripts.get-logs download ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, apply Kubernetes manifests.
 deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (runtime target platform) (write-namespace target) (apply "runtime" platform) (generate cli platform) (apply target platform)
 
 # Populate the workspace with a runtime class deployment
-runtime target=default_deploy_target platform=default_platform:
+runtime target=default_deploy_target platform=default_platform set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     platforms=$(just collect-platforms)
@@ -121,7 +122,7 @@ runtime target=default_deploy_target platform=default_platform:
 
     mkdir -p ./{{ workspace_dir }}/runtime
     if [[ "${node_installer_target_conf_type}" != "none" ]]; then
-        nix shell .#contrast.resourcegen --command resourcegen \
+        nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace {{ target }}${namespace_suffix-} \
             --node-installer-target-conf-type ${node_installer_target_conf_type} \
@@ -129,7 +130,7 @@ runtime target=default_deploy_target platform=default_platform:
             node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
     fi
 
-    nix shell .#contrast.resourcegen --command resourcegen \
+    nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --node-installer-target-conf-type ${node_installer_target_conf_type} \
@@ -137,7 +138,7 @@ runtime target=default_deploy_target platform=default_platform:
         runtime >> "./{{ workspace_dir }}/runtime/runtime.yml"
 
 # Populate the workspace with a Kubernetes deployment
-populate target=default_deploy_target platform=default_platform:
+populate target=default_deploy_target platform=default_platform set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
@@ -163,7 +164,7 @@ populate target=default_deploy_target platform=default_platform:
     if [[ {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
         gpuFlags=("--gpu-class" "nvidia.com/GB100_B200")
     fi
-    nix shell .#contrast.resourcegen --command resourcegen \
+    nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-port-forwarders \
@@ -178,7 +179,7 @@ write-namespace target=default_deploy_target:
     echo "{{ target }}${namespace_suffix-}" >> ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, update manifest.
-generate cli=default_cli platform=default_platform:
+generate cli=default_cli platform=default_platform set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     debugFlag=""
@@ -187,7 +188,7 @@ generate cli=default_cli platform=default_platform:
     fi
     patch=$(mktemp)
     kubectl -n default get cm bm-tcb-specs -o jsonpath="{.data['specs']}" > "$patch"
-    nix run -L .#{{ cli }} -- generate \
+    nix run -L .#{{ set }}.{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --reference-values {{ platform }} \
@@ -247,79 +248,79 @@ undeploy:
     just release-fifo-ticket
 
 # Set the manifest at the coordinator.
-set cli=default_cli:
+set cli=default_cli set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
-    nix run -L .#scripts.kubectl-wait-coordinator -- $ns
-    nix run -L .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
+    nix run -L .#{{ set }}.scripts.kubectl-wait-coordinator -- $ns
+    nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
-    nix run -L .#scripts.wait-for-port-listen -- 1313
-    nix run -L .#{{ cli }} -- set \
+    nix run -L .#{{ set }}.scripts.wait-for-port-listen -- 1313
+    nix run -L .#{{ set }}.{{ cli }} -- set \
         --workspace-dir ./{{ workspace_dir }} \
         -c localhost:1313 \
         ./{{ workspace_dir }}/deployment/
 
 # Verify the Coordinator.
-verify cli=default_cli:
+verify cli=default_cli set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     rm -rf ./{{ workspace_dir }}/verify
     ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
-    nix run -L .#scripts.kubectl-wait-coordinator -- $ns
+    nix run -L .#{{ set }}.scripts.kubectl-wait-coordinator -- $ns
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1314:1313 &
     PID=$!
     trap "kill $PID" EXIT
-    nix run -L .#scripts.wait-for-port-listen -- 1314
-    nix run -L .#{{ cli }} -- verify \
+    nix run -L .#{{ set }}.scripts.wait-for-port-listen -- 1314
+    nix run -L .#{{ set }}.{{ cli }} -- verify \
         --workspace-dir ./{{ workspace_dir }} \
         -c localhost:1314
 
 # Recover the Coordinator.
-recover cli=default_cli:
+recover cli=default_cli set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
-    nix run -L .#scripts.kubectl-wait-coordinator -- $ns
-    nix run -L .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
+    nix run -L .#{{ set }}.scripts.kubectl-wait-coordinator -- $ns
+    nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
-    nix run -L .#scripts.wait-for-port-listen -- 1313
-    nix run -L .#{{ cli }} -- recover \
+    nix run -L .#{{ set }}.scripts.wait-for-port-listen -- 1313
+    nix run -L .#{{ set }}.{{ cli }} -- recover \
         --workspace-dir ./{{ workspace_dir }} \
         -c localhost:1313
 
 # Wait for workloads to become ready.
-wait-for-workload target=default_deploy_target:
+wait-for-workload target=default_deploy_target set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
     case {{ target }} in
         "openssl")
-            nix run -L .#scripts.kubectl-wait-ready -- $ns openssl-backend
-            nix run -L .#scripts.kubectl-wait-ready -- $ns openssl-frontend
+            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns openssl-backend
+            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns openssl-frontend
         ;;
         "emojivoto" | "emojivoto-sm-ingress")
-            nix run -L .#scripts.kubectl-wait-ready -- $ns emoji-svc
-            nix run -L .#scripts.kubectl-wait-ready -- $ns vote-bot
-            nix run -L .#scripts.kubectl-wait-ready -- $ns voting-svc
-            nix run -L .#scripts.kubectl-wait-ready -- $ns web-svc
+            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns emoji-svc
+            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns vote-bot
+            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns voting-svc
+            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns web-svc
         ;;
         "volume-stateful-set")
-            nix run .#scripts.kubectl-wait-ready -- $ns volume-tester
+            nix run .#{{ set }}.scripts.kubectl-wait-ready -- $ns volume-tester
         ;;
         "mysql")
-            nix run .#scripts.kubectl-wait-ready -- $ns mysql-backend
-            nix run .#scripts.kubectl-wait-ready -- $ns mysql-client
+            nix run .#{{ set }}.scripts.kubectl-wait-ready -- $ns mysql-backend
+            nix run .#{{ set }}.scripts.kubectl-wait-ready -- $ns mysql-client
         ;;
         "vault")
-            nix run .#scripts.kubectl-wait-ready -- $ns vault
+            nix run .#{{ set }}.scripts.kubectl-wait-ready -- $ns vault
         ;;
         "gpu")
-            nix run .#scripts.kubectl-wait-ready -- $ns gpu-tester
+            nix run .#{{ set }}.scripts.kubectl-wait-ready -- $ns gpu-tester
         ;;
         "custom")
             :
@@ -337,7 +338,7 @@ request-fifo-ticket timeout="":
         echo "Sync ticket already exists, not requesting a new one."
         exit 1
     fi
-    ticket=$(nix run .#scripts.get-sync-ticket {{ timeout }})
+    ticket=$(nix run .#base.scripts.get-sync-ticket {{ timeout }})
     mkdir -p ./{{ workspace_dir }}
     echo $ticket > ./{{ workspace_dir }}/just.sync-ticket
 
@@ -349,7 +350,7 @@ release-fifo-ticket:
         exit 0
     fi
     ticket=$(cat ./{{ workspace_dir }}/just.sync-ticket)
-    nix run .#scripts.release-sync-ticket ${ticket}
+    nix run .#base.scripts.release-sync-ticket ${ticket}
     rm ./{{ workspace_dir }}/just.sync-ticket
 
 # Load the kubeconfig for the given platform.
@@ -358,22 +359,22 @@ get-credentials platform=default_platform:
     set -euo pipefail
     case {{ platform }} in
         "Metal-QEMU-TDX"|"olimar")
-            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest"
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest"
             sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-TDX"/' justfile.env
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
         ;;
         "Metal-QEMU-TDX-GPU"|"l-bgx-02")
-            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/l-bgx-02-kubeconfig/versions/latest"
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/l-bgx-02-kubeconfig/versions/latest"
             sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-TDX-GPU"/' justfile.env
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="none"/' justfile.env
         ;;
         "Metal-QEMU-SNP"|"palutena")
-            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/palutena-kubeconfig/versions/latest"
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/palutena-kubeconfig/versions/latest"
             sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP"/' justfile.env
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="none"/' justfile.env
         ;;
         "Metal-QEMU-SNP-GPU"|"discovery")
-            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/latest"
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/latest"
             sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP-GPU"/' justfile.env
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
         ;;
@@ -385,7 +386,7 @@ get-credentials platform=default_platform:
 
 # Load the kubeconfig from the dev cluster.
 get-credentials-dev:
-    nix run -L .#scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest"
+    nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest"
     sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP"/' justfile.env
     sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
 
@@ -393,12 +394,12 @@ get-credentials-dev:
 get-ghcr-read-token:
     #!/usr/bin/env bash
     set -euo pipefail
-    token=$(nix run -L .#scripts.get-ghcr-read-token "projects/796962942582/secrets/ghcr-read-token/versions/latest")
+    token=$(nix run -L .#base.scripts.get-ghcr-read-token "projects/796962942582/secrets/ghcr-read-token/versions/latest")
     sed -i "s/^contrast_ghcr_read=.*/contrast_ghcr_read=\"${token}\"/" justfile.env
 
 # Run code generators.
 codegen:
-    nix run -L .#scripts.generate
+    nix run -L .#base.scripts.generate
 
 # Format code.
 fmt:
@@ -406,17 +407,17 @@ fmt:
 
 # Lint code.
 lint:
-    nix run -L .#scripts.golangci-lint -- run
+    nix run -L .#base.scripts.golangci-lint -- run
 
 # Check links.
 check-links:
-    nix run .#nixpkgs.lychee -- --config tools/lychee/config-external.toml .
+    nix run .#base.nixpkgs.lychee -- --config tools/lychee/config-external.toml .
 
 demodir version="latest": undeploy
     #!/usr/bin/env bash
     set -euo pipefail
     v="$(echo {{ version }} | sed 's/\./-/g')"
-    nix develop -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_DIFF -u DIRENV_WATCHES .#demo-$v
+    nix develop -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_DIFF -u DIRENV_WATCHES .#base.demo-$v
 
 # Remove deployment specific files.
 soft-clean: undeploy
@@ -439,11 +440,8 @@ default_platform="Metal-QEMU-SNP"
 node_installer_target_conf_type="k3s"
 # Enable insecure debug features like debug shell access.
 debug="false"
-
-#
-# No need to change anything below this line.
-#
-
+# Set of packages to use.
+set="base"
 # Namespace suffix, can be empty. Will be used when patching namespaces.
 namespace_suffix=""
 # Cache directory for the CLI.

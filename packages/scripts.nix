@@ -20,6 +20,7 @@ lib.makeScope pkgs.newScope (scripts: {
       nix-update
       scripts.go-directive-sync
       scripts.gofix
+      scripts.update-kata-configurations
     ];
     text = ''
       echo "Syncing go directive versions in go.mod/go.work files" >&2
@@ -39,35 +40,35 @@ lib.makeScope pkgs.newScope (scripts: {
 
       # Notice: Order matters! Packages must be updated before their dependents.
       echo "Updating vendorHash of tdx-measure package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.tdx-measure
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.tdx-measure
       echo "Updating vendorHash of debugshell package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.debugshell
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.debugshell
       echo "Updating vendorHash of service-mesh package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.service-mesh
       echo "Updating vendorHash of igvm-go package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.igvm-go
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.igvm-go
       echo "Updating vendorHash of snp-id-block-generator package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.snp-id-block-generator
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.snp-id-block-generator
       echo "Updating imagepuller package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.imagepuller
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.imagepuller
       echo "Updating imagestore package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.imagestore
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.imagestore
       echo "Updating vendorHash of initdata-processor package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.initdata-processor
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.initdata-processor
       echo "Updating vendorHash of contrast package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.contrast
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.contrast.contrast
       echo "Updating vendorHash of imagepuller-benchmark package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.imagepuller-benchmark
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.imagepuller-benchmark
       echo "Updating src hash of kata.release-tarball" >&2
       ./packages/by-name/kata/release-tarball/update.sh
 
       echo "Updating yarn offlineCache hash of contrast.docs package" >&2
       nix-update --version=skip --flake \
         --override-filename=packages/by-name/contrast/docs/package.nix \
-        legacyPackages.x86_64-linux.contrast.docs
+        legacyPackages.x86_64-linux.base.contrast.docs
 
       echo "Updating default kata-container configuration toml files" >&2
-      nix run .#scripts.update-kata-configurations
+      update-kata-configurations
 
       gofix
     '';
