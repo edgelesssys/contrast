@@ -671,6 +671,19 @@ func patchRuntimeClassName(logger *slog.Logger, defaultRuntimeHandler string) fu
 		}
 		if *spec.RuntimeClassName == "kata-cc-isolation" || *spec.RuntimeClassName == "contrast-cc" {
 			spec.RuntimeClassName = &defaultRuntimeHandler
+			if kuberesource.PodSpecRequiresGPU(spec) {
+				platform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
+				if err != nil {
+					logger.Error("could not determine platform for runtime class", "runtime-class-name", *spec.RuntimeClassName, "err", err)
+					return spec
+				}
+				gpuHandler, err := manifest.RuntimeHandler(platform.WithGPU())
+				if err != nil {
+					logger.Error("could not get runtime handler for GPU variant of platform", "platform", platform, "err", err)
+					return spec
+				}
+				spec.RuntimeClassName = &gpuHandler
+			}
 			return spec
 		}
 		if !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") {
