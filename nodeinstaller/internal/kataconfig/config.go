@@ -47,6 +47,7 @@ func KataRuntimeConfig(
 	imagepullerConfigPath string,
 	debug bool,
 ) (*Config, error) {
+	var customContrastAnnotations []string
 	var config Config
 	switch {
 	case platforms.IsTDX(platform):
@@ -60,6 +61,12 @@ func KataRuntimeConfig(
 	case platforms.IsSNP(platform):
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
+		}
+
+		for _, productLine := range []string{"_Milan", "_Genoa"} {
+			for _, annotationType := range []string{"snp_id_block", "snp_id_auth", "snp_guest_policy"} {
+				customContrastAnnotations = append(customContrastAnnotations, annotationType+productLine)
+			}
 		}
 
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "snp", "share", "OVMF.fd")
@@ -108,7 +115,7 @@ func KataRuntimeConfig(
 	config.Hypervisor["qemu"]["enable_debug"] = debug
 	// Disable all annotations, as we don't support these. Some will mess up measurements,
 	// others bypass things you can archive via correct resource declaration anyway.
-	config.Hypervisor["qemu"]["enable_annotations"] = []string{"cc_init_data"}
+	config.Hypervisor["qemu"]["enable_annotations"] = append(customContrastAnnotations, "cc_init_data")
 	// Fix and align guest memory calculation.
 	config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMebiBytes(platform)
 	config.Runtime["sandbox_cgroup_only"] = true
