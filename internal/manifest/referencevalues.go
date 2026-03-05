@@ -200,6 +200,10 @@ type SNPReferenceValues struct {
 	PlatformInfo            abi.SnpPlatformInfo
 	MinimumMitigationVector uint64
 	AllowedChipIDs          []HexString
+	// CPUs is the number of vCPUs assigned to the VM.
+	// This field is purely informative as [SNPReferenceValues.TrustedMeasurement]
+	// already implicitly contains the number of vCPUs
+	CPUs uint64
 }
 
 // Validate checks the validity of all fields in the AKS reference values.

@@ -9,6 +9,7 @@
   installShellFiles,
   contrastPkgsStatic,
   reference-values,
+  snp-id-blocks,
 }:
 
 buildGoModule (finalAttrs: {
@@ -56,6 +57,7 @@ buildGoModule (finalAttrs: {
     install -D ${lib.getExe contrastPkgsStatic.kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${reference-values} internal/manifest/assets/reference-values.json
+    install -D ${snp-id-blocks} cli/cmd/assets/snp-id-blocks.json
   '';
 
   # postPatch will be overwritten by the release-cli derivation, prePatch won't.
