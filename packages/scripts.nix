@@ -726,4 +726,11 @@ lib.makeScope pkgs.newScope (scripts: {
       mdsh --inputs "$@"
     '';
   };
+
+  repro-a = writeShellApplication {
+    name = "repro-a";
+    text = ''
+      echo "original A"
+    '';
+  };
 })
