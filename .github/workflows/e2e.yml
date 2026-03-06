@@ -67,6 +67,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+      - name: Get credentials for CI cluster
+        if: (!inputs.self-hosted)
+        run: |
+          just get-credentials
       - name: Deploy registry
         run: |
           namespace=this-should-be-random
@@ -90,10 +94,6 @@ jobs:
         if: env.TEST_NAME == 'containerd-11644-reproducer'
         run: |
           just containerd-reproducer
-      - name: Get credentials for CI cluster
-        if: (!inputs.self-hosted)
-        run: |
-          just get-credentials
       - name: E2E Test
         run: |
           nix build .#scripts.get-logs
