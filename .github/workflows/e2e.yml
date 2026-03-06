@@ -70,10 +70,10 @@ jobs:
       - name: Deploy registry
         run: |
           namespace=this-should-be-random
-          kubectl create ns "$ns"
-          kubectl apply -n "$ns" -f tools/registry/registry.yml
-          kubectl rollout status -n "$ns" sts/registry
-          kubectl get pods registry-0 -o jsonpath='CONTRAST_LOCAL_REGISTRY={.status.hostIP}:{.spec.containers[0].ports[0].hostPort}{"\n"}' | tee -a "$GITHUB_ENV"
+          kubectl create namespace "$namespace"
+          kubectl apply -n "$namespace" -f tools/registry/registry.yml
+          kubectl rollout status -n "$namespace" sts/registry
+          kubectl get pods -n "$namespace" registry-0 -o jsonpath='CONTRAST_LOCAL_REGISTRY={.status.hostIP}:{.spec.containers[0].ports[0].hostPort}{"\n"}' | tee -a "$GITHUB_ENV"
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
