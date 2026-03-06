@@ -34,7 +34,6 @@ on:
         required: true
 
 env:
-  container_registry: ghcr.io/edgelesssys
   DO_NOT_TRACK: 1
 
 jobs:
