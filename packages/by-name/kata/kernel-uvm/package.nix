@@ -9,6 +9,8 @@
   fetchpatch,
   kata,
   withGPU ? false,
+  withAMLSandbox ? true,
+  withACPIDebug ? false,
   ... # Required for invocation through `linuxPackagesFor`, which calls this with the `features` argument.
 }:
 
@@ -69,6 +71,11 @@ let
         CONFIG_ATA_PIIX=y
         CONFIG_DMIID=y
         EOF
+      ''
+      + lib.optionalString withACPIDebug ''
+        cat <<EOF >> $config
+        CONFIG_ACPI_DEBUG=y
+        EOF
       '';
 
     dontBuild = true;
@@ -103,7 +110,11 @@ linuxManualConfig rec {
         hash = "sha256-kDW3yqWHxAGzaaM/5mSNoyMa2WZuyWJbMznPTPgfiyo=";
       };
     }
-  ];
+  ]
+  ++ lib.optional withAMLSandbox {
+    name = "drivers-acpi-add-BadAML-sandbox";
+    patch = ./0001-drivers-acpi-add-BadAML-sandbox.patch;
+  };
 
   inherit configfile;
   allowImportFromDerivation = true;

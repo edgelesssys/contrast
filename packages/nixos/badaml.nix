@@ -1,0 +1,65 @@
+# Copyright 2026 Edgeless Systems GmbH
+# SPDX-License-Identifier: BUSL-1.1
+
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
+
+let
+  cfg = config.contrast.badaml;
+
+  # 16MB of repeated 0xDEADBEEF pattern (4194304 repetitions).
+  # We create a large file so we can scan the full guest physical memory
+  # with a coarse step size (8MB) and still guarantee a hit, without
+  # needing to know the initrd start address.
+  deadbeef = pkgs.runCommandLocal "deadbeef.bin" { } ''
+    for i in $(seq 1 4194304); do
+      printf '\xDE\xAD\xBE\xEF'
+    done > "$out"
+    chmod 0444 "$out"
+  '';
+in
+
+{
+  options.contrast.badaml = {
+    enable = lib.mkEnableOption "Enable BadAML attack target";
+  };
+
+  config = lib.mkIf cfg.enable {
+    # The attack modifies the initrd in memory. If the initrd is compressed,
+    # it will be compressed in memory at the time the AML payload is executed.
+    # To make the attack work with reasonable effort, we disable compression
+    # and use an unencrypted initrd.
+    boot.initrd.compressor = "cat";
+    boot.initrd.systemd = {
+      storePaths = [
+        {
+          # Place the target file in the initrd.
+          source = deadbeef;
+          target = "/deadbeef.bin";
+        }
+      ];
+      # To easily check the attack was successful, we copy the target file to /run,
+      # which is available in both initramfs and the final system.
+      services.copy-deadbeef-into-sysroot = {
+        description = "Expose deadbeef blob via /run";
+        wantedBy = [ "initrd-root-fs.target" ];
+        before = [ "initrd-switch-root.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.coreutils}/bin/install -D -m0644 /deadbeef.bin /run/deadbeef.bin";
+        };
+      };
+    };
+    # Enable ACPI debug logs. This must be used together with the
+    # 'withACPIDebug' option in the kernel-uvm package.
+    boot.kernelParams = [
+      "acpi.debug_layer=0x80"
+      "acpi.debug_level=0x02"
+      "log_buf_len=4M"
+    ];
+  };
+}

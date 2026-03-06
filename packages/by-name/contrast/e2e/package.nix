@@ -63,6 +63,8 @@ buildGoModule {
     # keep-sorted start
     "e2e/atls"
     "e2e/attestation"
+    "e2e/badaml-sandbox"
+    "e2e/badaml-vuln"
     "e2e/containerd-11644-reproducer"
     "e2e/genpolicy-unsupported"
     "e2e/gpu"
