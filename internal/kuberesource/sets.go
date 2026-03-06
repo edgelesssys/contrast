@@ -156,11 +156,15 @@ func MultiCPU() []any {
 							Container().
 								WithName("multi-cpu").
 								WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
-								WithCommand("/usr/bin/bash", "-c", "sleep infinity").
+								WithCommand("/bin/sh", "-c", "sleep inf").
 								WithResources(ResourceRequirements().
-									// Explicitly set a CPU limit to test assignement of CPUs to VMs.
+									WithRequests(corev1.ResourceList{
+										corev1.ResourceMemory: resource.MustParse("200Mi"),
+									}).
+									// Explicitly set a CPU limit to test assignment of CPUs to VMs.
 									WithLimits(corev1.ResourceList{
-										corev1.ResourceCPU: resource.MustParse("1"),
+										corev1.ResourceMemory: resource.MustParse("200Mi"),
+										corev1.ResourceCPU:    resource.MustParse("1"),
 									}),
 								),
 						),
