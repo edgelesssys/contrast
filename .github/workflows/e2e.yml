@@ -67,10 +67,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+      - name: Deploy registry
+        run: |
+          namespace=this-should-be-random
+          kubectl create ns "$ns"
+          kubectl apply -n "$ns" -f tools/registry/registry.yml
+          kubectl rollout status -n "$ns" sts/registry
+          kubectl get pods registry-0 -o jsonpath='CONTRAST_LOCAL_REGISTRY={.status.hostIP}:{.spec.containers[0].ports[0].hostPort}{"\n"}' | tee -a "$GITHUB_ENV"
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
-          container_registry=${{ env.container_registry }}
+          container_registry=${CONTRAST_LOCAL_REGISTRY}
           default_platform=${PLATFORM}
           node_installer_target_conf_type=${NODE_INSTALLER_TARGET_CONF_TYPE}
           debug=${DEBUG_SHELL}

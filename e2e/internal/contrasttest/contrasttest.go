@@ -113,12 +113,15 @@ func New(t *testing.T) *ContrastTest {
 
 	token := os.Getenv("CONTRAST_GHCR_READ")
 	if token != "" {
-		cfg := map[string]any{
-			"registries": map[string]any{
-				"ghcr.io.": map[string]string{
+		cfg := map[string]map[string]map[string]any{
+			"registries": {
+				"ghcr.io.": map[string]any{
 					"auth": base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "user-not-required-here:%s", token)),
 				},
 			},
+		}
+		if localRegistry := os.Getenv("CONTRAST_LOCAL_REGISTRY"); localRegistry != "" {
+			cfg["registries"][localRegistry] = map[string]any{"insecure-skip-verify": true}
 		}
 		imagePullerConfig, err := toml.Marshal(cfg)
 		require.NoError(err)
