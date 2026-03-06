@@ -25,8 +25,8 @@ byName.overrideScope (
         directory = ./by-name;
       }
     );
-    scripts = (prev.scripts or { }) // pkgs.callPackages ./scripts.nix { };
-    containers = (prev.containers or { }) // pkgs.callPackages ./containers.nix { };
+    scripts = (pkgs.callPackages ./scripts.nix { }).overrideScope (_: _: prev.scripts);
+    containers = (pkgs.callPackages ./containers.nix { }).overrideScope (_: _: prev.containers or { });
     contrast-releases = pkgs.callPackages ./contrast-releases.nix { };
   }
 )

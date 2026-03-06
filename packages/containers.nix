@@ -187,15 +187,18 @@ let
     };
   };
 in
-containers
-// {
-  push-node-installer-kata =
-    pushOCIDir "push-node-installer-kata" contrastPkgs.contrast.node-installer-image
-      "v${contrastPkgs.contrast.nodeinstaller.version}";
-  push-node-installer-kata-gpu =
-    pushOCIDir "push-node-installer-kata-gpu" contrastPkgs.contrast.node-installer-image.gpu
-      "v${contrastPkgs.contrast.nodeinstaller.version}";
-}
-// (lib.concatMapAttrs (name: container: {
-  "push-${name}" = pushOCIDir name container.outPath container.meta.tag;
-}) containers)
+lib.makeScope pkgs.newScope (
+  _containers:
+  containers
+  // {
+    push-node-installer-kata =
+      pushOCIDir "push-node-installer-kata" contrastPkgs.contrast.node-installer-image
+        "v${contrastPkgs.contrast.nodeinstaller.version}";
+    push-node-installer-kata-gpu =
+      pushOCIDir "push-node-installer-kata-gpu" contrastPkgs.contrast.node-installer-image.gpu
+        "v${contrastPkgs.contrast.nodeinstaller.version}";
+  }
+  // (lib.concatMapAttrs (name: container: {
+    "push-${name}" = pushOCIDir name container.outPath container.meta.tag;
+  }) containers)
+)
