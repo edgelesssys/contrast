@@ -73,7 +73,8 @@ jobs:
           just get-credentials
       - name: Deploy registry
         run: |
-          namespace=this-should-be-random
+          # TODO: should be integrated into test namespaces.
+          namespace=registry-ci-$RANDOM
           kubectl create namespace "$namespace"
           kubectl apply -n "$namespace" -f tools/registry/registry.yml
           kubectl rollout status -n "$namespace" sts/registry
