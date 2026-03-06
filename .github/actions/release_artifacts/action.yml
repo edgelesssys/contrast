@@ -168,6 +168,8 @@ runs:
           --add-load-balancers vault > workspace/vault-demo.yml
     - name: Create node installer target configs
       shell: bash
+      env:
+        SET: base
       run: |
         nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
           --node-installer-target-conf-type k3s \
