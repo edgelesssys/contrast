@@ -60,6 +60,7 @@ func (r *Runner) Run(ctx context.Context, res any, extraPath string, logger *slo
 		"--layers-cache-file-path=" + r.cachePath,
 		"--config-file=" + extraPath,
 		"--base64-out",
+		"--insecure-registry=192.168.178.154:60001",
 	}
 	genpolicy := exec.CommandContext(ctx, r.genpolicy.Path(), args...)
 	genpolicy.Cancel = func() error {
