@@ -76,7 +76,15 @@ Apply this change by running `systemctl restart systemd-sysctl` and verify it us
 
 ## Kubernetes cluster setup
 
-Contrast can be deployed with different Kubernetes distributions.
+Contrast can be deployed with different Kubernetes distributions, provided that the following prerequisites are met:
+
+1. The Container Runtime Interface (CRI) implementation must be containerd.
+   Since older containerd versions [contain bugs that won't be fixed](../troubleshooting.md#contrast-attempts-to-pull-the-wrong-image-reference), we strongly recommend using v2.0.0 or higher.
+2. The node directory `/opt` must be writable and mustn't be mounted with `noexec`.
+
+The default configuration should work for a vanilla containerd installation.
+Other Kubernetes variants may need subtle tweaks.
+We'll show a configuration for k3s below, see [the node installer configuration reference](../../reference/node-installer-configuration.md) for more details.
 
 ### K3s
 
