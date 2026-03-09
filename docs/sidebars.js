@@ -180,6 +180,11 @@ const sidebars = {
         },
         {
           type: "doc",
+          label: "Incident response",
+          id: "howto/incident-response",
+        },
+        {
+          type: "doc",
           label: "Troubleshooting",
           id: "howto/troubleshooting",
         },
