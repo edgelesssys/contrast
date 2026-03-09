@@ -13,6 +13,7 @@
   ovmf,
   withGPU ? false,
   withDebug ? false,
+  vcpus,
 }:
 
 let
@@ -21,7 +22,8 @@ let
   initrd = "${os-image}/initrd";
   # Kata uses a base command line and then appends the command line from the kata config (i.e. also our node-installer config).
   # Thus, we need to perform the same steps when calculating the digest.
-  baseCmdline = if withDebug then kata.runtime.cmdline.debug else kata.runtime.cmdline.default;
+  runtime = kata.runtime.override { inherit vcpus; };
+  baseCmdline = if withDebug then runtime.cmdline.debug else runtime.cmdline.default;
   cmdline = lib.strings.concatStringsSep " " [
     baseCmdline
     os-image.cmdline
