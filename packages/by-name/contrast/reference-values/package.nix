@@ -60,27 +60,37 @@ let
       withGPU,
     }:
     {
-      tdx = [
-        (
-          let
-            launch-digests = kata.calculateTdxLaunchDigests {
-              inherit os-image ovmf withGPU;
-              inherit (node-installer-image) withDebug;
+      tdx =
+        let
+          vcpuCounts = lib.range 1 8;
+
+          generateRefVal =
+            vcpus:
+            let
+              launch-digests = kata.calculateTdxLaunchDigests {
+                inherit
+                  os-image
+                  ovmf
+                  withGPU
+                  vcpus
+                  ;
+                inherit (node-installer-image) withDebug;
+              };
+            in
+            {
+              mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
+              rtmrs = [
+                (builtins.readFile "${launch-digests}/rtmr0.hex")
+                (builtins.readFile "${launch-digests}/rtmr1.hex")
+                (builtins.readFile "${launch-digests}/rtmr2.hex")
+                (builtins.readFile "${launch-digests}/rtmr3.hex")
+              ];
+              xfam = "e702060000000000";
+              memoryIntegrity = false;
+              cpus = vcpus;
             };
-          in
-          {
-            mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
-            rtmrs = [
-              (builtins.readFile "${launch-digests}/rtmr0.hex")
-              (builtins.readFile "${launch-digests}/rtmr1.hex")
-              (builtins.readFile "${launch-digests}/rtmr2.hex")
-              (builtins.readFile "${launch-digests}/rtmr3.hex")
-            ];
-            xfam = "e702060000000000";
-            memoryIntegrity = false;
-          }
-        )
-      ];
+        in
+        map generateRefVal vcpuCounts;
     };
   tdxRefVals = tdxRefValsWith {
     inherit (node-installer-image) os-image;

@@ -340,6 +340,10 @@ type TDXReferenceValues struct {
 	MemoryIntegrity            bool
 	SMTDisabled                bool
 	StaticPlatform             bool
+	// CPUs is the number of vCPUs assigned to the VM.
+	// This field is purely informative as [SNPReferenceValues.TrustedMeasurement]
+	// already implicitly contains the number of vCPUs
+	CPUs uint64
 }
 
 // Validate checks the validity of all fields in the bare metal TDX reference values.
