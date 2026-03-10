@@ -70,10 +70,6 @@ func TestImageStore(t *testing.T) {
 	require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
-	t.Cleanup(cancel)
-	require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"))
-
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
