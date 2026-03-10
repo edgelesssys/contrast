@@ -92,8 +92,9 @@ spec:
 ### Transit secrets engine
 
 In addition to the workload secrets provisioned by the initializer, Contrast workloads can ask the Coordinator to encrypt and decrypt secrets on their behalf.
-The corresponding HTTP API is compatible with a subset of the [transit secrets API](https://openbao.org/api-docs/secret/transit/) used by [HashiCorp Vault](https://www.hashicorp.com/en/products/vault), and is served on Coordinator port 8200.
+The corresponding API is compatible with a subset of the [transit secrets API](https://openbao.org/api-docs/secret/transit/) used by [HashiCorp Vault](https://www.hashicorp.com/en/products/vault), and is served on Coordinator port 8200.
 Its primary use case is [auto-unsealing of Vault deployments](../howto/vault.md), which can in turn provide fine-grained secrets management to Contrast workloads.
+Workloads can access the transit secrets API over HTTPS, authenticating with the [mesh certificate](components/service-mesh.md#public-key-infrastructure).
 
 Workloads can only access the encryption key with the same name as their `WorkloadSecretID`.
 For example, if the workload secret ID in the manifest is `my-secret-id`, they can use the endpoints `/v1/transit/encrypt/my-secret-id` and `/v1/transit/decrypt/my-secret-id`.
