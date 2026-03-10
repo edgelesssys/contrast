@@ -677,14 +677,15 @@ func patchRuntimeClassName(logger *slog.Logger, defaultRuntimeHandler string) fu
 			return spec
 		}
 		overridePlatform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
-		spec.RuntimeClassName = &defaultRuntimeHandler
 		if err != nil {
 			logger.Error("could not determine platform for runtime class", "runtime-class-name", *spec.RuntimeClassName, "err", err)
+			spec.RuntimeClassName = &defaultRuntimeHandler
 			return spec
 		}
 		overrideRuntimeHandler, err := manifest.RuntimeHandler(overridePlatform)
 		if err != nil {
 			logger.Error("could not get runtime handler for platform", "platform", overridePlatform, "err", err)
+			spec.RuntimeClassName = &defaultRuntimeHandler
 			return spec
 		}
 		spec.RuntimeClassName = &overrideRuntimeHandler
