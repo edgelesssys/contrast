@@ -13,7 +13,6 @@ If the manifest changes, for example, due to modifications in the service mesh c
 
 ## How-to
 
-
 Set the changed manifest at the Coordinator with:
 
 ```sh
@@ -39,3 +38,9 @@ kubectl rollout restart <resource>
 ```
 
 for all your application resources.
+
+### Updates for certificate rotation
+
+As described above, a manifest update triggers rotation of the mesh CA certificate, the intermediate CA certificate and the workload certificates.
+You can use this to force a certificate rotation or to constrain the certificate validity period.
+Setting the current manifest once more causes a certificate rotation, without changing the reference values enforced by the Coordinator.

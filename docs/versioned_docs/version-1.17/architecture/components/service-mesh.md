@@ -223,6 +223,18 @@ This mechanism protects against scenarios where a workload owner introduces unau
 
 Similarly, the service mesh uses the mesh CA certificate issued when the workload was verified. Any change to the manifest requires a new rollout of the services, as the mesh CA certificate will change.
 
+:::info
+
+The Coordinator root, intermediate and mesh CA certificates are valid for 10 years from the instant of the `contrast set` operation, while the workload certificates are valid for one year.
+These lifetimes are chosen to be larger than the expected lifetime of a pod using the certificates.
+However, the practical validity of the certificates is determined by the Coordinator manifest lifecycle and the uptime of individual pods.
+The service mesh container will only accept certificates issued by the mesh CA that issued its own certificate.
+
+If shorter certificate or key lifetimes are desired for some other reason, the certificates can be rotated with a [manifest update](../../howto/manifest-update.md).
+Note that the root CA certificate can't be rotated without deploying a new Coordinator.
+
+:::
+
 ### Service mesh integration
 
 The service mesh relies on the mesh certificates to establish mutual TLS (mTLS) connections between workloads.
