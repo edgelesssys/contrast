@@ -1,0 +1,33 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: contrast-testing
+  region: eu-central-1
+  version: "1.31"
+
+iam:
+  withOIDC: true
+
+nodeGroups:
+  - name: selfmanaged
+    instanceType: "m6a.metal"
+    overrideBootstrapCommand: |
+      #!/bin/bash
+      source /var/lib/cloud/scripts/eksctl/bootstrap.helper.sh
+      # Note "--node-labels=${NODE_LABELS}" needs the above helper sourced to work, otherwise will have to be defined manually.
+      /etc/eks/bootstrap.sh ${CLUSTER_NAME} --container-runtime containerd --kubelet-extra-args "--node-labels=${NODE_LABELS}"
+    desiredCapacity: 1
+    maxSize: 1
+    amiFamily: Ubuntu2404
+    volumeType: gp3
+    volumeSize: 300
+    iam:
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+    ssh:
+      allow: true
+      publicKeyName: ssh-key-name # replace with your actual key name
