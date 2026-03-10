@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -103,8 +104,9 @@ func TestPatchRuntimeClassName(t *testing.T) {
 	defaultHandler := "contrast-cc-metal-qemu-snp"
 
 	testCases := map[string]struct {
-		initial string
-		want    string
+		initial       string
+		want          string
+		updateHandler bool
 	}{
 		"no runtime class": {
 			initial: "",
@@ -122,15 +124,26 @@ func TestPatchRuntimeClassName(t *testing.T) {
 			initial: "contrast-cc",
 			want:    defaultHandler,
 		},
-		"specific contrast-cc-metal-qemu-snp": {
-			initial: "contrast-cc-metal-qemu-snp",
-			want:    "contrast-cc-metal-qemu-snp",
+		"specific contrast-cc-metal-qemu-tdx": {
+			initial:       "contrast-cc-metal-qemu-tdx",
+			want:          "contrast-cc-metal-qemu-tdx",
+			updateHandler: true,
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			patch := patchRuntimeClassName(logger, defaultHandler)
+			if _, err := manifest.GetEmbeddedReferenceValues(); err != nil && tc.updateHandler {
+				// The embedded reference values are only available when running the test through nix
+				// (e.g. nix build .#base.contrast.cli), not when using go test.
+				// This only applies in cases where manifest.RuntimeHandler is called, in which case
+				// we also need to update the handler to include the suffix (see below).
+				t.Skip()
+			} else if tc.updateHandler {
+				tc.want = getHandler(t, tc.want)
+			}
+
+			patch := patchRuntimeClassName(logger, tc.want)
 			spec := applycorev1.PodSpec()
 			if tc.initial != "" {
 				spec.WithRuntimeClassName(tc.initial)
@@ -149,4 +162,17 @@ func TestPatchRuntimeClassName(t *testing.T) {
 		patch := patchRuntimeClassName(logger, defaultHandler)
 		assert.Nil(t, patch(nil))
 	})
+}
+
+func getHandler(t *testing.T, name string) string {
+	t.Helper()
+	platform, err := platforms.FromRuntimeClassString(name)
+	if platform == platforms.Unknown {
+		// Testcase where we don't expect a supported platform.
+		return name
+	}
+	require.NoError(t, err)
+	handler, err := manifest.RuntimeHandler(platform)
+	require.NoError(t, err)
+	return handler
 }
