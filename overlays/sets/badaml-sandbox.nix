@@ -20,19 +20,25 @@ _final: prev: {
         }
       );
       contrast = contrastPkgsPrev.contrast.overrideScope (
-        _contrastFinal: contrastPrev: {
+        _contrastFinal: contrastPrev:
+        let
+          qemu = contrastPkgsFinal.contrastPkgsStatic.qemu-wrapped.override {
+            withACPITable = true;
+          };
+        in
+        {
           node-installer-image = contrastPrev.node-installer-image.override {
             withExtraLayers = [
               (contrastPkgsFinal.ociLayerTar {
                 files = [
                   {
                     # The wrapper script that replaces the original qemu binary.
-                    source = "${contrastPkgsFinal.contrastPkgsStatic.qemu-badaml}/bin/qemu-system-x86_64";
+                    source = "${qemu}/bin/qemu-system-x86_64";
                     destination = "/opt/edgeless/bin/qemu-system-x86_64";
                   }
                   {
-                    # The actual qemu binary that is wrapped by qemu-badaml.
-                    source = "${contrastPkgsFinal.contrastPkgsStatic.qemu-badaml}/bin/qemu-system-x86_64-wrapped";
+                    # The actual qemu binary that is wrapped by qemu-wrapped.
+                    source = "${qemu}/bin/qemu-system-x86_64-wrapped";
                     destination = "/opt/edgeless/bin/qemu-system-x86_64-wrapped";
                   }
                   {
@@ -45,7 +51,7 @@ _final: prev: {
             ];
             withExtraInstallFilesConfig = [
               {
-                # qemu-badaml is a wrapper script that invokes the real qemu-cc binary.
+                # qemu-wrapped is a wrapper script that invokes the real qemu-cc binary.
                 # The original install entry for qemu-cc will only install the wrapper scripts,
                 # so we need to add an additional step to install the actual, wrapped qemu binary.
                 url = "file:///opt/edgeless/bin/qemu-system-x86_64-wrapped";
