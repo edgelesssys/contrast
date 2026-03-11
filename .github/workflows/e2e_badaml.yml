@@ -6,7 +6,7 @@ on:
       - sets/badaml-vuln
       - sets/badaml-sandbox
       - packages/kata/kernel-uvm/**
-      - packages/qemu-badaml/**
+      - packages/qemu-wrapped/**
       - packages/badaml-payload/**
       - e2e/badaml-vuln/**
       - e2e/badaml-sandbox/**
