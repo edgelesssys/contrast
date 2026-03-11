@@ -18,15 +18,15 @@
 }:
 
 let
-  pinnedCommit = "ba47bb658384c9b9eaafb499c77a43ce982be451";
+  pinnedCommit = "b6c60d9229b210a1925f43a1a20af1882cee255b";
   toolchainFile = builtins.fetchurl {
     url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${pinnedCommit}/rust-toolchain.toml";
-    sha256 = "sha256:1yqrlgyxqy4rxyvf4gskqi2qanw8cpfi5p32axq111ia47n936b6";
+    sha256 = "sha256:02fmrgapbfiwicxnxm51cl152bzyf9gmqzf76nn7igjlnpd0qyyr";
   };
 
   toolchainSpec = {
     name = (lib.importTOML toolchainFile).toolchain.channel;
-    sha256 = "sha256-+9FmLhAOezBZCOziO0Qct1NOrfpjNsXxc/8I0c7BdKE=";
+    sha256 = "sha256-SDu4snEWjuZU475PERvu+iO50Mi39KVjqCeJeNvpguU=";
   };
   muslToolchain = fenix.targets."x86_64-unknown-linux-musl".fromToolchainName toolchainSpec;
 in
