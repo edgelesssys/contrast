@@ -110,6 +110,8 @@ func KataRuntimeConfig(
 	// TODO: Check again why we need this and how we can avoid it.
 	config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 
+	config = extraRuntimeConfig(config)
+
 	return &config, nil
 }
 
