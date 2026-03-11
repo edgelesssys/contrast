@@ -7,8 +7,8 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 ---
  src/runtime/virtcontainers/container.go | 15 +++++++++++++++
  src/tools/genpolicy/src/pod.rs          | 11 +++++++++++
- src/tools/genpolicy/src/policy.rs       | 19 +++++++++++++++++++
- 3 files changed, 45 insertions(+)
+ src/tools/genpolicy/src/policy.rs       | 14 ++++++++++++++
+ 3 files changed, 40 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
 index e1ae8d8ea1a419f1aa7c62423e38ebc3134d7f02..1424a06ffab017be32369f649d52a739568cc515 100644
@@ -44,12 +44,12 @@ index e1ae8d8ea1a419f1aa7c62423e38ebc3134d7f02..1424a06ffab017be32369f649d52a739
  
  	}
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 62fb2a4a7a070bb81ecc553d16a41711c84dd310..3d1e7b5bd95d18a84d4a336ddceec0d21ff8f0b3 100644
+index 20b7e8c0d3b3beafde0ab95fc5f5c67d5b44cfd2..c4df47208702bcedc695ae4197d29af072866410 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -1069,6 +1069,17 @@ impl Container {
-             .and_then(|l| l.get("nvidia.com/pgpu"))
-             .and_then(|v| v.parse::<usize>().ok())
+@@ -1065,6 +1065,17 @@ impl Container {
+         let limits = self.resources.as_ref()?.limits.as_ref()?;
+         sum_limits_by_keys(limits, pgpu_resource_keys)
      }
 +
 +    pub fn uses_nvidia_visible_devices(&self) -> bool {
@@ -66,31 +66,26 @@ index 62fb2a4a7a070bb81ecc553d16a41711c84dd310..3d1e7b5bd95d18a84d4a336ddceec0d2
  
  fn compress_default_capabilities(
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index f1f74e56bb25b83e339d06ee5123b5d4518b762b..8258844480aef0314c0e529f9e1399e8319a5e50 100644
+index 83f82ce85a47383353a72b6a18a0ce99cf6c5032..fc3e749148d43f91f4c40005b7f63a1c41095152 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -778,6 +778,25 @@ impl AgentPolicy {
+@@ -789,6 +789,20 @@ impl AgentPolicy {
              }
          }
  
 +        // If the container is configured with NVIDIA_VISIBLE_DEVICES=all, it will also get the annotation.
 +        if yaml_container.uses_nvidia_visible_devices() {
-+                runtime_anno_patterns.insert(
-+                    self.config
-+                        .settings
-+                        .device_annotations
-+                        .vfio
-+                        .key_regex
-+                        .clone(),
-+                    self.config
-+                        .settings
-+                        .device_annotations
-+                        .vfio
-+                        .nvidia_gpu_value_regex
-+                        .clone(),
-+                );
++            runtime_anno_patterns.insert(
++                self.config.settings.devices.vfio.anno_key_regex.clone(),
++                self.config
++                    .settings
++                    .devices
++                    .vfio
++                    .nvidia
++                    .gpu_anno_value_regex
++                    .clone(),
++            );
 +        }
-+
 +
          for default_device in &c_settings.Linux.Devices {
              linux.Devices.push(default_device.clone())

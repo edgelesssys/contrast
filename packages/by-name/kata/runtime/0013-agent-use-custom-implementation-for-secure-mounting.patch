@@ -57,10 +57,10 @@ index 64db843a5953e7176420274bc65b99974534e407..bf2ec55251ef3013726bc2b24a8c69b4
      Ok(())
  }
 diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
-index a005c61ef2adb4b894cc5843cf649c7a9215ba27..0ef1e4a2fbac4d67bcb13d324d1df98bfa0067e9 100644
+index 143c3a2a4c6c35ff2c3aa361e69d0c3508f2b150..7d38a9ec24240b840acb4f7c985f585a738996f6 100644
 --- a/src/agent/src/rpc.rs
 +++ b/src/agent/src/rpc.rs
-@@ -107,7 +107,7 @@ use kata_types::k8s;
+@@ -108,7 +108,7 @@ use kata_types::k8s;
  
  pub const CONTAINER_BASE: &str = "/run/kata-containers";
  const MODPROBE_PATH: &str = "/sbin/modprobe";
@@ -69,7 +69,7 @@ index a005c61ef2adb4b894cc5843cf649c7a9215ba27..0ef1e4a2fbac4d67bcb13d324d1df98b
  /// the iptables seriers binaries could appear either in /sbin
  /// or /usr/sbin, we need to check both of them
  const USR_IPTABLES_SAVE: &str = "/usr/sbin/iptables-save";
-@@ -2267,9 +2267,6 @@ fn is_sealed_secret_path(source_path: &str) -> bool {
+@@ -2308,9 +2308,6 @@ fn is_sealed_secret_path(source_path: &str) -> bool {
  }
  
  async fn cdh_handler_trusted_storage(oci: &mut Spec) -> Result<()> {

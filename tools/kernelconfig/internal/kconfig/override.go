@@ -28,21 +28,10 @@ func OverrideConfig(baseConfig []byte, isGPU bool) (*Config, error) {
 
 	if isGPU {
 		// Disable module signing to make the build reproducible.
-		config.Set("CONFIG_MD", "y")
 		config.Set("CONFIG_MODULE_SIG", "n")
-
-		// Enable dm-init, so that we can use `dm-mod.create`.
-		// Source: https://github.com/kata-containers/kata-containers/blob/2c6126d3ab708e480b5aad1e7f7adbe22ffaa539/tools/packaging/kernel/configs/fragments/common/confidential_containers/cryptsetup.conf
-		config.Set("CONFIG_BLK_DEV_DM", "y")
-		config.Set("CONFIG_DM_INIT", "y")
-		config.Set("CONFIG_DM_CRYPT", "y")
-		config.Set("CONFIG_DM_VERITY", "y")
-		config.Set("CONFIG_DM_INTEGRITY", "y")
 	} else {
 		// Our kernel build is independent of any initrd.
 		config.Set("CONFIG_INITRAMFS_SOURCE", `""`)
-		// Enable dm-init, so that we can use `dm-mod.create`.
-		config.Set("CONFIG_DM_INIT", "y")
 		// NixOS requires capability of loading kernel modules.
 		config.Set("CONFIG_MODULES", "y")
 	}

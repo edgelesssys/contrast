@@ -9,7 +9,7 @@ Subject: [PATCH] shim: guess CDI devices without direct match
  2 files changed, 65 insertions(+), 5 deletions(-)
 
 diff --git a/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go b/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go
-index 9334a7940862bc6e5f60f6246a2c59605d1f0555..1c09e2bee60fc5deead363110a67ff4e965aa17b 100644
+index 0b1373063464dcf4f49cf05ea1f8cf63a003683b..ef28bec488fef8cc0be75715601f49dbda4debca 100644
 --- a/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go
 +++ b/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go
 @@ -7,6 +7,7 @@ package containerdshim
@@ -20,7 +20,7 @@ index 9334a7940862bc6e5f60f6246a2c59605d1f0555..1c09e2bee60fc5deead363110a67ff4e
  	"fmt"
  	"net"
  	"strings"
-@@ -59,17 +60,34 @@ func coldPlugWithAPI(ctx context.Context, s *service, ociSpec *specs.Spec) error
+@@ -64,17 +65,34 @@ func coldPlugWithAPI(ctx context.Context, s *service, ociSpec *specs.Spec) error
  	if err != nil {
  		return err
  	}

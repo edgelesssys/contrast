@@ -24,7 +24,7 @@ index 1225271a2a4c5d9340022c22ee6889171bc21b93..a3398bcf6fac68e272a4ca1de962e585
  
  	if conf.NumVCPUs == 0 {
 diff --git a/src/runtime/virtcontainers/hypervisor_config_linux.go b/src/runtime/virtcontainers/hypervisor_config_linux.go
-index 1bcd47218c3c6e336b443eb3b7337bf35602cae4..e695aa52f23e86687b9481e92d6b0c523fda10ac 100644
+index 9d4c8c1c6fd95b647697cb30c8758d7e53ee3765..0f9c119af39f0c1080b271a12057e38bf8b5fc52 100644
 --- a/src/runtime/virtcontainers/hypervisor_config_linux.go
 +++ b/src/runtime/virtcontainers/hypervisor_config_linux.go
 @@ -28,8 +28,6 @@ func validateHypervisorConfig(conf *HypervisorConfig) error {
@@ -37,7 +37,7 @@ index 1bcd47218c3c6e336b443eb3b7337bf35602cae4..e695aa52f23e86687b9481e92d6b0c52
  
  	if err := conf.CheckTemplateConfig(); err != nil {
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 164d98e1f8ed3cf0befe82ff944a1f842e0feb4e..f7ce021237ee692b07d2f4cccd862887a121e228 100644
+index 1402fab2fefcb9e9177a8a0b3a35ccddf4028e57..76c0e3028164c80fa1ff170ed96a27efe459f431 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -426,24 +426,12 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu

@@ -1,8 +1,19 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 88171e1c40f271be9468c6c8b9b87c871a55c1f9..3a4617ee6acad46e156cb664d710f42f1c488a32 100644
+index e7800bd10ba1eae91bdf61b4c1bab2af46bc4a05..1469b7238f4483325e63f32ea37b296b50e55e26 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -296,7 +296,7 @@
+@@ -193,7 +193,9 @@
+                 "gpu_anno_value_regex": "^nvidia\\.com/gpu=[0-9]+$",
+                 "gpu_gk_device_type": "vfio-pci-gk",
+                 "pgpu_resource_keys": [
+-                    "nvidia.com/pgpu"
++                    "nvidia.com/pgpu",
++                    "nvidia.com/GB100_B200",
++                    "nvidia.com/GH100_H100_PCIE"
+                 ]
+             }
+         }
+@@ -301,7 +303,7 @@
          "enable_configmap_secret_storages": false
      },
      "cluster_config": {
@@ -11,7 +22,7 @@ index 88171e1c40f271be9468c6c8b9b87c871a55c1f9..3a4617ee6acad46e156cb664d710f42f
          "guest_pull": true,
          "pause_container_id_policy": "v1"
      },
-@@ -354,7 +354,7 @@
+@@ -359,7 +361,7 @@
              ]
          },
          "CloseStdinRequest": false,
