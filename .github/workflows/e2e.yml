@@ -53,6 +53,7 @@ jobs:
       DEBUG_SHELL: ${{ inputs.debug-shell }}
       SET: >-
         ${{
+          (inputs.test-name == 'badaml-ovmf-validator' && 'badaml-ovmf-validator') ||
           (inputs.test-name == 'badaml-sandbox' && 'badaml-sandbox') ||
           (inputs.test-name == 'badaml-vuln' && 'badaml-vuln') ||
           'base'

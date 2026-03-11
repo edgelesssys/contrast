@@ -5,11 +5,14 @@ on:
     paths:
       - sets/badaml-vuln
       - sets/badaml-sandbox
+      - sets/badaml-ovmf-validator
       - packages/kata/kernel-uvm/**
       - packages/qemu-wrapped/**
       - packages/badaml-payload/**
+      - packages/OVMF-SNP/**
       - e2e/badaml-vuln/**
       - e2e/badaml-sandbox/**
+      - e2e/badaml-ovmf-validator/**
 
 jobs:
   tests:
@@ -31,6 +34,7 @@ jobs:
         test-name:
           - badaml-vuln
           - badaml-sandbox
+          - badaml-ovmf-validator
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
