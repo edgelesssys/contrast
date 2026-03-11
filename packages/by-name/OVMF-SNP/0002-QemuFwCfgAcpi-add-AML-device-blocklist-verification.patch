@@ -1,0 +1,501 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Spyros Seimenis <sse@edgeless.systems>
+Date: Tue, 24 Feb 2026 11:43:16 +0200
+Subject: [PATCH] QemuFwCfgAcpi: add AML device blocklist verification
+
+Add ACPI blob verification that scans DSDT/SSDT AML bytecode for
+Device() definitions and rejects blobs containing devices whose
+NameSeg matches a blocklist. This provides a first line of defense
+against injected ACPI devices from the host.
+
+The blocklist currently contains "FAKE" as a proof-of-concept entry
+to block the badaml-payload test device.
+
+Signed-off-by: Spyros Seimenis <sse@edgeless.systems>
+---
+ .../Library/AcpiPlatformLib/QemuFwCfgAcpi.c   | 442 +++++++++++++++---
+ 1 file changed, 390 insertions(+), 52 deletions(-)
+
+diff --git a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+index 818a85a17b9da7e56089852106e37aba15fe419f..48007fea810bf67925309e177dde434c38adf24b 100644
+--- a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
++++ b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+@@ -9,6 +9,7 @@
+ **/
+ 
+ #include <IndustryStandard/Acpi.h>            // EFI_ACPI_DESCRIPTION_HEADER
++#include <IndustryStandard/AcpiAml.h>         // AML_EXT_OP, AML_EXT_DEVICE_OP
+ #include <IndustryStandard/QemuLoader.h>      // QEMU_LOADER_FNAME_SIZE
+ #include <Library/AcpiPlatformLib.h>
+ #include <Library/BaseLib.h>                  // AsciiStrCmp()
+@@ -35,42 +36,369 @@ typedef struct {
+                                            // part of ACPI tables.
+ } BLOB;
+ 
+-/**
+-  Verify the ACPI blob data. Currently a no-op.
+-
+-  @param[in] Data        Pointer to the data to verify.
+-  @param[in] DataSize    Size of the data in bytes.
+-
+-  @retval EFI_SUCCESS    Verification succeeded (or skipped).
+-**/
+-STATIC
+-EFI_STATUS
+-VerifyBlobData (
+-  IN CONST VOID  *Data,
+-  IN UINTN       DataSize
+-  )
+-{
+-  return EFI_SUCCESS;
+-}
+-
+-/**
+-  Verify the table-loader script data. Currently a no-op.
+-
+-  @param[in] Data        Pointer to the data to verify.
+-  @param[in] DataSize    Size of the data in bytes.
+-
+-  @retval EFI_SUCCESS    Verification succeeded (or skipped).
+-**/
+-STATIC
+-EFI_STATUS
+-VerifyTableLoaderData (
+-  IN CONST VOID  *Data,
+-  IN UINTN       DataSize
+-  )
+-{
+-  return EFI_SUCCESS;
+-}
+-
++//
++// Blocked ACPI device names. Any Device() with a NameSeg matching
++// an entry in this list causes the blob to be rejected.
++//
++STATIC CONST CHAR8  *mBlockedDeviceNames[] = {
++  "FAKE",
++  NULL
++};
++
++/**
++  Parse a PkgLength field from raw AML bytecode.
++
++  @param[in]  Data       Pointer to the start of the PkgLength encoding.
++  @param[in]  MaxLen     Maximum number of bytes available.
++  @param[out] PkgLength  Decoded package length value.
++  @param[out] ByteCount  Number of bytes consumed by the PkgLength encoding.
++
++  @retval TRUE   Successfully parsed.
++  @retval FALSE  Data is truncated or malformed.
++**/
++STATIC
++BOOLEAN
++ParseAmlPkgLength (
++  IN  CONST UINT8  *Data,
++  IN  UINT32       MaxLen,
++  OUT UINT32       *PkgLength,
++  OUT UINT32       *ByteCount
++  )
++{
++  UINT8   LeadByte;
++  UINT8   ByteDataCount;
++  UINT32  Length;
++
++  if (MaxLen < 1) {
++    return FALSE;
++  }
++
++  LeadByte      = Data[0];
++  ByteDataCount = (LeadByte >> 6) & 0x03;
++
++  if (ByteDataCount == 0) {
++    *PkgLength = LeadByte & 0x3F;
++    *ByteCount = 1;
++    return TRUE;
++  }
++
++  if (MaxLen < (UINT32)(ByteDataCount + 1)) {
++    return FALSE;
++  }
++
++  Length = LeadByte & 0x0F;
++  if (ByteDataCount >= 1) {
++    Length |= ((UINT32)Data[1]) << 4;
++  }
++
++  if (ByteDataCount >= 2) {
++    Length |= ((UINT32)Data[2]) << 12;
++  }
++
++  if (ByteDataCount >= 3) {
++    Length |= ((UINT32)Data[3]) << 20;
++  }
++
++  *PkgLength = Length;
++  *ByteCount = ByteDataCount + 1;
++  return TRUE;
++}
++
++/**
++  Skip AML name prefix characters (RootChar, ParentPrefixChar,
++  DualNamePrefix, MultiNamePrefix) and return a pointer to the
++  final NameSeg.
++
++  @param[in]  Data       Pointer into the AML stream after PkgLength.
++  @param[in]  MaxLen     Remaining bytes available.
++  @param[out] NameSegPtr Set to point at the final 4-byte NameSeg.
++
++  @return  Number of bytes consumed by prefixes (before NameSeg).
++**/
++STATIC
++UINT32
++SkipAmlNamePrefixes (
++  IN  CONST UINT8  *Data,
++  IN  UINT32       MaxLen,
++  OUT CONST UINT8  **NameSegPtr
++  )
++{
++  UINT32  Offset;
++
++  Offset = 0;
++
++  while (Offset < MaxLen) {
++    if (Data[Offset] == AML_ROOT_CHAR) {
++      Offset++;
++    } else if (Data[Offset] == AML_PARENT_PREFIX_CHAR) {
++      Offset++;
++    } else if (Data[Offset] == AML_DUAL_NAME_PREFIX) {
++      //
++      // DualNamePath: two consecutive NameSegs; take the second.
++      //
++      Offset++;
++      if (Offset + 8 <= MaxLen) {
++        Offset += 4;
++      }
++
++      break;
++    } else if (Data[Offset] == AML_MULTI_NAME_PREFIX) {
++      //
++      // MultiNamePath: SegCount followed by that many NameSegs;
++      // take the last one.
++      //
++      Offset++;
++      if (Offset < MaxLen) {
++        UINT8  SegCount = Data[Offset];
++        Offset++;
++        if ((SegCount > 1) && (Offset + (UINT32)(SegCount - 1) * 4 <= MaxLen)) {
++          Offset += (UINT32)(SegCount - 1) * 4;
++        }
++      }
++
++      break;
++    } else {
++      break;
++    }
++  }
++
++  *NameSegPtr = &Data[Offset];
++  return Offset;
++}
++
++/**
++  Check whether a 4-byte NameSeg matches any entry in the blocked
++  device list.
++
++  @param[in] NameSeg  Pointer to a 4-byte AML NameSeg.
++
++  @retval TRUE   The device name is blocked.
++  @retval FALSE  The device name is allowed.
++**/
++STATIC
++BOOLEAN
++IsDeviceNameBlocked (
++  IN CONST CHAR8  *NameSeg
++  )
++{
++  UINTN  Idx;
++
++  for (Idx = 0; mBlockedDeviceNames[Idx] != NULL; Idx++) {
++    if (AsciiStrnCmp (NameSeg, mBlockedDeviceNames[Idx], 4) == 0) {
++      return TRUE;
++    }
++
++    //
++    // AML pads short names with '_', e.g. "KBD" becomes "KBD_".
++    // Match 3-char blocklist entries against the first 3 bytes
++    // when the 4th byte is '_'.
++    //
++    if ((AsciiStrLen (mBlockedDeviceNames[Idx]) == 3) &&
++        (AsciiStrnCmp (NameSeg, mBlockedDeviceNames[Idx], 3) == 0) &&
++        (NameSeg[3] == '_'))
++    {
++      return TRUE;
++    }
++  }
++
++  return FALSE;
++}
++
++/**
++  Scan raw AML bytecode for Device() definitions and reject the
++  blob if any device has a NameSeg present in the blocklist.
++
++  @param[in] AmlData  Pointer to AML bytecode (after the ACPI header).
++  @param[in] AmlSize  Size of the AML bytecode in bytes.
++
++  @retval EFI_SUCCESS             No blocked devices found.
++  @retval EFI_SECURITY_VIOLATION  A blocked device was found.
++**/
++STATIC
++EFI_STATUS
++ScanAmlForBlockedDevices (
++  IN CONST UINT8  *AmlData,
++  IN UINT32       AmlSize
++  )
++{
++  UINT32       Idx;
++  UINT32       PkgLength;
++  UINT32       PkgLenBytes;
++  UINT32       NameOffset;
++  CONST UINT8  *NamePtr;
++  CHAR8        DevName[5];
++
++  for (Idx = 0; Idx + 1 < AmlSize; Idx++) {
++    //
++    // ExtOpPrefix (0x5B) followed by DeviceOp (0x82)
++    //
++    if ((AmlData[Idx] != AML_EXT_OP) ||
++        (AmlData[Idx + 1] != AML_EXT_DEVICE_OP))
++    {
++      continue;
++    }
++
++    NameOffset = Idx + 2;
++    if (NameOffset >= AmlSize) {
++      DEBUG ((DEBUG_ERROR, "AcpiVerify: Truncated Device at 0x%x\n", Idx));
++      return EFI_SECURITY_VIOLATION;
++    }
++
++    if (!ParseAmlPkgLength (
++           &AmlData[NameOffset],
++           AmlSize - NameOffset,
++           &PkgLength,
++           &PkgLenBytes
++           ))
++    {
++      DEBUG ((DEBUG_ERROR, "AcpiVerify: Bad PkgLength at 0x%x\n", NameOffset));
++      return EFI_SECURITY_VIOLATION;
++    }
++
++    NameOffset += PkgLenBytes;
++    if (NameOffset + 4 > AmlSize) {
++      DEBUG ((DEBUG_ERROR, "AcpiVerify: Device name truncated at 0x%x\n", Idx));
++      return EFI_SECURITY_VIOLATION;
++    }
++
++    SkipAmlNamePrefixes (
++      &AmlData[NameOffset],
++      AmlSize - NameOffset,
++      &NamePtr
++      );
++
++    if (NamePtr + 4 > AmlData + AmlSize) {
++      DEBUG ((DEBUG_ERROR, "AcpiVerify: Name out of bounds at 0x%x\n", Idx));
++      return EFI_SECURITY_VIOLATION;
++    }
++
++    CopyMem (DevName, NamePtr, 4);
++    DevName[4] = '\0';
++
++    if (IsDeviceNameBlocked (DevName)) {
++      DEBUG ((
++        DEBUG_ERROR,
++        "AcpiVerify: BLOCKED device \"%.4a\" at AML offset 0x%x\n",
++        DevName,
++        Idx
++        ));
++      return EFI_SECURITY_VIOLATION;
++    }
++
++    DEBUG ((DEBUG_VERBOSE, "AcpiVerify: Device \"%.4a\" OK\n", DevName));
++  }
++
++  return EFI_SUCCESS;
++}
++
++/**
++  Verify ACPI blob data.
++
++  The blob may contain multiple concatenated ACPI tables (as with
++  QEMU's etc/acpi/tables). Walk through all tables and scan any
++  DSDT or SSDT for blocked device names.
++
++  @param[in] Data        Pointer to the blob data.
++  @param[in] DataSize    Size of the blob in bytes.
++
++  @retval EFI_SUCCESS             Verification succeeded.
++  @retval EFI_SECURITY_VIOLATION  A blocked construct was found.
++**/
++STATIC
++EFI_STATUS
++VerifyBlobData (
++  IN CONST VOID  *Data,
++  IN UINTN       DataSize
++  )
++{
++  CONST UINT8                        *Blob;
++  UINTN                              Offset;
++  CONST EFI_ACPI_DESCRIPTION_HEADER  *Header;
++  UINT32                             Signature;
++  EFI_STATUS                         Status;
++
++  DEBUG ((DEBUG_INFO, "AcpiVerify: VerifyBlobData called, size=%u\n", (UINT32)DataSize));
++
++  Blob   = (CONST UINT8 *)Data;
++  Offset = 0;
++
++  while (Offset + sizeof (EFI_ACPI_DESCRIPTION_HEADER) <= DataSize) {
++    Header    = (CONST EFI_ACPI_DESCRIPTION_HEADER *)(Blob + Offset);
++    Signature = Header->Signature;
++
++    //
++    // The blob is pre-allocated and zero-filled. A zero signature
++    // or zero length marks the end of the table area.
++    //
++    if ((Signature == 0) || (Header->Length == 0)) {
++      break;
++    }
++
++    if (Header->Length < sizeof (EFI_ACPI_DESCRIPTION_HEADER) ||
++        Header->Length > DataSize - Offset)
++    {
++      DEBUG ((
++        DEBUG_ERROR,
++        "AcpiVerify: Bad table length %u at offset 0x%x\n",
++        Header->Length,
++        (UINT32)Offset
++        ));
++      return EFI_SECURITY_VIOLATION;
++    }
++
++    if ((Signature == SIGNATURE_32 ('D', 'S', 'D', 'T')) ||
++        (Signature == SIGNATURE_32 ('S', 'S', 'D', 'T')))
++    {
++      DEBUG ((
++        DEBUG_INFO,
++        "AcpiVerify: Scanning %.4a (OEM=%.6a, len=%u) at offset 0x%x\n",
++        (CONST CHAR8 *)&Signature,
++        Header->OemId,
++        Header->Length,
++        (UINT32)Offset
++        ));
++
++      Status = ScanAmlForBlockedDevices (
++                 Blob + Offset + sizeof (EFI_ACPI_DESCRIPTION_HEADER),
++                 Header->Length - sizeof (EFI_ACPI_DESCRIPTION_HEADER)
++                 );
++      if (EFI_ERROR (Status)) {
++        return Status;
++      }
++    } else {
++      DEBUG ((
++        DEBUG_VERBOSE,
++        "AcpiVerify: Skipping %.4a (len=%u) at offset 0x%x\n",
++        (CONST CHAR8 *)&Signature,
++        Header->Length,
++        (UINT32)Offset
++        ));
++    }
++
++    Offset += Header->Length;
++  }
++
++  return EFI_SUCCESS;
++}
++
++/**
++  Verify the table-loader script data. Currently a no-op.
++
++  @param[in] Data        Pointer to the data to verify.
++  @param[in] DataSize    Size of the data in bytes.
++
++  @retval EFI_SUCCESS    Verification succeeded (or skipped).
++**/
++STATIC
++EFI_STATUS
++VerifyTableLoaderData (
++  IN CONST VOID  *Data,
++  IN UINTN       DataSize
++  )
++{
++  return EFI_SUCCESS;
++}
++
+ /**
+   Compare a standalone key against a user structure containing an embedded key.
+ 
+@@ -452,20 +780,30 @@ ProcessCmdAllocate (
+     ));
+ 
+   //
+-  // Verify the data which is downloaded from QEMU.
++  // Verify the data which is downloaded from QEMU.
+   // It has to be done before it is consumed. Because the data will
+   // be updated in the following operations.
+   //
+-  Status = VerifyBlobData (
+-             (VOID *)(UINTN)Blob->Base,
+-             Blob->Size
+-             );
+-  if (EFI_ERROR (Status)) {
+-    goto FreeBlob;
+-  }
++  Status = VerifyBlobData (
++             (VOID *)(UINTN)Blob->Base,
++             Blob->Size
++             );
++  if (EFI_ERROR (Status)) {
++    goto RemoveAndFreeBlob;
++  }
+ 
+   return EFI_SUCCESS;
+ 
++RemoveAndFreeBlob:
++  {
++    ORDERED_COLLECTION_ENTRY  *TrackerEntry;
++
++    TrackerEntry = OrderedCollectionFind (Tracker, Blob->File);
++    if (TrackerEntry != NULL) {
++      OrderedCollectionDelete (Tracker, TrackerEntry, NULL);
++    }
++  }
++
+ FreeBlob:
+   FreePool (Blob);
+ 
+@@ -1177,17 +1515,17 @@ InstallQemuFwCfgTables (
+   RestorePciDecoding (OriginalPciAttributes, OriginalPciAttributesCount);
+ 
+   //
+-  // Verify the "etc/table-loader" which is downloaded from QEMU.
++  // Verify the "etc/table-loader" which is downloaded from QEMU.
+   // It has to be done before it is consumed. Because it would be
+   // updated in the following operations.
+   //
+-  Status = VerifyTableLoaderData (
+-             (VOID *)(UINTN)LoaderStart,
+-             FwCfgSize
+-             );
+-  if (EFI_ERROR (Status)) {
+-    goto FreeLoader;
+-  }
++  Status = VerifyTableLoaderData (
++             (VOID *)(UINTN)LoaderStart,
++             FwCfgSize
++             );
++  if (EFI_ERROR (Status)) {
++    goto FreeLoader;
++  }
+ 
+   LoaderEnd = LoaderStart + FwCfgSize / sizeof *LoaderEntry;
+ 

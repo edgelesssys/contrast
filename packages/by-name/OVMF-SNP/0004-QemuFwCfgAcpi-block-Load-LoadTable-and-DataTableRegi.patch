@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Spyros Seimenis <sse@edgeless.systems>
+Date: Mon, 9 Mar 2026 14:06:22 +0200
+Subject: [PATCH] QemuFwCfgAcpi: block Load, LoadTable, and DataTableRegion
+ opcodes
+
+Block AML opcodes that allow dynamic table loading or memory access
+bypassing static OperationRegion scanning:
+- Load (0x5B 0x20)
+- LoadTable (0x5B 0x1F)
+- DataTableRegion (0x5B 0x88)
+
+This prevents an attacker from hiding a malicious OperationRegion
+inside a raw buffer and loading it at runtime via Load(), which
+would bypass the static SystemMemory allowlist check.
+---
+ .../Library/AcpiPlatformLib/QemuFwCfgAcpi.c   | 54 ++++++++++++++++---
+ 1 file changed, 46 insertions(+), 8 deletions(-)
+
+diff --git a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+index 4cc2f9f04f93f5b204542304bdf36eaef8efa44b..cd9586516218067fc8efd0b8d8bf37d23bcda165 100644
+--- a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
++++ b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+@@ -254,12 +254,16 @@ IsSystemMemoryRegionAllowed (
+ }
+ 
+ /**
+-  Scan raw AML bytecode for blocked OperationRegion(SystemMemory) regions.
++  Scan raw AML bytecode for blocked constructs.
+ 
+-  Any OperationRegion with RegionSpace==SystemMemory (0x00) that does not
+-  match the HPET allowlist is rejected. Non-literal-constant addresses
+-  (Arg0, Local0, expressions) are also rejected because they cannot be
+-  statically verified. Other RegionSpace types are not checked.
++  Rejects:
++  - Load (0x5B 0x20), LoadTable (0x5B 0x1F), DataTableRegion (0x5B 0x88)
++    opcodes that allow dynamic AML loading or memory access bypassing
++    static scanning.
++  - Any OperationRegion with RegionSpace==SystemMemory (0x00) that does
++    not match the HPET allowlist. Non-literal-constant addresses (Arg0,
++    Local0, expressions) are also rejected because they cannot be
++    statically verified. Other RegionSpace types are not checked.
+ 
+   @param[in] AmlData  Pointer to AML bytecode (after the ACPI header).
+   @param[in] AmlSize  Size of the AML bytecode in bytes.
+@@ -284,12 +288,46 @@ ScanAmlForBlockedConstructs (
+   CONST UINT8  *NamePtr;
+ 
+   for (Idx = 0; Idx + 1 < AmlSize; Idx++) {
++    if (AmlData[Idx] != AML_EXT_OP) {
++      continue;
++    }
++
++    //
++    // Block Load, LoadTable, and DataTableRegion opcodes.
++    // These allow dynamic AML loading or memory access that bypasses
++    // static OperationRegion scanning.
++    //
++    if (AmlData[Idx + 1] == AML_EXT_LOAD_OP) {
++      DEBUG ((
++        DEBUG_ERROR,
++        "AcpiVerify: BLOCKED Load opcode at 0x%x\n",
++        Idx
++        ));
++      return EFI_SECURITY_VIOLATION;
++    }
++
++    if (AmlData[Idx + 1] == AML_EXT_LOAD_TABLE_OP) {
++      DEBUG ((
++        DEBUG_ERROR,
++        "AcpiVerify: BLOCKED LoadTable opcode at 0x%x\n",
++        Idx
++        ));
++      return EFI_SECURITY_VIOLATION;
++    }
++
++    if (AmlData[Idx + 1] == AML_EXT_DATA_REGION_OP) {
++      DEBUG ((
++        DEBUG_ERROR,
++        "AcpiVerify: BLOCKED DataTableRegion opcode at 0x%x\n",
++        Idx
++        ));
++      return EFI_SECURITY_VIOLATION;
++    }
++
+     //
+     // Look for ExtOpPrefix (0x5B) followed by RegionOp (0x80)
+     //
+-    if ((AmlData[Idx] != AML_EXT_OP) ||
+-        (AmlData[Idx + 1] != AML_EXT_REGION_OP))
+-    {
++    if (AmlData[Idx + 1] != AML_EXT_REGION_OP) {
+       continue;
+     }
+ 
