@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 // Update the configs and testdata for all platforms when they change upstream in kata-containers.
-// Should be invoked via `nix run .#scripts.update-kata-configurations`.
-// This is also part of the `static` CI workflow through `nix run .#scripts.generate`.
+// Should be invoked via `nix run .#base.scripts.update-kata-configurations`.
+// This is also part of the `static` CI workflow through `nix run .#base.scripts.generate`.
 package main
 
 import (

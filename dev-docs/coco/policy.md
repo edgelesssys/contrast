@@ -46,7 +46,7 @@ The upstream tool `genpolicy` supports an additional settings file to augment th
 The data section is specific to the pod at hand and is generated from the deployment YAML.
 
 Next to this document, you can find a [pod definition](example-policy.yml) and the corresponding [generated policy](example-policy.rego).
-The policy was created with `nix run .#cli-release` at commit `6d25a1b4c82adeb4fff2771453bc38ca44cde466`.
+The policy was created with `nix run .#base.contrast.cli-release` at commit `6d25a1b4c82adeb4fff2771453bc38ca44cde466`.
 
 [Rego]: https://www.openpolicyagent.org/docs/latest/policy-language/
 
@@ -95,7 +95,7 @@ These logs are included in the containerd error message and need to be extracted
 ```sh
 kubectl events --for pod/${failing_pod} -o json |
   jq -r '.items[-1].message' |
-  nix run .#scripts.parse-blocked-by-policy
+  nix run .#base.scripts.parse-blocked-by-policy
 ```
 
 This yields a long list of print statements issued during policy evaluation that allow tracing the execution.
@@ -139,7 +139,7 @@ agent_policy:78:  CreateContainerRequest: p Readonly = false i Readonly = true":
 The messages contain line numbers that allow following the execution in the policy source, which can be rendered with
 
 ```sh
-cat deployment.yaml | nix run .#scripts.extract-policies
+cat deployment.yaml | nix run .#base.scripts.extract-policies
 ```
 
 At first, we see that there are two `CreateContainerRequest: trying next policy container` messages.

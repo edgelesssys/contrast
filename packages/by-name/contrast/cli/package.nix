@@ -58,7 +58,7 @@ buildGoModule (finalAttrs: {
     install -D ${reference-values} internal/manifest/assets/reference-values.json
   '';
 
-  # postPatch will be overwritten by the release-cli derivation, prePatch won't.
+  # postPatch will be overwritten by the .#base.contrast.cli-release derivation, prePatch won't.
   postPatch = ''
     install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
   '';
