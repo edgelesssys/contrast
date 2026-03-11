@@ -3,12 +3,17 @@
 
 {
   edk2,
+  lib,
   nasm,
   acpica-tools,
+  debug ? false,
 }:
 
 edk2.mkDerivation "OvmfPkg/AmdSev/AmdSevX64.dsc" {
   name = "OVMF-SNP";
+
+  buildFlags = lib.optionals debug [ "-D DEBUG_ON_SERIAL_PORT=TRUE" ];
+  buildConfig = if debug then "DEBUG" else "RELEASE";
 
   postPatch = ''
     touch OvmfPkg/AmdSev/Grub/grub.efi
