@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -296,6 +297,7 @@ func TestAddInitializer(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			require := require.New(t)
+			assert := assert.New(t)
 
 			_, err := AddInitializer(tc.d, initializer)
 			if tc.wantError {
@@ -336,6 +338,12 @@ func TestAddInitializer(t *testing.T) {
 				for _, v := range c.VolumeMounts {
 					if *v.Name == expectedInitializerVolumeMountName {
 						initializerVolumeMountCount++
+						if c.Name != nil && *c.Name == "contrast-initializer" {
+							assert.Nil(v.ReadOnly)
+						} else {
+							require.NotNil(v.ReadOnly)
+							assert.True(*v.ReadOnly)
+						}
 					}
 				}
 				require.Equal(1, initializerVolumeMountCount)
@@ -348,6 +356,12 @@ func TestAddInitializer(t *testing.T) {
 				for _, v := range c.VolumeMounts {
 					if *v.Name == expectedInitializerVolumeMountName {
 						initializerVolumeMountCount++
+						if c.Name != nil && *c.Name == "contrast-initializer" {
+							assert.Nil(v.ReadOnly)
+						} else {
+							require.NotNil(v.ReadOnly)
+							assert.True(*v.ReadOnly)
+						}
 					}
 				}
 				require.Equal(1, initializerVolumeMountCount)

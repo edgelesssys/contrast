@@ -9,11 +9,13 @@ import (
 	"context"
 	"encoding/hex"
 	"flag"
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/util/exec"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
@@ -218,6 +220,30 @@ func TestWorkloadSecrets(t *testing.T) {
 		assert.Empty(stdout)
 		assert.Empty(stderr)
 		require.NoError(err)
+	})
+
+	t.Run("secrets volume is not writable", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+
+		// Context needs to be a bit longer than usual due to the regression test loop below.
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(5*time.Minute))
+		defer cancel()
+
+		webPods, err = ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, "web")
+		require.NoError(err)
+		require.NotEmpty(webPods)
+
+		for _, path := range []string{
+			"/contrast/foobar",
+			"/contrast/secrets/workload-secret-seed",
+			"/contrast/tls-config/mesh-ca.pem",
+		} {
+			stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[0].Name, []string{"/bin/sh", "-c", fmt.Sprintf("truncate -s0 %q", path)})
+			assert.Empty(stdout)
+			assert.Contains(stderr, "Read-only file system")
+			assert.ErrorAs(err, &exec.CodeExitError{})
+		}
 	})
 }
 

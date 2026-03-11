@@ -90,12 +90,16 @@ func AddInitializer(
 			return nil, nil
 		}
 
+		// All containers except the initializer receive the contrast-secrets volume read-only.
+		roVolumeMount := initializer.VolumeMounts[0]
+		roVolumeMount.WithReadOnly(true)
+
 		for i := range spec.Containers {
-			addOrReplaceVolumeMount(&spec.Containers[i], initializer.VolumeMounts[0])
+			addOrReplaceVolumeMount(&spec.Containers[i], roVolumeMount)
 		}
 
 		for i := range spec.InitContainers {
-			addOrReplaceVolumeMount(&spec.InitContainers[i], initializer.VolumeMounts[0])
+			addOrReplaceVolumeMount(&spec.InitContainers[i], roVolumeMount)
 		}
 
 		// Add the initializer as first init container.
