@@ -7,6 +7,10 @@
 _final: prev: {
   contrastPkgs = prev.contrastPkgs.overrideScope (
     contrastPkgsFinal: contrastPkgsPrev: {
+      # Disable OVMF ACPI validation so the kernel AML sandbox is tested in isolation.
+      OVMF-SNP = contrastPkgsPrev.OVMF-SNP.override {
+        withACPIValidation = false;
+      };
       kata = contrastPkgsPrev.kata.overrideScope (
         _kataFinal: kataPrev: {
           kernel-uvm = kataPrev.kernel-uvm.override {
@@ -28,6 +32,7 @@ _final: prev: {
         in
         {
           node-installer-image = contrastPrev.node-installer-image.override {
+            OVMF-SNP = contrastPkgsFinal.OVMF-SNP;
             withExtraLayers = [
               (contrastPkgsFinal.ociLayerTar {
                 files = [
