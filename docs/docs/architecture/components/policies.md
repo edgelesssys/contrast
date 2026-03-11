@@ -31,6 +31,13 @@ The image pull inside the VM only proceeds if the digests match.
 For the OCI runtime configuration, the CLI combines information from the image layers and the `PodSpec` to derive a permissible set of command-line arguments and environment variables.
 `ConfigMaps` and `Secrets` are also taken into account if they're referenced in the `PodSpec` and present among the resources.
 
+:::danger
+
+It's important to note that policy generation needs to happen in an environment trusted by the workload owner.
+Otherwise, malicious modifications to the manifest, the policies or the key material might compromise the entire deployment.
+
+:::
+
 ## Evaluation
 
 The generated policy document is included in an initdata document, which is in turn annotated to the pod definitions.
