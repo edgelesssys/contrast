@@ -12,14 +12,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.26.0";
+  version = "3.27.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = finalAttrs.version;
-      hash = "sha256-Xkd+Cq0OnX2r6Y2Mgay4moIrmHbAQHqTCfkrlb9ZKzQ=";
+      hash = "sha256-vNfGp+Izp2SxDMfHWLSCaok38m5ZaBhDgQbDsc+fqmc=";
     };
 
     patches = [
@@ -73,105 +73,68 @@ buildGoModule (finalAttrs: {
       # - https://github.com/kata-containers/kata-containers/pull/10559 (superset including the patch)
       ./0009-genpolicy-support-ephemeral-volume-source.patch
 
-      # Containerd versions since 2.0.4 set the sysfs of the pause container to RW if one of the
-      # main containers is privileged, whereas prior versions did not. The expected mounts are
-      # hard-coded in containerd.rs, making it tricky to support differences across containerd
-      # versions. We deal with this by always configuring the pause container's sysfs as RW, and
-      # then allowing a mount that is expected to be RW to be mounted as RO. The worst thing that
-      # could happen here is a container failure during sysfs writes.
-      #
-      # This workaround would not be necessary if we had better support for diverse containerd
-      # versions upstream. However, there is no consensus on how this would look like, or whether
-      # it makes sense at all, so we're fixing this downstream only.
-      # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
-      ./0010-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
-
       # Don't add storages for volumes declared in the image config.
       # This fixes a security issue where the host is able to write untrusted content to paths
       # under these volumes, by failing the policy generation if volumes without mounts are found.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11546.
-      ./0011-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+      ./0010-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
 
       # Imagepulling has moved into the CDH in Kata 3.18.0. Since we are not using the CDH,we are instead starting our own Imagepuller.
       # This patch redirects calls by upstream's PullImage ttRPC client implementation to communicate with our imagepuller ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0012-agent-use-custom-implementation-for-image-pulling.patch
+      ./0011-agent-use-custom-implementation-for-image-pulling.patch
 
       # Changes the unix socket used for ttRPC communication with the imagepuller.
       # Necessary to allow a separate imagestore service.
       # Can be removed in conjunction with patch 0018-agent-use-custom-implementation-for-image-pulling.patch.
-      ./0013-agent-use-separate-unix-socket-for-image-pulling.patch
+      ./0012-agent-use-separate-unix-socket-for-image-pulling.patch
 
       # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
       # This patch redirects calls by upstream's SecureImageStore ttRPC client implementation to communicate with our own ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0014-agent-use-custom-implementation-for-secure-mounting.patch
+      ./0013-agent-use-custom-implementation-for-secure-mounting.patch
 
       # Upstream expects guest pull to only use Nydus and applies workarounds that are not
       # necessary with force_guest_pull. This patch removes the workaround.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757.
-      ./0015-genpolicy-don-t-apply-Nydus-workaround.patch
+      ./0014-genpolicy-don-t-apply-Nydus-workaround.patch
 
       # We're using a dedicated initdata-processor job and don't want the Kata agent to manage
       # initdata for us.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11532.
-      ./0016-agent-remove-initdata-processing.patch
+      ./0015-agent-remove-initdata-processing.patch
 
       # In addition to the initdata device, we also require the imagepuller's auth config
       # to be passed to the VM in a similar manner.
-      ./0017-runtime-pass-imagepuller-config-device-to-vm.patch
+      ./0016-runtime-pass-imagepuller-config-device-to-vm.patch
 
       # Privatemode requires GPU sharing between containers of the same pod.
       # In the hook-based flow, this worked because all devices and libs were (accidentally) handed to all containers.
       # With the CDI-based flow, this no longer happens.
       # Instead, this patch ensures that if a container has NVIDIA_VISIBLE_DEVICES=all set as an env var,
       # that container receives ALL Nvidia GPU devices known to the pod.
-      ./0018-runtime-assign-GPU-devices-to-multiple-containers.patch
+      ./0017-runtime-assign-GPU-devices-to-multiple-containers.patch
 
       # With recent versions of the sandbox-device-plugin, a /dev/iommu device is added
       # to the container spec for GPU-enabled containers.
       # Since the same thing is done by the CTK within the PodVM, and we only want this
       # to influence VM creation, we remove this device from the container spec in the agent.
       # Upstream bug: https://github.com/kata-containers/kata-containers/issues/12246.
-      ./0019-runtime-remove-iommu-device.patch
+      ./0018-runtime-remove-iommu-device.patch
 
       # We are observing frequent pull failures from genpolicy due to the connection being reset by the registry.
       # This patch allows genpolicy to retry these failed pulls multiple times.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12300.
-      ./0020-genpolicy-retry-failed-image-pulls.patch
-
-      # Kata hard-codes the `nvidia.com/pgpu` device identifier for parsing how many GPUs should be
-      # attached to a note. This doesn't work with device-specific aliases, which are used in older
-      # GPU-operator deployments as well as clusters with nodes with multiple heterogenous GPUs.
-      # To be compatible with such scenarios, we implement the most simple patch and just match on
-      # all `nvidia.com/` devices.
-      # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12322
-      ./0021-genpolicy-use-all-nvidia-GPU-annotations.patch
-
-      # This patch fixes a bug [1] where Kata loses stdout/stderr of short-lived processes.
-      # There's an upstream PR [2] that's likely to include _a_ fix, but not necessarily _this_ fix.
-      # [1]: https://github.com/kata-containers/kata-containers/issues/12072
-      # [2]: https://github.com/kata-containers/kata-containers/pull/12376
-      ./0022-agent-finish-reading-logs-after-exec.patch
-
-      # When calling genpolicy from the contract cli, we passed --yaml-file=/dev/stdin to genpolicy
-      # in order to a) silence genpolicy from outputting yaml output to stdout while b) simultaneously
-      # retrieve genpolicy's output back through stdin. This is breaking the aarch64-darwin build
-      # of the cli since writing to stdin is not allowed. This patch changes genpolicy's behavior so
-      # that it doesn't output the resulting yaml to the stdout when input is passed via stdin and
-      # the --base64-out option is specified.
-      # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12438
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12439
-      ./0023-genpolicy-suppress-YAML-output-when-base64-raw-out-a.patch
+      ./0019-genpolicy-retry-failed-image-pulls.patch
 
       # In clusters that don't use the sandbox-device-plugin's P_GPU_ALIAS, we will not be able to
       # look up the device via PodResources. This patch adds additional resolution logic for that
       # case, relaxing the matching requirement to just the name (without vendor and class).
       # This is unlikely to be fixed in Kata upstream, but rather in the NVIDIA components.
       # Upstream issue: https://github.com/NVIDIA/sandbox-device-plugin/issues/46
-      ./0024-shim-guess-CDI-devices-without-direct-match.patch
+      ./0020-shim-guess-CDI-devices-without-direct-match.patch
 
       # Add a workaround for the kernel bug reported in [1] and [2] by rounding up the memory size
       # of affected (TDX && >=64GB) VMs to the next multiple of 1024. Upstream PR can be found in [3],
@@ -179,22 +142,22 @@ buildGoModule (finalAttrs: {
       # [1]: https://lore.kernel.org/linux-efi/c2632da9-745d-46d8-901a-604008a14ac4@edgeless.systems/T/#u
       # [2]: https://github.com/canonical/tdx/issues/421
       # [3]: https://github.com/kata-containers/kata-containers/pull/12537
-      ./0025-virtcontainers-work-around-a-kernel-bug-for-certain-.patch
+      ./0021-virtcontainers-work-around-a-kernel-bug-for-certain-.patch
 
       # Kata mis-calculates PCI root port sizes for UVMs cold-plugging multiple GPUs.
       # This patch fixes it by removing the calculation altogether and leaving it to qemu and OVMF.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12507
-      ./0026-qemu-Remove-PCIe-root-port-BAR-reserve-sizing.patch
+      ./0022-qemu-Remove-PCIe-root-port-BAR-reserve-sizing.patch
 
       # Ignore non-VFIO devices when creating CDI guest annotations.
       # This is an upstream bug that causes block devices to add CDI annotations.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12570.
-      ./0027-runtime-skip-CDI-guest-annotations-for-non-VFIO-devi.patch
+      ./0023-runtime-skip-CDI-guest-annotations-for-non-VFIO-devi.patch
 
       # Fixes an upstream bug that stops considering VFIO sibling candidates after the first
       # mismatch.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12570.
-      ./0028-runtime-don-t-stop-after-first-VFIO-mismatch.patch
+      ./0024-runtime-don-t-stop-after-first-VFIO-mismatch.patch
     ];
   };
 

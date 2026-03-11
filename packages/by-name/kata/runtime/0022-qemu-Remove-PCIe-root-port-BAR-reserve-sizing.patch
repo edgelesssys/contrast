@@ -75,7 +75,7 @@ Signed-off-by: Zvonko Kaiser <zkaiser@nvidia.com>
  delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/resources.go
 
 diff --git a/src/runtime/go.mod b/src/runtime/go.mod
-index 702d4368821a536fccc66cdc70b8fecff69a8cee..55c32ce3468eabf9fd2bfc785b0af4b852b14906 100644
+index 1323730ea45abcbb5b7e7f0a27af3820e5c47c67..6986e274ed63fb8fe4e2b43c4b40578385a4009e 100644
 --- a/src/runtime/go.mod
 +++ b/src/runtime/go.mod
 @@ -52,7 +52,6 @@ require (
@@ -87,7 +87,7 @@ index 702d4368821a536fccc66cdc70b8fecff69a8cee..55c32ce3468eabf9fd2bfc785b0af4b8
  	go.opentelemetry.io/otel/exporters/jaeger v1.0.0
  	go.opentelemetry.io/otel/sdk v1.35.0
 diff --git a/src/runtime/go.sum b/src/runtime/go.sum
-index d2ee537e76948f8897f828bd68460dea4c41279e..f03a9c0d159e27c3b9a3d4c1baa1c73b20745f99 100644
+index cedbf5ac05f109b3336d6a5c78271519672d19fa..4a4141af0e133ab88a16ee2cb793c934b76696c6 100644
 --- a/src/runtime/go.sum
 +++ b/src/runtime/go.sum
 @@ -308,8 +308,6 @@ github.com/xeipuuv/gojsonschema v1.2.0 h1:LhYJRs+L4fBtjZUfuSZIKGeVu0QRy8e5Xi7D17
@@ -1587,7 +1587,7 @@ index 02a0430f3892f86898a6691a88fe72fdcf924119..00000000000000000000000000000000
 -	return memSize32bit, memSize64bit
 -}
 diff --git a/src/runtime/vendor/modules.txt b/src/runtime/vendor/modules.txt
-index d4581551331bd67be747ba79a31f365109b42c23..e24016fe5ca276f0da82ebd1105e76abe711ef1e 100644
+index 5c2d40d78aca7c681d28e8db72adb273c29a67df..c5bbd46cb7583192abb35c879f86edd122f48515 100644
 --- a/src/runtime/vendor/modules.txt
 +++ b/src/runtime/vendor/modules.txt
 @@ -539,11 +539,6 @@ github.com/vishvananda/netns
@@ -1603,7 +1603,7 @@ index d4581551331bd67be747ba79a31f365109b42c23..e24016fe5ca276f0da82ebd1105e76ab
  ## explicit; go 1.18
  go.mongodb.org/mongo-driver/bson
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 1b44e32f23c31b04135a758a28675afc063d030f..44bd11e4fd116a20a5a9251cdae827541f994363 100644
+index 5f1ae917bf20647a99e155ecaa9c0cb475712330..191b8d2841e0dedaab37aaaa53960974e5ef381f 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -820,21 +820,6 @@ func (q *qemu) createPCIeTopology(qemuConfig *govmmQemu.Config, hypervisorConfig
@@ -1652,7 +1652,7 @@ index 1b44e32f23c31b04135a758a28675afc063d030f..44bd11e4fd116a20a5a9251cdae82754
  	}
  	return nil
  }
-@@ -2631,7 +2616,7 @@ func genericMemoryTopology(memoryMb, hostMemoryMb uint64, slots uint8, memoryOff
+@@ -2633,7 +2618,7 @@ func genericMemoryTopology(memoryMb, hostMemoryMb uint64, slots uint8, memoryOff
  }
  
  // genericAppendPCIeRootPort appends to devices the given pcie-root-port
@@ -1661,7 +1661,7 @@ index 1b44e32f23c31b04135a758a28675afc063d030f..44bd11e4fd116a20a5a9251cdae82754
  	var (
  		bus           string
  		chassis       string
-@@ -2657,8 +2642,6 @@ func genericAppendPCIeRootPort(devices []govmmQemu.Device, number uint32, machin
+@@ -2659,8 +2644,6 @@ func genericAppendPCIeRootPort(devices []govmmQemu.Device, number uint32, machin
  				Slot:          strconv.FormatUint(uint64(i), 10),
  				Multifunction: multiFunction,
  				Addr:          addr,
@@ -1670,7 +1670,7 @@ index 1b44e32f23c31b04135a758a28675afc063d030f..44bd11e4fd116a20a5a9251cdae82754
  			},
  		)
  	}
-@@ -2687,7 +2670,7 @@ func genericAppendPCIeRootPort(devices []govmmQemu.Device, number uint32, machin
+@@ -2689,7 +2672,7 @@ func genericAppendPCIeRootPort(devices []govmmQemu.Device, number uint32, machin
  //          -------------           --------------
  */
  // genericAppendPCIeSwitch adds a PCIe Swtich
@@ -1679,7 +1679,7 @@ index 1b44e32f23c31b04135a758a28675afc063d030f..44bd11e4fd116a20a5a9251cdae82754
  
  	// Q35, Virt have the correct PCIe support,
  	// hence ignore all other machines
-@@ -2704,8 +2687,6 @@ func genericAppendPCIeSwitchPort(devices []govmmQemu.Device, number uint32, mach
+@@ -2706,8 +2689,6 @@ func genericAppendPCIeSwitchPort(devices []govmmQemu.Device, number uint32, mach
  		Slot:          strconv.FormatUint(uint64(0), 10),
  		Multifunction: false,
  		Addr:          "0",
@@ -1688,7 +1688,7 @@ index 1b44e32f23c31b04135a758a28675afc063d030f..44bd11e4fd116a20a5a9251cdae82754
  	}
  
  	devices = append(devices, pcieRootPort)
-@@ -2729,8 +2710,6 @@ func genericAppendPCIeSwitchPort(devices []govmmQemu.Device, number uint32, mach
+@@ -2731,8 +2712,6 @@ func genericAppendPCIeSwitchPort(devices []govmmQemu.Device, number uint32, mach
  			Bus:     pcieSwitchUpstreamPort.ID,
  			Chassis: fmt.Sprintf("%d", nextChassis),
  			Slot:    strconv.FormatUint(uint64(i), 10),
@@ -1698,7 +1698,7 @@ index 1b44e32f23c31b04135a758a28675afc063d030f..44bd11e4fd116a20a5a9251cdae82754
  		devices = append(devices, pcieSwitchDownstreamPort)
  	}
 diff --git a/src/runtime/virtcontainers/qemu_arch_base.go b/src/runtime/virtcontainers/qemu_arch_base.go
-index f8b0d4ef973c2edd96d539e80964e5c3f0d5d4ab..95433e07ad427b737d297c9a45bf47505f1186e4 100644
+index 6675ee8b2caea4e27a8be2dc8f2651026272a7dd..c03c23116be363b5f68298945211f474b0d2c633 100644
 --- a/src/runtime/virtcontainers/qemu_arch_base.go
 +++ b/src/runtime/virtcontainers/qemu_arch_base.go
 @@ -18,7 +18,6 @@ import (
@@ -1733,7 +1733,7 @@ index f8b0d4ef973c2edd96d539e80964e5c3f0d5d4ab..95433e07ad427b737d297c9a45bf4750
  	// Query QMP to find a device's PCI path given its QOM path or ID
  	qomGetPciPath(qemuID string, qmpCh *qmpChannel) (types.PciPath, error)
  
-@@ -865,46 +860,13 @@ func (q *qemuArchBase) addBridge(b types.Bridge) {
+@@ -875,46 +870,13 @@ func (q *qemuArchBase) addBridge(b types.Bridge) {
  }
  
  // appendPCIeRootPortDevice appends to devices the given pcie-root-port

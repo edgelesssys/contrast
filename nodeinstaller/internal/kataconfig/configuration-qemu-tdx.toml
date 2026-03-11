@@ -12,8 +12,8 @@
 # XXX:   Type: kata
 
 [hypervisor.qemu]
-path = "PLACEHOLDER_FOR_DISTRO_QEMU_WITH_TDX_SUPPORT"
-kernel = "/opt/kata/share/kata-containers/vmlinuz-confidential.container"
+path = "/opt/kata/bin/qemu-system-x86_64"
+kernel = "/opt/kata/share/kata-containers/vmlinuz.container"
 image = "/opt/kata/share/kata-containers/kata-containers-confidential.img"
 machine_type = "q35"
 tdx_quote_generation_service_socket_port = 4050
@@ -33,7 +33,7 @@ rootfs_type = "ext4"
 #
 # Known limitations:
 # * Does not work by design:
-#   - CPU Hotplug 
+#   - CPU Hotplug
 #   - Memory Hotplug
 #   - NVDIMM devices
 #
@@ -48,13 +48,13 @@ rootless = false
 # List of valid annotation names for the hypervisor
 # Each member of the list is a regular expression, which is the base name
 # of the annotation, e.g. "path" for io.katacontainers.config.hypervisor.path"
-enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "default_vcpus", "default_memory", "cc_init_data"]
+enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "kernel_verity_params", "default_vcpus", "default_memory", "cc_init_data"]
 
 # List of valid annotations values for the hypervisor
 # Each member of the list is a path pattern as described by glob(3).
 # The default if not set is empty (all annotations rejected.)
 # Your distribution recommends: ["/opt/kata/bin/qemu-system-x86_64"]
-valid_hypervisor_paths = ["PLACEHOLDER_FOR_DISTRO_QEMU_WITH_TDX_SUPPORT"]
+valid_hypervisor_paths = ["/opt/kata/bin/qemu-system-x86_64"]
 
 # Optional space-separated list of options to pass to the guest kernel.
 # For example, use `kernel_params = "vsyscall=emulate"` if you are having
@@ -66,7 +66,12 @@ valid_hypervisor_paths = ["PLACEHOLDER_FOR_DISTRO_QEMU_WITH_TDX_SUPPORT"]
 # may stop the virtual machine from booting.
 # To see the list of default parameters, enable hypervisor debug, create a
 # container and look for 'default-kernel-parameters' log entries.
-kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=d6a09623515a4f169f354ffcde82d79e96cf84b9ce5a6fc2eb18bda7fc864685"
+kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
+
+# Optional dm-verity parameters (comma-separated key=value list):
+# root_hash=...,salt=...,data_blocks=...,data_block_size=...,hash_block_size=...
+# These are used by the runtime to assemble dm-verity kernel params.
+kernel_verity_params = "root_hash=1a58cb83f8e721a7a5174b9817ae502975e0e55ae81b92ff34e61223786c2300,salt=8c15fdda00c8290e45c21aef74f1143a9c7bdfb1b98fdd3900f7f700cef3f0ee,data_blocks=64000,data_block_size=4096,hash_block_size=4096"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
@@ -316,6 +321,21 @@ enable_iommu = false
 # Enabling this will result in the VM device having iommu_platform=on set
 enable_iommu_platform = false
 
+# Enable NUMA topology, default false
+# When enable_numa is enabled, the hypervisor will expose host NUMA topology
+# as is: map VM NUMA nodes to host 1:1 and bind vCPUs to related CPUs.
+# Note: To take proper advantage of NUMA, static_sandbox_resource_mgmt should
+# also be enabled for memory pre-allocation.
+enable_numa = false
+
+# NUMA node mapping allows customizing how VM NUMA nodes map to host NUMA nodes.
+# Each entry defines a VM NUMA node and the host NUMA node(s) it maps to.
+# Format: ["<host_nodes>", "<host_nodes>", ...]
+# Example: ["0", "1"] creates 2 VM NUMA nodes, mapping to host nodes 0 and 1
+# Example: ["0-1", "2-3"] creates 2 VM NUMA nodes, first maps to host 0-1, second to 2-3
+# If empty and enable_numa is true, VM NUMA nodes map 1:1 to host NUMA nodes.
+numa_mapping = []
+
 # List of valid annotations values for the vhost user store path
 # The default if not set is empty (all annotations rejected.)
 # Your distribution recommends: ["/var/run/kata-containers/vhost-user"]
@@ -361,7 +381,7 @@ msize_9p = 8192
 # Otherwise virtio-block device is used.
 #
 # nvdimm is not supported when `confidential_guest = true`.
-disable_image_nvdimm = false
+disable_image_nvdimm = true
 
 # Before hot plugging a PCIe device, you need to add a pcie_root_port device.
 # Use this parameter when using some large PCI bar devices, such as Nvidia GPU
@@ -679,9 +699,9 @@ enable_pprof = false
 
 # Indicates the CreateContainer request timeout needed for the workload(s)
 # It using guest_pull this includes the time to pull the image inside the guest
-# Defaults to 60 second(s)  
-# Note: The effective timeout is determined by the lesser of two values: runtime-request-timeout from kubelet config 
-# (https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/#:~:text=runtime%2Drequest%2Dtimeout) and create_container_timeout. 
+# Defaults to 60 second(s)
+# Note: The effective timeout is determined by the lesser of two values: runtime-request-timeout from kubelet config
+# (https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/#:~:text=runtime%2Drequest%2Dtimeout) and create_container_timeout.
 # In essence, the timeout used for guest pull=runtime-request-timeout<create_container_timeout?runtime-request-timeout:create_container_timeout.
 create_container_timeout = 60
 

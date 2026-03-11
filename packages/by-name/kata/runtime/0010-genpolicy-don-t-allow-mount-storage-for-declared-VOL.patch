@@ -12,7 +12,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 8 insertions(+), 62 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 76ad6bed30c81e131ed637ed1f4e87cf03813d12..88171e1c40f271be9468c6c8b9b87c871a55c1f9 100644
+index f08f391931c09b9ff93b5a29247c1a099f773bfb..e7800bd10ba1eae91bdf61b4c1bab2af46bc4a05 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -183,18 +183,6 @@
@@ -33,7 +33,7 @@ index 76ad6bed30c81e131ed637ed1f4e87cf03813d12..88171e1c40f271be9468c6c8b9b87c87
 -            ]
          }
      },
-     "device_annotations": {
+     "devices": {
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
 index 5f7127351670b850113a362b601f5dfbb4462cff..3186617e07b59e498c5baec763da253fedbe00aa 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
@@ -86,7 +86,7 @@ index 5f7127351670b850113a362b601f5dfbb4462cff..3186617e07b59e498c5baec763da253f
 -    });
 -}
 diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
-index 65e1b82857282618cfb0719ef3fe9bd87760d333..21a02a483499a68513a6b86db042631d37c4d9db 100644
+index a7c12aebd3112d5811e4be950b20b804716c5c08..215d264cc5999aeeb287e012088698a81c10f043 100644
 --- a/src/tools/genpolicy/src/settings.rs
 +++ b/src/tools/genpolicy/src/settings.rs
 @@ -34,7 +34,6 @@ pub struct Volumes {

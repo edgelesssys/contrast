@@ -10,7 +10,7 @@ TDX VMs with >=64GB of memory run into a kernel panic when their memory size (in
  1 file changed, 13 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 3b77ff8cc2e5dcec04d172802a2a0d878b59b8b0..1b44e32f23c31b04135a758a28675afc063d030f 100644
+index 7e6e011bcb19770ae0805da3d724e309dbd16d74..5f1ae917bf20647a99e155ecaa9c0cb475712330 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -336,6 +336,19 @@ func (q *qemu) memoryTopology() (govmmQemu.Memory, error) {

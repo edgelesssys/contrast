@@ -1,8 +1,19 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 88171e1c40f271be9468c6c8b9b87c871a55c1f9..ac98ea9d3194bbca9cdc8c6fb4bf92a8f8472d97 100644
+index e7800bd10ba1eae91bdf61b4c1bab2af46bc4a05..185315d87306416b017cc35644c6b2b967604912 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -296,7 +296,7 @@
+@@ -193,7 +193,9 @@
+                 "gpu_anno_value_regex": "^nvidia\\.com/gpu=[0-9]+$",
+                 "gpu_gk_device_type": "vfio-pci-gk",
+                 "pgpu_resource_keys": [
+-                    "nvidia.com/pgpu"
++                    "nvidia.com/pgpu",
++                    "nvidia.com/GB100_B200",
++                    "nvidia.com/GH100_H100_PCIE"
+                 ]
+             }
+         }
+@@ -301,7 +303,7 @@
          "enable_configmap_secret_storages": false
      },
      "cluster_config": {
@@ -11,7 +22,7 @@ index 88171e1c40f271be9468c6c8b9b87c871a55c1f9..ac98ea9d3194bbca9cdc8c6fb4bf92a8
          "guest_pull": true,
          "pause_container_id_policy": "v1"
      },
-@@ -317,7 +317,8 @@
+@@ -322,7 +324,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
@@ -21,7 +32,7 @@ index 88171e1c40f271be9468c6c8b9b87c871a55c1f9..ac98ea9d3194bbca9cdc8c6fb4bf92a8
              ]
          },
          "UpdateInterfaceRequest": {
-@@ -334,7 +335,9 @@
+@@ -339,7 +342,9 @@
          ],
          "ExecProcessRequest": {
              "allowed_commands": [],
@@ -32,7 +43,7 @@ index 88171e1c40f271be9468c6c8b9b87c871a55c1f9..ac98ea9d3194bbca9cdc8c6fb4bf92a8
          },
          "UpdateRoutesRequest": {
              "forbidden_device_names": [
-@@ -354,8 +357,8 @@
+@@ -359,8 +364,8 @@
              ]
          },
          "CloseStdinRequest": false,
