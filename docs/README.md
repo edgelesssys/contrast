@@ -7,7 +7,7 @@ The Contrast flake contains a development shell for working on the documentation
 It's automatically activated when you are using `direnv`. Otherwise enter the environment with:
 
 ```sh
-nix develop .#docs
+nix develop .#base.contrast.docs
 ```
 
 Run a local development server previewing your changes with:

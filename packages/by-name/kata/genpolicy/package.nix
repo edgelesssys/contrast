@@ -79,7 +79,7 @@ rustPlatform.buildRustPackage rec {
     #
     #   cd $CONTRAST
     #   mkdir -p /tmp/a /tmp/b
-    #   nix build .#kata.genpolicy.settings-base
+    #   nix build .#base.kata.genpolicy.settings-base
     #   cp --no-preserve=mode result/genpolicy-settings.json /tmp/b
     #   cd /tmp/b
     #   patch -b -B ../a/ -p1 genpolicy-settings.json <$CONTRAST/packages/by-name/kata/genpolicy/genpolicy_settings_dev.patch

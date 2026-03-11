@@ -118,7 +118,7 @@ in `/etc/rancher/k3s/config.yaml`.
 
 Contrast can only be used with the following Confidential Computing enabled GPUs:
 
-<!-- generated with `nix run .#scripts.get-nvidia-cc-gpus` -->
+<!-- generated with `nix run .#base.scripts.get-nvidia-cc-gpus` -->
 <!-- vale off -->
 
 - NVIDIA HGX B200, 8-GPU, SXM6 180GB HBM3e, AC

@@ -92,7 +92,7 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 Install the `hostpath` CSI driver:
 
 ```bash
-nix build .#csi-driver-host-path
+nix build .#base.csi-driver-host-path
 kubectl apply -k result
 ```
 
