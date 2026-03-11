@@ -45,6 +45,9 @@ spec:
         nvidia.com/pgpu: "1"
 ```
 
+Contrast automatically detects if a pod requires a GPU and assigns the appropriate GPU-enabled runtime class (for example, `contrast-cc-metal-qemu-snp-gpu`) during the `contrast generate` step.
+For more details on manual runtime class selection, see the [multi-runtime class documentation](../multi-runtime-class.md).
+
 If you deployed the NVIDIA GPU operator as described above, the resource name is `nvidia.com/pgpu`.
 Otherwise, you need to consult your CDI definitions (in `/var/run/cdi` or `/etc/cdi`) to find the appropriate device class.
 

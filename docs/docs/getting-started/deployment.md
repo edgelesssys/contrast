@@ -348,6 +348,14 @@ The deployed firmware could be outdated and vulnerable.
 contrast generate --reference-values metal-qemu-snp-gpu resources/
 ```
 
+:::tip
+
+You can also pass the non-GPU reference values variant to `contrast generate` here.
+Contrast will automatically detect when a pod requires a GPU and assign the GPU-enabled variant of the runtime.
+See the [multi-runtime class documentation](../howto/multi-runtime-class.md) for details.
+
+:::
+
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
 They will have to be filled in manually.
 
@@ -422,6 +430,14 @@ Make sure to retrieve or reproduce the value on a trusted machine.
 ```sh
 contrast generate --reference-values metal-qemu-tdx-gpu resources/
 ```
+
+:::tip
+
+You can also pass the non-GPU reference values variant to `contrast generate` here.
+Contrast will automatically detect when a pod requires a GPU and assign the GPU-enabled variant of the runtime.
+See the [multi-runtime class documentation](../howto/multi-runtime-class.md) for details.
+
+:::
 
 On bare-metal TDX, `contrast generate` is unable to fill in the `MrSeam` value as it depends on your platform configuration.
 It will have to be filled in manually.

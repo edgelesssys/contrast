@@ -97,7 +97,11 @@ spec: # v1.PodSpec
 
 :::tip
 
-You can still use just `contrast-cc` as the `runtimeClassName`. Just as in the single-runtime case, the `RuntimeClass` will then be set depending on the `--reference-values` argument passed to `contrast generate`.
+You can still use just `contrast-cc` as the `runtimeClassName`.
+Just as in the single-runtime case, the `RuntimeClass` will then be set depending on the `--reference-values` argument passed to `contrast generate`.
+
+Furthermore, if a pod requires a GPU, the appropriate GPU-enabled runtime class is automatically assigned to pods that require a GPU in their resource limits.
+Passing the non-GPU runtime name to `--reference-values` means that only pods requiring a GPU will be assigned the GPU runtime class.
 
 :::
 
