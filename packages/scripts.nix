@@ -21,6 +21,7 @@ lib.makeScope pkgs.newScope (scripts: {
       scripts.go-directive-sync
       scripts.gofix
       scripts.update-kata-configurations
+      scripts.update-kernel-configurations
     ];
     text = ''
       echo "Syncing go directive versions in go.mod/go.work files" >&2
@@ -59,6 +60,8 @@ lib.makeScope pkgs.newScope (scripts: {
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.contrast.contrast
       echo "Updating vendorHash of imagepuller-benchmark package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.imagepuller-benchmark
+      echo "Updating vendorHash of kernelconfig package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.kernelconfig
       echo "Updating src hash of kata.release-tarball" >&2
       ./packages/by-name/kata/release-tarball/update.sh
 
@@ -69,6 +72,9 @@ lib.makeScope pkgs.newScope (scripts: {
 
       echo "Updating default kata-container configuration toml files" >&2
       update-kata-configurations
+
+      echo "Updating default kata kernel configuration files" >&2
+      update-kernel-configurations
 
       gofix
     '';
@@ -513,6 +519,22 @@ lib.makeScope pkgs.newScope (scripts: {
     text = # bash
       ''
         update-testdata ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
+      '';
+  };
+
+  update-kernel-configurations = writeShellApplication {
+    name = "update-kernel-configurations";
+    runtimeInputs = [
+      (contrastPkgs.kernelconfig.overrideAttrs (_: {
+        # This is supposed to run after changes were made to the config and to update them in the expected testdata,
+        # but the tests require the testdata to be up-to-date.
+        doCheck = false;
+      }))
+      pkgs.git
+    ];
+    text = # bash
+      ''
+        update-base ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
       '';
   };
 
