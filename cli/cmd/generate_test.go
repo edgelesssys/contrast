@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	"log/slog"
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
@@ -100,7 +99,6 @@ spec:
 }
 
 func TestPatchRuntimeClassName(t *testing.T) {
-	logger := slog.New(slog.DiscardHandler)
 	defaultHandler := "contrast-cc-metal-qemu-snp"
 
 	testCases := map[string]struct {
@@ -143,12 +141,13 @@ func TestPatchRuntimeClassName(t *testing.T) {
 				tc.want = getHandler(t, tc.want)
 			}
 
-			patch := patchRuntimeClassName(logger, tc.want)
+			patch := patchRuntimeClassName(tc.want)
 			spec := applycorev1.PodSpec()
 			if tc.initial != "" {
 				spec.WithRuntimeClassName(tc.initial)
 			}
-			patch(spec)
+			_, err := patch(spec)
+			require.NoError(t, err)
 			if tc.want == "" {
 				assert.Nil(t, spec.RuntimeClassName)
 			} else {
@@ -159,8 +158,10 @@ func TestPatchRuntimeClassName(t *testing.T) {
 	}
 
 	t.Run("nil spec returns nil", func(t *testing.T) {
-		patch := patchRuntimeClassName(logger, defaultHandler)
-		assert.Nil(t, patch(nil))
+		patch := patchRuntimeClassName(defaultHandler)
+		result, err := patch(nil)
+		require.NoError(t, err)
+		assert.Nil(t, result)
 	})
 }
 
