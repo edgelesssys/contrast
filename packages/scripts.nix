@@ -711,6 +711,20 @@ lib.makeScope pkgs.newScope (scripts: {
     '';
   };
 
+  imagepuller-benchmark = writeShellApplication {
+    name = "imagepuller-benchmark";
+    runtimeInputs = [
+      contrastPkgs.imagepuller
+      contrastPkgs.imagepuller-benchmark
+    ];
+    text = ''
+      sudo ${lib.getExe contrastPkgs.imagepuller-benchmark} \
+        ${lib.getExe contrastPkgs.imagepuller} \
+        ./tools/imagepuller-benchmark/benchmark.json \
+        -a imagepuller.toml
+    '';
+  };
+
   # This is a script rather than part of packages/containers.nix because we *want* impurity here,
   # in order to generate a new image digest and a new tag every time the script runs.
   push-containerd-reproducer = writeShellApplication {

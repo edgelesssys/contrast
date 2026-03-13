@@ -42,10 +42,4 @@ jobs:
           auth = "$auth"
           EOF
       - name: Run imagepuller-benchmark script
-        run: |
-          imagpullerbenchmark="$(nix build ".#${SET}.imagepuller-benchmark" --print-out-paths)/bin/imagepuller-benchmark"
-          imagepuller="$(nix build ".#${SET}.imagepuller" --print-out-paths)/bin/imagepuller"
-          sudo "$imagpullerbenchmark" \
-            "$imagepuller" \
-            ./tools/imagepuller-benchmark/benchmark.json \
-            -a imagepuller.toml
+        run: nix run ".#${SET}.scripts.imagepuller-benchmark"
