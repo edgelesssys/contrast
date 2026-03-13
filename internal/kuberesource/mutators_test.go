@@ -5,6 +5,7 @@ package kuberesource
 
 import (
 	_ "embed"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -751,4 +752,27 @@ spec:
 			require.Equal(tc.wantInitNames, initNames)
 		})
 	}
+}
+
+func TestMapPodSpecWithErrors(t *testing.T) {
+	require := require.New(t)
+
+	podRes := applycorev1.Pod("test", "default").WithSpec(applycorev1.PodSpec().WithRuntimeClassName("contrast-cc"))
+
+	expectedError := "some error"
+	_, err := MapPodSpecWithErrors(podRes, func(_ *applycorev1.PodSpecApplyConfiguration) (*applycorev1.PodSpecApplyConfiguration, error) {
+		return nil, fmt.Errorf("%s", expectedError)
+	})
+	require.Error(err)
+	require.Contains(err.Error(), expectedError)
+
+	newClassName := "new-class"
+	res, err := MapPodSpecWithErrors(podRes, func(spec *applycorev1.PodSpecApplyConfiguration) (*applycorev1.PodSpecApplyConfiguration, error) {
+		spec.RuntimeClassName = &newClassName
+		return spec, nil
+	})
+	require.NoError(err)
+	actual, ok := res.(*applycorev1.PodApplyConfiguration)
+	require.True(ok)
+	require.Equal(newClassName, *actual.Spec.RuntimeClassName)
 }

@@ -179,7 +179,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("get runtime handler: %w", err)
 		}
 	}
-	if err := patchTargets(log, fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags); err != nil {
+	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
@@ -466,7 +466,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 	})
 }
 
-func patchTargets(logger *slog.Logger, fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags) error {
+func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -508,8 +508,11 @@ func patchTargets(logger *slog.Logger, fileMap map[string][]*unstructured.Unstru
 
 		kuberesource.PatchImages([]any{res}, replacements)
 
-		replaceRuntimeClassName := patchRuntimeClassName(logger, runtimeHandler)
-		kuberesource.MapPodSpec(res, replaceRuntimeClassName)
+		replaceRuntimeClassName := patchRuntimeClassName(runtimeHandler)
+		res, err = kuberesource.MapPodSpecWithErrors(res, replaceRuntimeClassName)
+		if err != nil {
+			return nil, err
+		}
 
 		return res, nil
 	})
@@ -664,45 +667,39 @@ func runtimeClassesFromUnstructured(fileMap map[string][]*unstructured.Unstructu
 	return runtimeClasses, nil
 }
 
-func patchRuntimeClassName(logger *slog.Logger, defaultRuntimeHandler string) func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-	return func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSpecApplyConfiguration) (*applycorev1.PodSpecApplyConfiguration, error) {
+	return func(spec *applycorev1.PodSpecApplyConfiguration) (*applycorev1.PodSpecApplyConfiguration, error) {
 		if spec == nil || spec.RuntimeClassName == nil {
-			return spec
+			return spec, nil
 		}
 		if *spec.RuntimeClassName == "kata-cc-isolation" || *spec.RuntimeClassName == "contrast-cc" {
 			spec.RuntimeClassName = &defaultRuntimeHandler
 			if kuberesource.PodSpecRequiresGPU(spec) {
 				platform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
 				if err != nil {
-					logger.Error("could not determine platform for runtime class", "runtime-class-name", *spec.RuntimeClassName, "err", err)
-					return spec
+					return nil, fmt.Errorf("could not determine platform for runtime class %q: %w", *spec.RuntimeClassName, err)
 				}
 				gpuHandler, err := manifest.RuntimeHandler(platform.WithGPU())
 				if err != nil {
-					logger.Error("could not get runtime handler for GPU variant of platform", "platform", platform, "err", err)
-					return spec
+					return nil, fmt.Errorf("could not get runtime handler for GPU variant of platform %q: %w", platform, err)
 				}
 				spec.RuntimeClassName = &gpuHandler
 			}
-			return spec
+			return spec, nil
 		}
 		if !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") {
-			return spec
+			return spec, nil
 		}
 		overridePlatform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
 		if err != nil {
-			logger.Error("could not determine platform for runtime class", "runtime-class-name", *spec.RuntimeClassName, "err", err)
-			spec.RuntimeClassName = &defaultRuntimeHandler
-			return spec
+			return nil, fmt.Errorf("could not determine platform for runtime class %q: %w", *spec.RuntimeClassName, err)
 		}
 		overrideRuntimeHandler, err := manifest.RuntimeHandler(overridePlatform)
 		if err != nil {
-			logger.Error("could not get runtime handler for platform", "platform", overridePlatform, "err", err)
-			spec.RuntimeClassName = &defaultRuntimeHandler
-			return spec
+			return nil, fmt.Errorf("could not get runtime handler for platform %q: %w", overridePlatform, err)
 		}
 		spec.RuntimeClassName = &overrideRuntimeHandler
-		return spec
+		return spec, nil
 	}
 }
 

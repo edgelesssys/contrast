@@ -717,8 +717,35 @@ func MapPodSpecWithMeta(
 		spec *applycorev1.PodSpecApplyConfiguration,
 	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration),
 ) any {
+	res, _ := MapPodSpecWithMetaAndErrors(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration, error) {
+		newMeta, newSpec := f(meta, spec)
+		return newMeta, newSpec, nil
+	})
+	return res
+}
+
+// MapPodSpec applies a function to a PodSpec in a Kubernetes resource.
+func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration) any {
+	return MapPodSpecWithMeta(
+		resource,
+		func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (
+			*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration,
+		) {
+			return meta, f(spec)
+		})
+}
+
+// MapPodSpecWithMetaAndErrors applies a function to a PodSpec in a Kubernetes resource,
+// and its corresponding object metadata. It allows returning an error from the mapper function.
+func MapPodSpecWithMetaAndErrors(
+	resource any,
+	f func(
+		meta *applymetav1.ObjectMetaApplyConfiguration,
+		spec *applycorev1.PodSpecApplyConfiguration,
+	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration, error),
+) (any, error) {
 	if resource == nil {
-		return nil
+		return nil, nil
 	}
 	var podAccessor PodSpecAccessor
 	switch r := resource.(type) {
@@ -742,21 +769,26 @@ func MapPodSpecWithMeta(
 	if podAccessor != nil {
 		meta := podAccessor.GetObjectMeta()
 		spec := podAccessor.GetPodSpec()
-		newMeta, newSpec := f(meta, spec)
+		newMeta, newSpec, err := f(meta, spec)
+		if err != nil {
+			return nil, err
+		}
 		podAccessor.SetObjectMeta(newMeta)
 		podAccessor.SetPodSpec(newSpec)
 	}
-	return resource
+	return resource, nil
 }
 
-// MapPodSpec applies a function to a PodSpec in a Kubernetes resource.
-func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration) any {
-	return MapPodSpecWithMeta(
+// MapPodSpecWithErrors applies a function to a PodSpec in a Kubernetes resource.
+// It allows returning an error from the mapper function.
+func MapPodSpecWithErrors(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration) (*applycorev1.PodSpecApplyConfiguration, error)) (any, error) {
+	return MapPodSpecWithMetaAndErrors(
 		resource,
 		func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (
-			*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration,
+			*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration, error,
 		) {
-			return meta, f(spec)
+			newSpec, err := f(spec)
+			return meta, newSpec, err
 		})
 }
 
