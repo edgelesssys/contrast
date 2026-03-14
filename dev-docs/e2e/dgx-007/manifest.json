@@ -1,0 +1,40 @@
+[
+  [
+    {
+      "op": "test",
+      "path": "/Platform",
+      "value": "Metal-QEMU-TDX-GPU"
+    },
+    {
+      "op": "replace",
+      "path": "/MrSeam",
+      "value": "7bf063280e94fb051f5dd7b1fc59ce9aac42bb961df8d44b709c9b0ff87a7b4df648657ba6d1189589feab1d5a3c9a9d"
+    },
+    {
+      "op": "replace",
+      "path": "/AllowedPIIDs",
+      "value": [
+        "dcce32a12f7c89eeb4a747465504cdee"
+      ]
+    }
+  ],
+  [
+    {
+      "op": "test",
+      "path": "/Platform",
+      "value": "Metal-QEMU-TDX"
+    },
+    {
+      "op": "replace",
+      "path": "/MrSeam",
+      "value": "7bf063280e94fb051f5dd7b1fc59ce9aac42bb961df8d44b709c9b0ff87a7b4df648657ba6d1189589feab1d5a3c9a9d"
+    },
+    {
+      "op": "replace",
+      "path": "/AllowedPIIDs",
+      "value": [
+        "dcce32a12f7c89eeb4a747465504cdee"
+      ]
+    }
+  ]
+]
