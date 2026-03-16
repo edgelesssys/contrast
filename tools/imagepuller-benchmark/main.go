@@ -23,7 +23,6 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/edgelesssys/contrast/imagepuller/client"
-	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/spf13/cobra"
 )
 
@@ -34,16 +33,24 @@ const (
 
 var mountPoint = "current_server"
 
-func getDiskUsage(path string) (uint64, error) {
+func getDiskUsage(ctx context.Context, path string) (int, error) {
 	if err := os.MkdirAll(path, 0x644); err != nil {
 		return 0, err
 	}
 
-	usage, err := disk.Usage(path)
+	out, err := exec.CommandContext(ctx, "du", "-smx", path).Output()
 	if err != nil {
 		return 0, err
 	}
-	return usage.Used, nil
+	fields := strings.Fields(string(out))
+	if len(fields) < 1 {
+		return 0, fmt.Errorf("unexpected du output: %q", string(out))
+	}
+	usageMB, err := strconv.Atoi(fields[0])
+	if err != nil {
+		return 0, fmt.Errorf("parsing du output: %w", err)
+	}
+	return usageMB, nil
 }
 
 func extractName(name string) string {
@@ -205,7 +212,7 @@ func profileServerIndividual(benchmarks map[string]resourceUsage, serverPath, st
 		}
 		time.Sleep(500 * time.Millisecond)
 
-		diskBefore, err := getDiskUsage(storagePath)
+		diskBefore, err := getDiskUsage(ctx, storagePath)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +226,7 @@ func profileServerIndividual(benchmarks map[string]resourceUsage, serverPath, st
 		if err := syscall.Kill(childPid, syscall.SIGKILL); err != nil {
 			return nil, err
 		}
-		diskAfter, err := getDiskUsage(storagePath)
+		diskAfter, err := getDiskUsage(ctx, storagePath)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +239,7 @@ func profileServerIndividual(benchmarks map[string]resourceUsage, serverPath, st
 			Image:   benchmark.Image,
 			Time:    int(duration.Seconds()),
 			Memory:  maxRSSkb / 1024,
-			Storage: int(diskAfter-diskBefore) / 1024 / 1024,
+			Storage: diskAfter - diskBefore,
 		}
 		results[fmt.Sprintf("%s-%s", extractName(benchmark.Image), label)] = result
 		fmt.Printf("Time taken: %d s\n", result.Time)
@@ -263,7 +270,7 @@ func profileServerContinuous(benchmarks map[string]resourceUsage, serverPath, st
 	}
 	time.Sleep(500 * time.Millisecond)
 
-	diskBefore, err := getDiskUsage(storagePath)
+	diskBefore, err := getDiskUsage(ctx, storagePath)
 	if err != nil {
 		return resourceUsage{}, err
 	}
@@ -287,7 +294,7 @@ func profileServerContinuous(benchmarks map[string]resourceUsage, serverPath, st
 	if err := syscall.Kill(childPid, syscall.SIGKILL); err != nil {
 		return resourceUsage{}, err
 	}
-	diskAfter, err := getDiskUsage(storagePath)
+	diskAfter, err := getDiskUsage(ctx, storagePath)
 	if err != nil {
 		return resourceUsage{}, err
 	}
@@ -299,7 +306,7 @@ func profileServerContinuous(benchmarks map[string]resourceUsage, serverPath, st
 	result := resourceUsage{
 		Time:    int(duration.Seconds()),
 		Memory:  maxRSSkb / 1024,
-		Storage: int(diskAfter-diskBefore) / 1024 / 1024,
+		Storage: diskAfter - diskBefore,
 	}
 	fmt.Printf("Time taken: %d s\n", result.Time)
 	fmt.Printf("Memory peak: %d MB\n", result.Memory)
