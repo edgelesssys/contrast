@@ -43,3 +43,18 @@ jobs:
           EOF
       - name: Run imagepuller-benchmark script
         run: nix run ".#${SET}.scripts.imagepuller-benchmark"
+      - name: Upload debug information
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: imagepuller-benchmark-debug-info
+          path: ls-lR-*.txt
+          if-no-files-found: ignore
+      - name: Notify teams channel of failure
+        if: failure() && github.ref == 'refs/heads/main' && github.run_attempt == 1
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          title: "Imagepuller benchmark failed"
+          message: "The imagepuller benchmark workflow failed on main."
+          additionalFields: '[{"title": "Job ID", "value": "${{ github.job }}"}]'
