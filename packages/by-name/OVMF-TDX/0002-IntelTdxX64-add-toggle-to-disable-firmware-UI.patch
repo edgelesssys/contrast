@@ -10,7 +10,7 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  2 files changed, 14 insertions(+), 2 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.dsc b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
-index 18fd116311e14f611be609d202339c1deb52a7fb..7294a071ec953bb72b49941882ebfbbed48f6f6c 100644
+index 18fd116311e14f611be609d202339c1deb52a7fb..86e88bda9057cf6cfc6de5046c68670d7e58b669 100644
 --- a/OvmfPkg/IntelTdx/IntelTdxX64.dsc
 +++ b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
 @@ -36,6 +36,9 @@
@@ -53,7 +53,7 @@ index 18fd116311e14f611be609d202339c1deb52a7fb..7294a071ec953bb72b49941882ebfbbe
      <LibraryClasses>
        NULL|OvmfPkg/Library/BlobVerifierLibNull/BlobVerifierLibNull.inf
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.fdf b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-index da48f67fb34279ca74636bd42825696db296bb75..238ff73d7ae7bfb08ebdaf14063c7496632f2f96 100644
+index da48f67fb34279ca74636bd42825696db296bb75..1c7df0c7688c61cfdeea5471f6861d41f82805ca 100644
 --- a/OvmfPkg/IntelTdx/IntelTdxX64.fdf
 +++ b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
 @@ -216,8 +216,10 @@ INF  MdeModulePkg/Universal/Console/ConPlatformDxe/ConPlatformDxe.inf

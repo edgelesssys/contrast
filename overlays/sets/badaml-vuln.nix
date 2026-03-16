@@ -8,6 +8,9 @@ _final: prev: {
       OVMF-SNP = contrastPkgsPrev.OVMF-SNP.override {
         withACPIValidation = false;
       };
+      OVMF-TDX = contrastPkgsPrev.OVMF-TDX.override {
+        withACPIValidation = false;
+      };
       kata = contrastPkgsPrev.kata.overrideScope (
         _kataFinal: kataPrev: {
           kernel-uvm = kataPrev.kernel-uvm.override {
@@ -32,6 +35,7 @@ _final: prev: {
         {
           node-installer-image = contrastPrev.node-installer-image.override {
             OVMF-SNP = contrastPkgsFinal.OVMF-SNP;
+            OVMF-TDX = contrastPkgsFinal.OVMF-TDX;
             withExtraLayers = [
               (contrastPkgsFinal.ociLayerTar {
                 files = [

@@ -1,0 +1,473 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Spyros Seimenis <sse@edgeless.systems>
+Date: Wed, 25 Feb 2026 18:13:24 +0200
+Subject: [PATCH] QemuFwCfgAcpi: replace device blocklist with SystemMemory
+ OperationRegion allowlist
+
+The device name blocklist is trivially bypassed by renaming the device.
+Replace it with a scanner that finds OperationRegion opcodes (0x5B 0x80)
+and blocks any SystemMemory (RegionSpace=0x00) region not matching the
+HPET allowlist (0xFED00000, 0x0400). Non-literal-constant addresses
+(Arg0, Local0, expressions) are rejected since they cannot be statically
+verified. Other RegionSpace types are not yet checked.
+---
+ .../Library/AcpiPlatformLib/QemuFwCfgAcpi.c   | 363 ++++++++++++------
+ 1 file changed, 238 insertions(+), 125 deletions(-)
+
+diff --git a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+index 48007fea810bf67925309e177dde434c38adf24b..4cc2f9f04f93f5b204542304bdf36eaef8efa44b 100644
+--- a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
++++ b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+@@ -37,73 +37,27 @@ typedef struct {
+ } BLOB;
+ 
+ //
+-// Blocked ACPI device names. Any Device() with a NameSeg matching
+-// an entry in this list causes the blob to be rejected.
++// AML RegionSpace type for SystemMemory
+ //
+-STATIC CONST CHAR8  *mBlockedDeviceNames[] = {
+-  "FAKE",
+-  NULL
++#define AML_REGION_SPACE_SYSTEM_MEMORY  0x00
++
++//
++// Allowlist entry for a known-good SystemMemory OperationRegion.
++//
++typedef struct {
++  UINT64       Address;
++  UINT32       Length;
++  CONST CHAR8  *Name;       // for debug logging only
++} SYSTEM_MEMORY_REGION_ALLOWLIST_ENTRY;
++
++//
++// Known QEMU SystemMemory OperationRegions extracted from DSDT.
++// Any SystemMemory OperationRegion not matching an entry here is rejected.
++//
++STATIC CONST SYSTEM_MEMORY_REGION_ALLOWLIST_ENTRY  mAllowedSystemMemoryRegions[] = {
++  { 0xFED00000, 0x0400, "HPTM" },
+ };
+ 
+-/**
+-  Parse a PkgLength field from raw AML bytecode.
+-
+-  @param[in]  Data       Pointer to the start of the PkgLength encoding.
+-  @param[in]  MaxLen     Maximum number of bytes available.
+-  @param[out] PkgLength  Decoded package length value.
+-  @param[out] ByteCount  Number of bytes consumed by the PkgLength encoding.
+-
+-  @retval TRUE   Successfully parsed.
+-  @retval FALSE  Data is truncated or malformed.
+-**/
+-STATIC
+-BOOLEAN
+-ParseAmlPkgLength (
+-  IN  CONST UINT8  *Data,
+-  IN  UINT32       MaxLen,
+-  OUT UINT32       *PkgLength,
+-  OUT UINT32       *ByteCount
+-  )
+-{
+-  UINT8   LeadByte;
+-  UINT8   ByteDataCount;
+-  UINT32  Length;
+-
+-  if (MaxLen < 1) {
+-    return FALSE;
+-  }
+-
+-  LeadByte      = Data[0];
+-  ByteDataCount = (LeadByte >> 6) & 0x03;
+-
+-  if (ByteDataCount == 0) {
+-    *PkgLength = LeadByte & 0x3F;
+-    *ByteCount = 1;
+-    return TRUE;
+-  }
+-
+-  if (MaxLen < (UINT32)(ByteDataCount + 1)) {
+-    return FALSE;
+-  }
+-
+-  Length = LeadByte & 0x0F;
+-  if (ByteDataCount >= 1) {
+-    Length |= ((UINT32)Data[1]) << 4;
+-  }
+-
+-  if (ByteDataCount >= 2) {
+-    Length |= ((UINT32)Data[2]) << 12;
+-  }
+-
+-  if (ByteDataCount >= 3) {
+-    Length |= ((UINT32)Data[3]) << 20;
+-  }
+-
+-  *PkgLength = Length;
+-  *ByteCount = ByteDataCount + 1;
+-  return TRUE;
+-}
+-
+ /**
+   Skip AML name prefix characters (RootChar, ParentPrefixChar,
+   DualNamePrefix, MultiNamePrefix) and return a pointer to the
+@@ -167,36 +121,131 @@ SkipAmlNamePrefixes (
+ }
+ 
+ /**
+-  Check whether a 4-byte NameSeg matches any entry in the blocked
+-  device list.
++  Try to read a literal integer constant from AML bytecode.
+ 
+-  @param[in] NameSeg  Pointer to a 4-byte AML NameSeg.
++  Recognises AML_ZERO_OP (0x00), AML_ONE_OP (0x01), AML_ONES_OP (0xFF),
++  AML_BYTE_PREFIX (0x0A + 1 byte), AML_WORD_PREFIX (0x0B + 2 bytes),
++  AML_DWORD_PREFIX (0x0C + 4 bytes), AML_QWORD_PREFIX (0x0E + 8 bytes).
+ 
+-  @retval TRUE   The device name is blocked.
+-  @retval FALSE  The device name is allowed.
++  @param[in]  Data       Pointer into the AML stream.
++  @param[in]  MaxLen     Remaining bytes available.
++  @param[out] Value      The decoded integer value.
++  @param[out] ByteCount  Number of bytes consumed.
++
++  @retval TRUE   A literal constant was parsed.
++  @retval FALSE  The opcode is not a literal constant (e.g. Arg0, Local0,
++                 method call, or expression).
++**/
++STATIC
++BOOLEAN
++ParseAmlLiteralInteger (
++  IN  CONST UINT8  *Data,
++  IN  UINT32       MaxLen,
++  OUT UINT64       *Value,
++  OUT UINT32       *ByteCount
++  )
++{
++  if (MaxLen < 1) {
++    return FALSE;
++  }
++
++  switch (Data[0]) {
++    case AML_ZERO_OP:
++      *Value     = 0;
++      *ByteCount = 1;
++      return TRUE;
++
++    case AML_ONE_OP:
++      *Value     = 1;
++      *ByteCount = 1;
++      return TRUE;
++
++    case AML_ONES_OP:
++      *Value     = MAX_UINT64;
++      *ByteCount = 1;
++      return TRUE;
++
++    case AML_BYTE_PREFIX:
++      if (MaxLen < 2) {
++        return FALSE;
++      }
++
++      *Value     = Data[1];
++      *ByteCount = 2;
++      return TRUE;
++
++    case AML_WORD_PREFIX:
++      if (MaxLen < 3) {
++        return FALSE;
++      }
++
++      *Value     = Data[1] | ((UINT64)Data[2] << 8);
++      *ByteCount = 3;
++      return TRUE;
++
++    case AML_DWORD_PREFIX:
++      if (MaxLen < 5) {
++        return FALSE;
++      }
++
++      *Value = Data[1] |
++               ((UINT64)Data[2] << 8) |
++               ((UINT64)Data[3] << 16) |
++               ((UINT64)Data[4] << 24);
++      *ByteCount = 5;
++      return TRUE;
++
++    case AML_QWORD_PREFIX:
++      if (MaxLen < 9) {
++        return FALSE;
++      }
++
++      *Value = Data[1] |
++               ((UINT64)Data[2] << 8) |
++               ((UINT64)Data[3] << 16) |
++               ((UINT64)Data[4] << 24) |
++               ((UINT64)Data[5] << 32) |
++               ((UINT64)Data[6] << 40) |
++               ((UINT64)Data[7] << 48) |
++               ((UINT64)Data[8] << 56);
++      *ByteCount = 9;
++      return TRUE;
++
++    default:
++      return FALSE;
++  }
++}
++
++/**
++  Check whether a SystemMemory OperationRegion matches the allowlist.
++
++  @param[in] Address  The region base address.
++  @param[in] Length   The region length.
++
++  @retval TRUE   The region matches an allowlist entry.
++  @retval FALSE  The region is not allowed.
+ **/
+ STATIC
+ BOOLEAN
+-IsDeviceNameBlocked (
+-  IN CONST CHAR8  *NameSeg
++IsSystemMemoryRegionAllowed (
++  IN UINT64  Address,
++  IN UINT64  Length
+   )
+ {
+   UINTN  Idx;
+ 
+-  for (Idx = 0; mBlockedDeviceNames[Idx] != NULL; Idx++) {
+-    if (AsciiStrnCmp (NameSeg, mBlockedDeviceNames[Idx], 4) == 0) {
+-      return TRUE;
+-    }
+-
+-    //
+-    // AML pads short names with '_', e.g. "KBD" becomes "KBD_".
+-    // Match 3-char blocklist entries against the first 3 bytes
+-    // when the 4th byte is '_'.
+-    //
+-    if ((AsciiStrLen (mBlockedDeviceNames[Idx]) == 3) &&
+-        (AsciiStrnCmp (NameSeg, mBlockedDeviceNames[Idx], 3) == 0) &&
+-        (NameSeg[3] == '_'))
++  for (Idx = 0;
++       Idx < ARRAY_SIZE (mAllowedSystemMemoryRegions);
++       Idx++)
++  {
++    if ((mAllowedSystemMemoryRegions[Idx].Address == Address) &&
++        (mAllowedSystemMemoryRegions[Idx].Length == (UINT32)Length))
+     {
++      DEBUG ((
++        DEBUG_VERBOSE,
++        "AcpiVerify: SystemMemory region matches allowlist \"%a\"\n",
++        mAllowedSystemMemoryRegions[Idx].Name
++        ));
+       return TRUE;
+     }
+   }
+@@ -205,87 +254,151 @@ IsDeviceNameBlocked (
+ }
+ 
+ /**
+-  Scan raw AML bytecode for Device() definitions and reject the
+-  blob if any device has a NameSeg present in the blocklist.
++  Scan raw AML bytecode for blocked OperationRegion(SystemMemory) regions.
++
++  Any OperationRegion with RegionSpace==SystemMemory (0x00) that does not
++  match the HPET allowlist is rejected. Non-literal-constant addresses
++  (Arg0, Local0, expressions) are also rejected because they cannot be
++  statically verified. Other RegionSpace types are not checked.
+ 
+   @param[in] AmlData  Pointer to AML bytecode (after the ACPI header).
+   @param[in] AmlSize  Size of the AML bytecode in bytes.
+ 
+-  @retval EFI_SUCCESS             No blocked devices found.
+-  @retval EFI_SECURITY_VIOLATION  A blocked device was found.
++  @retval EFI_SUCCESS             No blocked constructs found.
++  @retval EFI_SECURITY_VIOLATION  A blocked construct was found.
+ **/
+ STATIC
+ EFI_STATUS
+-ScanAmlForBlockedDevices (
++ScanAmlForBlockedConstructs (
+   IN CONST UINT8  *AmlData,
+   IN UINT32       AmlSize
+   )
+ {
+   UINT32       Idx;
+-  UINT32       PkgLength;
+-  UINT32       PkgLenBytes;
+-  UINT32       NameOffset;
++  UINT32       Pos;
++  UINT8        RegionSpace;
++  UINT64       RegionAddr;
++  UINT64       RegionLen;
++  UINT32       Consumed;
++  UINT32       NamePrefixBytes;
+   CONST UINT8  *NamePtr;
+-  CHAR8        DevName[5];
+ 
+   for (Idx = 0; Idx + 1 < AmlSize; Idx++) {
+     //
+-    // ExtOpPrefix (0x5B) followed by DeviceOp (0x82)
++    // Look for ExtOpPrefix (0x5B) followed by RegionOp (0x80)
+     //
+     if ((AmlData[Idx] != AML_EXT_OP) ||
+-        (AmlData[Idx + 1] != AML_EXT_DEVICE_OP))
++        (AmlData[Idx + 1] != AML_EXT_REGION_OP))
+     {
+       continue;
+     }
+ 
+-    NameOffset = Idx + 2;
+-    if (NameOffset >= AmlSize) {
+-      DEBUG ((DEBUG_ERROR, "AcpiVerify: Truncated Device at 0x%x\n", Idx));
++    //
++    // OperationRegion AML encoding:
++    //   ExtOpPrefix(0x5B) RegionOp(0x80) NameString
++    //   RegionSpace(byte) RegionOffset(TermArg=>Integer)
++    //   RegionLen(TermArg=>Integer)
++    //
++    Pos = Idx + 2;
++    if (Pos >= AmlSize) {
++      DEBUG ((DEBUG_ERROR, "AcpiVerify: Truncated OperationRegion at 0x%x\n", Idx));
+       return EFI_SECURITY_VIOLATION;
+     }
+ 
+-    if (!ParseAmlPkgLength (
+-           &AmlData[NameOffset],
+-           AmlSize - NameOffset,
+-           &PkgLength,
+-           &PkgLenBytes
+-           ))
+-    {
+-      DEBUG ((DEBUG_ERROR, "AcpiVerify: Bad PkgLength at 0x%x\n", NameOffset));
++    //
++    // Skip NameString (name prefixes + 4-byte NameSeg)
++    //
++    NamePrefixBytes = SkipAmlNamePrefixes (
++                        &AmlData[Pos],
++                        AmlSize - Pos,
++                        &NamePtr
++                        );
++    Pos += NamePrefixBytes + AML_NAME_SEG_SIZE;
++    if (Pos >= AmlSize) {
++      DEBUG ((DEBUG_ERROR, "AcpiVerify: OperationRegion name truncated at 0x%x\n", Idx));
+       return EFI_SECURITY_VIOLATION;
+     }
+ 
+-    NameOffset += PkgLenBytes;
+-    if (NameOffset + 4 > AmlSize) {
+-      DEBUG ((DEBUG_ERROR, "AcpiVerify: Device name truncated at 0x%x\n", Idx));
++    //
++    // RegionSpace is a single byte
++    //
++    RegionSpace = AmlData[Pos];
++    Pos++;
++
++    //
++    // Only check SystemMemory regions; skip all other types.
++    //
++    if (RegionSpace != AML_REGION_SPACE_SYSTEM_MEMORY) {
++      DEBUG ((
++        DEBUG_VERBOSE,
++        "AcpiVerify: OperationRegion at 0x%x: space=%u (not SystemMemory), skipping\n",
++        Idx,
++        RegionSpace
++        ));
++      continue;
++    }
++
++    if (Pos >= AmlSize) {
++      DEBUG ((DEBUG_ERROR, "AcpiVerify: OperationRegion truncated after RegionSpace at 0x%x\n", Idx));
+       return EFI_SECURITY_VIOLATION;
+     }
+ 
+-    SkipAmlNamePrefixes (
+-      &AmlData[NameOffset],
+-      AmlSize - NameOffset,
+-      &NamePtr
+-      );
++    //
++    // RegionOffset — must be a literal constant
++    //
++    if (!ParseAmlLiteralInteger (&AmlData[Pos], AmlSize - Pos, &RegionAddr, &Consumed)) {
++      DEBUG ((
++        DEBUG_ERROR,
++        "AcpiVerify: BLOCKED SystemMemory OperationRegion at 0x%x: "
++        "non-literal address (opcode 0x%02x)\n",
++        Idx,
++        AmlData[Pos]
++        ));
++      return EFI_SECURITY_VIOLATION;
++    }
+ 
+-    if (NamePtr + 4 > AmlData + AmlSize) {
+-      DEBUG ((DEBUG_ERROR, "AcpiVerify: Name out of bounds at 0x%x\n", Idx));
++    Pos += Consumed;
++    if (Pos >= AmlSize) {
++      DEBUG ((DEBUG_ERROR, "AcpiVerify: OperationRegion truncated after offset at 0x%x\n", Idx));
+       return EFI_SECURITY_VIOLATION;
+     }
+ 
+-    CopyMem (DevName, NamePtr, 4);
+-    DevName[4] = '\0';
++    //
++    // RegionLen — must be a literal constant
++    //
++    if (!ParseAmlLiteralInteger (&AmlData[Pos], AmlSize - Pos, &RegionLen, &Consumed)) {
++      DEBUG ((
++        DEBUG_ERROR,
++        "AcpiVerify: BLOCKED SystemMemory OperationRegion at 0x%x: "
++        "non-literal length (opcode 0x%02x)\n",
++        Idx,
++        AmlData[Pos]
++        ));
++      return EFI_SECURITY_VIOLATION;
++    }
+ 
+-    if (IsDeviceNameBlocked (DevName)) {
++    //
++    // Check against SystemMemory allowlist
++    //
++    if (!IsSystemMemoryRegionAllowed (RegionAddr, RegionLen)) {
+       DEBUG ((
+         DEBUG_ERROR,
+-        "AcpiVerify: BLOCKED device \"%.4a\" at AML offset 0x%x\n",
+-        DevName,
+-        Idx
++        "AcpiVerify: BLOCKED SystemMemory OperationRegion at 0x%x: "
++        "addr=0x%Lx len=0x%Lx\n",
++        Idx,
++        RegionAddr,
++        RegionLen
+         ));
+       return EFI_SECURITY_VIOLATION;
+     }
+ 
+-    DEBUG ((DEBUG_VERBOSE, "AcpiVerify: Device \"%.4a\" OK\n", DevName));
++    DEBUG ((
++      DEBUG_VERBOSE,
++      "AcpiVerify: SystemMemory OperationRegion OK at 0x%x: addr=0x%Lx len=0x%Lx\n",
++      Idx,
++      RegionAddr,
++      RegionLen
++      ));
+   }
+ 
+   return EFI_SUCCESS;
+@@ -296,7 +409,7 @@ ScanAmlForBlockedDevices (
+ 
+   The blob may contain multiple concatenated ACPI tables (as with
+   QEMU's etc/acpi/tables). Walk through all tables and scan any
+-  DSDT or SSDT for blocked device names.
++  DSDT or SSDT for blocked AML constructs.
+ 
+   @param[in] Data        Pointer to the blob data.
+   @param[in] DataSize    Size of the blob in bytes.
+@@ -358,7 +471,7 @@ VerifyBlobData (
+         (UINT32)Offset
+         ));
+ 
+-      Status = ScanAmlForBlockedDevices (
++      Status = ScanAmlForBlockedConstructs (
+                  Blob + Offset + sizeof (EFI_ACPI_DESCRIPTION_HEADER),
+                  Header->Length - sizeof (EFI_ACPI_DESCRIPTION_HEADER)
+                  );

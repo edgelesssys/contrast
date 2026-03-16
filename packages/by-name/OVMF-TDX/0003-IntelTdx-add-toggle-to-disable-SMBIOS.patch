@@ -10,7 +10,7 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  2 files changed, 13 insertions(+), 3 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.dsc b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
-index 7294a071ec953bb72b49941882ebfbbed48f6f6c..0fafb76a8398b56601392a300df304db22ed02c1 100644
+index 86e88bda9057cf6cfc6de5046c68670d7e58b669..2433856173daf97ca88f58c42af6172703d57301 100644
 --- a/OvmfPkg/IntelTdx/IntelTdxX64.dsc
 +++ b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
 @@ -510,9 +510,11 @@
@@ -47,7 +47,7 @@ index 7294a071ec953bb72b49941882ebfbbed48f6f6c..0fafb76a8398b56601392a300df304db
    MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.inf
 +!endif
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.fdf b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-index 238ff73d7ae7bfb08ebdaf14063c7496632f2f96..914c7b72dfe597fb9d15254925f5dd3ab9a467f1 100644
+index 1c7df0c7688c61cfdeea5471f6861d41f82805ca..793eb1299e25835ee8d6a7bd871a86186a1409ed 100644
 --- a/OvmfPkg/IntelTdx/IntelTdxX64.fdf
 +++ b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
 @@ -236,8 +236,10 @@ INF  MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf

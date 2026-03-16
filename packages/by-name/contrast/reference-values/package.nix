@@ -82,11 +82,7 @@ let
   };
   tdxGpuRefVals = tdxRefValsWith {
     inherit (node-installer-image.gpu) os-image;
-    ovmf = OVMF-TDX.override {
-      # Only enable ACPI verification for the GPU build, until
-      # the verification is actually secure.
-      withACPIVerificationInsecure = true;
-    };
+    ovmf = OVMF-TDX;
     withGPU = true;
   };
 in

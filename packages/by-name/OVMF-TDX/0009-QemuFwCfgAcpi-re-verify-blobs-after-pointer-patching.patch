@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Spyros Seimenis <sse@edgeless.systems>
+Date: Mon, 9 Mar 2026 14:38:04 +0200
+Subject: [PATCH] QemuFwCfgAcpi: re-verify blobs after pointer patching
+
+Add a second VerifyBlobData() pass after all table-loader commands
+(Allocate, AddPointer, AddChecksum, WritePointer) have been processed.
+
+The initial verification in ProcessCmdAllocate() checks blob data
+before any patching occurs. However, ADD_POINTER commands can modify
+blob contents after verification -- for example, shifting an
+OperationRegion address field that initially passed the allowlist
+check. This is a TOCTOU (time-of-check-time-of-use) vulnerability.
+
+Re-scanning all blobs after the command loop closes this gap.
+---
+ .../Library/AcpiPlatformLib/QemuFwCfgAcpi.c   | 25 +++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+index cd9586516218067fc8efd0b8d8bf37d23bcda165..d728100e53840731a1b4fd053c40c87ea7e477d8 100644
+--- a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
++++ b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+@@ -1767,6 +1767,31 @@ InstallQemuFwCfgTables (
+     }
+   }
+ 
++  //
++  // Re-verify all blobs after pointer patching (TOCTOU defense).
++  // ADD_POINTER commands above may have modified OperationRegion address
++  // fields or other AML bytecode after the initial VerifyBlobData() check
++  // in ProcessCmdAllocate(). Re-scan to ensure all data is still valid.
++  //
++  for (TrackerEntry = OrderedCollectionMin (Tracker);
++       TrackerEntry != NULL;
++       TrackerEntry = OrderedCollectionNext (TrackerEntry))
++  {
++    BLOB  *Blob;
++
++    Blob   = OrderedCollectionUserStruct (TrackerEntry);
++    Status = VerifyBlobData (Blob->Base, Blob->Size);
++    if (EFI_ERROR (Status)) {
++      DEBUG ((
++        DEBUG_ERROR,
++        "%a: post-patch verification failed for \"%a\"\n",
++        __func__,
++        Blob->File
++        ));
++      goto RollbackWritePointersAndFreeTracker;
++    }
++  }
++
+   InstalledKey = AllocatePool (INSTALLED_TABLES_MAX * sizeof *InstalledKey);
+   if (InstalledKey == NULL) {
+     Status = EFI_OUT_OF_RESOURCES;
