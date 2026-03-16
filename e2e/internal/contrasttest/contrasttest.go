@@ -326,11 +326,11 @@ func (ct *ContrastTest) ApplyFromYAML(t *testing.T, yaml []byte) {
 	require.NoError(ct.Kubeclient.Apply(ctx, objects...))
 }
 
-// RunSet runs the contrast set subcommand.
-func (ct *ContrastTest) RunSet(ctx context.Context) error {
+// RunSet runs the contrast set subcommand with the given arguments.
+func (ct *ContrastTest) RunSet(ctx context.Context, args ...string) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
-	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), ct.WorkDir)
+	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), append(args, ct.WorkDir)...)
 }
 
 // Set runs the contrast set subcommand and fails the test if it is not successful.

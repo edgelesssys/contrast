@@ -66,6 +66,7 @@ buildGoModule {
     "e2e/badaml-sandbox"
     "e2e/badaml-vuln"
     "e2e/containerd-11644-reproducer"
+    "e2e/coordinator"
     "e2e/genpolicy-unsupported"
     "e2e/gpu"
     "e2e/imagepuller-auth"
