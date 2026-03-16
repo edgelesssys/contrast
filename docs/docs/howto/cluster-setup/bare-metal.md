@@ -45,10 +45,11 @@ apt update
 apt install sgx-dcap-pccs tdx-qgs libsgx-dcap-default-qpl sgx-ra-service sgx-pck-id-retrieval-tool
 ```
 
-You can ignore the other sections of the document.
+You can ignore all sections other than `4.3` and `9.2`.
 
 Follow Intel's guide to [Update Intel TDX Module via Binary Deployment](https://cc-enabling.trustedservices.intel.com/intel-tdx-enabling-guide/04/hardware_setup/#update-intel-tdx-module-via-binary-deployment).
-Intel recommends to install the latest TDX module version available.
+Intel recommends to install the latest TDX module version available, but make sure that the module is compatible with your CPU and host firmware.
+Make sure to keep a backup of all files you're overwriting in this step until you're sure that the new module works correctly.
 
 </TabItem>
 </Tabs>
