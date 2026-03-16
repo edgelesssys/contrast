@@ -54,6 +54,7 @@ jobs:
           - badaml-sandbox
           - badaml-vuln
           - containerd-11644-reproducer
+          - coordinator
           - genpolicy-unsupported
           - gpu
           - imagepuller-auth

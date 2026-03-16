@@ -16,8 +16,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 )
@@ -349,7 +351,9 @@ func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstru
 			return err
 		}
 
-		if err := ri.Delete(ctx, obj.GetName(), metav1.DeleteOptions{}); err != nil {
+		if err := ri.Delete(ctx, obj.GetName(), metav1.DeleteOptions{
+			PropagationPolicy: toPtr(metav1.DeletePropagationForeground),
+		}); err != nil {
 			return fmt.Errorf("could not delete %s %s in namespace %s: %w", obj.GetKind(), obj.GetName(), obj.GetNamespace(), err)
 		}
 		c.log.Info("object deleted", "namespace", obj.GetNamespace(), "kind", obj.GetKind(), "name", obj.GetName())
@@ -371,6 +375,32 @@ func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, names
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// WaitForDeletion waits until the resources are fully deleted.
+func (c *Kubeclient) WaitForDeletion(ctx context.Context, objs ...*unstructured.Unstructured) error {
+	for _, obj := range objs {
+		c.log.Info("waiting for deletion of object", "namespace", obj.GetNamespace(), "kind", obj.GetKind(), "name", obj.GetName())
+		if err := wait.PollUntilContextCancel(ctx, 500*time.Millisecond, true, func(ctx context.Context) (bool, error) {
+			ri, err := c.ResourceInterfaceFor(obj)
+			if err != nil {
+				return false, err
+			}
+			_, err = ri.Get(ctx, obj.GetName(), metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return true, nil
+				}
+				return false, err
+			}
+			return false, nil
+		},
+		); err != nil {
+			return fmt.Errorf("waiting for deletion of %s %s in namespace %s: %w", obj.GetKind(), obj.GetName(), obj.GetNamespace(), err)
+		}
+		c.log.Info("object deleted", "namespace", obj.GetNamespace(), "kind", obj.GetKind(), "name", obj.GetName())
 	}
 	return nil
 }
