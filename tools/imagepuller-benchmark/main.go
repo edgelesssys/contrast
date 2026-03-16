@@ -53,6 +53,18 @@ func getDiskUsage(ctx context.Context, path string) (int, error) {
 	return usageMB, nil
 }
 
+func saveLsLR(ctx context.Context, path string, name string) {
+	out, err := exec.CommandContext(ctx, "ls", "-lR", path).Output()
+	if err != nil {
+		fmt.Printf("ls -lR failed: %v\n", err)
+		return
+	}
+	filename := fmt.Sprintf("ls-lR-%s.txt", name)
+	if err := os.WriteFile(filename, out, 0o644); err != nil {
+		fmt.Printf("failed to write %s: %v\n", filename, err)
+	}
+}
+
 func extractName(name string) string {
 	at := strings.Index(name, "@")
 	if at == -1 {
@@ -219,8 +231,10 @@ func profileServerIndividual(benchmarks map[string]resourceUsage, serverPath, st
 
 		start := time.Now()
 		if err := client.Request(benchmark.Image, mountPoint, maxPullDuration); err != nil {
+			saveLsLR(ctx, storagePath, fmt.Sprintf("individual-%s", extractName(benchmark.Image)))
 			return nil, err
 		}
+		saveLsLR(ctx, storagePath, fmt.Sprintf("individual-%s", extractName(benchmark.Image)))
 
 		duration := time.Since(start)
 		if err := syscall.Kill(childPid, syscall.SIGKILL); err != nil {
@@ -286,8 +300,10 @@ func profileServerContinuous(benchmarks map[string]resourceUsage, serverPath, st
 		}
 		err = client.Request(benchmark.Image, mountPoint, maxPullDuration)
 		if err != nil {
+			saveLsLR(ctx, storagePath, fmt.Sprintf("continuous-%s", extractName(benchmark.Image)))
 			return resourceUsage{}, err
 		}
+		saveLsLR(ctx, storagePath, fmt.Sprintf("continuous-%s", extractName(benchmark.Image)))
 	}
 	duration := time.Since(start)
 
