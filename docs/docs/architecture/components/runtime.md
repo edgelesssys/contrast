@@ -28,6 +28,14 @@ spec:
   # ...
 ```
 
+:::info
+
+The Contrast runtime class, in and of itself, is no indicator for workload trustworthiness.
+A pod can use the runtime class without attesting to the Coordinator, for example.
+The only way to establish trust is to [verify the deployment](../../howto/workload-deployment/deployment-verification.md).
+
+:::
+
 ## Node-level components
 
 The runtime consists of additional software components that need to be installed
