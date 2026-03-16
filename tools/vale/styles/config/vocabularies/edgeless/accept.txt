@@ -93,6 +93,7 @@ journald
 Kata
 KEK
 KMS
+Kosmos
 kubeadm
 kubebuilder
 kubeconfig
@@ -144,6 +145,7 @@ runtime
 runtimes?
 safeguardable
 SBOM
+Scaleway
 serializable
 sigstore
 snapshotters?

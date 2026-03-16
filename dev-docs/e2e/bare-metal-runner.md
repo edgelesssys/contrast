@@ -2,6 +2,8 @@
 
 ## Install Ubuntu LTS server
 
+**This step is only relevant when we set up the host OS.**
+
 Download and install the latest Ubuntu LTS server from https://ubuntu.com/download/server.
 
 When configuring the disk layout, ensure to use btrfs as the root filesystem.
@@ -28,7 +30,25 @@ sudo snphost ok
 
 ## TDX setup
 
-Follow https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal?vendor=intel#hardware-and-firmware-setup
+Follow <https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal?vendor=intel#hardware-and-firmware-setup>, but pay attention to the following:
+
+- The passwords chosen during PCCS configuration are only important for the setup phase.
+  Pick a random one (`head -c8 /dev/urandom | base64`) for both user and admin, and keep it for the platform registration step.
+- Don't reboot after DCAP installation, but after TDX module update.
+- Take the PCS API key from `/opt/intel/sgx-dcap-pccs/config/default.json` of an existing machine.
+- Use the *Online, manual, single platform, PCCS-based Indirect Registration* flow to register the platform.
+  The correct invocation of the `PCKIDRetrievalTool` looks like this:
+
+  ```bash
+  PCKIDRetrievalTool -url https://localhost:8081 -user_token $PASSWORD_FROM_ABOVE -use_secure_cert false
+  ```
+
+- After running the `PCKIDRetrievalTool`, there should be a CSV file in the current directory that contains the platform manifest.
+  Extract the PIID with the following command (it will be needed later for the [bare metal runner specification](#bare-metal-runner-specification) step).
+
+  ```bash
+  cat pckid_retrieval.csv | sed 's/,/\n/g' | tail -n1 | head -c160 | tail -c 32; echo
+  ```
 
 ## Install required packages
 
@@ -54,7 +74,11 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-## K3s setup (if k3s should be used)
+## Kubernetes setup
+
+These steps depend on the Kubernetes distribution used for this runner.
+
+### K3s
 
 Add K3s configuration override
 
@@ -89,6 +113,31 @@ Export the Kubeconfig for the current user for the following steps:
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 ```
 
+### Scaleway Kosmos
+
+Follow Scaleway's documentation for joining the node to an existing Kosmos node pool: <https://www.scaleway.com/en/docs/kubernetes/how-to/edit-kosmos-cluster/#how-to-configure-external-nodes-to-join-the-cluster>.
+
+Edit `/etc/systemd/system/kubelet.service` and apply the following modifications.
+
+- Add the flag `--runtime-request-timeout=5m`.
+- Append `ci.contrast.edgeless.systems/main-runner=true` to the already existing `--node-labels` flag.
+
+Restart the Kubelet with `systemctl restart kubelet`.
+
+Install `kubectl`:
+
+```bash
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+mv kubectl /usr/local/bin/
+chmod a+x /usr/local/bin/kubectl
+kubectl version
+```
+
+Generate a Kubernetes configuration in the Scaleway portal, using a dedicated API key for this machine.
+Save the generated config to `/home/github/.kube/config`.
+
+## Kubernetes resources
+
 Install the `hostpath` CSI driver:
 
 ```bash
@@ -117,6 +166,8 @@ echo "kernel.apparmor_restrict_unprivileged_userns = 0" > /etc/sysctl.d/97-appar
 ```
 
 ## Networking
+
+**This step only applies to runners owned by Edgeless Systems, not bare metal cloud machines.**
 
 Add the device to the Tailscale network.
 For this you have to have admin privileges, if you don't see the
@@ -160,7 +211,7 @@ First, create another user, which the runner service will use.
 useradd -s /bin/bash -m -G sudo,docker github
 ```
 
-Put the K3s kubeconfig into the default dir for the user:
+Put the K3s kubeconfig into the default dir for the user (the symlink shown below is for k3s only):
 
 ```bash
 mkdir -p /home/github/.kube
@@ -197,11 +248,12 @@ The instructions are taken from https://github.com/edgelesssys/contrast/blob/a62
 # Create file fs backend
 echo "Setting up btrfs nix builder volume..."
 sudo mkdir -p /mnt/nixbld
-sudo truncate -s 20G /mnt/btrfs.img
+sudo fallocate -l 20G /mnt/btrfs.img
 sudo mkfs.btrfs -f /mnt/btrfs.img
 
 # Create fstab entry to mount the file as btrfs
 sudo echo -e "# btrfs for nix builder \n/mnt/btrfs.img /mnt/nixbld btrfs loop,defaults 0 0" >> /etc/fstab
+sudo systemctl daemon-reload
 sudo mount -a
 
 # Use the btrfs for nix builds
@@ -231,13 +283,13 @@ the nix paths. The installer snapshots your PATH variable during
 installation. If the paths don't exist, then copy over your PATH into
 `/home/github/actions-runner/.path` and restart the service via:
 ```bash
-systemctl restart actions.runner.edgelesssys-contrast.hetzner-ax162-snp.service
+systemctl restart actions.runner.edgelesssys-contrast.$(hostname).service
 ```
 
 Add the necessary tags for the runner in GitHub by navigating to
 https://github.com/edgelesssys/contrast/settings/actions/runners
 selecting the newly added runner and adding the labels the runner fulfills,
-that's "tdx" for TDX servers and "snp" for SNP servers.
+that's `tdx` for TDX servers and `snp` for SNP servers (or `tdx-gpu` and `snp-gpu`, respectively).
 
 ## Developer access
 
@@ -252,13 +304,14 @@ CONFIG="${CONFIG//127.0.0.1/$(hostname)}"
 echo "${CONFIG}" > $(hostname)-kubeconfig
 ```
 
-Copy `hetzner-ax162-snp-kubeconfig` over to somewhere you are already
+Copy the config over to somewhere you are already
 authenticated with GCP and push it as a secret. If the secret already
 exists, only execute the `gcloud secrets versions add` command.
+Set `RUNNER_NAME` to the hostname of the runner to be added.
 
 ```bash
-gcloud secrets create hetzner-ax162-snp-kubeconfig --replication-policy="automatic" --project constellation-331613
-gcloud secrets versions add hetzner-ax162-snp-kubeconfig --data-file="./hetzner-ax162-snp-kubeconfig" --project constellation-331613
+gcloud secrets create ${RUNNER_NAME}-kubeconfig --replication-policy="automatic" --project constellation-331613
+gcloud secrets versions add ${RUNNER_NAME}-kubeconfig --data-file="./${RUNNER_NAME}-kubeconfig" --project constellation-331613
 ```
 
 Add the secret to the secrets retrieved via `just` in
@@ -271,8 +324,11 @@ Having the ConfigMap prevents using committed values in the e2e tests directly, 
 
 The `bm-tcb-specs` ConfigMap wraps the [`<host>/manifest.json`](../e2e), containing a JSON Patch file for the TDX or SNP bare-metal specifications for the configured host.
 Add a file [`dev-docs/e2e/<host>/manifest.json`](../e2e) with the values for the runner you've added.
+Push the branch and run the `update_bm_tcb_specs` workflow on that branch.
 
 ## Sync Server
+
+**This step only applies to servers owned by Edgeless Systems that don't have an application load balancer.**
 
 If a FIFO-ticket sync server should run on the node, find the Tailscale IP, and set it as the `node-ip` for k3s:
 
@@ -286,3 +342,8 @@ Then restart k3s:
 ```bash
 systemctl restart k3s
 ```
+
+## Test run
+
+First, prepare the missing Kubernetes resources by running the `bm_maintenance` workflow from `main`.
+Then, start an appropriate e2e test for the platform (`openssl` or `gpu`).
