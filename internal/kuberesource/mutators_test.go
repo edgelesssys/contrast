@@ -624,6 +624,7 @@ func TestAddImageStore(t *testing.T) {
 
 func getPodSpec(t *testing.T, res []any) applycorev1.PodSpecApplyConfiguration {
 	t.Helper()
+	require.NotEmpty(t, res)
 	d, ok := res[0].(*applyappsv1.DeploymentApplyConfiguration)
 	require.True(t, ok)
 	return *d.Spec.Template.Spec
