@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -23,17 +24,17 @@ func main() {
 
 	configs := []struct {
 		filename        string
-		upstreamPattern string
+		upstreamPattern *regexp.Regexp
 		isGPU           bool
 	}{
 		{
 			filename:        "config",
-			upstreamPattern: "config-*-confidential",
+			upstreamPattern: regexp.MustCompile(`config-\d+\.\d+\.\d+-\d+$`),
 			isGPU:           false,
 		},
 		{
 			filename:        "config-nvidia-gpu",
-			upstreamPattern: "config-*-nvidia-gpu-confidential",
+			upstreamPattern: regexp.MustCompile(`config-\d+\.\d+\.\d+-\d+-nvidia-gpu$`),
 			isGPU:           true,
 		},
 	}
@@ -42,10 +43,14 @@ func main() {
 		configFile := filepath.Join(gitroot, "tools", "kernelconfig", "internal", "base", cfgInfo.filename)
 		targetFile := filepath.Join(gitroot, "tools", "kernelconfig", "internal", "kconfig", "testdata", fmt.Sprintf("expected-%s", cfgInfo.filename))
 
-		matches, err := filepath.Glob(filepath.Join(tarball, "opt", "kata", "share", "kata-containers", cfgInfo.upstreamPattern))
+		matches, err := filepath.Glob(filepath.Join(tarball, "opt", "kata", "share", "kata-containers", "config-*"))
 		if err != nil {
 			log.Fatalf("failed to glob upstream config: %v", err)
 		}
+		matches = slices.DeleteFunc(matches, func(p string) bool {
+			base := filepath.Base(p)
+			return !cfgInfo.upstreamPattern.MatchString(base)
+		})
 		if !cfgInfo.isGPU {
 			matches = slices.DeleteFunc(matches, func(p string) bool {
 				return strings.Contains(p, "-nvidia-gpu-")
