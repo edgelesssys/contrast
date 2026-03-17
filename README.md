@@ -57,6 +57,12 @@ Contrast integrates fluently with the existing Kubernetes workflows. It's compat
 
 To learn more, see the [documentation](https://docs.edgeless.systems/contrast).
 
+## License
+
+Contrast is available under the [Business Source License](LICENSE).
+This license allows non-production use.
+For production use and support, you can [get a commercial license](https://www.edgeless.systems/products/contrast).
+
 ## Contributing
 
 See the [contributing guide](CONTRIBUTING.md).
@@ -66,4 +72,4 @@ Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 * If something doesn't work, make sure to use the [latest release](https://github.com/edgelesssys/contrast/releases/latest) and check out the [known issues](https://github.com/edgelesssys/contrast/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug).
 * Please file an [issue](https://github.com/edgelesssys/contrast/issues) to get help or report a bug.
-* Edgeless Systems offers [Enterprise Support](https://www.edgeless.systems/products/contrast/) for Contrast.
+* Edgeless Systems offers [Enterprise Support](https://www.edgeless.systems/products/contrast) for Contrast.
