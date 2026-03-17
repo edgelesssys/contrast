@@ -41,6 +41,12 @@ Contrast provides powerful [security features and benefits](./security.md). Comm
 
 Contrast supports bare-metal setups based on AMD SEV-SNP and Intel TDX hardware. It also supports managed Kubernetes with hybrid bare-metal nodes.
 
+## License
+
+Contrast is available under the [Business Source License](https://github.com/edgelesssys/contrast/blob/main/LICENSE).
+This license allows non-production use.
+For production use and support, you can [get a commercial license](https://www.edgeless.systems/products/contrast).
+
 ## Getting started
 
 Use these entry points to quickly explore Contrast:
