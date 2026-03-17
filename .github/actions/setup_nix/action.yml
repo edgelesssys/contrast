@@ -13,6 +13,7 @@ runs:
   using: "composite"
   steps:
     - name: Allow unrestricted user namespaces
+      if: runner.os == 'Linux'
       # Ubuntu 24.04 ships strict apparmor defaults, so we have to disable them to be able to call
       # unshare in the Nix sansbox without beeing root.
       shell: bash
@@ -20,6 +21,7 @@ runs:
         sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_unconfined=0
         sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_userns=0
     - name: use btrfs for nix builds
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         echo "Setting up btrfs /nix volume..."
@@ -33,7 +35,7 @@ runs:
     - uses: cachix/install-nix-action@2126ae7fc54c9df00dd18f7f18754393182c73cd # v31.9.1
       with:
         github_access_token: ${{ inputs.githubToken }}
-        extra_nix_config: "build-dir = /nix/bld"
+        extra_nix_config: ${{ runner.os == 'Linux' && 'build-dir = /nix/bld' || '' }}
     - uses: cachix/cachix-action@3ba601ff5bbb07c7220846facfa2cd81eeee15a1 # v16
       with:
         name: edgelesssys
