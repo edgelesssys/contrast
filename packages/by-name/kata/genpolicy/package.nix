@@ -26,6 +26,8 @@ rustPlatform.buildRustPackage rec {
   };
 
   env.OPENSSL_NO_VENDOR = 1;
+  env.OPENSSL_DIR = "${openssl.dev}";
+  env.OPENSSL_LIB_DIR = "${lib.getLib openssl}/lib";
 
   nativeBuildInputs = [
     cmake
