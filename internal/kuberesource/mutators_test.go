@@ -10,8 +10,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 var (
@@ -520,6 +523,124 @@ func TestAddImageStore_Regression(t *testing.T) {
 			require.Contains(string(encoded), "pvc-holder")
 		})
 	}
+}
+
+func TestAddImageStore(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		resource        any
+		annotations     map[string]string
+		runtimeClass    string
+		expectAdded     bool
+		expectedSize    string
+		expectedInits   int
+		expectedVolumes int
+	}{
+		{
+			name: "default size 10Gi",
+			resource: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container())))),
+			runtimeClass:    "contrast-cc",
+			expectAdded:     true,
+			expectedSize:    "10Gi",
+			expectedInits:   1,
+			expectedVolumes: 1,
+		},
+		{
+			name: "custom size",
+			resource: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container())))),
+			annotations:     map[string]string{imageStoreSizeAnnotationKey: "20Gi"},
+			runtimeClass:    "contrast-cc",
+			expectAdded:     true,
+			expectedSize:    "20Gi",
+			expectedInits:   1,
+			expectedVolumes: 1,
+		},
+		{
+			name: "disabled with 0",
+			resource: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container())))),
+			annotations:  map[string]string{imageStoreSizeAnnotationKey: "0"},
+			runtimeClass: "contrast-cc",
+		},
+		{
+			name: "wrong runtime class",
+			resource: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container())))),
+			runtimeClass: "runc",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
+
+			res := []any{tc.resource}
+			if tc.runtimeClass != "" {
+				res = PatchRuntimeHandlers(res, tc.runtimeClass)
+			}
+			if tc.annotations != nil {
+				MapPodSpecWithMeta(res[0], func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+					if meta == nil {
+						meta = applymetav1.ObjectMeta()
+					}
+					meta.WithAnnotations(tc.annotations)
+					return meta, spec
+				})
+			}
+
+			res = AddImageStore(res)
+			podSpec := getPodSpec(t, res)
+
+			if tc.expectAdded {
+				require.Len(podSpec.InitContainers, tc.expectedInits)
+				require.Equal("pvc-holder", *podSpec.InitContainers[0].Name)
+				require.Len(podSpec.Volumes, tc.expectedVolumes)
+				require.Equal("image-store", *podSpec.Volumes[0].Name)
+				require.Equal(resource.MustParse(tc.expectedSize), (*podSpec.Volumes[0].Ephemeral.VolumeClaimTemplate.Spec.Resources.Requests)[corev1.ResourceStorage])
+			} else {
+				require.Empty(podSpec.InitContainers)
+				require.Empty(podSpec.Volumes)
+			}
+		})
+	}
+
+	t.Run("idempotency", func(t *testing.T) {
+		res := []any{applyappsv1.Deployment("test", "default").
+			WithSpec(applyappsv1.DeploymentSpec().
+				WithTemplate(applycorev1.PodTemplateSpec().
+					WithSpec(applycorev1.PodSpec().
+						WithContainers(applycorev1.Container()))))}
+		res = PatchRuntimeHandlers(res, "contrast-cc")
+		resPod := getPodSpec(t, res)
+
+		once := AddImageStore(res)
+		oncePod := getPodSpec(t, once)
+		assert.NotEqual(t, resPod, oncePod)
+
+		twice := AddImageStore(once)
+		twicePod := getPodSpec(t, twice)
+		assert.Equal(t, oncePod, twicePod)
+	})
+}
+
+func getPodSpec(t *testing.T, res []any) applycorev1.PodSpecApplyConfiguration {
+	t.Helper()
+	require.NotEmpty(t, res)
+	d, ok := res[0].(*applyappsv1.DeploymentApplyConfiguration)
+	require.True(t, ok)
+	return *d.Spec.Template.Spec
 }
 
 func TestAddDebugShell(t *testing.T) {
