@@ -1,0 +1,20 @@
+name: build CLI
+description: Build the Contrast CLI release binary for a given system
+
+inputs:
+  system:
+    description: Nix system (e.g. x86_64-linux, aarch64-darwin)
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build CLI
+      shell: bash
+      env:
+        SET: base
+        SYSTEM: ${{ inputs.system }}
+      run: |
+        mkdir -p workspace
+        nix build -L ".#${SET}.contrast.cli-release"
+        cp result/bin/contrast "workspace/contrast-${SYSTEM}"
