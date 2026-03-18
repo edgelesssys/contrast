@@ -14,10 +14,6 @@ import (
 	"fmt"
 	"hash"
 	"log/slog"
-	"os"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -31,27 +27,6 @@ var hashFun func() hash.Hash = sha256.New
 type History struct {
 	store Store
 	log   *slog.Logger
-}
-
-// New creates a new History that uses the default storage backend.
-func New(log *slog.Logger) (*History, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		return nil, err
-	}
-	store, err := NewConfigMapStore(clientset, string(namespace), log.WithGroup("history-store"))
-	if err != nil {
-		return nil, fmt.Errorf("creating history store: %w", err)
-	}
-	return NewWithStore(log, store), nil
 }
 
 // NewWithStore creates a new History with the given storage backend.
@@ -90,7 +65,7 @@ func (h *History) GetTransition(hash [HashSize]byte) (*Transition, error) {
 		return nil, err
 	}
 	var transition Transition
-	if err := transition.unmarshalBinary(transitionBytes); err != nil {
+	if err := transition.UnmarshalBinary(transitionBytes); err != nil {
 		return nil, fmt.Errorf("unmarshaling transition: %w", err)
 	}
 	return &transition, nil
@@ -98,7 +73,7 @@ func (h *History) GetTransition(hash [HashSize]byte) (*Transition, error) {
 
 // SetTransition sets the transition and returns its hash.
 func (h *History) SetTransition(transition *Transition) ([HashSize]byte, error) {
-	return h.setContentaddressed("transitions/%s", transition.marshalBinary())
+	return h.setContentaddressed("transitions/%s", transition.MarshalBinary())
 }
 
 // GetLatest verifies the latest transition with the given public key and returns it.
@@ -120,7 +95,7 @@ func (h *History) GetLatestInsecure() (*LatestTransition, error) {
 		return nil, fmt.Errorf("getting latest transition: %w", err)
 	}
 	var latestTransition LatestTransition
-	if err := latestTransition.unmarshalBinary(transitionBytes); err != nil {
+	if err := latestTransition.UnmarshalBinary(transitionBytes); err != nil {
 		return nil, fmt.Errorf("unmarshaling latest transition: %w", err)
 	}
 	return &latestTransition, nil
@@ -137,7 +112,7 @@ func (h *History) SetLatest(oldT, newT *LatestTransition, signingKey *ecdsa.Priv
 	if err := newT.sign(signingKey); err != nil {
 		return fmt.Errorf("signing latest transition: %w", err)
 	}
-	if err := h.store.CompareAndSwap("transitions/latest", oldT.marshalBinary(), newT.marshalBinary()); err != nil {
+	if err := h.store.CompareAndSwap("transitions/latest", oldT.MarshalBinary(), newT.MarshalBinary()); err != nil {
 		return fmt.Errorf("setting latest transition: %w", err)
 	}
 	return nil
@@ -166,7 +141,7 @@ func (h *History) WatchLatestTransitions(ctx context.Context) (<-chan LatestTran
 					return
 				}
 				var t LatestTransition
-				if err := t.unmarshalBinary(buf); err != nil {
+				if err := t.UnmarshalBinary(buf); err != nil {
 					h.log.Error("store watcher sent something that's not a LatestTransition", "error", err)
 					continue
 				}
@@ -238,7 +213,8 @@ type Transition struct {
 	PreviousTransitionHash [HashSize]byte
 }
 
-func (t *Transition) unmarshalBinary(data []byte) error {
+// UnmarshalBinary unmarshals the binary representation of the Transition into the struct.
+func (t *Transition) UnmarshalBinary(data []byte) error {
 	if len(data) != 2*HashSize {
 		return fmt.Errorf("transition has invalid length %d, expected %d", len(data), 2*HashSize)
 	}
@@ -247,7 +223,8 @@ func (t *Transition) unmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (t *Transition) marshalBinary() []byte {
+// MarshalBinary returns the binary representation of the Transition.
+func (t *Transition) MarshalBinary() []byte {
 	data := make([]byte, 2*HashSize)
 	copy(data[:HashSize], t.ManifestHash[:])
 	copy(data[HashSize:], t.PreviousTransitionHash[:])
@@ -256,54 +233,51 @@ func (t *Transition) marshalBinary() []byte {
 
 // Digest returns the digest of the Transition.
 func (t *Transition) Digest() [HashSize]byte {
-	return Digest(t.marshalBinary())
+	return Digest(t.MarshalBinary())
 }
 
 // LatestTransition is the latest transition signed by the Coordinator.
 type LatestTransition struct {
 	TransitionHash [HashSize]byte
-	signature      []byte
+	Signature      []byte
 }
 
-// Signature returns the signature of the LatestTransition.
-func (l *LatestTransition) Signature() []byte {
-	return l.signature
-}
-
-func (l *LatestTransition) unmarshalBinary(data []byte) error {
+// UnmarshalBinary unmarshals the binary representation of the LatestTransition into the struct.
+func (l *LatestTransition) UnmarshalBinary(data []byte) error {
 	if len(data) <= HashSize {
 		return errors.New("latest transition has invalid length")
 	}
 	sigLen := len(data) - HashSize
-	l.signature = make([]byte, sigLen)
+	l.Signature = make([]byte, sigLen)
 	copy(l.TransitionHash[:], data[:HashSize])
-	copy(l.signature, data[HashSize:])
+	copy(l.Signature, data[HashSize:])
 	return nil
 }
 
-func (l *LatestTransition) marshalBinary() []byte {
+// MarshalBinary returns the binary representation of the LatestTransition.
+func (l *LatestTransition) MarshalBinary() []byte {
 	if l == nil {
 		return []byte{}
 	}
-	data := make([]byte, HashSize+len(l.signature))
+	data := make([]byte, HashSize+len(l.Signature))
 	copy(data[:HashSize], l.TransitionHash[:])
-	copy(data[HashSize:], l.signature)
+	copy(data[HashSize:], l.Signature)
 	return data
 }
 
 // Digest returns the digest of the LatestTransition.
 func (l *LatestTransition) Digest() [HashSize]byte {
-	return Digest(l.marshalBinary())
+	return Digest(l.MarshalBinary())
 }
 
 func (l *LatestTransition) sign(key *ecdsa.PrivateKey) error {
 	var err error
-	l.signature, err = ecdsa.SignASN1(rand.Reader, key, l.TransitionHash[:])
+	l.Signature, err = ecdsa.SignASN1(rand.Reader, key, l.TransitionHash[:])
 	return err
 }
 
 func (l *LatestTransition) verify(key *ecdsa.PublicKey) error {
-	if !ecdsa.VerifyASN1(key, l.TransitionHash[:], l.signature) {
+	if !ecdsa.VerifyASN1(key, l.TransitionHash[:], l.Signature) {
 		return errors.New("latest transition signature is invalid")
 	}
 	return nil

@@ -39,7 +39,7 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			wantT: LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
-				signature:      []byte(fromHex(rq, "304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c")),
+				Signature:      []byte(fromHex(rq, "304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c")),
 			},
 			wantHasLatest: true,
 		},
@@ -171,7 +171,7 @@ func TestHistory_SetLatest(t *testing.T) {
 			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			oldT: &LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
-				signature:      []byte("+sig"),
+				Signature:      []byte("+sig"),
 			},
 			newT: &LatestTransition{
 				TransitionHash: strToHash(rq, "486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7"),
@@ -192,7 +192,7 @@ func TestHistory_SetLatest(t *testing.T) {
 			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			oldT: &LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
-				signature:      []byte("+sig"),
+				Signature:      []byte("+sig"),
 			},
 			newT: &LatestTransition{
 				TransitionHash: strToHash(rq, "486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7"),
@@ -205,7 +205,7 @@ func TestHistory_SetLatest(t *testing.T) {
 			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			oldT: &LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
-				signature:      []byte("+sig"),
+				Signature:      []byte("+sig"),
 			},
 			newT: &LatestTransition{
 				TransitionHash: strToHash(rq, "486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7"),
@@ -220,7 +220,7 @@ func TestHistory_SetLatest(t *testing.T) {
 			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			oldT: &LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
-				signature:      []byte("+sig"),
+				Signature:      []byte("+sig"),
 			},
 			newT: &LatestTransition{
 				TransitionHash: strToHash(rq, "486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7"),
@@ -605,10 +605,10 @@ func TestHistory_WatchLatestTransitions(t *testing.T) {
 
 	expectedTransition := &LatestTransition{
 		TransitionHash: [32]byte{42},
-		signature:      []byte("fake signature"),
+		Signature:      []byte("fake signature"),
 	}
 
-	store.latestTransitions <- expectedTransition.marshalBinary()
+	store.latestTransitions <- expectedTransition.MarshalBinary()
 
 	require.EventuallyWithT(func(t *assert.CollectT) {
 		assert := assert.New(t)

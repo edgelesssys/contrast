@@ -17,7 +17,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
-	"github.com/edgelesssys/contrast/internal/history"
+	"github.com/edgelesssys/contrast/internal/history/configmapstore"
 	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -100,7 +100,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		}
 		filelist[fmt.Sprintf("initdata.%x.toml", digest)] = initdata
 	}
-	history, err := history.RecoverConfigMaps(resp.Manifests, resp.Policies, resp.LatestTransitionHash, resp.LatestTransitionSignature)
+	history, err := configmapstore.RecoverConfigMaps(resp.Manifests, resp.Policies, resp.LatestTransitionHash, resp.LatestTransitionSignature)
 	if err != nil {
 		return fmt.Errorf("getting Coordinator history: %w", err)
 	}
