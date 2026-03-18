@@ -7,15 +7,15 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
  src/tools/genpolicy/genpolicy-settings.json  | 12 ------
  src/tools/genpolicy/src/mount_and_storage.rs | 43 --------------------
- src/tools/genpolicy/src/settings.rs          |  1 -
+ src/tools/genpolicy/src/settings.rs          |  3 +-
  src/tools/genpolicy/src/yaml.rs              | 14 ++++---
- 4 files changed, 8 insertions(+), 62 deletions(-)
+ 4 files changed, 9 insertions(+), 63 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index f08f391931c09b9ff93b5a29247c1a099f773bfb..e7800bd10ba1eae91bdf61b4c1bab2af46bc4a05 100644
+index 9508a7775de2befe6310fa719240180a5fe31ef1..17832fbd883cc5d35d846c02cb4250f49b284716 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -183,18 +183,6 @@
+@@ -201,18 +201,6 @@
                  "rprivate",
                  "ro"
              ]
@@ -35,10 +35,10 @@ index f08f391931c09b9ff93b5a29247c1a099f773bfb..e7800bd10ba1eae91bdf61b4c1bab2af
      },
      "devices": {
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 5f7127351670b850113a362b601f5dfbb4462cff..3186617e07b59e498c5baec763da253fedbe00aa 100644
+index fa1eefa383768f67a32e9162670382dc4b526069..62c970f4aad27f5ffba0e246094293f5ca476750 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -387,46 +387,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+@@ -389,46 +389,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
          });
      }
  }
@@ -86,17 +86,26 @@ index 5f7127351670b850113a362b601f5dfbb4462cff..3186617e07b59e498c5baec763da253f
 -    });
 -}
 diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
-index a7c12aebd3112d5811e4be950b20b804716c5c08..215d264cc5999aeeb287e012088698a81c10f043 100644
+index 501e8951bae926d53015ed1b63db32876e0eb242..ddf32d5c6d9e81db9ddc9183bcbbb63e2b705203 100644
 --- a/src/tools/genpolicy/src/settings.rs
 +++ b/src/tools/genpolicy/src/settings.rs
-@@ -34,7 +34,6 @@ pub struct Volumes {
-     pub emptyDir: EmptyDirVolume,
+@@ -37,7 +37,6 @@ pub struct Volumes {
+     pub emptyDir_encrypted: EmptyDirVolume,
      pub emptyDir_memory: EmptyDirVolume,
      pub configMap: ConfigMapVolume,
 -    pub image_volume: ImageVolume,
  }
  
  /// EmptyDir volume settings loaded from genpolicy-settings.json.
+@@ -67,7 +66,7 @@ pub struct ConfigMapVolume {
+ 
+ /// Container image volume settings loaded from genpolicy-settings.json.
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+-pub struct ImageVolume {
++pub struct _ImageVolume {
+     pub mount_type: String,
+     pub mount_source: String,
+     pub driver: String,
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
 index a53a4bb9abae414fb5eb47e179aca7ad9f6f7b8f..55ac5afdf809297213414394e15183d63b45c8f4 100644
 --- a/src/tools/genpolicy/src/yaml.rs

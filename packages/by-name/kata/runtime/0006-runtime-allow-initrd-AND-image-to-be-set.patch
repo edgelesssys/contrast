@@ -5,10 +5,10 @@ Subject: [PATCH] runtime: allow initrd AND image to be set
 
 Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
 ---
- .../virtcontainers/hypervisor_config_darwin.go |  2 --
- .../virtcontainers/hypervisor_config_linux.go  |  2 --
- src/runtime/virtcontainers/qemu.go             | 18 +++---------------
- 3 files changed, 3 insertions(+), 19 deletions(-)
+ .../virtcontainers/hypervisor_config_darwin.go  |  2 --
+ .../virtcontainers/hypervisor_config_linux.go   |  2 --
+ src/runtime/virtcontainers/qemu.go              | 17 ++---------------
+ 3 files changed, 2 insertions(+), 19 deletions(-)
 
 diff --git a/src/runtime/virtcontainers/hypervisor_config_darwin.go b/src/runtime/virtcontainers/hypervisor_config_darwin.go
 index 1225271a2a4c5d9340022c22ee6889171bc21b93..a3398bcf6fac68e272a4ca1de962e585c4cf4fae 100644
@@ -24,7 +24,7 @@ index 1225271a2a4c5d9340022c22ee6889171bc21b93..a3398bcf6fac68e272a4ca1de962e585
  
  	if conf.NumVCPUs == 0 {
 diff --git a/src/runtime/virtcontainers/hypervisor_config_linux.go b/src/runtime/virtcontainers/hypervisor_config_linux.go
-index 9d4c8c1c6fd95b647697cb30c8758d7e53ee3765..0f9c119af39f0c1080b271a12057e38bf8b5fc52 100644
+index 381f3c8f079fe90a0213b682b3062bc24733b841..924ee294fe60062c02d78491cf377080fae6b340 100644
 --- a/src/runtime/virtcontainers/hypervisor_config_linux.go
 +++ b/src/runtime/virtcontainers/hypervisor_config_linux.go
 @@ -28,8 +28,6 @@ func validateHypervisorConfig(conf *HypervisorConfig) error {
@@ -37,33 +37,33 @@ index 9d4c8c1c6fd95b647697cb30c8758d7e53ee3765..0f9c119af39f0c1080b271a12057e38b
  
  	if err := conf.CheckTemplateConfig(); err != nil {
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 1402fab2fefcb9e9177a8a0b3a35ccddf4028e57..76c0e3028164c80fa1ff170ed96a27efe459f431 100644
+index 36f96c418a86b534ed00acba5ed458fd4a21c01b..62b1ff626eb0f401e13b2d4453bcae8ba9ff75e2 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
-@@ -426,24 +426,12 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu
+@@ -426,25 +426,12 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu
  		return nil, nil, nil, err
  	}
  
 -	assetPath, assetType, err := q.config.ImageOrInitrdAssetPath()
--	if err != nil {
--		return nil, nil, nil, err
--	}
--
--	if assetType == types.ImageAsset {
--		devices, err = q.arch.appendImage(ctx, devices, assetPath)
 +	devices, err = q.arch.appendImage(ctx, devices, q.config.ImagePath)
- 		if err != nil {
- 			return nil, nil, nil, err
- 		}
--	} else if assetType == types.InitrdAsset {
+ 	if err != nil {
+ 		return nil, nil, nil, err
+ 	}
+ 
+-	switch assetType {
+-	case types.ImageAsset:
+-		devices, err = q.arch.appendImage(ctx, devices, assetPath)
+-		if err != nil {
+-			return nil, nil, nil, err
+-		}
+-	case types.InitrdAsset:
 -		// InitrdAsset, need to set kernel initrd path
 -		kernel.InitrdPath = assetPath
--	} else if assetType == types.SecureBootAsset {
+-	case types.SecureBootAsset:
 -		// SecureBootAsset, no need to set image or initrd path
 -		q.Logger().Info("For IBM Z Secure Execution, initrd path should not be set")
 -		kernel.InitrdPath = ""
 -	}
-+
 +	kernel.InitrdPath = q.config.InitrdPath
  
  	if q.config.IOMMU {

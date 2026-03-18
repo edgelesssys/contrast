@@ -19,10 +19,17 @@ rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
   inherit (runtime) version src;
 
-  sourceRoot = "${src.name}/src/tools/genpolicy";
+  sourceRoot = "${src.name}";
+  cargoBuildFlags = [
+    "-p"
+    pname
+  ];
 
   cargoLock = {
-    lockFile = "${src}/src/tools/genpolicy/Cargo.lock";
+    lockFile = "${src}/Cargo.lock";
+    outputHashes = {
+      "api_client-0.1.0" = "sha256-aWtVgYlcbssL7lQfMFGJah8DrJN0s/w1ZFncCPHT1aE=";
+    };
   };
 
   env.OPENSSL_NO_VENDOR = 1;
@@ -40,17 +47,21 @@ rustPlatform.buildRustPackage rec {
     zlib
   ];
 
-  # Build.rs writes to src
+  # Build.rs writes to its own src dir
   postConfigure = ''
-    chmod -R +w ../..
+    chmod -R +w src/tools/genpolicy/src
   '';
 
   preBuild = ''
-    make src/version.rs
+    make -C src/tools/genpolicy src/version.rs
   '';
 
   # Only run library tests, the integration tests need internet access.
-  cargoTestFlags = [ "--lib" ];
+  cargoTestFlags = [
+    "-p"
+    pname
+    "--lib"
+  ];
 
   passthru = rec {
     settings-base = stdenvNoCC.mkDerivation {
@@ -64,7 +75,7 @@ rustPlatform.buildRustPackage rec {
       ];
       installPhase = ''
         runHook preInstall
-        install -D genpolicy-settings.json $out/genpolicy-settings.json
+        install -D src/tools/genpolicy/genpolicy-settings.json $out/genpolicy-settings.json
         runHook postInstall
       '';
     };
@@ -113,7 +124,7 @@ rustPlatform.buildRustPackage rec {
       ];
       installPhase = ''
         runHook preInstall
-        install -D rules.rego $out/genpolicy-rules.rego
+        install -D src/tools/genpolicy/rules.rego $out/genpolicy-rules.rego
         runHook postInstall
       '';
     };

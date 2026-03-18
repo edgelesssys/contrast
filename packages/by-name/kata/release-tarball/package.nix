@@ -12,7 +12,7 @@ let
 in
 fetchzip {
   url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.zst";
-  hash = "sha256-DJybvB8lbK2/1ng6OedMWBKODPhcJaq3MElA+f6LpvY=";
+  hash = "sha256-5UTVkDEsAzD0KyBFzR03k5KnFETGDPjnaLg1T+VXDjg=";
   stripRoot = false;
   nativeBuildInputs = [ zstd ];
 

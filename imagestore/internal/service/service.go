@@ -49,9 +49,7 @@ func (s *SecureImageStoreService) SecureMount(
 	markerFile := path.Join(req.MountPoint, ".contrast_mount_point_marker")
 	if _, err := os.Stat(markerFile); err == nil {
 		log.Info("store is already mounted, skipping")
-		return &securemountapi.SecureMountResponse{
-			MountPath: req.MountPoint,
-		}, nil
+		return &securemountapi.SecureMountResponse{}, nil
 	}
 	if err := setupLuksAndMount(ctx, log, req, params); err != nil {
 		return nil, fmt.Errorf("creating and mounting LUKS device: %w", err)
@@ -61,7 +59,5 @@ func (s *SecureImageStoreService) SecureMount(
 	}
 
 	log.Info("Securely mounted device", "target", req.MountPoint)
-	return &securemountapi.SecureMountResponse{
-		MountPath: req.MountPoint,
-	}, nil
+	return &securemountapi.SecureMountResponse{}, nil
 }

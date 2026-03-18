@@ -5,39 +5,40 @@ Subject: [PATCH] runtime: assign GPU devices to multiple containers
 
 Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 ---
- src/runtime/virtcontainers/container.go | 15 +++++++++++++++
+ src/runtime/virtcontainers/container.go | 16 ++++++++++++++++
  src/tools/genpolicy/src/pod.rs          | 11 +++++++++++
  src/tools/genpolicy/src/policy.rs       | 14 ++++++++++++++
- 3 files changed, 40 insertions(+)
+ 3 files changed, 41 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
-index e1ae8d8ea1a419f1aa7c62423e38ebc3134d7f02..1424a06ffab017be32369f649d52a739568cc515 100644
+index 7d663ffdecd99554524de9b242d28774680a1394..ef6617da7f102c336d0ed6b0ebd98cc074c7a30d 100644
 --- a/src/runtime/virtcontainers/container.go
 +++ b/src/runtime/virtcontainers/container.go
-@@ -1126,6 +1126,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
- 					return err
- 				}
+@@ -1285,6 +1285,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+ 			for _, dev := range devs {
+ 				containerPaths = append(containerPaths, dev.ContainerPath)
  			}
 +
 +			// If the NVIDIA_VISIBLE_DEVICES envvar exists and is set to "all" for the given container,
 +			// we attach ALL Nvidia GPU devices to this container.
 +			if slices.Contains(c.config.CustomSpec.Process.Env, "NVIDIA_VISIBLE_DEVICES=all") {
 +				for _, sibling := range siblings {
-+					c.createCDIAnnotation(sibling.Path, sibling.Index)
++					c.createCDIAnnotation(sibling.Path, sibling.Index, sibling.CDIKind)
 +				}
 +			}
  		}
  
- 		if devices, ok := devices.([]config.DeviceInfo); ok {
-@@ -1140,6 +1148,13 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+ 		// Now that we have the index lets connect the /dev/vfio/<num>
+@@ -1305,6 +1313,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
  				}
+ 				return err
  			}
- 
++
 +			// If the NVIDIA_VISIBLE_DEVICES envvar exists and is set to "all" for the given container,
 +			// we attach ALL Nvidia GPU devices to this container.
 +			if slices.Contains(c.config.CustomSpec.Process.Env, "NVIDIA_VISIBLE_DEVICES=all") {
 +				for _, sibling := range siblings {
-+					c.createCDIAnnotation(sibling.Path, sibling.Index)
++					c.createCDIAnnotation(sibling.Path, sibling.Index, sibling.CDIKind)
 +				}
 +			}
  		}
@@ -66,10 +67,10 @@ index 20b7e8c0d3b3beafde0ab95fc5f5c67d5b44cfd2..c4df47208702bcedc695ae4197d29af0
  
  fn compress_default_capabilities(
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 83f82ce85a47383353a72b6a18a0ce99cf6c5032..fc3e749148d43f91f4c40005b7f63a1c41095152 100644
+index 0eaa0d5a3b1828f4a92851236caf27d146a22e15..ead7e76a914bac17dce8bd0a59e8d2a5ab12be02 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -789,6 +789,20 @@ impl AgentPolicy {
+@@ -796,6 +796,20 @@ impl AgentPolicy {
              }
          }
  

@@ -1,8 +1,8 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index e7800bd10ba1eae91bdf61b4c1bab2af46bc4a05..1469b7238f4483325e63f32ea37b296b50e55e26 100644
+index 17832fbd883cc5d35d846c02cb4250f49b284716..3d0e22904e9e9f3c04004f7b9d31fc006c8809aa 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -193,7 +193,9 @@
+@@ -211,7 +211,9 @@
                  "gpu_anno_value_regex": "^nvidia\\.com/gpu=[0-9]+$",
                  "gpu_gk_device_type": "vfio-pci-gk",
                  "pgpu_resource_keys": [
@@ -13,16 +13,20 @@ index e7800bd10ba1eae91bdf61b4c1bab2af46bc4a05..1469b7238f4483325e63f32ea37b296b
                  ]
              }
          }
-@@ -301,7 +303,7 @@
+@@ -320,10 +322,10 @@
          "enable_configmap_secret_storages": false
      },
      "cluster_config": {
 -        "pause_container_image": "mcr.microsoft.com/oss/kubernetes/pause:3.6",
 +        "pause_container_image": "ghcr.io/edgelesssys/kubernetes/pause:3.6",
          "guest_pull": true,
-         "pause_container_id_policy": "v1"
+         "pause_container_id_policy": "v1",
+-        "encrypted_emptydir": true
++        "encrypted_emptydir": false
      },
-@@ -359,7 +361,7 @@
+     "request_defaults": {
+         "CreateContainerRequest": {
+@@ -379,7 +381,7 @@
              ]
          },
          "CloseStdinRequest": false,
