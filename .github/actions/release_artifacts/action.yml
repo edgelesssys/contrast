@@ -113,7 +113,7 @@ runs:
       run: |
         cat << 'EOF' | tee -a "${GITHUB_OUTPUT}"
         paths<<EOM
-        workspace/contrast-cli/bin/contrast
+        workspace/contrast-x86_64-linux
         workspace/coordinator*.yml
         workspace/runtime-*.yml
         workspace/emojivoto-demo.yml
@@ -179,12 +179,9 @@ runs:
           --namespace contrast-system \
           --add-namespace-object \
           node-installer-target-conf > workspace/node-installer-target-config-k3s.yml
-    - name: Build CLI
-      shell: bash
-      env:
-        SET: base
-      run: |
-        nix build -L ".#${SET}.contrast.cli-release" --out-link workspace/contrast-cli
+    - uses: ./.github/actions/build_cli
+      with:
+        system: x86_64-linux
     - name: AWS login (IAM role)
       uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
       with:

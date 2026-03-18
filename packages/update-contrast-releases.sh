@@ -31,7 +31,7 @@ target_configs=(
 # declare an associative array that pairs the field name
 # in ./packages/versions.json with the path to the file
 declare -A fields
-fields["contrast"]="./workspace/contrast-cli/bin/contrast"
+fields["contrast"]="./workspace/contrast-x86_64-linux"
 fields["coordinator.yml"]="./workspace/coordinator.yml"
 fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
