@@ -363,8 +363,8 @@ get-credentials platform=default_platform:
             sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-TDX"/' justfile.env
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
         ;;
-        "Metal-QEMU-TDX-GPU"|"l-bgx-02")
-            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/l-bgx-02-kubeconfig/versions/latest"
+        "Metal-QEMU-TDX-GPU"|"dgx-007")
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/dgx-007-kubeconfig/versions/latest"
             sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-TDX-GPU"/' justfile.env
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="none"/' justfile.env
         ;;
