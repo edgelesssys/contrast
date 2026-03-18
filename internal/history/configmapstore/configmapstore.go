@@ -39,8 +39,8 @@ type ConfigMapStore struct {
 	logger    *slog.Logger
 }
 
-// NewConfigMapStore creates a new instance backed by Kubernetes Config Maps.
-func NewConfigMapStore(client kubernetes.Interface, namespace string, log *slog.Logger) (*ConfigMapStore, error) {
+// New creates a new [ConfigMapStore] instance with the given Kubernetes client.
+func New(client kubernetes.Interface, namespace string, log *slog.Logger) (*ConfigMapStore, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	self, err := client.CoreV1().Pods(namespace).Get(ctx, os.Getenv("HOSTNAME"), metav1.GetOptions{})

@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-package history
+package aferostore
 
 import (
 	"bytes"
@@ -23,8 +23,8 @@ type AferoStore struct {
 	mux sync.RWMutex
 }
 
-// NewAferoStore creates a new instance backed by the given fs.
-func NewAferoStore(fs *afero.Afero) *AferoStore {
+// New creates a new [AferoStore] instance backed by the given fs.
+func New(fs *afero.Afero) *AferoStore {
 	return &AferoStore{fs: fs}
 }
 
