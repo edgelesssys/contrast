@@ -1,7 +1,7 @@
 // Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-package history
+package configmapstore
 
 import (
 	"bytes"
@@ -11,9 +11,11 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	corev1 "k8s.io/api/core/v1"
@@ -205,7 +207,7 @@ func (s *ConfigMapStore) Watch(key string) (<-chan []byte, func(), error) {
 // from the given manifests, policies, and latest transition information.
 func RecoverConfigMaps(manifests [][]byte, policies [][]byte, latestTransitionHash []byte, latestTransitionSignature []byte) ([]any, error) {
 	var hist []any
-	appendCm := func(pathFmt string, hash [HashSize]byte, content []byte) error {
+	appendCm := func(pathFmt string, hash [history.HashSize]byte, content []byte) error {
 		hashStr := hex.EncodeToString(hash[:])
 		cmName, err := objectName(fmt.Sprintf(pathFmt, hashStr))
 		if err != nil {
@@ -215,31 +217,31 @@ func RecoverConfigMaps(manifests [][]byte, policies [][]byte, latestTransitionHa
 		return nil
 	}
 	for _, m := range manifests {
-		if err := appendCm("manifests/%s", Digest(m), m); err != nil {
+		if err := appendCm("manifests/%s", history.Digest(m), m); err != nil {
 			return nil, fmt.Errorf("creating config map for manifest: %w", err)
 		}
 	}
 	for _, p := range policies {
 		initdata := initdata.Raw(p)
-		if err := appendCm("policies/%s", Digest(initdata), initdata); err != nil {
+		if err := appendCm("policies/%s", history.Digest(initdata), initdata); err != nil {
 			return nil, fmt.Errorf("creating config map for policy: %w", err)
 		}
 	}
-	transitions := BuildTransitionChain(manifests)
+	transitions := history.BuildTransitionChain(manifests)
 	for _, t := range transitions {
-		if err := appendCm("transitions/%s", t.Digest(), t.marshalBinary()); err != nil {
+		if err := appendCm("transitions/%s", t.Digest(), t.MarshalBinary()); err != nil {
 			return nil, fmt.Errorf("creating config map for transition: %w", err)
 		}
 	}
-	latest := &LatestTransition{
-		TransitionHash: [HashSize]byte(latestTransitionHash),
-		signature:      latestTransitionSignature,
+	latest := &history.LatestTransition{
+		TransitionHash: [history.HashSize]byte(latestTransitionHash),
+		Signature:      latestTransitionSignature,
 	}
 	cmName, err := objectName("transitions/latest")
 	if err != nil {
 		return nil, fmt.Errorf("creating config map for latest transition: %w", err)
 	}
-	cm := kuberesource.ConfigMap(cmName, "").WithBinaryData(map[string][]byte{"latest": latest.marshalBinary()})
+	cm := kuberesource.ConfigMap(cmName, "").WithBinaryData(map[string][]byte{"latest": latest.MarshalBinary()})
 	return append(hist, cm), nil
 }
 
@@ -261,6 +263,8 @@ func (s *ConfigMapStore) newEntry(cmName, key string, value []byte) *corev1.Conf
 		BinaryData: map[string][]byte{filepath.Base(key): value},
 	}
 }
+
+var keyRe = regexp.MustCompile(`^[a-zA-Z0-9-]+/[a-zA-Z0-9-]+$`)
 
 func objectName(key string) (string, error) {
 	if !keyRe.MatchString(key) {

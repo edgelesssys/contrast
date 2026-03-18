@@ -32,6 +32,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/history"
+	"github.com/edgelesssys/contrast/internal/history/configmapstore"
 	commonhttpapi "github.com/edgelesssys/contrast/internal/httpapi"
 	loggerpkg "github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
@@ -107,10 +108,12 @@ func run() (retErr error) {
 	promRegistry := prometheus.NewRegistry()
 	serverMetrics := newServerMetrics(promRegistry)
 
-	hist, err := history.New(logger)
+	store, err := configmapstore.NewConfigMapStore(clientset, string(namespace), logger.WithGroup("history-store"))
 	if err != nil {
-		return fmt.Errorf("creating history: %w", err)
+		return fmt.Errorf("creating history store: %w", err)
 	}
+
+	hist := history.NewWithStore(logger.WithGroup("history"), store)
 
 	meshAuth := stateguard.New(hist, promRegistry, logger)
 
