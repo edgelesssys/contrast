@@ -108,7 +108,7 @@ func run() (retErr error) {
 	promRegistry := prometheus.NewRegistry()
 	serverMetrics := newServerMetrics(promRegistry)
 
-	store, err := configmapstore.NewConfigMapStore(clientset, string(namespace), logger.WithGroup("history-store"))
+	store, err := configmapstore.New(clientset, string(namespace), logger.WithGroup("history-store"))
 	if err != nil {
 		return fmt.Errorf("creating history store: %w", err)
 	}

@@ -23,6 +23,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/history"
+	"github.com/edgelesssys/contrast/internal/history/aferostore"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -365,7 +366,7 @@ func TestRecovery(t *testing.T) {
 
 			logger := slog.Default()
 			fs := afero.NewMemMapFs()
-			store := history.NewAferoStore(&afero.Afero{Fs: fs})
+			store := aferostore.New(&afero.Afero{Fs: fs})
 			hist := history.NewWithStore(slog.Default(), store)
 			auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
 			discovery := &stubDiscovery{
@@ -421,7 +422,7 @@ func TestRecoveryFlow(t *testing.T) {
 
 	logger := slog.Default()
 	fs := afero.NewMemMapFs()
-	store := history.NewAferoStore(&afero.Afero{Fs: fs})
+	store := aferostore.New(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
 	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
 	a := New(logger, auth, &stubDiscovery{})
@@ -500,7 +501,7 @@ func TestUserAPIConcurrent(t *testing.T) {
 
 	logger := slog.Default()
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
-	store := history.NewAferoStore(&afero.Afero{Fs: fs})
+	store := aferostore.New(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
 	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
 	coordinator := New(logger, auth, &stubDiscovery{})
@@ -814,7 +815,7 @@ func newCoordinator() *Server {
 func newCoordinatorWithRegistry(reg *prometheus.Registry) *Server {
 	logger := slog.Default()
 	fs := afero.NewMemMapFs()
-	store := history.NewAferoStore(&afero.Afero{Fs: fs})
+	store := aferostore.New(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
 	auth := stateguard.New(hist, reg, logger)
 	return New(logger, auth, &stubDiscovery{})
@@ -941,7 +942,7 @@ type watchableStore struct {
 func newWatchableStore() *watchableStore {
 	fs := afero.NewMemMapFs()
 	return &watchableStore{
-		Store:       history.NewAferoStore(&afero.Afero{Fs: fs}),
+		Store:       aferostore.New(&afero.Afero{Fs: fs}),
 		watchers:    make(map[string][]chan []byte),
 		watchCalled: make(chan string, 20),
 	}

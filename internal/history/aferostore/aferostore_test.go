@@ -1,31 +1,32 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-package history
+package aferostore
 
 import (
 	"os"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAferoStore(t *testing.T) {
 	t.Run("memmap", func(t *testing.T) {
-		suite(t, func(_ *testing.T) Store {
-			return NewAferoStore(&afero.Afero{Fs: afero.NewMemMapFs()})
+		suite(t, func(_ *testing.T) history.Store {
+			return New(&afero.Afero{Fs: afero.NewMemMapFs()})
 		})
 	})
 
 	t.Run("tmpdir", func(t *testing.T) {
-		suite(t, func(t *testing.T) Store {
-			return NewAferoStore(&afero.Afero{Fs: afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())})
+		suite(t, func(t *testing.T) history.Store {
+			return New(&afero.Afero{Fs: afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())})
 		})
 	})
 }
 
-func suite(t *testing.T, storeFactory func(t *testing.T) Store) {
+func suite(t *testing.T, storeFactory func(t *testing.T) history.Store) {
 	t.Run("Get and Set", func(t *testing.T) {
 		require := require.New(t)
 		s := storeFactory(t)

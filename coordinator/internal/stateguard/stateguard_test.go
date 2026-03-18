@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/history"
+	"github.com/edgelesssys/contrast/internal/history/aferostore"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/testkeys"
@@ -196,7 +197,7 @@ func TestConcurrentUpdateState(t *testing.T) {
 	assert := assert.New(t)
 
 	store := &storeWithSync{
-		Store: history.NewAferoStore(&afero.Afero{Fs: afero.NewMemMapFs()}),
+		Store: aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
 	}
 	hist := history.NewWithStore(slog.Default(), store)
 	guard := New(hist, prometheus.NewRegistry(), slog.Default())
@@ -298,7 +299,7 @@ func TestWatchHistory(t *testing.T) {
 			require := require.New(t)
 
 			store := &storeWithManualUpdates{
-				Store:         history.NewAferoStore(&afero.Afero{Fs: afero.NewMemMapFs()}),
+				Store:         aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
 				notifications: make(chan []byte),
 			}
 			hist := history.NewWithStore(slog.Default(), store)
@@ -347,7 +348,7 @@ func TestWatchHistoryLateNotifications(t *testing.T) {
 	require := require.New(t)
 
 	store := &storeWithManualUpdates{
-		Store:         history.NewAferoStore(&afero.Afero{Fs: afero.NewMemMapFs()}),
+		Store:         aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
 		notifications: make(chan []byte),
 	}
 	hist := history.NewWithStore(slog.Default(), store)
@@ -401,7 +402,7 @@ func (s *storeWithManualUpdates) Watch(string) (<-chan []byte, func(), error) {
 func TestBadStoreWatcherIsRestarted(t *testing.T) {
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := &badStore{
-		Store:      history.NewAferoStore(&afero.Afero{Fs: fs}),
+		Store:      aferostore.New(&afero.Afero{Fs: fs}),
 		watchCalls: make(chan string, 10),
 	}
 	ch := make(chan []byte)
@@ -498,7 +499,7 @@ func (c *waitingClock) WaitForAfterCall(t *testing.T, d time.Duration) {
 
 func newTestGuard(t *testing.T) (*Guard, *prometheus.Registry) {
 	t.Helper()
-	store := history.NewAferoStore(&afero.Afero{Fs: afero.NewMemMapFs()})
+	store := aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()})
 	hist := history.NewWithStore(slog.Default(), store)
 	reg := prometheus.NewRegistry()
 	return New(hist, reg, slog.Default()), reg
