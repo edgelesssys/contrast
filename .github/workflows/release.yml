@@ -368,7 +368,7 @@ jobs:
       - name: Download logs
         if: always()
         run: |
-          nix run ".#${SET}.scripts.get-logs download" workspace/just.namespace
+          nix run ".#${SET}.scripts.get-logs" download workspace/just.namespace
       - name: Cleanup
         if: always()
         run: |
