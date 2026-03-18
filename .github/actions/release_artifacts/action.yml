@@ -113,7 +113,7 @@ runs:
       run: |
         cat << 'EOF' | tee -a "${GITHUB_OUTPUT}"
         paths<<EOM
-        workspace/contrast-cli/bin/contrast
+        workspace/contrast-x86_64-linux
         workspace/coordinator*.yml
         workspace/runtime-*.yml
         workspace/emojivoto-demo.yml
@@ -182,6 +182,8 @@ runs:
         SET: base
       run: |
         nix build -L ".#${SET}.contrast.cli-release" --out-link workspace/contrast-cli
+        SYSTEM=$(nix eval --raw --impure --expr 'builtins.currentSystem')
+        cp workspace/contrast-cli/bin/contrast "workspace/contrast-${SYSTEM}"
     - name: AWS login (IAM role)
       uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
       with:
