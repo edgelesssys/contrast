@@ -122,12 +122,23 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Compile SDK for WASM
+      - name: Compile SDK for Wasm
         env:
           GOOS: js
           GOARCH: wasm
         run: |
-          go build -tags contrast_unstable_api ./sdk
+          cat <<EOF > ./main.go
+          package main
+          import _ "github.com/edgelesssys/contrast/sdk"
+          func main() {}
+          EOF
+          go build -tags contrast_unstable_api -o main.wasm ./main.go
+      - name: Check Wasm code size
+        run: |
+          if [ "$(stat -c%s main.wasm)" -gt 25000000 ]; then
+            echo "Compiled SDK exceeds size limit of 25MB"
+            exit 1
+          fi
 
   cli-build:
     runs-on: ubuntu-24.04
