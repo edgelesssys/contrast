@@ -112,6 +112,8 @@ func KataRuntimeConfig(
 	// Fix and align guest memory calculation.
 	config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMebiBytes(platform)
 	config.Runtime["sandbox_cgroup_only"] = true
+	// Currently not using the upstream encrypted emptyDir feature.
+	config.Runtime["emptydir_mode"] = "shared-fs"
 	// TODO: Check again why we need this and how we can avoid it.
 	config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 

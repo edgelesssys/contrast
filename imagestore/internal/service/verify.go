@@ -30,8 +30,8 @@ func getAndVerifyParams(req *securemountapi.SecureMountRequest) (*SecureImageSto
 		return nil, status.Errorf(codes.InvalidArgument, "mountpoint is required")
 	}
 
-	// Hardcoded in https://github.com/kata-containers/kata-containers/blob/b50777a174a2daa7af51b1599b5d1e0b265a53be/src/agent/src/rpc.rs#L2292
-	if req.VolumeType != "BlockDevice" {
+	// Hardcoded in https://github.com/kata-containers/kata-containers/blob/7480aa636e54feb2a2e28bb79023201754997556/src/agent/src/rpc.rs#L2321
+	if req.VolumeType != "block-device" {
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported volmue type: %s", req.VolumeType)
 	}
 
@@ -45,9 +45,9 @@ func getAndVerifyParams(req *securemountapi.SecureMountRequest) (*SecureImageSto
 		return nil, status.Errorf(codes.FailedPrecondition, "resolving device path")
 	}
 
-	// Hardcoded in https://github.com/kata-containers/kata-containers/blob/b50777a174a2daa7af51b1599b5d1e0b265a53be/src/agent/src/rpc.rs#L2288
-	encryptType, ok := req.Options["encryptType"]
-	if !ok || encryptType != "LUKS" {
+	// Hardcoded in https://github.com/kata-containers/kata-containers/blob/7480aa636e54feb2a2e28bb79023201754997556/src/agent/src/rpc.rs#L2323
+	encryptType, ok := req.Options["encryptionType"]
+	if !ok || encryptType != "luks2" {
 		return nil, status.Errorf(codes.InvalidArgument, "Options[\"encryptType\"] must be LUKS")
 	}
 

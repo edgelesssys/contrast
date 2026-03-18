@@ -9,10 +9,10 @@ With recent gpu-operator versions, the sandbox-device-plugin unnecessarily mount
  1 file changed, 4 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index 53c2865544415552b50344559464c807599a3535..316577974715bb8b8297c08eb413f5fa617dbd9d 100644
+index 8a8dc129c84cf6d6d4719e7f44e9014ff01a287a..1b0531c9fb298cd621b2dde713a5712f349e015f 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
-@@ -1089,6 +1089,10 @@ func (k *kataAgent) constrainGRPCSpec(grpcSpec *grpc.Spec, passSeccomp bool, dis
+@@ -1094,6 +1094,10 @@ func (k *kataAgent) constrainGRPCSpec(grpcSpec *grpc.Spec, passSeccomp bool, dis
  				k.Logger().WithField("vfio-dev", dev.Path).Debug("removing vfio device from grpcSpec")
  				continue
  			}

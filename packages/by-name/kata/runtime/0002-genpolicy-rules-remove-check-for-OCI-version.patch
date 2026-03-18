@@ -9,7 +9,7 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  1 file changed, 3 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index e968bc83b15b922b84d5338fbcd16d024ab7f289..f4a15857c344941c97047f4623259cada7058f83 100644
+index 1b80a770f6feb8cc68122955c242dee6e4d3794c..3fdcf0079ec179b076d49596cb71d80fbbfceecb 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -92,9 +92,6 @@ CreateContainerRequest := {"ops": ops, "allowed": true} if {

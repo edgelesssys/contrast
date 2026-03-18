@@ -6,8 +6,8 @@ Subject: [PATCH] agent: use custom implementation for secure mounting
 Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 ---
  src/agent/src/confidential_data_hub/mod.rs | 35 ++++++++++++++++++----
- src/agent/src/rpc.rs                       |  5 +---
- 2 files changed, 31 insertions(+), 9 deletions(-)
+ src/agent/src/rpc.rs                       |  6 +---
+ 2 files changed, 31 insertions(+), 10 deletions(-)
 
 diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
 index 64db843a5953e7176420274bc65b99974534e407..bf2ec55251ef3013726bc2b24a8c69b423e78ec0 100644
@@ -57,7 +57,7 @@ index 64db843a5953e7176420274bc65b99974534e407..bf2ec55251ef3013726bc2b24a8c69b4
      Ok(())
  }
 diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
-index 143c3a2a4c6c35ff2c3aa361e69d0c3508f2b150..7d38a9ec24240b840acb4f7c985f585a738996f6 100644
+index 3e634529b695741da855fa42ada5d9d33c68cfef..bd3be1b66a1d3d04478fa1bfdc38b9c6ae6a6bc5 100644
 --- a/src/agent/src/rpc.rs
 +++ b/src/agent/src/rpc.rs
 @@ -108,7 +108,7 @@ use kata_types::k8s;
@@ -69,13 +69,14 @@ index 143c3a2a4c6c35ff2c3aa361e69d0c3508f2b150..7d38a9ec24240b840acb4f7c985f585a
  /// the iptables seriers binaries could appear either in /sbin
  /// or /usr/sbin, we need to check both of them
  const USR_IPTABLES_SAVE: &str = "/usr/sbin/iptables-save";
-@@ -2308,9 +2308,6 @@ fn is_sealed_secret_path(source_path: &str) -> bool {
- }
- 
- async fn cdh_handler_trusted_storage(oci: &mut Spec) -> Result<()> {
+@@ -2337,10 +2337,6 @@ pub(crate) async fn cdh_secure_mount(
+     encrypt_type: &str,
+     mount_point: &str,
+ ) -> Result<()> {
 -    if !confidential_data_hub::is_cdh_client_initialized() {
 -        return Ok(());
 -    }
-     let linux = oci
-         .linux()
-         .as_ref()
+-
+     let integrity = AGENT_CONFIG.secure_storage_integrity.to_string();
+ 
+     info!(

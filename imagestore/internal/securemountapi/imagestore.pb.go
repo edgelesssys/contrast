@@ -96,7 +96,6 @@ func (x *SecureMountRequest) GetMountPoint() string {
 
 type SecureMountResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	MountPath     string                 `protobuf:"bytes,1,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -131,13 +130,6 @@ func (*SecureMountResponse) Descriptor() ([]byte, []int) {
 	return file_imagestore_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SecureMountResponse) GetMountPath() string {
-	if x != nil {
-		return x.MountPath
-	}
-	return ""
-}
-
 var File_imagestore_proto protoreflect.FileDescriptor
 
 const file_imagestore_proto_rawDesc = "" +
@@ -152,10 +144,8 @@ const file_imagestore_proto_rawDesc = "" +
 	"mountPoint\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"4\n" +
-	"\x13SecureMountResponse\x12\x1d\n" +
-	"\n" +
-	"mount_path\x18\x01 \x01(\tR\tmountPath2X\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x15\n" +
+	"\x13SecureMountResponse2X\n" +
 	"\x12SecureMountService\x12B\n" +
 	"\vSecureMount\x12\x17.api.SecureMountRequest\x1a\x18.api.SecureMountResponse\"\x00BDZBgithub.com/edgelesssys/contrast/imagestore/internal/securemountapib\x06proto3"
 
