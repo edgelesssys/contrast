@@ -157,7 +157,7 @@ jobs:
         if: inputs.kind == 'minor'
         working-directory: contrast-main/docs
         run: |
-          nix run ".#${SET}.nixpkgs.yarn install"
+          nix run ".#${SET}.nixpkgs.yarn" install
           nix run ".#${SET}.nixpkgs.yarn" docusaurus docs:version "${MAJOR_MINOR}"
           git add .
           git commit -am "docs: release ${MAJOR_MINOR}"
