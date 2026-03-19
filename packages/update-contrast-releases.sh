@@ -32,6 +32,7 @@ target_configs=(
 # in ./packages/versions.json with the path to the file
 declare -A fields
 fields["contrast"]="./workspace/contrast-x86_64-linux"
+fields["contrast-aarch64-darwin"]="./workspace/contrast-aarch64-darwin"
 fields["coordinator.yml"]="./workspace/coordinator.yml"
 fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
