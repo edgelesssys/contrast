@@ -121,7 +121,7 @@ jobs:
   update-main:
     name: Update main branch
     runs-on: ubuntu-24.04
-    needs: [process-inputs, release]
+    needs: [process-inputs, release, release-aarch64-darwin]
     permissions:
       contents: write
     env:
@@ -182,6 +182,11 @@ jobs:
         with:
           name: contrast-release-artifacts
           path: ./contrast-main
+      - name: Download darwin CLI artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: contrast-cli-aarch64-darwin
+          path: ./contrast-main/workspace
       - name: Update contrast-releases.json with new release
         working-directory: contrast-main
         run: nix run ".#${SET}.scripts.update-contrast-releases"
@@ -216,6 +221,58 @@ jobs:
           author: edgelessci <edgelessci@users.noreply.github.com>
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           path: ./contrast-main
+
+  release-aarch64-darwin:
+    name: Build aarch64-darwin CLI
+    runs-on: macos-latest
+    needs: process-inputs
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ inputs.version }}
+      SET: base
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Bump flake version to release version
+        uses: ./.github/actions/bump_version
+        with:
+          version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
+          commit: false
+      - name: Build CLI
+        run: |
+          nix build -L ".#${SET}.contrast.cli-release"
+          cp result/bin/contrast contrast-aarch64-darwin
+      - name: Upload artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: contrast-cli-aarch64-darwin
+          path: contrast-aarch64-darwin
+
+  attach-darwin-cli:
+    name: Attach darwin CLI to release
+    runs-on: ubuntu-24.04
+    needs: [release, release-aarch64-darwin]
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Download darwin CLI artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: contrast-cli-aarch64-darwin
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${VERSION}" contrast-aarch64-darwin --repo "${{ github.repository }}"
 
   release:
     name: Build and push artifacts, create release
@@ -401,7 +458,7 @@ jobs:
 
   publish:
     name: Publish release
-    needs: [process-inputs, release, test]
+    needs: [process-inputs, release, test, attach-darwin-cli]
     runs-on: ubuntu-24.04
     environment: release-publish
     permissions:
