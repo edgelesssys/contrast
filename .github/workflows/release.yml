@@ -121,7 +121,7 @@ jobs:
   update-main:
     name: Update main branch
     runs-on: ubuntu-24.04
-    needs: [process-inputs, release]
+    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin]
     permissions:
       contents: write
     env:
@@ -182,6 +182,11 @@ jobs:
         with:
           name: contrast-release-artifacts
           path: ./contrast-main
+      - name: Download darwin CLI artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: contrast-cli-aarch64-darwin
+          path: ./contrast-main/workspace
       - name: Update contrast-releases.json with new release
         working-directory: contrast-main
         run: nix run ".#${SET}.scripts.update-contrast-releases"
@@ -217,7 +222,56 @@ jobs:
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           path: ./contrast-main
 
-  release:
+  release-aarch64-darwin:
+    name: Build aarch64-darwin CLI
+    runs-on: macos-latest
+    needs: [process-inputs, release-x86_64-linux]
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      VERSION: ${{ inputs.version }}
+      SET: base
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Bump flake version to release version
+        uses: ./.github/actions/bump_version
+        with:
+          version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
+          commit: false
+      - uses: ./.github/actions/build_cli
+        with:
+          system: aarch64-darwin
+      - name: Upload artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: contrast-cli-aarch64-darwin
+          path: workspace/contrast-aarch64-darwin
+      - name: Remove existing darwin asset from draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${VERSION}" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | grep -Fxq 'contrast-aarch64-darwin'; then
+            gh release delete-asset "${VERSION}" contrast-aarch64-darwin --repo "${{ github.repository }}" --yes
+          fi
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${VERSION}" workspace/contrast-aarch64-darwin --repo "${{ github.repository }}"
+      - uses: ./.github/actions/s3_upload
+        with:
+          files: workspace/contrast-aarch64-darwin
+          s3-bucket-path: pre-releases/${{ inputs.version }}/${{ github.run_id }}/${{ github.run_attempt }}
+
+  release-x86_64-linux:
     name: Build and push artifacts, create release
     runs-on: ubuntu-24.04
     needs: process-inputs
@@ -315,7 +369,7 @@ jobs:
       # Job needs content:write to see draft releases.
       contents: write
       packages: read
-    needs: [process-inputs, release, nightly]
+    needs: [process-inputs, release-x86_64-linux, nightly]
     env:
       VERSION: ${{ inputs.version }}
       SET: base
@@ -387,7 +441,7 @@ jobs:
 
   nightly:
     name: e2e nightly
-    needs: release
+    needs: release-x86_64-linux
     uses: ./.github/workflows/e2e_nightly.yml
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
@@ -401,7 +455,7 @@ jobs:
 
   publish:
     name: Publish release
-    needs: [process-inputs, release, test]
+    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, test]
     runs-on: ubuntu-24.04
     environment: release-publish
     permissions:
