@@ -456,10 +456,8 @@ func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 		nodeInstallerDeps = append(nodeInstallerDeps, nodeInstallerTargetConf)
 	}
 
-	if ct.NodeInstallerImagePullerConfig != nil {
-		imagePullSecret := kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, ct.NodeInstallerImagePullerConfig)
-		nodeInstallerDeps = append(nodeInstallerDeps, imagePullSecret)
-	}
+	imagePullSecret := ct.getImagePullSecret(ctx, t)
+	nodeInstallerDeps = append(nodeInstallerDeps, imagePullSecret...)
 
 	if len(nodeInstallerDeps) > 0 {
 		nodeInstallerDeps = kuberesource.PatchNamespaces(nodeInstallerDeps, ct.Namespace)
@@ -490,6 +488,21 @@ func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 
 		require.NoError(ct.Kubeclient.WaitForDaemonSet(ctx, ct.Namespace, r.GetName()))
 	}
+}
+
+func (ct *ContrastTest) getImagePullSecret(ctx context.Context, t *testing.T) []any {
+	const namespace = "default"
+	const configMapName = "contrast-e2e-registry-auth"
+	cm, err := ct.Kubeclient.Client.CoreV1().Secrets(namespace).Get(ctx, configMapName, metav1.GetOptions{})
+	if err == nil {
+		return []any{kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, cm.Data["contrast-imagepuller.toml"])}
+	}
+	t.Logf("Could not fetch Secret %s/%s, falling back to configuration from environment", namespace, configMapName)
+	if len(ct.NodeInstallerImagePullerConfig) > 0 {
+		return []any{kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, ct.NodeInstallerImagePullerConfig)}
+	}
+	t.Logf("Could not configure registry auth from environment, proceeding unauthenticated")
+	return nil
 }
 
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
