@@ -25,7 +25,6 @@ on:
 
 env:
   container_registry: ghcr.io/edgelesssys
-  azure_resource_group: contrast-ci
   DO_NOT_TRACK: 1
 
 concurrency:
@@ -341,7 +340,6 @@ jobs:
         run: |
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
-          azure_resource_group=${{ env.azure_resource_group }}
           default_platform=${{ matrix.platform.name }}
           EOF
       - name: Get credentials for CI cluster
