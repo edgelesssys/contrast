@@ -8,11 +8,15 @@ import (
 	"crypto/x509"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var defaultTansport = &http.Transport{
@@ -33,7 +37,7 @@ func TestAuthTransportFor(t *testing.T) {
 		imageRef          string
 		config            Config
 		wantAuthenticator authn.Authenticator
-		wantTransport     *http.Transport
+		wantTransport     http.RoundTripper
 		wantErr           error
 	}{
 		"missing ref caught": {
@@ -213,10 +217,38 @@ func TestAuthTransportFor(t *testing.T) {
 				},
 			},
 		},
+		"mirror": {
+			imageRef: "ghcr.io/edgelesssys/contrast/coordinator",
+			config: Config{
+				Registries: map[string]Registry{
+					"ghcr.io.": {Mirror: "http://registry.default", InsecureSkipVerify: true},
+				},
+			},
+			wantTransport: &MirroringRoundTripper{
+				address: &url.URL{
+					Scheme: "http",
+					Host:   "registry.default",
+				},
+				rt: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
+					},
+				},
+			},
+		},
+		"no matching mirror": {
+			imageRef: "docker.io/library/busybox",
+			config: Config{
+				Registries: map[string]Registry{
+					"ghcr.io.": {Mirror: "http://registry.default", InsecureSkipVerify: true},
+				},
+			},
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
+			require := require.New(t)
 
 			authenticator, transport, err := tc.config.AuthTransportFor(tc.imageRef, slog.Default())
 			assert.ErrorIs(err, tc.wantErr)
@@ -226,18 +258,38 @@ func TestAuthTransportFor(t *testing.T) {
 
 			// We never return an empty authenticator from AuthTransportFor.
 			// This assignment saves us from having to specify an authenticator for most test cases.
-			if tc.wantAuthenticator == nil {
-				tc.wantAuthenticator = authn.Anonymous
+			wantAuthenticator := authn.Anonymous
+			if tc.wantAuthenticator != nil {
+				wantAuthenticator = tc.wantAuthenticator
 			}
-			assert.Equal(tc.wantAuthenticator, *authenticator)
+			assert.Equal(wantAuthenticator, *authenticator)
 
 			// We never return an empty transport from AuthTransportFor.
 			// This assignment saves us from having to specify a transport for most test cases.
-			if tc.wantTransport == nil {
-				tc.wantTransport = defaultTansport
+			var wantTransport http.RoundTripper = defaultTansport
+			if tc.wantTransport != nil {
+				wantTransport = tc.wantTransport
 			}
-			assert.True(tc.wantTransport.TLSClientConfig.RootCAs.Equal(transport.TLSClientConfig.RootCAs))
-			assert.Equal(tc.wantTransport.TLSClientConfig.InsecureSkipVerify, transport.TLSClientConfig.InsecureSkipVerify)
+
+			switch t := wantTransport.(type) {
+			case *http.Transport:
+				httpTransport, ok := transport.(*http.Transport)
+				require.True(ok, "unexpected transport type: %T", transport)
+				assert.True(t.TLSClientConfig.RootCAs.Equal(httpTransport.TLSClientConfig.RootCAs))
+				assert.Equal(t.TLSClientConfig.InsecureSkipVerify, httpTransport.TLSClientConfig.InsecureSkipVerify)
+			case *MirroringRoundTripper:
+				mirrorTransport, ok := transport.(*MirroringRoundTripper)
+				require.True(ok, "unexpected transport type: %T", transport)
+				assert.Equal(t.address, mirrorTransport.address)
+
+				innerTransport, ok := mirrorTransport.rt.(*http.Transport)
+				require.True(ok, "unexpected inner transport type: %T", t.rt)
+				wantInnerTransport, ok := t.rt.(*http.Transport)
+				require.True(ok, "unexpected wantTransport type: %T", transport)
+				assert.True(innerTransport.TLSClientConfig.RootCAs.Equal(wantInnerTransport.TLSClientConfig.RootCAs))
+				assert.Equal(innerTransport.TLSClientConfig.InsecureSkipVerify, wantInnerTransport.TLSClientConfig.InsecureSkipVerify)
+
+			}
 		})
 	}
 }
@@ -352,4 +404,36 @@ func generateRegistries(t *testing.T, fqdn string) map[string]Registry {
 	}
 	registryMap[fqdn] = Registry{AuthConfig: authn.AuthConfig{Auth: fqdn}}
 	return registryMap
+}
+
+func TestMirrorRegistry(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	var capturedRequest *http.Request
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedRequest = r
+		w.WriteHeader(http.StatusTeapot)
+	}))
+
+	t.Cleanup(srv.Close)
+
+	address, err := url.Parse(srv.URL)
+	require.NoError(err)
+
+	rt := &MirroringRoundTripper{
+		rt:      remote.DefaultTransport,
+		address: address,
+	}
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodHead, "https://registry.invalid/v2/foo/manifests/1", nil)
+	require.NoError(err)
+	resp, err := rt.RoundTrip(req)
+	require.NoError(err)
+	t.Cleanup(func() { _ = resp.Body.Close() })
+	require.NotNil(capturedRequest)
+
+	assert.Equal(http.StatusTeapot, resp.StatusCode)
+	assert.Equal("ns=registry.invalid", capturedRequest.URL.RawQuery)
+	assert.Equal("/v2/foo/manifests/1", capturedRequest.URL.Path)
 }

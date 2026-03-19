@@ -11,7 +11,9 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -32,6 +34,7 @@ type Registry struct {
 	authn.AuthConfig
 	CACerts            string `toml:"ca-certs"`
 	InsecureSkipVerify bool   `toml:"insecure-skip-verify"`
+	Mirror             string `toml:"mirror"`
 }
 
 // ReadInsecureConfig reads the auth config from the specified TOML file.
@@ -58,7 +61,7 @@ func ReadInsecureConfig(path string, log *slog.Logger) (*Config, error) {
 var errUnparseableRef = errors.New("could not parse image ref")
 
 // AuthTransportFor constructs the appropriate http.Transport and authn.Authenticator for the given image's registry.
-func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Authenticator, *http.Transport, error) {
+func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Authenticator, http.RoundTripper, error) {
 	// Note: this does no check image pinning.
 	ref, err := name.ParseReference(imageRef)
 	if err != nil {
@@ -95,7 +98,22 @@ func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Aut
 		log.Info("using default CA certificates")
 	}
 
-	return &authenticator, transport, nil
+	var rt http.RoundTripper = transport
+	if registry.Mirror != "" {
+		mirror, err := url.Parse(registry.Mirror)
+		if err != nil {
+			return nil, nil, fmt.Errorf("parsing registry mirror URL: %w", err)
+		}
+		rt = &MirroringRoundTripper{
+			address: mirror,
+			rt:      transport,
+		}
+		log.Info("using mirror registry", "mirror", registry.Mirror)
+	} else {
+		log.Info("using direct connection to registry")
+	}
+
+	return &authenticator, rt, nil
 }
 
 // ApplyEnvVars applies the envvar-based proxy configuration in ExtraEnv.
@@ -122,4 +140,32 @@ func (c *Config) registryFor(name string) Registry {
 		}
 	}
 	return registry
+}
+
+// MirroringRoundTripper modifies the target URL of all incoming requests to a mirror URL,
+// according to the OCI distribution spec [1], and delegates the resulting request to the wrapped
+// http.Rundtripper.
+//
+// [1]: https://github.com/opencontainers/distribution-spec/blob/5e57cc0a07ea002e507a65d4757e823f133fcb52/spec.md?plain=1#L735-L753
+type MirroringRoundTripper struct {
+	address *url.URL
+	rt      http.RoundTripper
+}
+
+// RoundTrip implements http.RoundTripper.
+func (m *MirroringRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	originalHost := r.URL.Host
+	if originalHost == "index.docker.io" {
+		// This is configured by gcr due to https://github.com/google/go-containerregistry/issues/68.
+		// We need to revert it back to docker.io so that the mirror registry understands it.
+		originalHost = "docker.io"
+	}
+	r.URL.Scheme = m.address.Scheme
+	r.URL.Host = m.address.Host
+	if m.address.Path != "" {
+		r.URL.Path = path.Join(m.address.Path, r.URL.Path)
+	}
+	// TODO(burgerdev): we should extend the query if it already exists
+	r.URL.RawQuery = fmt.Sprintf("ns=%s", originalHost)
+	return m.rt.RoundTrip(r)
 }
