@@ -358,7 +358,7 @@ jobs:
         run: |
           mkdir -p workspace
           nix build ".#${SET}.scripts.get-logs"
-          nix run ".#${SET}.scripts.get-logs start" workspace/just.namespace &
+          nix run ".#${SET}.scripts.get-logs" start workspace/just.namespace &
           nix shell -L ".#${SET}.contrast.e2e" --command release.test \
             -test.v \
             --tag "${VERSION}" \
