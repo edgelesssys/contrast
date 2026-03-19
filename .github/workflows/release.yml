@@ -360,8 +360,8 @@ jobs:
           nix shell -L ".#${SET}.contrast.e2e" --command release.test \
             -test.v \
             --tag "${VERSION}" \
-            --platform ${{ matrix.platform.name }} \
-            --node-installer-target-conf ${{ matrix.platform.node-installer-target-conf }} \
+            --platform "${{ matrix.platform.name }}" \
+            --node-installer-target-conf "${{ matrix.platform.node-installer-target-conf }}" \
             --namespace-file workspace/just.namespace
       - name: Download logs
         if: always()
