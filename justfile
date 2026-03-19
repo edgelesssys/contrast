@@ -87,7 +87,7 @@ e2e target=default_deploy_target platform=default_platform set=default_set: soft
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --platform {{ platform }} \
-            --node-installer-target-conf-type ${node_installer_target_conf_type} \
+            --node-installer-target-conf-type "${node_installer_target_conf_type}" \
             --namespace-suffix=${namespace_suffix-} \
             --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket \
             --insecure-enable-debug-shell-access=${debug:-false}
