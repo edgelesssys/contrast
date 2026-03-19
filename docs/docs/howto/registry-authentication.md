@@ -54,7 +54,7 @@ contrast generate "$@"
 For the [Contrast image puller](../architecture/components/runtime.md#contrast-image-puller) to be able to pull images from a private registry, it must be configured with the required authentication details.
 Contrast uses its own `TOML`-based configuration format for this purpose.
 This configuration must be provided as a secret[^1] to the [node installer `DaemonSet`](../architecture/components/runtime.md#node-installer-daemonset).
-This secret must be named `contrast-node-installer-imagepuller-config` and belong to the `kube-system` namespace for the node installer to recognize and use it.
+This secret must be named `contrast-node-installer-imagepuller-config` and deployed into the same namespace as the node installer (`contrast-system` by default).
 The node installer then handles installing the secret in the runtime directory on the host, from where the runtime then forwards it to the confidential pod VM, allowing the image puller to read it.
 
 [^1]: Kubernetes secrets are accessible to anyone with API access to the node, as well as anyone with access to `etcd` ([source](https://kubernetes.io/docs/concepts/configuration/secret/)).
@@ -104,7 +104,7 @@ For each individual registry `registry.corp`, the following options are availabl
 | `auth` | base64-encoded HTTP basic auth credentials authenticating the user with the registry |
 
 The `auth` credentials use the same format as shown above for the Contrast CLI.
-The following script generates a valid configuration file.
+The following script generates a valid configuration file and makes it available to the node installer.
 
 ```sh
 #!/bin/sh
@@ -118,6 +118,8 @@ cat > "contrast-imagepuller.toml" <<EOF
 [registries."$registry."]
 auth = "$(printf "%s:%s" "$user" "$password" | base64 -w0)"
 EOF
+
+kubectl create secret generic -n contrast-system --from-file=contrast-imagepuller.toml=contrast-imagepuller.toml contrast-node-installer-imagepuller-config
 ```
 
 The ability to specify CA certificates mainly serves two purposes, namely allowing connections to registries that aren't publicly trusted in the web PKI,
