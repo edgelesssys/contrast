@@ -341,6 +341,7 @@ jobs:
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
           default_platform=${{ matrix.platform.name }}
+          set="${SET}"
           EOF
       - name: Get credentials for CI cluster
         if: (!matrix.platform.self-hosted)
