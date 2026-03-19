@@ -305,7 +305,7 @@ jobs:
             runner: TDX
             self-hosted: true
           - name: Metal-QEMU-TDX-GPU
-            node-installer-target-conf: k3s
+            node-installer-target-conf: none
             runner: TDX-GPU
             self-hosted: true
       fail-fast: false
