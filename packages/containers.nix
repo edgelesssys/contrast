@@ -159,7 +159,6 @@ let
         busybox
         bash
         coreutils
-        ncurses
         contrastPkgs.debugshell
         openssh
         contrastPkgs.tdx-tools
