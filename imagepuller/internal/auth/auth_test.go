@@ -7,11 +7,15 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var defaultTansport = &http.Transport{
@@ -235,8 +239,11 @@ func TestAuthTransportFor(t *testing.T) {
 			if tc.wantTransport == nil {
 				tc.wantTransport = defaultTansport
 			}
-			assert.True(tc.wantTransport.TLSClientConfig.RootCAs.Equal(transport.TLSClientConfig.RootCAs))
-			assert.Equal(tc.wantTransport.TLSClientConfig.InsecureSkipVerify, transport.TLSClientConfig.InsecureSkipVerify)
+
+			httpTransport, ok := transport.(*http.Transport)
+			require.True(t, ok, "unexpected transport type: %T", transport)
+			assert.True(tc.wantTransport.TLSClientConfig.RootCAs.Equal(httpTransport.TLSClientConfig.RootCAs))
+			assert.Equal(tc.wantTransport.TLSClientConfig.InsecureSkipVerify, httpTransport.TLSClientConfig.InsecureSkipVerify)
 		})
 	}
 }
@@ -351,4 +358,35 @@ func generateRegistries(t *testing.T, fqdn string) map[string]Registry {
 	}
 	registryMap[fqdn] = Registry{AuthConfig: authn.AuthConfig{Auth: fqdn}}
 	return registryMap
+}
+
+func TestMirrorRegistry(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	var capturedRequest *http.Request
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedRequest = r
+		w.WriteHeader(http.StatusTeapot)
+	}))
+
+	t.Cleanup(srv.Close)
+
+	address, err := url.Parse(srv.URL)
+	require.NoError(err)
+
+	rt := &MirroringRoundTripper{
+		rt:      remote.DefaultTransport,
+		address: address,
+	}
+
+	req, err := http.NewRequest(http.MethodHead, "https://registry.invalid/v2/foo/manifests/1", nil)
+	require.NoError(err)
+	resp, err := rt.RoundTrip(req)
+	require.NoError(err)
+	require.NotNil(capturedRequest)
+
+	assert.Equal(http.StatusTeapot, resp.StatusCode)
+	assert.Equal("ns=registry.invalid", capturedRequest.URL.RawQuery)
+	assert.Equal("/v2/foo/manifests/1", capturedRequest.URL.Path)
 }
