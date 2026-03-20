@@ -1,7 +1,7 @@
 # CDI
 
 This page explains how devices end up in containers when using CDI annotations.
-Reading [life of a confidential container](../aks/life-of-a-confidential-container.md) first is recommended to understand the flow presented here.
+Reading [life of a confidential container](../k8s/life-of-a-confidential-container.md) first is recommended to understand the flow presented here.
 
 ## The journey begins
 
