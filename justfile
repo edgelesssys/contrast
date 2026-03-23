@@ -66,7 +66,22 @@ collect-platforms platform=default_platform set=default_set:
         --deployment "$deployment" \
         collect-platforms
 
-e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform)
+# Some e2e tests require a specific Nix package set to build correctly. Auto-select the correct set based on the test name.
+e2e target=default_deploy_target platform=default_platform set=default_set:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    declare -A required_sets=(
+        [badaml-vuln]=badaml-vuln
+        [badaml-sandbox]=badaml-sandbox
+    )
+    RESOLVED_SET="{{ set }}"
+    if [[ -v "required_sets[{{ target }}]" ]]; then
+        RESOLVED_SET="${required_sets[{{ target }}]}"
+    fi
+    echo "Using set=$RESOLVED_SET for test '{{ target }}'"
+    set="$RESOLVED_SET" just _e2e {{ target }} {{ platform }}
+
+_e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
