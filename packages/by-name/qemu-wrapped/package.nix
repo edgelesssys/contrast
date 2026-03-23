@@ -11,8 +11,11 @@
 #                        log files under <runtime-dir>/logs/ on the node.
 
 {
+  lib,
   qemu-cc,
   runCommandLocal,
+  shellcheck-minimal,
+  writeTextFile,
   withACPITable ? false,
   withSerialLog ? false,
 }:
@@ -42,6 +45,27 @@ let
     mkdir -p "$LOG_DIR"
     EXTRA_ARGS+=(-serial "file:$LOG_DIR/''${TIMESTAMP}_''${SHORT_ID}.log")
   '';
+
+  wrapper = writeTextFile {
+    name = "qemu-system-x86_64";
+    executable = true;
+    destination = "/bin/qemu-system-x86_64";
+    text = ''
+      #!/usr/bin/env bash
+
+      SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+
+      EXTRA_ARGS=()
+
+      ${if withACPITable then acpiTableSnippet else ""}
+      ${if withSerialLog then serialLogSnippet else ""}
+
+      exec "$SCRIPT_DIR/qemu-system-x86_64-wrapped" "$@" "''${EXTRA_ARGS[@]}"
+    '';
+    checkPhase = ''
+      ${lib.getExe shellcheck-minimal} "$target"
+    '';
+  };
 in
 
 runCommandLocal "qemu-wrapped" { } ''
@@ -49,18 +73,5 @@ runCommandLocal "qemu-wrapped" { } ''
   chmod +w $out/bin
 
   mv $out/bin/qemu-system-x86_64 $out/bin/qemu-system-x86_64-wrapped
-
-  cat > $out/bin/qemu-system-x86_64 << 'WRAPPER'
-    #!/usr/bin/env bash
-    SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-
-    EXTRA_ARGS=()
-
-    ${if withACPITable then acpiTableSnippet else ""}
-    ${if withSerialLog then serialLogSnippet else ""}
-
-    exec "$SCRIPT_DIR/qemu-system-x86_64-wrapped" "$@" "''${EXTRA_ARGS[@]}"
-    WRAPPER
-
-    chmod +x $out/bin/qemu-system-x86_64
+  cp ${wrapper}/bin/qemu-system-x86_64 $out/bin/qemu-system-x86_64
 ''
