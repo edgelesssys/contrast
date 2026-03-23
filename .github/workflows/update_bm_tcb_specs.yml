@@ -5,7 +5,7 @@ on:
     branches:
       - "main"
     paths:
-      - "dev-docs/e2e/tcb-specs.json"
+      - "dev-docs/e2e/**/manifest.json"
   pull_request:
     paths:
       - ".github/workflows/update_bm_tcb_specs.yml"
