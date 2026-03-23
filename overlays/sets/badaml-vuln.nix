@@ -18,26 +18,23 @@ _final: prev: {
           };
         }
       );
+      qemu-wrapped = contrastPkgsFinal.contrastPkgsStatic.qemu-wrapped.override {
+        withACPITable = true;
+      };
       contrast = contrastPkgsPrev.contrast.overrideScope (
-        _contrastFinal: contrastPrev:
-        let
-          qemu = contrastPkgsFinal.contrastPkgsStatic.qemu-wrapped.override {
-            withACPITable = true;
-          };
-        in
-        {
+        _contrastFinal: contrastPrev: {
           node-installer-image = contrastPrev.node-installer-image.override {
             withExtraLayers = [
               (contrastPkgsFinal.ociLayerTar {
                 files = [
                   {
                     # The wrapper script that replaces the original qemu binary.
-                    source = "${qemu}/bin/qemu-system-x86_64";
+                    source = "${contrastPkgsFinal.qemu-wrapped}/bin/qemu-system-x86_64";
                     destination = "/opt/edgeless/bin/qemu-system-x86_64";
                   }
                   {
                     # The actual qemu binary that is wrapped by qemu-wrapped.
-                    source = "${qemu}/bin/qemu-system-x86_64-wrapped";
+                    source = "${contrastPkgsFinal.qemu-wrapped}/bin/qemu-system-x86_64-wrapped";
                     destination = "/opt/edgeless/bin/qemu-system-x86_64-wrapped";
                   }
                   {
