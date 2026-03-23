@@ -16,10 +16,9 @@ on:
   pull_request:
     paths:
       - .github/workflows/e2e_regression.yml
-      - e2e/genpolicy/**
+      - e2e/genpolicy-unsupported/**
       - e2e/regression/**
       - packages/by-name/kata/**
-      - packages/by-name/microsoft/**
 
 jobs:
   regression-test:

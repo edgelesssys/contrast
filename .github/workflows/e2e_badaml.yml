@@ -3,11 +3,11 @@ name: e2e test badaml
 on:
   pull_request:
     paths:
-      - sets/badaml-vuln
-      - sets/badaml-sandbox
-      - packages/kata/kernel-uvm/**
-      - packages/qemu-wrapped/**
-      - packages/badaml-payload/**
+      - overlays/sets/badaml-vuln.nix
+      - overlays/sets/badaml-sandbox.nix
+      - packages/by-name/kata/kernel-uvm/**
+      - packages/by-name/qemu-wrapped/**
+      - packages/by-name/badaml-payload/**
       - e2e/badaml-vuln/**
       - e2e/badaml-sandbox/**
 
