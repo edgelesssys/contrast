@@ -130,6 +130,10 @@
         "dev-docs/e2e/well-known-errors.md"
       ];
     };
+    workflow-trigger-path-linter = {
+      command = "${lib.getExe pkgs.contrastPkgs.scripts.workflow-trigger-path-linter}";
+      includes = [ ".github/workflows/*.yml" ];
+    };
     # keep-sorted end
   };
 }
