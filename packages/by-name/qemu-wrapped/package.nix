@@ -57,8 +57,10 @@ let
 
       EXTRA_ARGS=()
 
-      ${if withACPITable then acpiTableSnippet else ""}
-      ${if withSerialLog then serialLogSnippet else ""}
+    ''
+    + lib.optionalString withACPITable acpiTableSnippet
+    + lib.optionalString withSerialLog serialLogSnippet
+    + ''
 
       exec "$SCRIPT_DIR/qemu-system-x86_64-wrapped" "$@" "''${EXTRA_ARGS[@]}"
     '';
