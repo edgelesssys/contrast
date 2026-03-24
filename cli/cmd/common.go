@@ -42,14 +42,17 @@ const (
 //go:embed assets/image-replacements.txt
 var ReleaseImageReplacements []byte
 
-// SNPIDBlocks contains the SNP ID blocks for different vCPU counts and CPU generations
+// SNPIDBlockData contains the SNP ID blocks for different vCPU counts and CPU generations
 // as a JSON map of platform -> vCPU count -> CPU generation -> SnpIDBlock.
 //
 //go:embed assets/snp-id-blocks.json
-var SNPIDBlocks []byte
+var SNPIDBlockData []byte
 
-// SnpIDBlock represents the SNP ID block and ID auth used for SEV-SNP guests.
-type SnpIDBlock struct {
+// SNPIDBlocks maps runtime -> cpu_count -> product_line -> [SNPIDBlock].
+type SNPIDBlocks map[string]map[string]map[string]SNPIDBlock
+
+// SNPIDBlock represents the SNP ID block and ID auth used for SEV-SNP guests.
+type SNPIDBlock struct {
 	IDBlock     string        `json:"idBlock"`
 	IDAuth      string        `json:"idAuth"`
 	GuestPolicy abi.SnpPolicy `json:"guestPolicy"`
