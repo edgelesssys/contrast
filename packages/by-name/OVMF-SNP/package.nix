@@ -7,6 +7,7 @@
   nasm,
   acpica-tools,
   debug ? false,
+  withForceSevTerminate ? false,
 }:
 
 edk2.mkDerivation "OvmfPkg/AmdSev/AmdSevX64.dsc" {
@@ -37,7 +38,18 @@ edk2.mkDerivation "OvmfPkg/AmdSev/AmdSevX64.dsc" {
     # Skip the measurement of the guest-memory and device-dependent ACPI tables and verify
     # them in the measured firmware instead.
     ./0001-QemuFwCfgAcpi-verify-ACPI-data-instead-of-measuring.patch
-  ];
+  ]
+  ++ (
+    if withForceSevTerminate then
+      [
+        # Testing only: force SEV-ES guest termination during early boot to reproduce
+        # kvm_amd "SEV-ES guest requested termination: 0x0:0x0" for testing kata behavior.
+        # Not for production use.
+        ./0002-Sec-force-SEV-ES-termination-for-testing.patch
+      ]
+    else
+      [ ]
+  );
 
   nativeBuildInputs = [
     nasm

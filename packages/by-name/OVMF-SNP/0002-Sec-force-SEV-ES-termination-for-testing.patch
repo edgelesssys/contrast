@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Spyros Seimenis <sespiros@gmail.com>
+Date: Wed, 18 Mar 2026 16:34:56 +0200
+Subject: [PATCH] Sec: force SEV-ES termination for testing
+
+Trigger an immediate SEV-ES guest termination (reason 0x0:0x0) at the
+start of the SEC phase when SEV-ES is enabled. This reproduces the
+kvm_amd 'SEV-ES guest requested termination: 0x0:0x0' kernel message
+for testing kata runtime behavior when a CVM crashes during early boot.
+
+This patch is for testing only and must not be used in production.
+---
+ .contrast-patch-dev-base    | 1 +
+ .contrast-patch-dev-project | 1 +
+ .contrast-patch-dev-repo    | 1 +
+ OvmfPkg/Sec/SecMain.c       | 9 +++++++++
+ 4 files changed, 12 insertions(+)
+ create mode 100644 .contrast-patch-dev-base
+ create mode 100644 .contrast-patch-dev-project
+ create mode 100644 .contrast-patch-dev-repo
+
+diff --git a/.contrast-patch-dev-base b/.contrast-patch-dev-base
+new file mode 100644
+index 0000000000000000000000000000000000000000..ae565767f3abb5d907f1951c3e9e6b19072e899f
+--- /dev/null
++++ b/.contrast-patch-dev-base
+@@ -0,0 +1 @@
++46548b1adac82211d8d11da12dd914f41e7aa775
+diff --git a/.contrast-patch-dev-project b/.contrast-patch-dev-project
+new file mode 100644
+index 0000000000000000000000000000000000000000..1b24e1c2f474392a33b79910213ad2af5dfb4509
+--- /dev/null
++++ b/.contrast-patch-dev-project
+@@ -0,0 +1 @@
++ovmf-snp
+diff --git a/.contrast-patch-dev-repo b/.contrast-patch-dev-repo
+new file mode 100644
+index 0000000000000000000000000000000000000000..83455c5a29b513e5d87fb5c4034c024b8844bcb2
+--- /dev/null
++++ b/.contrast-patch-dev-repo
+@@ -0,0 +1 @@
++/Users/sespiros/git-pulls/edgelesssys/contrast
+diff --git a/OvmfPkg/Sec/SecMain.c b/OvmfPkg/Sec/SecMain.c
+index d13a9485094b491f465cef878b1faa85509adbe1..dca4dbeb041d4ee27d110b87362d01a9f58f2f8e 100644
+--- a/OvmfPkg/Sec/SecMain.c
++++ b/OvmfPkg/Sec/SecMain.c
+@@ -798,6 +798,15 @@ SecCoreStartupWithStack (
+   UINT32                Index;
+   volatile UINT8        *Table;
+ 
++  //
++  // Force an immediate SEV-ES guest termination for testing kata runtime
++  // behavior when a CVM crashes during early boot. This produces the
++  // kvm_amd "SEV-ES guest requested termination: 0x0:0x0" kernel message.
++  //
++  if (SevEsIsEnabled ()) {
++    SevEsProtocolFailure (0);
++  }
++
+  #if defined (TDX_GUEST_SUPPORTED)
+   if (CcProbe () == CcGuestTypeIntelTdx) {
+     //
