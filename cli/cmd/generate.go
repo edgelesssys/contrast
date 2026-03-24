@@ -716,9 +716,8 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 }
 
 func patchIDBlockAnnotation(res any, logger *slog.Logger) error {
-	// runtime -> cpu_count -> product_line -> ID block
-	var snpIDBlocks map[string]map[string]map[string]SnpIDBlock
-	if err := json.Unmarshal(SNPIDBlocks, &snpIDBlocks); err != nil {
+	var snpIDBlocks SNPIDBlocks
+	if err := json.Unmarshal(SNPIDBlockData, &snpIDBlocks); err != nil {
 		return fmt.Errorf("unmarshal SNP ID blocks: %w", err)
 	}
 
