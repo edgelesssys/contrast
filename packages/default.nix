@@ -4,12 +4,10 @@
 { pkgs }:
 
 let
-  inherit (pkgs.lib) makeScope packagesFromDirectoryRecursive;
-
   # IMPORTANT!
   # byName must be the top-level scope, otherwise overrides won't propagate correctly.
   # Do not merge (//) anything into byName. Always use overrideScope for modifications.
-  byName = packagesFromDirectoryRecursive {
+  byName = pkgs.lib.packagesFromDirectoryRecursive {
     inherit (pkgs) newScope;
     callPackage = pkgs.newScope { };
     directory = ./by-name;
@@ -18,13 +16,7 @@ in
 
 byName.overrideScope (
   _final: prev: {
-    contrastPkgsStatic = makeScope pkgs.pkgsStatic.newScope (
-      self:
-      packagesFromDirectoryRecursive {
-        inherit (self) callPackage newScope;
-        directory = ./by-name;
-      }
-    );
+    contrastPkgsStatic = pkgs.pkgsStatic.contrastPkgs;
     scripts = prev.scripts.overrideScope (_: _: pkgs.callPackages ./scripts.nix { });
     containers = pkgs.callPackages ./containers.nix { };
     contrast-releases = pkgs.callPackages ./contrast-releases.nix { };
