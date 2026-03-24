@@ -8,7 +8,6 @@
   yq-go,
   git,
   applyPatches,
-  vcpus ? 1,
 }:
 
 buildGoModule (finalAttrs: {
@@ -289,7 +288,6 @@ buildGoModule (finalAttrs: {
           ]
           ++ [
             "panic=1"
-            "nr_cpus=${toString vcpus}"
             "selinux=0"
             "systemd.unit=kata-containers.target"
             "systemd.mask=systemd-networkd.service"
