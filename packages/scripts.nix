@@ -21,11 +21,15 @@ lib.makeScope pkgs.newScope (scripts: {
       scripts.go-directive-sync
       scripts.gofix
       scripts.update-kata-configurations
+      scripts.update-kata-protos
       scripts.update-kernel-configurations
     ];
     text = ''
       echo "Syncing go directive versions in go.mod/go.work files" >&2
       go-directive-sync
+
+      echo "Updating proto definitions from kata" >&2
+      update-kata-protos
 
       while IFS= read -r dir; do
         echo "Running go mod tidy on $dir" >&2
@@ -519,6 +523,25 @@ lib.makeScope pkgs.newScope (scripts: {
     text = # bash
       ''
         update-testdata ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
+      '';
+  };
+
+  update-kata-protos = writeShellApplication {
+    name = "update-kata-protos";
+    runtimeInputs = [
+      pkgs.git
+    ];
+    text = # bash
+      ''
+        proto_src="src/libs/protocols/protos/confidential_data_hub.proto"
+        proto_target="$(git rev-parse --show-toplevel)/internal/katacomponents/katacomponents.proto"
+        cat > "$proto_target"<< EOF
+        // Copied from kata-containers/$proto_src
+        // Version: ${contrastPkgs.kata.runtime.version}
+
+        EOF
+        sed '/package api;/a         option go_package = "github.com/edgelesssys/contrast/internal/katacomponents";' \
+          "${contrastPkgs.kata.runtime.src}/$proto_src" >> "$proto_target"
       '';
   };
 

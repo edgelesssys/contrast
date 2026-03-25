@@ -18,13 +18,13 @@ buildGoModule (finalAttrs: {
         (path.append root "imagepuller/go.mod")
         (path.append root "imagepuller/go.sum")
         (path.append root "imagepuller/client")
-        (path.append root "imagepuller/internal/imagepullapi")
+        (path.append root "internal/katacomponents")
         (path.append root "tools/imagepuller-benchmark")
       ];
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-auGTTfEFnIewCj+JHclI2mZCO7jpUqWIVnUc2+L3QOI=";
+  vendorHash = "sha256-OwOaoxfK789DB9DoivvpUkco1T7j2t2HzlcNJnaZUrk=";
 
   sourceRoot = "${finalAttrs.src.name}/tools/imagepuller-benchmark";
 

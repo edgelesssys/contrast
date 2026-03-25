@@ -14,11 +14,11 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/edgelesssys/contrast/imagestore/internal/securemountapi"
 	"github.com/edgelesssys/contrast/internal/cryptsetup"
+	"github.com/edgelesssys/contrast/internal/katacomponents"
 )
 
-func setupLuksAndMount(ctx context.Context, log *slog.Logger, req *securemountapi.SecureMountRequest, params *SecureImageStoreParams) (retErr error) {
+func setupLuksAndMount(ctx context.Context, log *slog.Logger, req *katacomponents.SecureMountRequest, params *SecureImageStoreParams) (retErr error) {
 	if err := os.WriteFile(params.KeyFile, params.Key, 0o600); err != nil {
 		return fmt.Errorf("writing key to file: %w", err)
 	}

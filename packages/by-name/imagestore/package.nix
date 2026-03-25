@@ -17,6 +17,7 @@ buildGoModule (finalAttrs: {
       fileset = fileset.unions [
         (path.append root "imagestore")
         (path.append root "internal/cryptsetup")
+        (path.append root "internal/katacomponents")
         (path.append root "go.mod")
         (path.append root "go.sum")
       ];
@@ -25,7 +26,7 @@ buildGoModule (finalAttrs: {
   sourceRoot = "${finalAttrs.src.name}/imagestore";
 
   proxyVendor = true;
-  vendorHash = "sha256-gSP829hzBNunY/8ii35FYkIxzDMHWm/+1sfnZEiWeAg=";
+  vendorHash = "sha256-Xbdj58IX9b0UcfeQ/EGEhhzhAH5YZJ9mdTzg4oHT3iU=";
 
   env.CGO_ENABLED = 0;
   dontFixup = true;

@@ -17,9 +17,9 @@ import (
 
 	"github.com/containerd/ttrpc"
 	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
-	"github.com/edgelesssys/contrast/imagepuller/internal/imagepullapi"
 	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
 	"github.com/edgelesssys/contrast/imagepuller/internal/service"
+	"github.com/edgelesssys/contrast/internal/katacomponents"
 	"github.com/spf13/cobra"
 	"go.podman.io/storage/pkg/reexec"
 	"golang.org/x/sync/errgroup"
@@ -49,8 +49,8 @@ func newRootCmd() *cobra.Command {
 		RunE:         run,
 	}
 	cmd.Flags().String("storepath", "", "temporary directory to use for storage")
-	cmd.Flags().String("config", imagepullapi.InsecureConfigPath, "location of configuration file")
-	cmd.Flags().String("listen", imagepullapi.Socket, "location of listening socket")
+	cmd.Flags().String("config", katacomponents.InsecureConfigPath, "location of configuration file")
+	cmd.Flags().String("listen", katacomponents.ImagepullSocket, "location of listening socket")
 	return cmd
 }
 
@@ -92,7 +92,7 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 	authConfig.ApplyEnvVars()
 
-	imagepullapi.RegisterImagePullServiceService(s, &service.ImagePullerService{
+	katacomponents.RegisterImagePullServiceService(s, &service.ImagePullerService{
 		Logger:            log,
 		StorePathOverride: cmd.Flag("storepath").Value.String(),
 		Remote:            remote.DefaultRemote{},

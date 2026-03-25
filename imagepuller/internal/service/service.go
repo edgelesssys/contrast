@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
-	"github.com/edgelesssys/contrast/imagepuller/internal/imagepullapi"
+	"github.com/edgelesssys/contrast/internal/katacomponents"
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	gcrRemote "github.com/google/go-containerregistry/pkg/v1/remote"
@@ -38,8 +38,8 @@ type ImagePullerService struct {
 
 // PullImage is a ttRPC service which pulls and mounts docker images.
 func (s *ImagePullerService) PullImage(
-	ctx context.Context, r *imagepullapi.ImagePullRequest,
-) (response *imagepullapi.ImagePullResponse, retErr error) {
+	ctx context.Context, r *katacomponents.ImagePullRequest,
+) (response *katacomponents.ImagePullResponse, retErr error) {
 	log := s.Logger.With(
 		slog.String("image_url", r.ImageUrl),
 		slog.String("bundle_path", r.BundlePath),
@@ -55,10 +55,10 @@ func (s *ImagePullerService) PullImage(
 	var storePath string
 	if s.StorePathOverride != "" {
 		storePath = s.StorePathOverride
-	} else if _, err := os.Stat(imagepullapi.StorePathStorage); err == nil {
-		storePath = imagepullapi.StorePathStorage
+	} else if _, err := os.Stat(katacomponents.StorePathStorage); err == nil {
+		storePath = katacomponents.StorePathStorage
 	} else {
-		storePath = imagepullapi.StorePathMemory
+		storePath = katacomponents.StorePathMemory
 	}
 	store, err := storage.GetStore(types.StoreOptions{
 		TransientStore:  true,
@@ -79,7 +79,7 @@ func (s *ImagePullerService) PullImage(
 			return nil, fmt.Errorf("mounting container from cached image: %w", err)
 		}
 		log.Info("Mounted container from cached image", "mount_path", rootfs)
-		return &imagepullapi.ImagePullResponse{}, nil
+		return &katacomponents.ImagePullResponse{}, nil
 	}
 
 	remoteImg, err := s.getAndVerifyImage(ctx, log, r.ImageUrl)
@@ -129,7 +129,7 @@ func (s *ImagePullerService) PullImage(
 	}
 	log.Info("Pulled and mounted image", "mount_path", rootfs)
 
-	return &imagepullapi.ImagePullResponse{}, nil
+	return &katacomponents.ImagePullResponse{}, nil
 }
 
 func (s *ImagePullerService) minimumRequiredStorage(remoteImg gcr.Image) (uint64, error) {
