@@ -10,7 +10,7 @@
 }:
 
 let
-  runtimePkgs = pkgs.runtimePkgs or pkgs;
+  runtimePkgs = pkgs.runtimePkgs.nixpkgs or pkgs;
 
   pushOCIDir =
     name: dir: tag:

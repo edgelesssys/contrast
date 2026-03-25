@@ -4,8 +4,9 @@
 final: prev:
 
 let
-  # On x86_64-linux (inside runtimePkgs), runtimePkgs isn't in scope, use final (itself).
-  # On other systems (inside pkgs), runtimePkgs was injected by the flake overlay.
+  # runtimePkgs is injected by the flake overlay and provides
+  # the x86_64-linux set (via reverseContrastNesting), including
+  # set-specific overrides. On x86_64-linux it falls back to final.
   runtimePkgs = prev.runtimePkgs or final;
 
   baseContrastPkgs = import ../packages { pkgs = final; };
@@ -15,43 +16,33 @@ if prev.stdenv.hostPlatform.system == "x86_64-linux" then
 else
   {
     contrastPkgs = baseContrastPkgs.overrideScope (
-      cFinal: cPrev: {
-        mkNixosConfig = cPrev.mkNixosConfig.override {
-          pkgs = runtimePkgs;
-        };
+      _cFinal: cPrev: {
+        kata = cPrev.kata.overrideScope (
+          _: _: {
+            inherit (runtimePkgs.kata)
+              contrast-node-installer-image
+              agent
+              image
+              kernel-uvm
+              ;
+          }
+        );
 
-        kata = cPrev.kata // {
-          # Re-evaluate image to pick up the new mkNixosConfig
-          image = cFinal.callPackage ../packages/by-name/kata/image/package.nix { };
+        contrast = cPrev.contrast.overrideScope (
+          _: _: {
+            inherit (runtimePkgs.contrast)
+              coordinator
+              docs
+              initializer
+              node-installer-image
+              nodeinstaller
+              reference-values
+              snp-id-blocks
+              ;
+          }
+        );
 
-          inherit (runtimePkgs.contrastPkgs.kata) contrast-node-installer-image agent kernel-uvm;
-        };
-
-        contrast =
-          let
-            runtimeContrast = runtimePkgs.contrastPkgs.contrast;
-
-            nativeContrast = {
-              cli = cFinal.callPackage ../packages/by-name/contrast/cli/package.nix {
-                inherit (cFinal.contrast) contrast reference-values;
-              };
-              cli-release = cFinal.callPackage ../packages/by-name/contrast/cli-release/package.nix {
-                inherit (cFinal.contrast) cli;
-              };
-              resourcegen = cFinal.callPackage ../packages/by-name/contrast/resourcegen/package.nix {
-                inherit (cFinal.contrast) contrast reference-values;
-              };
-              contrast = cFinal.callPackage ../packages/by-name/contrast/contrast/package.nix {
-                inherit (cFinal.contrast) reference-values;
-              };
-              e2e = cFinal.callPackage ../packages/by-name/contrast/e2e/package.nix {
-                inherit (cFinal.contrast) contrast;
-              };
-            };
-          in
-          runtimeContrast // nativeContrast;
-
-        inherit (runtimePkgs.contrastPkgs)
+        inherit (runtimePkgs)
           debugshell
           tdx-tools
           service-mesh
