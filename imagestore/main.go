@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/containerd/ttrpc"
-	"github.com/edgelesssys/contrast/imagestore/internal/securemountapi"
 	"github.com/edgelesssys/contrast/imagestore/internal/service"
+	"github.com/edgelesssys/contrast/internal/katacomponents"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 )
@@ -50,19 +50,19 @@ func run(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintf(os.Stderr, "Contrast imagestore %s\n", version)
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
 
-	if err := os.MkdirAll(filepath.Dir(securemountapi.Socket), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(katacomponents.SecuremountSocket), os.ModePerm); err != nil {
 		return fmt.Errorf("creating directory for socket: %w", err)
 	}
-	if err := os.Remove(securemountapi.Socket); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := os.Remove(katacomponents.SecuremountSocket); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("removing existing socket: %w", err)
 	}
 
-	l, err := (&net.ListenConfig{}).Listen(ctx, "unix", securemountapi.Socket)
+	l, err := (&net.ListenConfig{}).Listen(ctx, "unix", katacomponents.SecuremountSocket)
 	if err != nil {
 		return fmt.Errorf("listening on socket: %w", err)
 	}
 	defer l.Close()
-	defer os.RemoveAll(securemountapi.Socket)
+	defer os.RemoveAll(katacomponents.SecuremountSocket)
 
 	s, err := ttrpc.NewServer()
 	if err != nil {
@@ -70,11 +70,11 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 	defer s.Close()
 
-	securemountapi.RegisterSecureMountServiceService(s, &service.SecureImageStoreService{Logger: log})
+	katacomponents.RegisterSecureMountServiceService(s, &service.SecureImageStoreService{Logger: log})
 	eg, ctxEg := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
-		log.Info("Started imagestore", "socket", securemountapi.Socket)
+		log.Info("Started imagestore", "socket", katacomponents.SecuremountSocket)
 		log.Info("Waiting for imagestore request...")
 		if err := s.Serve(ctxEg, l); err != nil {
 			return fmt.Errorf("starting the ttRPC server: %w", err)

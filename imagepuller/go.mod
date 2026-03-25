@@ -2,8 +2,11 @@ module github.com/edgelesssys/contrast/imagepuller
 
 go 1.25.6
 
+replace github.com/edgelesssys/contrast => ../
+
 require (
-	github.com/containerd/ttrpc v1.2.7
+	github.com/containerd/ttrpc v1.2.8
+	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
 	github.com/google/go-containerregistry v0.21.2
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pelletier/go-toml/v2 v2.2.4
@@ -13,7 +16,7 @@ require (
 	go.podman.io/storage v1.61.1-0.20260109164957-e7626b721ea5
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.41.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.11 // indirect
 )
 
 require (
@@ -33,7 +36,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/mistifyio/go-zfs/v4 v4.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/sys/capability v0.4.0 // indirect
@@ -45,7 +47,6 @@ require (
 	github.com/opencontainers/runtime-spec v1.3.0 // indirect
 	github.com/opencontainers/selinux v1.13.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect

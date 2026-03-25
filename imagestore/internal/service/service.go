@@ -11,7 +11,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/edgelesssys/contrast/imagestore/internal/securemountapi"
+	"github.com/edgelesssys/contrast/internal/katacomponents"
 )
 
 // SecureImageStoreService is the struct for which the SecureImageStore ttRPC service is implemented.
@@ -22,8 +22,8 @@ type SecureImageStoreService struct {
 
 // SecureMount is a ttRPC service which pulls and mounts docker images.
 func (s *SecureImageStoreService) SecureMount(
-	ctx context.Context, req *securemountapi.SecureMountRequest,
-) (response *securemountapi.SecureMountResponse, retErr error) {
+	ctx context.Context, req *katacomponents.SecureMountRequest,
+) (response *katacomponents.SecureMountResponse, retErr error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -49,7 +49,7 @@ func (s *SecureImageStoreService) SecureMount(
 	markerFile := path.Join(req.MountPoint, ".contrast_mount_point_marker")
 	if _, err := os.Stat(markerFile); err == nil {
 		log.Info("store is already mounted, skipping")
-		return &securemountapi.SecureMountResponse{}, nil
+		return &katacomponents.SecureMountResponse{}, nil
 	}
 	if err := setupLuksAndMount(ctx, log, req, params); err != nil {
 		return nil, fmt.Errorf("creating and mounting LUKS device: %w", err)
@@ -59,5 +59,5 @@ func (s *SecureImageStoreService) SecureMount(
 	}
 
 	log.Info("Securely mounted device", "target", req.MountPoint)
-	return &securemountapi.SecureMountResponse{}, nil
+	return &katacomponents.SecureMountResponse{}, nil
 }

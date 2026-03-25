@@ -9,9 +9,9 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/edgelesssys/contrast/imagestore/internal/securemountapi"
+	"github.com/edgelesssys/contrast/internal/katacomponents"
 )
 
-func setupLuksAndMount(context.Context, *slog.Logger, *securemountapi.SecureMountRequest, *SecureImageStoreParams) error {
+func setupLuksAndMount(context.Context, *slog.Logger, *katacomponents.SecureMountRequest, *SecureImageStoreParams) error {
 	panic("GOOS does not support mounting LUKS devices")
 }
