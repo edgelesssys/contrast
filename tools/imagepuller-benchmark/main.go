@@ -22,6 +22,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
+	"github.com/edgelesssys/contrast/imagepuller-benchmark/internal/du"
 	"github.com/edgelesssys/contrast/imagepuller/client"
 	"github.com/spf13/cobra"
 )
@@ -53,11 +54,15 @@ func getDiskUsage(ctx context.Context, path string) (int, error) {
 	return usageMB, nil
 }
 
-func saveLsLR(ctx context.Context, path string, name string) {
-	out, err := exec.CommandContext(ctx, "ls", "-lR", path).Output()
+func saveLsLR(_ context.Context, path string, name string) {
+	tree, err := du.FS(path)
 	if err != nil {
 		fmt.Printf("ls -lR failed: %v\n", err)
 		return
+	}
+	out, err := json.MarshalIndent(tree, "", "  ")
+	if err != nil {
+		fmt.Printf("marshalling failed: %v\n", err)
 	}
 	filename := fmt.Sprintf("ls-lR-%s.txt", name)
 	if err := os.WriteFile(filename, out, 0o644); err != nil {
