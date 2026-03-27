@@ -119,11 +119,11 @@ func KataRuntimeConfig(
 // Source: https://github.com/kata-containers/kata-containers/blob/4029d154ba0c26fcf4a8f9371275f802e3ef522c/src/runtime/pkg/katautils/Config.go
 // This is a simplified version of the actual configuration.
 type Config struct {
-	Hypervisor map[string]hypervisorConfig
-	Agent      map[string]agentConfig
-	Image      imageConfig
-	Factory    factoryConfig
-	Runtime    runtimeConfig
+	Hypervisor map[string]hypervisorConfig `toml:"hypervisor"`
+	Agent      map[string]agentConfig      `toml:"agent"`
+	Image      imageConfig                 `toml:"image"`
+	Factory    factoryConfig               `toml:"factory"`
+	Runtime    runtimeConfig               `toml:"runtime"`
 }
 
 // Marshal encodes the configuration as TOML.
