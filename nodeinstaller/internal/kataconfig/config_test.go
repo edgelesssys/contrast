@@ -52,9 +52,9 @@ func TestKataRuntimeConfig(t *testing.T) {
 			// section and no section are handled differently by Kata, so we make sure that this section is
 			// always present.
 			// It's covered by the comparison with testdata, but we want to keep this explicit.
-			assert.Contains(string(configBytes), "[Agent.kata]")
-			assert.Contains(string(configBytes), "[Runtime]")
-			assert.Contains(string(configBytes), "[Hypervisor.qemu]")
+			assert.Contains(string(configBytes), "[agent.kata]")
+			assert.Contains(string(configBytes), "[runtime]")
+			assert.Contains(string(configBytes), "[hypervisor.qemu]")
 		})
 	}
 }

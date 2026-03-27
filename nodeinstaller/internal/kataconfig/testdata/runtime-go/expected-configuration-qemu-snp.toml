@@ -1,5 +1,5 @@
-[Hypervisor]
-[Hypervisor.qemu]
+[hypervisor]
+[hypervisor.qemu]
 block_device_aio = 'threads'
 block_device_cache_direct = false
 block_device_cache_noflush = false
@@ -76,21 +76,21 @@ virtio_fs_daemon = '/opt/kata/libexec/virtiofsd'
 virtio_fs_extra_args = ['--thread-pool-size=1', '--announce-submounts']
 virtio_fs_queue_size = 1024
 
-[Agent]
-[Agent.kata]
+[agent]
+[agent.kata]
 debug_console_enabled = false
 dial_timeout = 120
 enable_debug = false
 enable_tracing = false
 kernel_modules = []
 
-[Factory]
+[factory]
 enable_template = false
 template_path = '/run/vc/vm/template'
 vm_cache_endpoint = '/var/run/kata-containers/cache.sock'
 vm_cache_number = 0
 
-[Runtime]
+[runtime]
 create_container_timeout = 120
 dan_conf = '/run/kata-containers/dans'
 disable_guest_empty_dir = false
