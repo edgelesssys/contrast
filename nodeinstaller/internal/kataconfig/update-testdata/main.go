@@ -48,11 +48,6 @@ func main() {
 		},
 	}
 
-	snpIDBlock := kataconfig.SnpIDBlock{
-		IDAuth:  "PLACEHOLDER_ID_AUTH",
-		IDBlock: "PLACEHOLDER_ID_BLOCK",
-	}
-
 	for platform, platformConfig := range platforms {
 		upstreamFile := filepath.Join(tarball, "opt", "kata", "share", "defaults", "kata-containers", fmt.Sprintf("configuration-%s.toml", platformConfig.upstream))
 		configFile := filepath.Join(gitroot, "nodeinstaller", "internal", "kataconfig", fmt.Sprintf("configuration-%s.toml", platformConfig.config))
@@ -80,7 +75,7 @@ func main() {
 			log.Fatalf("failed to write new config: %s", err)
 		}
 
-		cfg, err := kataconfig.KataRuntimeConfig("/", platform, "", snpIDBlock, "", false)
+		cfg, err := kataconfig.KataRuntimeConfig("/", platform, "", "", false)
 		if err != nil {
 			log.Fatalf("failed to create config: %s", err)
 		}

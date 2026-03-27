@@ -4,17 +4,11 @@
 package kataconfig
 
 import (
-	"bytes"
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
-	"github.com/google/go-sev-guest/abi"
-	"github.com/google/go-sev-guest/kds"
-	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -31,9 +25,6 @@ var (
 	//go:embed configuration-qemu-snp.toml
 	kataBareMetalQEMUSNPBaseConfig string
 
-	//go:embed snp-id-blocks.json
-	snpIDBlocks string
-
 	// RuntimeNamePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
 	RuntimeNamePlaceholder = "@@runtimeName@@"
 )
@@ -43,7 +34,6 @@ func KataRuntimeConfig(
 	baseDir string,
 	platform platforms.Platform,
 	qemuExtraKernelParams string,
-	snpIDBlock SnpIDBlock,
 	imagepullerConfigPath string,
 	debug bool,
 ) (*Config, error) {
@@ -67,10 +57,6 @@ func KataRuntimeConfig(
 		}
 
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "snp", "share", "OVMF.fd")
-		// Add SNP ID block to protect against migration attacks.
-		config.Hypervisor["qemu"]["snp_id_block"] = snpIDBlock.IDBlock
-		config.Hypervisor["qemu"]["snp_id_auth"] = snpIDBlock.IDAuth
-		config.Hypervisor["qemu"]["snp_guest_policy"] = abi.SnpPolicyToBytes(snpIDBlock.GuestPolicy)
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
@@ -123,40 +109,6 @@ func KataRuntimeConfig(
 	config.Hypervisor["qemu"]["default_maxvcpus"] = 240
 
 	return &config, nil
-}
-
-// SnpIDBlock represents the SNP ID block and ID auth used for SEV-SNP guests.
-type SnpIDBlock struct {
-	IDBlock     string        `json:"idBlock"`
-	IDAuth      string        `json:"idAuth"`
-	GuestPolicy abi.SnpPolicy `json:"guestPolicy"`
-}
-
-// platform -> cpu_count -> product -> snpIDBlock.
-type snpIDBlockMap map[string]map[string]map[string]SnpIDBlock
-
-// SnpIDBlockForPlatform returns the embedded SNP ID block and ID auth for the given platform and product.
-func SnpIDBlockForPlatform(platform platforms.Platform, productName sevsnp.SevProduct_SevProductName) (SnpIDBlock, error) {
-	var blocks snpIDBlockMap
-	decoder := json.NewDecoder(bytes.NewReader([]byte(snpIDBlocks)))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&blocks); err != nil {
-		return SnpIDBlock{}, fmt.Errorf("unmarshaling embedded SNP ID blocks: %w", err)
-	}
-	blockForPlatform, ok := blocks[strings.ToLower(platform.String())]
-	if !ok {
-		return SnpIDBlock{}, fmt.Errorf("no SNP ID block found for platform %s", platform)
-	}
-	// TODO: Get correct ID block based on requested vCPU count at runtime
-	if blockForPlatform["1"] == nil {
-		return SnpIDBlock{}, fmt.Errorf("no SNP ID blocks found for platform %s", platform)
-	}
-	productLine := kds.ProductLine(&sevsnp.SevProduct{Name: productName})
-	block, ok := blockForPlatform["1"][productLine]
-	if !ok {
-		return SnpIDBlock{}, fmt.Errorf("no SNP ID block found for product %s", productLine)
-	}
-	return block, nil
 }
 
 // Config is the configuration for the Kata runtime.

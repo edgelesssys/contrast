@@ -6,7 +6,6 @@
   buildGoModule,
   contrast,
   reference-values,
-  snp-id-blocks,
 }:
 
 buildGoModule (finalAttrs: {
@@ -44,7 +43,6 @@ buildGoModule (finalAttrs: {
 
   prePatch = ''
     install -D ${reference-values} internal/manifest/assets/reference-values.json
-    install -D ${snp-id-blocks} nodeinstaller/internal/kataconfig/snp-id-blocks.json
   '';
 
   env.CGO_ENABLED = 0;
