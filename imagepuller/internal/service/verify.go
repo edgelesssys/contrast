@@ -30,7 +30,7 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 		return nil, fmt.Errorf("%w: %w", errParseDigest, err)
 	}
 
-	authenticator, transportConfig, err := s.AuthConfig.AuthTransportFor(imageURL)
+	authenticator, transportConfig, err := s.AuthConfig.AuthTransportFor(imageURL, log)
 	if err != nil {
 		return nil, fmt.Errorf("obtaining authenticator and transport for %s: %w", imageURL, err)
 	}

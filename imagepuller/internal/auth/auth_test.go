@@ -6,6 +6,7 @@ package auth
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"log/slog"
 	"net/http"
 	"strings"
 	"testing"
@@ -217,7 +218,7 @@ func TestAuthTransportFor(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			authenticator, transport, err := tc.config.AuthTransportFor(tc.imageRef)
+			authenticator, transport, err := tc.config.AuthTransportFor(tc.imageRef, slog.Default())
 			assert.ErrorIs(err, tc.wantErr)
 			if err != nil {
 				return

@@ -58,7 +58,7 @@ func ReadInsecureConfig(path string, log *slog.Logger) (*Config, error) {
 var errUnparseableRef = errors.New("could not parse image ref")
 
 // AuthTransportFor constructs the appropriate http.Transport and authn.Authenticator for the given image's registry.
-func (c *Config) AuthTransportFor(imageRef string) (*authn.Authenticator, *http.Transport, error) {
+func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Authenticator, *http.Transport, error) {
 	// Note: this does no check image pinning.
 	ref, err := name.ParseReference(imageRef)
 	if err != nil {
@@ -69,6 +69,9 @@ func (c *Config) AuthTransportFor(imageRef string) (*authn.Authenticator, *http.
 	authenticator := authn.Anonymous
 	if registry.AuthConfig != (authn.AuthConfig{}) {
 		authenticator = authn.FromConfig(registry.AuthConfig)
+		log.Info("using auth config for registry")
+	} else {
+		log.Info("accessing registry anonymously")
 	}
 
 	transport := &http.Transport{
@@ -87,6 +90,9 @@ func (c *Config) AuthTransportFor(imageRef string) (*authn.Authenticator, *http.
 		certpool := x509.NewCertPool()
 		certpool.AppendCertsFromPEM([]byte(registry.CACerts))
 		transport.TLSClientConfig.RootCAs = certpool
+		log.Info("using custom CA certificates")
+	} else {
+		log.Info("using default CA certificates")
 	}
 
 	return &authenticator, transport, nil
