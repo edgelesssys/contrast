@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Fri, 27 Mar 2026 13:28:10 +0100
+Subject: [PATCH] runtime: do not add nr_vcpus to kernel command line
+
+---
+ src/runtime/virtcontainers/qemu.go | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
+index 395b8617738855ce15d6e8ccb2729f6b7617e792..c839bca724d2016ac31cb887d436d3dca7acbe4f 100644
+--- a/src/runtime/virtcontainers/qemu.go
++++ b/src/runtime/virtcontainers/qemu.go
+@@ -193,9 +193,6 @@ func (q *qemu) kernelParameters() string {
+ 	// use default parameters
+ 	params = append(params, defaultKernelParameters...)
+ 
+-	// set the maximum number of vCPUs
+-	params = append(params, Param{"nr_cpus", fmt.Sprintf("%d", q.config.DefaultMaxVCPUs)})
+-
+ 	// set the SELinux params in accordance with the runtime configuration, disable_guest_selinux.
+ 	if q.config.DisableGuestSeLinux {
+ 		q.Logger().Info("Set selinux=0 to kernel params because SELinux on the guest is disabled")
