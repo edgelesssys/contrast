@@ -1,0 +1,36 @@
+name: Test darwin CLI build
+
+on:
+  push:
+    branches:
+      - sse/darwin-cli
+
+jobs:
+  build-darwin-cli:
+    name: Build aarch64-darwin CLI
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    env:
+      SET: base
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Build CLI
+        run: |
+          nix build -L ".#${SET}.contrast.cli-release"
+          cp result/bin/contrast contrast-aarch64-darwin
+      - name: Verify binary
+        run: |
+          file contrast-aarch64-darwin
+          ./contrast-aarch64-darwin --version
+      - name: Upload artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: contrast-cli-aarch64-darwin
+          path: contrast-aarch64-darwin

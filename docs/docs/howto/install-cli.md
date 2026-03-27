@@ -12,14 +12,33 @@ Required for deploying with Contrast.
 
 ## How-to
 
-Download the Contrast CLI from the latest release:
+Download the Contrast CLI from the latest release and install it in your PATH:
+
+<Tabs queryString="platform">
+<TabItem value="linux" label="Linux (x86_64)">
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast
-```
-
-After that, install the Contrast CLI in your PATH, e.g.:
-
-```bash
+curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast-x86_64-linux
 sudo install contrast /usr/local/bin/contrast
 ```
+
+</TabItem>
+<TabItem value="macos" label="macOS (Apple Silicon)">
+
+```bash
+curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast-aarch64-darwin
+sudo install contrast /usr/local/bin/contrast
+```
+
+:::note
+If you download the binary via a web browser instead of `curl`, macOS may show a warning
+that the software can't be verified. Remove the quarantine attribute to resolve this:
+
+```bash
+xattr -d com.apple.quarantine contrast
+```
+
+:::
+
+</TabItem>
+</Tabs>

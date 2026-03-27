@@ -10,6 +10,8 @@
 }:
 
 let
+  runtimePkgs = pkgs.runtimePkgs.nixpkgs or pkgs;
+
   pushOCIDir =
     name: dir: tag:
     writeShellApplication {
@@ -26,7 +28,7 @@ let
       name = "coordinator";
       tag = "v${contrastPkgs.contrast.coordinator.version}";
       copyToRoot =
-        (with pkgs; [
+        (with runtimePkgs; [
           busybox
           e2fsprogs # mkfs.ext4
           libuuid # blkid
@@ -46,7 +48,7 @@ let
       name = "initializer";
       tag = "v${contrastPkgs.contrast.initializer.version}";
       copyToRoot =
-        (with pkgs; [
+        (with runtimePkgs; [
           busybox
           cryptsetup
           e2fsprogs # mkfs.ext4
@@ -67,7 +69,7 @@ let
     openssl = contrastPkgs.buildOciImage {
       name = "openssl";
       tag = "v${contrastPkgs.contrast.cli.version}";
-      copyToRoot = with pkgs; [
+      copyToRoot = with runtimePkgs; [
         busybox
         openssl
         curlMinimal
@@ -81,7 +83,7 @@ let
     port-forwarder = contrastPkgs.buildOciImage {
       name = "port-forwarder";
       tag = "v${contrastPkgs.contrast.cli.version}";
-      copyToRoot = with pkgs; [
+      copyToRoot = with runtimePkgs; [
         bash
         socat
       ];
@@ -90,7 +92,7 @@ let
     service-mesh-proxy = contrastPkgs.buildOciImage {
       name = "service-mesh-proxy";
       tag = "v${contrastPkgs.service-mesh.version}";
-      copyToRoot = with pkgs; [
+      copyToRoot = with runtimePkgs; [
         busybox
         envoy-bin
         iptables-legacy
@@ -108,7 +110,7 @@ let
     dmesg = contrastPkgs.buildOciImage {
       name = "dmesg";
       tag = "v0.0.1";
-      copyToRoot = with pkgs; [
+      copyToRoot = with runtimePkgs; [
         busybox
         libuuid
       ];
@@ -126,11 +128,11 @@ let
       name = "cleanup-bare-metal";
       tag = "latest";
       copyToRoot =
-        (with pkgs; [
+        (with runtimePkgs; [
           cacert
           busybox
         ])
-        ++ (with contrastPkgs.scripts; [
+        ++ (with runtimePkgs.contrastPkgs.scripts; [
           cleanup-bare-metal
           cleanup-namespaces
           cleanup-containerd
@@ -144,7 +146,7 @@ let
     memdump = contrastPkgs.buildOciImage {
       name = "memdump";
       tag = "latest";
-      copyToRoot = with pkgs; [
+      copyToRoot = with runtimePkgs; [
         busybox
         socat
         gdb
@@ -155,7 +157,7 @@ let
     debugshell = contrastPkgs.buildOciImage {
       name = "debugshell";
       tag = contrastPkgs.contrast.contrast.version;
-      copyToRoot = with pkgs; [
+      copyToRoot = with runtimePkgs; [
         busybox
         bash
         coreutils
@@ -172,7 +174,7 @@ let
     k8s-log-collector = contrastPkgs.buildOciImage {
       name = "k8s-log-collector";
       tag = "0.1.0";
-      copyToRoot = with pkgs; [
+      copyToRoot = with runtimePkgs; [
         # Used when execing into the container to collect logs.
         bash
         coreutils

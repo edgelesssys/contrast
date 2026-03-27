@@ -104,7 +104,9 @@
         "docs/docs/**/*.md"
       ];
     };
-    renovate = {
+    # TODO: remove mkIf once nixpkgs includes NixOS/nixpkgs#494993
+    # (renovate: add Darwin libtool dependency).
+    renovate = lib.mkIf pkgs.stdenv.isLinux {
       command = "${lib.getExe' pkgs.renovate "renovate-config-validator"}";
       options = [ "--strict" ];
       includes = [ "renovate.json5" ];
