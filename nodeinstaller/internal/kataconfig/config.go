@@ -118,6 +118,9 @@ func KataRuntimeConfig(
 	config.Runtime["sandbox_cgroup_only"] = true
 	// TODO: Check again why we need this and how we can avoid it.
 	config.Hypervisor["qemu"]["block_device_aio"] = "threads"
+	// Must be kept in sync with the kernel commandline arg nr_vcpus in the kata.runtime package,
+	// and with the CONFIG_NR_CPUS kernel config option.
+	config.Hypervisor["qemu"]["default_maxvcpus"] = 240
 
 	return &config, nil
 }

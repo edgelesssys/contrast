@@ -288,6 +288,7 @@ buildGoModule (finalAttrs: {
           ]
           ++ [
             "panic=1"
+            "nr_cpus=240" # keep in sync with kataconfig and kconfig
             "selinux=0"
             "systemd.unit=kata-containers.target"
             "systemd.mask=systemd-networkd.service"

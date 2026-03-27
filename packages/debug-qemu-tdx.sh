@@ -49,7 +49,7 @@ if [[ $gpu_count -gt 0 ]]; then
   done
 fi
 
-base_cmdline='tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 debug systemd.show_status=true systemd.log_level=debug panic=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none systemd.verity=yes lsm=landlock,yama,bpf cgroup_no_v1=all agent.log=debug agent.debug_console agent.debug_console_vport=1026'
+base_cmdline='tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 debug systemd.show_status=true systemd.log_level=debug panic=1 nr_cpus=240 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none systemd.verity=yes lsm=landlock,yama,bpf cgroup_no_v1=all agent.log=debug agent.debug_console agent.debug_console_vport=1026'
 kata_cmdline=$(tomlq -r '.Hypervisor.qemu.kernel_params' <"/opt/edgeless/${runtime_name}/etc/configuration-qemu-tdx.toml")
 extra_cmdline='console=ttyS0 systemd.unit=default.target'
 

@@ -10,7 +10,7 @@ contrast_imagepuller_config = ''
 cpu_features = 'pmu=off'
 default_bridges = 1
 default_maxmemory = 0
-default_maxvcpus = 0
+default_maxvcpus = 240
 default_memory = 512
 default_vcpus = 1
 disable_block_device_use = true
