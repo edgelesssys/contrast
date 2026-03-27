@@ -522,7 +522,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 			return nil, err
 		}
 
-		if err := patchIDBlockAnnotation(res, logger); err != nil {
+		if err := patchIDBlockAnnotation(res); err != nil {
 			return nil, fmt.Errorf("injecting ID block annotations: %w", err)
 		}
 
@@ -715,25 +715,23 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 	}
 }
 
-func patchIDBlockAnnotation(res any, logger *slog.Logger) error {
+func patchIDBlockAnnotation(res any) error {
 	var snpIDBlocks SNPIDBlocks
 	if err := json.Unmarshal(SNPIDBlockData, &snpIDBlocks); err != nil {
 		return fmt.Errorf("unmarshal SNP ID blocks: %w", err)
 	}
 
-	var mapErr error
-	mapFunc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+	mapFunc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration, error) {
 		if spec == nil || spec.RuntimeClassName == nil {
-			return meta, spec
+			return meta, spec, nil
 		}
 
 		targetPlatform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
 		if err != nil {
-			logger.Error("could not determine platform for runtime class", "runtime-class-name", *spec.RuntimeClassName, "err", err)
-			return meta, spec
+			return meta, spec, fmt.Errorf("could not determine platform for runtime class %q: %w", *spec.RuntimeClassName, err)
 		}
 		if !platforms.IsSNP(targetPlatform) {
-			return meta, spec
+			return meta, spec, nil
 		}
 
 		var regularContainersCPU int64
@@ -761,8 +759,7 @@ func patchIDBlockAnnotation(res any, logger *slog.Logger) error {
 		// Ensure we pre-calculated the required blocks
 		if snpIDBlocks[platform] == nil || snpIDBlocks[platform][cpuCount] == nil ||
 			snpIDBlocks[platform][cpuCount][genoa].IDBlock == "" || snpIDBlocks[platform][cpuCount][milan].IDBlock == "" {
-			mapErr = fmt.Errorf("missing ID block configuration for runtime %s with %s CPUs", platform, cpuCount)
-			return meta, spec
+			return meta, spec, fmt.Errorf("missing ID block configuration for runtime %s with %s CPUs", platform, cpuCount)
 		}
 
 		if meta == nil {
@@ -778,11 +775,11 @@ func patchIDBlockAnnotation(res any, logger *slog.Logger) error {
 		meta.Annotations[guestPolicyAnnotationKey+genoa] = strconv.FormatUint(abi.SnpPolicyToBytes(snpIDBlocks[platform][cpuCount][genoa].GuestPolicy), 10)
 		meta.Annotations[guestPolicyAnnotationKey+milan] = strconv.FormatUint(abi.SnpPolicyToBytes(snpIDBlocks[platform][cpuCount][milan].GuestPolicy), 10)
 
-		return meta, spec
+		return meta, spec, nil
 	}
 
-	kuberesource.MapPodSpecWithMeta(res, mapFunc)
-	return mapErr
+	_, err := kuberesource.MapPodSpecWithMetaAndErrors(res, mapFunc)
+	return err
 }
 
 func getCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) int64 {
