@@ -9,9 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/edgelesssys/contrast/internal/katacomponents"
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -70,8 +72,16 @@ func (c *Config) AuthTransportFor(imageRef string) (*authn.Authenticator, *http.
 	}
 
 	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: registry.InsecureSkipVerify},
-		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: registry.InsecureSkipVerify},
+		Proxy:                 http.ProxyFromEnvironment,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          10,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   5 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		DialContext: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).DialContext,
 	}
 	if registry.CACerts != "" {
 		certpool := x509.NewCertPool()
