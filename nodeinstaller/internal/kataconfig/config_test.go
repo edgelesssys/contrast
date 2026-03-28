@@ -13,17 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	//go:embed testdata/expected-configuration-qemu-snp.toml
-	expectedConfMetalQEMUSNP []byte
-	//go:embed testdata/expected-configuration-qemu-tdx.toml
-	expectedConfMetalQEMUTDX []byte
-	//go:embed testdata/expected-configuration-qemu-snp-gpu.toml
-	expectedConfMetalQEMUSNPGPU []byte
-	//go:embed testdata/expected-configuration-qemu-tdx-gpu.toml
-	expectedConfMetalQEMUTDXGPU []byte
-)
-
 func TestKataRuntimeConfig(t *testing.T) {
 	testCases := map[platforms.Platform]struct {
 		changeSnpFields bool

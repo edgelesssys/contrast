@@ -487,13 +487,11 @@ lib.makeScope pkgs.newScope (scripts: {
     '';
   };
 
-  update-kata-configurations = writeShellApplication {
-    name = "update-kata-configurations";
-    runtimeInputs = [
-      (pkgs.buildGoModule {
+  update-kata-configurations =
+    let
+      update-kata-configurations = pkgs.buildGoModule {
         inherit (contrastPkgs.contrast.contrast) vendorHash;
         name = "nodeinstaller-kataconfig-update-testdata";
-
         src =
           let
             inherit (lib) fileset path hasSuffix;
@@ -510,21 +508,34 @@ lib.makeScope pkgs.newScope (scripts: {
               (fileset.fileFilter (file: hasSuffix ".json" file.name) (path.append root "nodeinstaller"))
             ];
           };
-
         proxyVendor = true;
         subPackages = [ "nodeinstaller/internal/kataconfig/update-testdata" ];
-
         env.CGO_ENABLED = 0;
         ldflags = [ "-s" ];
         doCheck = false;
-      })
-      pkgs.git
-    ];
-    text = # bash
-      ''
-        update-testdata ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
-      '';
-  };
+      };
+      update-kata-configurations-rs = update-kata-configurations.overrideAttrs (
+        _finalAttrs: prevAttrs: {
+          tags = prevAttrs.tags or [ ] ++ [ "runtimers" ];
+          postInstall = prevAttrs.postInstall or "" + ''
+            mv $out/bin/update-testdata $out/bin/update-testdata-rs
+          '';
+        }
+      );
+    in
+    writeShellApplication {
+      name = "update-kata-configurations";
+      runtimeInputs = [
+        update-kata-configurations
+        update-kata-configurations-rs
+        pkgs.git
+      ];
+      text = # bash
+        ''
+          update-testdata ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
+          update-testdata-rs ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
+        '';
+    };
 
   update-kata-protos = writeShellApplication {
     name = "update-kata-protos";
