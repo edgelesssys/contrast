@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 {
+  lib,
   kata,
   OVMF-TDX,
   node-installer-image,
@@ -24,23 +25,29 @@ let
         platformInfo = {
           SMTEnabled = true;
         };
-        launch-digest = kata.calculateSnpLaunchDigest {
-          inherit os-image;
-          inherit (node-installer-image) withDebug;
-        };
+        vcpuCounts = lib.range 1 8;
+        products = [
+          "Milan"
+          "Genoa"
+        ];
+
+        generateRefVal =
+          vcpus: product:
+          let
+            launch-digest = kata.calculateSnpLaunchDigest {
+              inherit os-image vcpus;
+              inherit (node-installer-image) withDebug;
+            };
+            filename = "${lib.toLower product}.hex";
+          in
+          {
+            inherit guestPolicy platformInfo;
+            trustedMeasurement = builtins.readFile "${launch-digest}/${filename}";
+            productName = product;
+            cpus = vcpus;
+          };
       in
-      [
-        {
-          inherit guestPolicy platformInfo;
-          trustedMeasurement = builtins.readFile "${launch-digest}/milan.hex";
-          productName = "Milan";
-        }
-        {
-          inherit guestPolicy platformInfo;
-          trustedMeasurement = builtins.readFile "${launch-digest}/genoa.hex";
-          productName = "Genoa";
-        }
-      ];
+      builtins.concatLists (map (vcpus: map (product: generateRefVal vcpus product) products) vcpuCounts);
   };
 
   snpRefVals = snpRefValsWith node-installer-image.os-image;

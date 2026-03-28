@@ -17,6 +17,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/fsstore"
+	"github.com/google/go-sev-guest/abi"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -41,6 +42,22 @@ const (
 //
 //go:embed assets/image-replacements.txt
 var ReleaseImageReplacements []byte
+
+// SNPIDBlockData contains the SNP ID blocks for different vCPU counts and CPU generations
+// as a JSON map of platform -> vCPU count -> CPU generation -> SnpIDBlock.
+//
+//go:embed assets/snp-id-blocks.json
+var SNPIDBlockData []byte
+
+// SNPIDBlocks maps runtime -> cpu_count -> product_line -> [SNPIDBlock].
+type SNPIDBlocks map[string]map[string]map[string]SNPIDBlock
+
+// SNPIDBlock represents the SNP ID block and ID auth used for SEV-SNP guests.
+type SNPIDBlock struct {
+	IDBlock     string        `json:"idBlock"`
+	IDAuth      string        `json:"idAuth"`
+	GuestPolicy abi.SnpPolicy `json:"guestPolicy"`
+}
 
 func commandOut() io.Writer {
 	if term.IsTerminal(int(os.Stdout.Fd())) {

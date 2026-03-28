@@ -132,6 +132,12 @@ buildGoModule (finalAttrs: {
       # This is unlikely to be fixed in Kata upstream, but rather in the NVIDIA components.
       # Upstream issue: https://github.com/NVIDIA/sandbox-device-plugin/issues/46
       ./0019-shim-guess-CDI-devices-without-direct-match.patch
+
+      # Kata takes a default_maxvcpus config option. Ordinarily, we could set this to 240 and do the same in the kernel commandline below.
+      # However, kata then reduces this number to the actually available number of CPUs at runtime.
+      # This is a problem for us because we need to know the precise kernel command line at buildtime.
+      # TODO(charludo): attempt to make this behavior configurable upstream
+      ./0020-runtime-do-not-add-nr_vcpus-to-kernel-command-line.patch
     ];
   };
 
@@ -225,7 +231,6 @@ buildGoModule (finalAttrs: {
           ]
           ++ [
             "panic=1"
-            "nr_cpus=1"
             "selinux=0"
             "systemd.unit=kata-containers.target"
             "systemd.mask=systemd-networkd.service"
