@@ -636,6 +636,35 @@ func TestAddImageStore(t *testing.T) {
 	})
 }
 
+func TestAddStorageClass(t *testing.T) {
+	for name, tc := range map[string]struct {
+		resource []byte
+	}{
+		"job":                   {resource: job},
+		"deployment":            {resource: deployment},
+		"cronjob":               {resource: cronjob},
+		"daemonset":             {resource: daemonset},
+		"pod":                   {resource: pod},
+		"replicaset":            {resource: replicaSet},
+		"replicationController": {resource: replicationController},
+		"statefulset":           {resource: statefulSet},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			res, err := UnmarshalApplyConfigurations(tc.resource)
+			require.NoError(err)
+			res = PatchRuntimeHandlers(res, "contrast-cc")
+			res = AddImageStore(res)
+			res = AddStorageClass(res, "override-storage-class")
+
+			encoded, err := EncodeResources(res...)
+			require.NoError(err)
+			require.Contains(string(encoded), "override-storage-class")
+		})
+	}
+}
+
 func getPodSpec(t *testing.T, res []any) applycorev1.PodSpecApplyConfiguration {
 	t.Helper()
 	require.NotEmpty(t, res)

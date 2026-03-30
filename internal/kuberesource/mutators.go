@@ -456,6 +456,35 @@ func AddLogging(resources []any, level, subsystem string) []any {
 	return resources
 }
 
+// AddStorageClass modifies the storageClassName of all volumes found in the resources.
+func AddStorageClass(resources []any, storageClassName string) []any {
+	addStorageClass := func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		for _, v := range spec.Volumes {
+			if v.Ephemeral != nil && v.Ephemeral.VolumeClaimTemplate != nil && v.Ephemeral.VolumeClaimTemplate.Spec != nil {
+				v.Ephemeral.VolumeClaimTemplate.Spec.StorageClassName = &storageClassName
+			}
+		}
+		return spec
+	}
+	var out []any
+	for _, resource := range resources {
+		switch r := resource.(type) {
+		case *applyappsv1.StatefulSetApplyConfiguration:
+			if r.Spec != nil {
+				for idx := range r.Spec.VolumeClaimTemplates {
+					if r.Spec.VolumeClaimTemplates[idx].Spec != nil {
+						r.Spec.VolumeClaimTemplates[idx].Spec.StorageClassName = &storageClassName
+					}
+				}
+			}
+		}
+
+		out = append(out, MapPodSpec(resource, addStorageClass))
+	}
+
+	return out
+}
+
 // PatchImages replaces images in a set of resources.
 func PatchImages(resources []any, replacements map[string]string) []any {
 	var out []any
