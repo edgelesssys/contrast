@@ -27,6 +27,7 @@ func main() {
 	deploymentPath := flag.String("deployment", "", "Path to the deployment file or a folder containing the deployment file(s)")
 	gpuClass := flag.String("gpu-class", "nvidia.com/pgpu", "full vendor/class of the GPU to attach")
 	gpuCount := flag.Int("gpu-count", 1, "number of GPUs to attach")
+	storageClass := flag.String("storage-class", "", "storageClassName to use for volumes")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <set>...\n", os.Args[0])
 		flag.PrintDefaults()
@@ -116,6 +117,10 @@ func main() {
 			logSubSystems = "*"
 		}
 		resources = kuberesource.AddLogging(resources, logLevel, logSubSystems)
+	}
+
+	if *storageClass != "" {
+		resources = kuberesource.AddStorageClass(resources, *storageClass)
 	}
 
 	var replacements map[string]string
