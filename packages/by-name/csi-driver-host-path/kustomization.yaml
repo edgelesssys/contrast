@@ -29,3 +29,11 @@ patches:
         value: {"ci.contrast.edgeless.systems/main-runner": "true"}
     target:
       kind: StatefulSet
+  - patch: |-
+      - op: add
+        path: /metadata/labels
+        value: {"ci.contrast.edgeless.systems/is-default-class": "true"}
+      - op: remove
+        path: /metadata/annotations/storageclass.kubernetes.io~1is-default-class
+    target:
+      kind: StorageClass
