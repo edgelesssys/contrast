@@ -4,7 +4,6 @@
 package kataconfig
 
 import (
-	_ "embed"
 	"fmt"
 	"path/filepath"
 
@@ -12,22 +11,8 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-var (
-	// kataBareMetalQEMUTDXBaseConfig is the configuration file for the Kata runtime on bare-metal TDX
-	// with QEMU.
-	//
-	//go:embed configuration-qemu-tdx.toml
-	kataBareMetalQEMUTDXBaseConfig string
-
-	// kataBareMetalQEMUSNPBaseConfig is the configuration file for the Kata runtime on bare-metal SNP
-	// with QEMU.
-	//
-	//go:embed configuration-qemu-snp.toml
-	kataBareMetalQEMUSNPBaseConfig string
-
-	// RuntimeNamePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
-	RuntimeNamePlaceholder = "@@runtimeName@@"
-)
+// RuntimeNamePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
+var RuntimeNamePlaceholder = "@@runtimeName@@"
 
 // KataRuntimeConfig returns the Kata runtime configuration.
 func KataRuntimeConfig(
