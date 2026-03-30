@@ -5,4 +5,17 @@
 
 package main
 
-const testdataSubdir = "runtime-rs"
+import (
+	_ "embed"
+	"fmt"
+	"path/filepath"
+)
+
+const (
+	testdataSubdir = "runtime-rs"
+	configSuffix   = "rs"
+)
+
+func upstreamFile(tarball, platform string) string {
+	return filepath.Join(tarball, "opt", "kata", "share", "defaults", "kata-containers", "runtime-rs", fmt.Sprintf("configuration-%s-runtime-rs.toml", platform))
+}
