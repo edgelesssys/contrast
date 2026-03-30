@@ -178,6 +178,11 @@ populate target=default_deploy_target platform=default_platform set=default_set:
     if [[ {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
         gpuFlags=("--gpu-class" "nvidia.com/GB100_B200")
     fi
+    storageClassFlags=()
+    storageClass=$(kubectl get storageclass -l ci.contrast.edgeless.systems/is-default-class=true -o "jsonpath={.items[*]['metadata.name']}")
+    if [[ -n "$storageClass" ]]; then
+        storageClassFlags=("--storage-class" "$storageClass")
+    fi
     nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
@@ -185,6 +190,7 @@ populate target=default_deploy_target platform=default_platform set=default_set:
         --add-logging \
         ${dmesgFlag} \
         "${gpuFlags[@]}" \
+        "${storageClassFlags[@]}" \
         --platform {{ platform }} \
         ${target} coordinator >> ./{{ workspace_dir }}/deployment/deployment.yml
 
