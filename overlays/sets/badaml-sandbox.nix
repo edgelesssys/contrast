@@ -19,9 +19,13 @@ _final: prev: {
           };
         }
       );
-      qemu-wrapped = contrastPkgsFinal.contrastPkgsStatic.qemu-wrapped.override {
-        withACPITable = true;
-      };
+      contrastPkgsStatic = contrastPkgsPrev.contrastPkgsStatic.overrideScope (
+        _staticFinal: staticPrev: {
+          qemu-wrapped = staticPrev.qemu-wrapped.override {
+            withACPITable = true;
+          };
+        }
+      );
       contrast = contrastPkgsPrev.contrast.overrideScope (
         _contrastFinal: contrastPrev: {
           node-installer-image = contrastPrev.node-installer-image.override {
