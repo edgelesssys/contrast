@@ -13,7 +13,7 @@ default_maxmemory = 0
 default_maxvcpus = 0
 default_memory = 512
 default_vcpus = 1
-disable_block_device_use = true
+disable_block_device_use = false
 disable_guest_selinux = true
 disable_image_nvdimm = true
 disable_nesting_checks = true
@@ -27,7 +27,6 @@ enable_iommu = false
 enable_iommu_platform = false
 enable_iothreads = false
 enable_mem_prealloc = false
-enable_numa = false
 enable_vhost_user_store = false
 enable_virtio_mem = false
 entropy_source = '/dev/urandom'
@@ -46,8 +45,7 @@ machine_accelerators = ''
 machine_type = 'q35'
 memory_offset = 0
 memory_slots = 10
-msize_9p = 8192
-numa_mapping = []
+network_queues = 1
 path = '/bin/qemu-system-x86_64'
 pcie_root_port = 0
 pflashes = []
@@ -73,16 +71,20 @@ vhost_user_store_path = '/var/run/kata-containers/vhost-user'
 virtio_fs_cache = 'auto'
 virtio_fs_cache_size = 0
 virtio_fs_daemon = '/opt/kata/libexec/virtiofsd'
-virtio_fs_extra_args = ['--thread-pool-size=1', '--announce-submounts']
+virtio_fs_extra_args = ['--thread-pool-size=1', '-o', 'announce_submounts']
 virtio_fs_queue_size = 1024
+vm_rootfs_driver = 'virtio-blk-pci'
 
 [agent]
 [agent.kata]
+create_container_timeout = 60
 debug_console_enabled = false
 dial_timeout = 120
+dial_timeout_ms = 10
 enable_debug = false
 enable_tracing = false
 kernel_modules = []
+reconnect_timeout_ms = 3000
 
 [factory]
 enable_template = false
@@ -110,7 +112,6 @@ internetworking_model = 'tcfilter'
 jaeger_endpoint = ''
 jaeger_password = ''
 jaeger_user = ''
-kubelet_root_dir = '/var/lib/kubelet'
 name = 'virt_container'
 pod_resource_api_sock = ''
 sandbox_bind_mounts = []

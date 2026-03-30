@@ -49,8 +49,8 @@ func main() {
 	}
 
 	for platform, platformConfig := range platforms {
-		upstreamFile := filepath.Join(tarball, "opt", "kata", "share", "defaults", "kata-containers", fmt.Sprintf("configuration-%s.toml", platformConfig.upstream))
-		configFile := filepath.Join(gitroot, "nodeinstaller", "internal", "kataconfig", fmt.Sprintf("configuration-%s.toml", platformConfig.config))
+		upstreamFile := upstreamFile(tarball, platformConfig.upstream)
+		configFile := filepath.Join(gitroot, "nodeinstaller", "internal", "kataconfig", fmt.Sprintf("configuration-%s-%s.toml", platformConfig.config, configSuffix))
 		testdataFile := filepath.Join(gitroot, "nodeinstaller", "internal", "kataconfig", "testdata", testdataSubdir, fmt.Sprintf("expected-configuration-%s.toml", platformConfig.testdata))
 
 		upstream, err := os.ReadFile(upstreamFile)
