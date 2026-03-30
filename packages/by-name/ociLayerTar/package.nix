@@ -67,7 +67,7 @@ runCommandLocal "ociLayer"
 
     # Create the layer tarball
     echo "Packing layer..."
-    tar --hard-dereference --sort=name --owner=root:0 --group=root:0 --mtime='UTC 1970-01-01' -cC ./root -f $out/layer.tar .
+    tar --hard-dereference --sort=name --owner=root:0 --group=root:0 --mtime='UTC 1970-01-01' -cC ./root -f $out/layer.tar --transform='s|^\./||' .
     # Calculate the layer tarball's diffID (hash of the uncompressed tarball)
     echo "Calculating layer tarball hash..."
     diffID=$(sha256sum $out/layer.tar | cut -d' ' -f1)
