@@ -92,6 +92,7 @@ func TestRegression(t *testing.T) {
 				newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
 				newResources = kuberesource.PatchNamespaces(newResources, ct.Namespace)
 				newResources = kuberesource.PatchNodeSelector(newResources)
+				newResources = ct.OverrideStorageClass(t, newResources)
 
 				// Check if we are testing a cron job
 				unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)

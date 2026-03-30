@@ -40,6 +40,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // Flags contains the parsed Flags for the test.
@@ -183,6 +184,7 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	resources = kuberesource.PatchCoordinatorMetrics(resources)
 	resources = kuberesource.AddLogging(resources, "debug", "*")
 	resources = kuberesource.PatchNodeSelector(resources)
+	resources = ct.OverrideStorageClass(t, resources)
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)
 
@@ -192,6 +194,21 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), buf, 0o644))
 
 	ct.installRuntime(t, resources)
+}
+
+// OverrideStorageClass looks for a StorageClass with a well-known label and modifies the resources to use that class.
+func (ct *ContrastTest) OverrideStorageClass(t *testing.T, resources []any) []any {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	storageClasses, err := ct.Kubeclient.Client.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set{"ci.contrast.edgeless.systems/is-default-class": "true"}.String(),
+	})
+	require.NoError(t, err)
+	if len(storageClasses.Items) == 0 {
+		return resources
+	}
+	require.Len(t, storageClasses.Items, 1)
+	return kuberesource.AddStorageClass(resources, storageClasses.Items[0].Name)
 }
 
 // Generate runs the contrast generate command and fails the test if the command fails.
