@@ -308,16 +308,19 @@ Once the operator is fully deployed, which can take a few minutes, check the ava
 
 ```sh
 kubectl get nodes -l nvidia.com/gpu.present -o json | \
-  jq '.items[0].status.allocatable |
-    with_entries(select(.key | startswith("nvidia.com/"))) |
-    with_entries(select(.value != "0"))'
+  jq '.items[] | {name: .metadata.name, gpus: (.status.allocatable |
+    to_entries | map(select(.key | startswith("nvidia.com/")) |
+    select(.value != "0")) | from_entries)}'
 ```
 
 The above command should yield an output similar to the following, depending on what GPUs are available:
 
 ```json
 {
-  "nvidia.com/pgpu": "1"
+  "name": "node-name",
+  "gpus": {
+    "nvidia.com/pgpu": "1"
+  }
 }
 ```
 
