@@ -13,8 +13,7 @@ push target set=default_set:
     set -euo pipefail
     mkdir -p {{ workspace_dir }}
     echo "Pushing container $container_registry/contrast/{{ target }}"
-    pushedImg=$(nix run -L .#{{ set }}.containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
-    printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "{{ target }}" "$pushedImg" >> {{ workspace_dir }}/just.containerlookup
+    nix run -L .#{{ set }}.containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}" "{{ workspace_dir }}/just.containerlookup" "{{ workspace_dir }}/layers-cache.json"
 
 coordinator: (push "coordinator")
 
