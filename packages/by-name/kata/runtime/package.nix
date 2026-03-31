@@ -211,8 +211,16 @@ buildGoModule (finalAttrs: {
             "root=/dev/vda1"
             "rootflags=ro"
             "rootfstype=erofs"
+          ]
+          # In debug mode, use legacy serial (ttyS0) instead of virtio console (hvc0/hvc1)
+          # to capture OVMF firmware output via kata's console watcher.
+          # This must match use_legacy_serial=true set in kataconfig/config.go for debug.
+          ++ lib.optionals (!debug) [
             "console=hvc0"
             "console=hvc1"
+          ]
+          ++ lib.optionals debug [
+            "console=ttyS0"
           ]
           ++ lib.optionals debug [
             "debug"

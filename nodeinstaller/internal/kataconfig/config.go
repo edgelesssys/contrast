@@ -74,6 +74,10 @@ func KataRuntimeConfig(
 		config.Agent["kata"]["enable_debug"] = true
 		config.Agent["kata"]["debug_console_enabled"] = true
 		config.Runtime["enable_debug"] = true
+		// Use legacy serial (ttyS0) instead of virtio console (hvc0) to capture
+		// early boot output from OVMF firmware. The console watcher reads this
+		// and logs it to the journal.
+		config.Hypervisor["qemu"]["use_legacy_serial"] = true
 	}
 	// For larger images, we've been running into timeouts in e2e tests.
 	config.Agent["kata"]["dial_timeout"] = 120
