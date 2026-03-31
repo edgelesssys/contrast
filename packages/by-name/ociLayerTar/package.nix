@@ -88,6 +88,14 @@ runCommandLocal "ociLayer"
     echo -n "{\"mediaType\": \"$mediaType\", \"size\": $(stat -c %s $out/$outPath), \"digest\": \"sha256:$sha256\"}" > $out/media-descriptor.json
     echo -n "sha256:$diffID" > $out/DiffID
 
+    if [[ -f ./root/etc/passwd ]]; then
+      passwd=$(cat ./root/etc/passwd)
+    fi
+    if [[ -f ./root/etc/group ]]; then
+      group=$(cat ./root/etc/group)
+    fi
+    echo -n "{\"diff_id\": \"sha256:$diffID\", \"passwd\": \"$passwd\", \"group\": \"$group\"}" > $out/layers-cache.json
+
     # Move the compressed layer tarball to the blobs directory and create a symlink
     mkdir -p $out/blobs/sha256
     mv $out/$outPath $out/blobs/sha256/$sha256

@@ -17,7 +17,14 @@ let
       runtimeInputs = with pkgs; [ crane ];
       text = ''
         imageName="$1"
-        crane push "${dir}" "$imageName:${tag}"
+        containerlookup="$2"
+        layersCache="$3"
+        hash=$(crane push "${dir}" "$imageName:${tag}")
+        printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "${name}" "$hash" >> "$containerlookup"
+        if [ ! -f "$layersCache" ]; then
+          echo -n "[]" > "$layersCache"
+        fi
+        jq -s 'add' "$layersCache" "${dir}/layers-cache.json" > tmp.json && mv tmp.json "$layersCache"
       '';
     };
 
@@ -189,10 +196,10 @@ in
 containers
 // {
   push-node-installer-kata =
-    pushOCIDir "push-node-installer-kata" contrastPkgs.contrast.node-installer-image
+    pushOCIDir "node-installer-kata" contrastPkgs.contrast.node-installer-image
       "v${contrastPkgs.contrast.nodeinstaller.version}";
   push-node-installer-kata-gpu =
-    pushOCIDir "push-node-installer-kata-gpu" contrastPkgs.contrast.node-installer-image.gpu
+    pushOCIDir "node-installer-kata-gpu" contrastPkgs.contrast.node-installer-image.gpu
       "v${contrastPkgs.contrast.nodeinstaller.version}";
 }
 // (lib.concatMapAttrs (name: container: {

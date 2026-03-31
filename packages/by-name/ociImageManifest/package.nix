@@ -42,6 +42,9 @@ runCommandLocal "oci-image-manifest"
   {
     blobDirs = lib.lists.map (layer: layer + "/blobs/sha256") (layers ++ [ config ]);
     platformJSON = builtins.toJSON configPlatform;
+    layersCache = builtins.toJSON (
+      lib.lists.map (layer: builtins.fromJSON (builtins.readFile (layer + "/layers-cache.json"))) layers
+    );
     buildInputs = [ nix ];
     inherit manifest;
   }
@@ -56,4 +59,5 @@ runCommandLocal "oci-image-manifest"
         ln -s "$src/$blob" "$out/blobs/sha256/$blob"
       done
     done
+    echo "$layersCache" > "$out/layers-cache.json"
   ''
