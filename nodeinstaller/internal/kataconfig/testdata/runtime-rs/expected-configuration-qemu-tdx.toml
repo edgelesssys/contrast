@@ -76,14 +76,13 @@ vm_rootfs_driver = 'virtio-blk-pci'
 
 [agent]
 [agent.kata]
-create_container_timeout = 60
+create_container_timeout = 120
 debug_console_enabled = false
-dial_timeout = 120
-dial_timeout_ms = 10
+dial_timeout_ms = 1000
 enable_debug = false
 enable_tracing = false
 kernel_modules = []
-reconnect_timeout_ms = 3000
+reconnect_timeout_ms = 60000
 
 [factory]
 enable_template = false
@@ -93,18 +92,15 @@ vm_cache_number = 0
 
 [runtime]
 agent_name = 'kata'
-create_container_timeout = 120
 dan_conf = '/run/kata-containers/dans'
 disable_guest_empty_dir = false
 disable_guest_seccomp = true
 disable_new_netns = false
-emptydir_mode = 'shared-fs'
 enable_debug = false
 enable_pprof = false
 enable_tracing = false
 enable_vcpus_pinning = false
-experimental = []
-experimental_force_guest_pull = true
+experimental = ['force_guest_pull']
 guest_selinux_label = ''
 hypervisor_name = 'qemu'
 internetworking_model = 'tcfilter'

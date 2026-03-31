@@ -53,18 +53,6 @@ func KataRuntimeConfig(
 		config.Agent["kata"]["debug_console_enabled"] = true
 		config.Runtime["enable_debug"] = true
 	}
-	// For larger images, we've been running into timeouts in e2e tests.
-	config.Agent["kata"]["dial_timeout"] = 120
-	config.Runtime["create_container_timeout"] = 120
-	// GPU-specific settings
-	if platforms.IsGPU(platform) {
-		config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
-		// GPU images tend to be larger, so give a better default timeout that
-		// allows for pulling those.
-		config.Agent["kata"]["dial_timeout"] = 600
-		config.Runtime["create_container_timeout"] = 600
-		config.Runtime["pod_resource_api_sock"] = "/var/lib/kubelet/pod-resources/kubelet.sock"
-	}
 
 	// Use the resources installed by Contrast node-installer.
 	config.Hypervisor["qemu"]["initrd"] = filepath.Join(baseDir, "share", "kata-initrd.zst")
@@ -77,8 +65,6 @@ func KataRuntimeConfig(
 	// TODO(katexochen): Remove after https://github.com/kata-containers/kata-containers/pull/12472 is merged.
 	config.Hypervisor["qemu"]["disable_image_nvdimm"] = true
 
-	// Force container image gust pull so we don't have to use nydus-snapshotter.
-	config.Runtime["experimental_force_guest_pull"] = true
 	// Replace the kernel params entirely (and don't append) since that's
 	// also what we do when calculating the launch measurement.
 	config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
@@ -90,12 +76,11 @@ func KataRuntimeConfig(
 	// Fix and align guest memory calculation.
 	config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMebiBytes(platform)
 	config.Runtime["sandbox_cgroup_only"] = true
-	// Currently not using the upstream encrypted emptyDir feature.
-	config.Runtime["emptydir_mode"] = "shared-fs"
+
 	// TODO: Check again why we need this and how we can avoid it.
 	config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 
-	config = extraRuntimeConfig(config)
+	config = extraRuntimeConfig(config, platform)
 
 	return &config, nil
 }

@@ -5,7 +5,11 @@
 
 package kataconfig
 
-import _ "embed"
+import (
+	_ "embed"
+
+	"github.com/edgelesssys/contrast/internal/platforms"
+)
 
 var (
 	// kataBareMetalQEMUTDXBaseConfig is the configuration file for the Kata runtime on bare-metal TDX
@@ -20,10 +24,15 @@ var (
 	kataBareMetalQEMUSNPBaseConfig string
 )
 
-func extraRuntimeConfig(config Config) Config {
-	// runtime-rs specific configuration.
+func extraRuntimeConfig(config Config, platform platforms.Platform) Config {
 	config.Runtime["name"] = "virt_container"
 	config.Runtime["hypervisor_name"] = "qemu"
 	config.Runtime["agent_name"] = "kata"
+	config.Runtime["experimental"] = []string{"force_guest_pull"}
+
+	config.Agent["kata"]["dial_timeout_ms"] = 1000
+	config.Agent["kata"]["reconnect_timeout_ms"] = 60000
+	config.Agent["kata"]["create_container_timeout"] = 120
+
 	return config
 }
