@@ -3,10 +3,19 @@
 
 _final: prev: {
   contrastPkgs = prev.contrastPkgs.overrideScope (
-    _final: prev: {
-      contrast = prev.contrast.overrideScope (
-        _final: prev: {
-          node-installer-image = prev.node-installer-image.override {
+    contrastPkgsFinal: contrastPkgsPrev: {
+      # Build OVMF with debug output to serial port.
+      OVMF-SNP = contrastPkgsPrev.OVMF-SNP.override {
+        debug = true;
+      };
+      OVMF-TDX = contrastPkgsPrev.OVMF-TDX.override {
+        debug = true;
+      };
+      contrast = contrastPkgsPrev.contrast.overrideScope (
+        _contrastFinal: contrastPrev: {
+          node-installer-image = contrastPrev.node-installer-image.override {
+            inherit (contrastPkgsFinal) OVMF-SNP;
+            inherit (contrastPkgsFinal) OVMF-TDX;
             withDebug = true;
           };
         }
