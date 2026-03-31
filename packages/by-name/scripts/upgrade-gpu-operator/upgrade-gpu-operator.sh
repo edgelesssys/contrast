@@ -122,10 +122,10 @@ fi
 
 until [[ "$(
   kubectl get nodes -l nvidia.com/gpu.present -o json |
-    jq '.items[0].status.allocatable
-        | with_entries(select(.key | startswith("nvidia.com/")))
-        | with_entries(select(.value != "0"))'
-)" != '{}' ]]; do
+    jq '[.items[] | .status.allocatable
+        | to_entries[] | select(.key | startswith("nvidia.com/"))
+        | select(.value != "0")] | length'
+)" -gt 0 ]]; do
   echo 'Waiting for GPU to become available...'
   sleep 5
 done
