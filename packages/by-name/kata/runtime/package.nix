@@ -154,6 +154,13 @@ buildGoModule (finalAttrs: {
       # Upstream commit: https://github.com/kata-containers/kata-containers/commit/bacc3f4ef12f0d7ea64f5b46d2ee4442d67d7579
       # Can be removed after upgrading to Kata 3.29.0.
       ./0023-runtime-rs-deny-unknown-fields-in-config.patch
+
+      # Use virtio-blk with serial name for initdata
+      # Our initdata-processor expects the initdata device to be present at /dev/disks/by-label/initdata,
+      # which requires the device to have a stable name. Using virtio-blk with a serial number achieves this.
+      # TODO: check if we can improve the situation upstream or implement a fallback in the initdata-processor.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12764.
+      ./0024-runtime-rs-force-virtio-blk-with-serial-name-for-ini.patch
     ];
   };
 
