@@ -55,6 +55,7 @@ jobs:
         ${{
           (inputs.test-name == 'badaml-sandbox' && 'badaml-sandbox') ||
           (inputs.test-name == 'badaml-vuln' && 'badaml-vuln') ||
+          (inputs.test-name == 'runtime-rs-tmp' && 'runtime-rs') ||
           'base'
         }}
     steps:

@@ -67,6 +67,7 @@ jobs:
           - policy
           - proxy
           - regression
+          - runtime-rs-tmp
           - servicemesh
           - vault
           - volumestatefulset
