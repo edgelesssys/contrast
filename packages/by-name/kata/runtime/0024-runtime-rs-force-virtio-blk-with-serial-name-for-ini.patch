@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Mon, 30 Mar 2026 16:14:24 +0200
+Subject: [PATCH] runtime-rs: force virtio-blk with serial name for initdata
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ .../hypervisor/src/qemu/cmdline_generator.rs       | 14 +++++++++++---
+ src/runtime-rs/crates/hypervisor/src/qemu/inner.rs | 13 ++++++++++---
+ .../crates/runtimes/virt_container/src/sandbox.rs  |  5 ++---
+ 3 files changed, 23 insertions(+), 9 deletions(-)
+
+diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
+index 28837281465bba7b89d903dda11c1eae43457fe3..6f310448f1ff799f1a6ee0c2468164657be333c9 100644
+--- a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
++++ b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
+@@ -1042,6 +1042,7 @@ struct DeviceVirtioBlk {
+     config_wce: bool,
+     share_rw: bool,
+     devno: Option<String>,
++    serial: Option<String>,
+ }
+ 
+ impl DeviceVirtioBlk {
+@@ -1052,6 +1053,7 @@ impl DeviceVirtioBlk {
+             config_wce: false,
+             share_rw: true,
+             devno,
++            serial: None,
+         }
+     }
+ 
+@@ -1084,7 +1086,11 @@ impl ToQemuParams for DeviceVirtioBlk {
+         } else {
+             params.push("share-rw=off".to_owned());
+         }
+-        params.push(format!("serial=image-{}", self.id));
++        if let Some(serial) = &self.serial {
++            params.push(format!("serial={serial}"));
++        } else {
++            params.push(format!("serial=image-{}", self.id));
++        }
+         if let Some(devno) = &self.devno {
+             params.push(format!("devno={devno}"));
+         }
+@@ -2506,6 +2512,7 @@ impl<'a> QemuCmdLine<'a> {
+         path: &str,
+         is_direct: bool,
+         is_scsi: bool,
++        serial: Option<&str>,
+     ) -> Result<()> {
+         self.devices
+             .push(Box::new(BlockBackend::new(device_id, path, is_direct)));
+@@ -2514,8 +2521,9 @@ impl<'a> QemuCmdLine<'a> {
+             self.devices
+                 .push(Box::new(DeviceScsiHd::new(device_id, "scsi0.0", devno)));
+         } else {
+-            self.devices
+-                .push(Box::new(DeviceVirtioBlk::new(device_id, bus_type(), devno)));
++            let mut dev = DeviceVirtioBlk::new(device_id, bus_type(), devno);
++            dev.serial = serial.map(|s| s.to_owned());
++            self.devices.push(Box::new(dev));
+         }
+ 
+         Ok(())
+diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs b/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs
+index bfaf6380aa11bb8bb42156d6add0dd71d670b709..9c7b3e53a17eefad9ac2ef872a1ab185c0f38169 100644
+--- a/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs
++++ b/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs
+@@ -138,8 +138,13 @@ impl QemuInner {
+                             &block_dev.config.path_on_host,
+                             block_dev.config.is_readonly,
+                         )?,
+-                        KATA_CCW_DEV_TYPE | KATA_BLK_DEV_TYPE | KATA_SCSI_DEV_TYPE => cmdline
+-                            .add_block_device(
++                        KATA_CCW_DEV_TYPE | KATA_BLK_DEV_TYPE | KATA_SCSI_DEV_TYPE => {
++                            let serial = if block_dev.config.path_on_host.ends_with("initdata.image") {
++                                Some("initdata")
++                            } else {
++                                None
++                            };
++                            cmdline.add_block_device(
+                                 block_dev.device_id.as_str(),
+                                 &block_dev.config.path_on_host,
+                                 block_dev
+@@ -147,7 +152,9 @@ impl QemuInner {
+                                     .is_direct
+                                     .unwrap_or(self.config.blockdev_info.block_device_cache_direct),
+                                 block_dev.config.driver_option.as_str() == KATA_SCSI_DEV_TYPE,
+-                            )?,
++                                serial,
++                            )?
++                        }
+                         unsupported => {
+                             info!(sl!(), "unsupported block device driver: {}", unsupported)
+                         }
+diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
+index dd222d191e328190ab64a469f608a7ce2a9af957..5f1f14628f4cbea1e35612107e2825b75ac3da98 100644
+--- a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
++++ b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
+@@ -34,7 +34,7 @@ use hypervisor::{
+     utils::{get_hvsock_path, uses_native_ccw_bus},
+     HybridVsockConfig, DEFAULT_GUEST_VSOCK_CID,
+ };
+-use hypervisor::{BlockConfig, Hypervisor};
++use hypervisor::{BlockConfig, Hypervisor, VIRTIO_BLOCK_PCI};
+ use hypervisor::{BlockDeviceAio, PortDeviceConfig};
+ use hypervisor::{ProtectionDeviceConfig, SevSnpConfig, TdxConfig};
+ use kata_sys_util::hooks::HookStates;
+@@ -541,11 +541,10 @@ impl VirtSandbox {
+             sl!(),
+             "initdata push data into compressed block: {:?}", &image_path
+         );
+-        let block_driver = &hypervisor_config.blockdev_info.block_device_driver;
+         let block_config = BlockConfig {
+             path_on_host: image_path.display().to_string(),
+             is_readonly: true,
+-            driver_option: block_driver.clone(),
++            driver_option: VIRTIO_BLOCK_PCI.to_string(),
+             blkdev_aio: BlockDeviceAio::Native,
+             ..Default::default()
+         };
