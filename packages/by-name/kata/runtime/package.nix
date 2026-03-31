@@ -150,6 +150,13 @@ buildGoModule (finalAttrs: {
       # Deny unknown fields where possible to ease migration. This isn't possible where flatten is used.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12756.
       ./0024-runtime-rs-deny-unknown-fields-in-config.patch
+
+      # Use virtio-blk with serial name for initdata
+      # Our initdata-processor expects the initdata device to be present at /dev/disks/by-label/initdata,
+      # which requires the device to have a stable name. Using virtio-blk with a serial number achieves this.
+      # TODO: check if we can improve the situation upstream or implement a fallback in the initdata-processor.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12764.
+      ./0025-runtime-rs-force-virtio-blk-with-serial-name-for-ini.patch
     ];
   };
 
