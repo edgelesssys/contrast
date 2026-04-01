@@ -17,14 +17,15 @@ let
       runtimeInputs = with pkgs; [ crane ];
       text = ''
         imageName="$1"
-        containerlookup="$2"
-        layersCache="$3"
+        containerlookup="''${2:-/dev/null}"
+        layersCache="''${3:-$(mktemp)}"
         hash=$(crane push "${dir}" "$imageName:${tag}")
         printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "${name}" "$hash" >> "$containerlookup"
         if [ ! -f "$layersCache" ]; then
           echo -n "[]" > "$layersCache"
         fi
         jq -s 'add' "$layersCache" "${dir}/layers-cache.json" > tmp.json && mv tmp.json "$layersCache"
+        echo "$hash"
       '';
     };
 
