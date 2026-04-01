@@ -223,7 +223,11 @@ apply target=default_deploy_target platform=default_platform:
             if [[ -f ./{{ workspace_dir }}/runtime/target-conf.yml ]]; then
                 kubectl apply -f ./{{ workspace_dir }}/runtime/target-conf.yml
             fi
-            if [[ -n "${contrast_ghcr_read:-}" ]]; then
+            if kubectl get secret -n default contrast-e2e-registry-auth >/dev/null 2>&1; then
+              kubectl get secret -n default contrast-e2e-registry-auth -o 'jsonpath={.data.contrast-imagepuller\.toml}' \
+              | base64 -d \
+              | kubectl create secret generic -n "$ns" contrast-node-installer-imagepuller-config --from-file=contrast-imagepuller.toml=/dev/stdin
+            elif [[ -n "${contrast_ghcr_read:-}" ]]; then
                 cat > "./{{ workspace_dir }}/contrast-imagepuller.toml" <<EOF
     [registries]
     [registries."ghcr.io."]
