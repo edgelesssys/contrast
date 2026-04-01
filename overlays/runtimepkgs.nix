@@ -9,6 +9,15 @@ else
   {
     contrastPkgs = prev.contrastPkgs.overrideScope (
       _cFinal: cPrev: {
+        # genpolicy needs to be built natively since macOS doesn't support static binaries.
+        contrastPkgsStatic = final.runtimePkgs.contrastPkgsStatic.overrideScope (
+          _: _: {
+            kata = final.runtimePkgs.contrastPkgsStatic.kata.overrideScope (
+              _: _: { inherit (cPrev.kata) genpolicy; }
+            );
+          }
+        );
+
         kata = cPrev.kata.overrideScope (
           _: _: {
             inherit (final.runtimePkgs.kata)
