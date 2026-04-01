@@ -45,9 +45,9 @@
         setsFromDirectory =
           dir:
           builtins.listToAttrs (
-            map (file: {
+            map (file: rec {
               name = builtins.substring 0 (builtins.stringLength file - 4) (baseNameOf file);
-              value = mkSet (defaultOverlays ++ [ (import (dir + "/${file}")) ]);
+              value = mkSet ((defaultOverlays name) ++ [ (import (dir + "/${file}")) ]);
             }) (builtins.attrNames (builtins.readDir dir))
           );
 
@@ -65,10 +65,12 @@
             ];
           };
 
-        defaultOverlays = [
+        defaultOverlays = set: [
           (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
+          (_final: _prev: { runtimePkgs = self.legacyPackages.x86_64-linux.${set}; })
           (import ./overlays/nixpkgs.nix)
           (import ./overlays/contrast.nix)
+          (import ./overlays/runtimepkgs.nix)
         ];
 
         sets = setsFromDirectory ./overlays/sets;
