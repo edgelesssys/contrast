@@ -30,12 +30,12 @@ runs:
         CONTAINER_REGISTRY: ${{ inputs.container_registry }}
         SET: base
       run: |
-        coordinatorImg=$(nix run ".#${SET}.containers.push-coordinator" -- "${CONTAINER_REGISTRY}/contrast/coordinator")
-        nodeInstallerKataImg=$(nix run ".#${SET}.containers.push-node-installer-kata" -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata")
-        nodeInstallerKataGPUImg=$(nix run ".#${SET}.containers.push-node-installer-kata-gpu" -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
-        initializerImg=$(nix run ".#${SET}.containers.push-initializer" -- "${CONTAINER_REGISTRY}/contrast/initializer")
-        serviceMeshImg=$(nix run ".#${SET}.containers.push-service-mesh-proxy" -- "${CONTAINER_REGISTRY}/contrast/service-mesh-proxy")
-        debugShellImg=$(nix run ".#${SET}.containers.push-debugshell" -- "${CONTAINER_REGISTRY}/contrast/debugshell")
+        coordinatorImg=$(nix run ".#${SET}.scripts.containers.push-coordinator" -- "${CONTAINER_REGISTRY}/contrast/coordinator")
+        nodeInstallerKataImg=$(nix run ".#${SET}.scripts.containers.push-node-installer-kata" -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata")
+        nodeInstallerKataGPUImg=$(nix run ".#${SET}.scripts.containers.push-node-installer-kata-gpu" -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
+        initializerImg=$(nix run ".#${SET}.scripts.containers.push-initializer" -- "${CONTAINER_REGISTRY}/contrast/initializer")
+        serviceMeshImg=$(nix run ".#${SET}.scripts.containers.push-service-mesh-proxy" -- "${CONTAINER_REGISTRY}/contrast/service-mesh-proxy")
+        debugShellImg=$(nix run ".#${SET}.scripts.containers.push-debugshell" -- "${CONTAINER_REGISTRY}/contrast/debugshell")
         echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_OUTPUT"
