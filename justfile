@@ -13,7 +13,7 @@ push target set=default_set:
     set -euo pipefail
     mkdir -p {{ workspace_dir }}
     echo "Pushing container $container_registry/contrast/{{ target }}"
-    nix run -L .#{{ set }}.containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}" "{{ workspace_dir }}/just.containerlookup" "{{ workspace_dir }}/layers-cache.json"
+    nix run -L .#{{ set }}.scripts.containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}" "{{ workspace_dir }}/just.containerlookup" "{{ workspace_dir }}/layers-cache.json"
 
 coordinator: (push "coordinator")
 
@@ -34,7 +34,7 @@ k8s-log-collector: (push "k8s-log-collector")
 containerd-reproducer set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
-    read tag digest < <(nix run -L .#{{ set }}.scripts.push-containerd-reproducer -- $container_registry | tail -n 1)
+    read tag digest < <(nix run -L .#{{ set }}.scripts.containers.push-containerd-reproducer -- $container_registry | tail -n 1)
     echo "ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-tag=$container_registry/contrast/containerd-reproducer:$tag" >> {{ workspace_dir }}/just.containerlookup
     echo "ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-digest=$container_registry/contrast/containerd-reproducer@$digest" >> {{ workspace_dir }}/just.containerlookup
 
