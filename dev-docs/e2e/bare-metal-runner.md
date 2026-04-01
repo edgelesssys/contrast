@@ -93,6 +93,11 @@ kubelet-arg:
   - "runtime-request-timeout=5m"
 node-label:
   - ci.contrast.edgeless.systems/main-runner=true
+embedded-registry: true
+EOF
+cat > /etc/rancher/k3s/registries.yaml <<EOF
+mirrors:
+  "*":
 EOF
 ```
 
@@ -324,6 +329,7 @@ Having the ConfigMap prevents using committed values in the e2e tests directly, 
 
 The `bm-tcb-specs` ConfigMap wraps the [`<host>/manifest.json`](../e2e), containing a JSON Patch file for the TDX or SNP bare-metal specifications for the configured host.
 Add a file [`dev-docs/e2e/<host>/manifest.json`](../e2e) with the values for the runner you've added.
+If the runner is using k3s and the embedded mirror registry, add a corresponding configuration file at `dev-docs/e2e/<host>/contrast-imagepuller.toml`.
 Push the branch and run the `update_bm_tcb_specs` workflow on that branch.
 
 ## Sync Server
