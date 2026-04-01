@@ -102,6 +102,7 @@ For each individual registry `registry.corp`, the following options are availabl
 | `ca-certs` | a newline-concatenated list of PEM-encoded certificates |
 | `insecure-skip-verify` | disable transport security |
 | `auth` | base64-encoded HTTP basic auth credentials authenticating the user with the registry |
+| `mirror` | OCI registry mirror to use instead of the actual registry |
 
 The `auth` credentials use the same format as shown above for the Contrast CLI.
 The following script generates a valid configuration file and makes it available to the node installer.
@@ -124,6 +125,11 @@ kubectl create secret generic -n contrast-system --from-file=contrast-imagepulle
 
 The ability to specify CA certificates mainly serves two purposes, namely allowing connections to registries that aren't publicly trusted in the web PKI,
 and to restrict who can ostensibly intercept and log traffic for metadata analysis.
+
+If your cluster uses an OCI registry mirror, you can configure the imagepuller to use that mirror, too.
+The mirror address is a full HTTP URL, like `https://mirror.example.com:6443`.
+If the `mirror` field is set, the other configuration options (credentials, CA certificates) apply to the connection to this mirror, not the original registry.
+The mirror registry needs to implement the [relevant parts of the OCI spec](https://github.com/opencontainers/distribution-spec/blob/5e57cc0a07ea002e507a65d4757e823f133fcb52/spec.md?plain=1#L735-L753).
 
 A number of example configurations for various use-case scenarios are shown below.
 
@@ -207,6 +213,18 @@ insecure-skip-verify = true
 ```
 
 ##### Example 4
+
+In this scenario, we're using the [mirror registry provided by k3s](https://docs.k3s.io/installation/registry-mirror).
+All images running in Contrast should be pulled through that mirror.
+For convenience, we're using the name of a single node to refer to that registry and switch off TLS certificate validation.
+
+```toml
+[registries."."]
+mirror = "https://my-k3s-node-1:6443"
+insecure-skip-verify = true
+```
+
+##### Example 5
 
 If no image puller configuration is provided or if it's empty, the behavior for all registries is to use no authentication, and to use and trust web PKI.
 
