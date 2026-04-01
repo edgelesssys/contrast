@@ -444,6 +444,22 @@ func (ct *ContrastTest) RunRecover(ctx context.Context) error {
 	return ct.runAgainstCoordinator(ctx, cmd.NewRecoverCmd())
 }
 
+// RunSign runs the contrast sign subcommand.
+func (ct *ContrastTest) RunSign(ctx context.Context, args ...string) error {
+	cmd := cmd.NewSignCmd()
+	cmd.Flags().String("workspace-dir", "", "")
+	cmd.Flags().String("log-level", "debug", "")
+	cmd.SetArgs(append(ct.commonArgs(), args...))
+	cmd.SetOut(io.Discard)
+	errBuf := &bytes.Buffer{}
+	cmd.SetErr(errBuf)
+
+	if err := cmd.ExecuteContext(ctx); err != nil {
+		return fmt.Errorf("running %q: %s", cmd.Use, errBuf)
+	}
+	return nil
+}
+
 // MeshCACert returns a CertPool that contains the coordinator mesh CA cert.
 func (ct *ContrastTest) MeshCACert() *x509.CertPool {
 	pool := x509.NewCertPool()
