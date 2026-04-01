@@ -17,13 +17,13 @@ In multi-party setups with (mutually) distrusting parties, ensuring that no part
 
 ## How-To
 
-After running the [`contrast generate`](./workload-deployment/generate-annotations.md) command, the manifest contains fields `WorkloadOwnerKeyDigest` and `SeedshareOwnerPubKeys`.
+After running the [`contrast generate`](./workload-deployment/generate-annotations.md) command, the manifest contains fields `WorkloadOwnerPubKeys` and `SeedshareOwnerPubKeys`.
 Deleting these fields before calling [`contrast set`](./workload-deployment/set-manifest.md) for the first time will render the deployment immutable and make Coordinator recovery impossible.
 
 ### Preventing manifest updates
 
-To prevent manifest updates, delete the `WorkloadOwnerKeyDigest` before calling `contrast set` for the first time.
-While the `WorkloadOwnerKeyDigest` can be removed at a later point, it should ideally never be `set` for immutable deployments.
+To prevent manifest updates, delete the `WorkloadOwnerPubKeys` before calling `contrast set` for the first time.
+While the `WorkloadOwnerPubKeys` can be removed at a later point, it should ideally never be `set` for immutable deployments.
 After removal of the key, [set the manifest](./workload-deployment/set-manifest.md) through `contrast set`.
 Once completed, the Contrast Coordinator will no longer accept the workload owner key for future manifest changes.
 The seed share owner can still force manifest changes through the [recovery mechanism](./workload-deployment/recover-coordinator.md), if they're able to access to the Coordinator's `ConfigMap`s.
@@ -37,7 +37,7 @@ contrast generate --reference-values <platform> --disable-updates resources/
 :::warning
 
 This action is irreversible.
-You won't be able to make changes to your deployment after running `contrast set` with an empty `WorkloadOwnerKeyDigest`.
+You won't be able to make changes to your deployment after running `contrast set` with an empty `WorkloadOwnerPubKeys`.
 
 :::
 

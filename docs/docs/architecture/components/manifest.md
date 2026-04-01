@@ -37,8 +37,8 @@ The manifest has the following higher level structure:
       ...
     ]
   },
-  "WorkloadOwnerKeyDigests": [ "<workload-owner-key-digest1>", "<workload-owner-key-digest2>", ... ],
-  "SeedshareOwnerKeys": [ "<seedshare-owner-key1>", "<seedshare-owner-key2>", ... ]
+  "WorkloadOwnerPubKeys": [ "<workload-owner-key1>", "<workload-owner-key2>", ... ],
+  "SeedshareOwnerPubKeys": [ "<seedshare-owner-key1>", "<seedshare-owner-key2>", ... ]
 }
 ```
 
@@ -395,26 +395,26 @@ If this field is set, TDX verification in CLI and Coordinator will request a `TC
 You can use this to force a more recent `TCBInfo` than what would normally be served.
 Be aware, though, that older `TCBInfo` numbers are eventually removed from the PCS, at which point TDX verification will fail with an HTTP error 410.
 
-## `WorkloadOwnerKeyDigests` {#workload-owner-key-digests}
+## `WorkloadOwnerPubKeys` {#workload-owner-pub-keys}
 
-A list of workload owner public key digests.
+A list of workload owner public keys.
 Used for authenticating subsequent manifest updates.
 
-By default, the list contains the digest of the key that was passed to the Contrast CLI on `contrast generate` via the `--add-workload-owner-key` flag.
+By default, the list contains the key that was passed to the Contrast CLI on `contrast generate` via the `--add-workload-owner-key` flag.
 If the flag wasn't used, the workload owner key was generated and stored in the workspace as `workload-owner.pem`.
 
 The Coordinator uses this list to authenticate manifest updates submitted via `contrast set`.
 If multiple workload owner keys are specified, any of the corresponding private keys can be used to set a new manifest.
 
-If the manifest is generated with the `--disable-updates` flag, the `WorkloadOwnerKeyDigests` list is empty.
+If the manifest is generated with the `--disable-updates` flag, the `WorkloadOwnerPubKeys` list is empty.
 In this case, updates to the manifest are disabled and the [deployment is immutable](../../howto/immutable-deployments.md).
 
-## `SeedshareOwnerKeys` {#seedshare-owner-keys}
+## `SeedshareOwnerPubKeys` {#seedshare-owner-pub-keys}
 
 Public keys of seed share owners.
 Used to authenticate user recovery and permission to handle the secret seed.
 
-Setting a manifest where the `WorkloadOwnerKeyDigests` has been removed will render the deployment [immutable](../../howto/immutable-deployments.md).
+Setting a manifest where the `WorkloadOwnerPubKeys` has been removed will render the deployment [immutable](../../howto/immutable-deployments.md).
 Doing the same for the `SeedshareOwnerKeys` field makes Coordinator recovery and workload secret recovery impossible.
 
 [`snphost`]: https://github.com/virtee/snphost
