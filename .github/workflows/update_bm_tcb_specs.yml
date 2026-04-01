@@ -18,11 +18,11 @@ jobs:
     name: "Update bm tcb specs ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     outputs:
-      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
-      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
-      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
+      snp: ${{ steps.report.outputs.Metal-QEMU-SNP }}
+      tdx: ${{ steps.report.outputs.Metal-QEMU-TDX }}
+      snp-gpu: ${{ steps.report.outputs.Metal-QEMU-SNP-GPU }}
+      snp-dev: ${{ steps.report.outputs.Metal-QEMU-SNP-DEV }}
+      tdx-gpu: ${{ steps.report.outputs.Metal-QEMU-TDX-GPU }}
     strategy:
       matrix:
         platform:
@@ -44,9 +44,19 @@ jobs:
         with:
           persist-credentials: false
       - name: Update bare metal tcb specs
-        id: update
+        id: update-bm-tcb-specs
         run: |
           kubectl create configmap bm-tcb-specs --from-file=specs="./dev-docs/e2e/$(hostname)/manifest.json" -n default --dry-run=client -o yaml | kubectl apply -f -
+      - name: Update imagepuller auth config
+        id: update-imagepuller-auth
+        run: |
+          imagepullerAuth="./dev-docs/e2e/$(hostname)/contrast-imagepuller.toml"
+          if [[ -f "$imagepullerAuth" ]]; then
+            kubectl create secret generic -n default contrast-e2e-registry-auth --from-file=contrast-imagepuller.toml="$imagepullerAuth" --dry-run=client -o yaml | kubectl apply -f -
+          fi
+      - name: Report success
+        id: report
+        run: |
           echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
 
   notify-teams:
