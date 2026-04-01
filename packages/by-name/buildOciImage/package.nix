@@ -21,9 +21,13 @@
 
 let
   configJson = writers.writeJSON "config.json" config;
-  closure = builtins.filter (
-    p: p != "" && p != configJson.outPath && !(lib.elem p (map (x: x.outPath) copyToRoot))
-  ) (lib.splitString "\n" (builtins.readFile (writeClosure ([ configJson ] ++ copyToRoot))));
+  # All dependencies from packages in copyToRoot and nix store references in the config file.
+  closureFile = writeClosure ([ configJson ] ++ copyToRoot);
+  # writeClosure produces a file with one store path per line.
+  closure = lib.splitString "\n" (builtins.readFile closureFile);
+  # Filter out empty lines and the config file itself, which is part of the OCI directory and not needed in the layer.
+  filteredClosure = builtins.filter (path: path != "" && path != configJson.outPath) closure;
+
   layer = ociLayerTar {
     files =
       (map (pkg: {
@@ -32,8 +36,9 @@ let
       }) copyToRoot)
       ++ (map (path: {
         source = path;
-      }) closure);
+      }) filteredClosure);
   };
+
   manifest = ociImageManifest {
     layers = [ layer ];
     extraConfig = {
