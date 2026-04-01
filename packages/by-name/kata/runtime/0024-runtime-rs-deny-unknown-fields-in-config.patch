@@ -1,0 +1,130 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Mon, 30 Mar 2026 11:40:23 +0200
+Subject: [PATCH] runtime-rs: deny unknown fields in config
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/libs/kata-types/src/config/agent.rs                    | 2 ++
+ src/libs/kata-types/src/config/hypervisor/mod.rs           | 2 ++
+ src/libs/kata-types/src/config/shared_mount.rs             | 7 ++-----
+ .../kata-types/tests/texture/configuration-anno-0.toml     | 4 ++--
+ .../kata-types/tests/texture/configuration-anno-1.toml     | 4 ++--
+ 5 files changed, 10 insertions(+), 9 deletions(-)
+
+diff --git a/src/libs/kata-types/src/config/agent.rs b/src/libs/kata-types/src/config/agent.rs
+index 07f97f45084a4b1b1db870953f84525a51ac6743..dab97f1096f1621fca9a5c98b5ff24ac4abf5aa2 100644
+--- a/src/libs/kata-types/src/config/agent.rs
++++ b/src/libs/kata-types/src/config/agent.rs
+@@ -19,6 +19,7 @@ use super::default::{
+ pub const AGENT_NAME_KATA: &str = "kata";
+ 
+ #[derive(Default, Debug, Deserialize, Serialize, Clone)]
++#[serde(deny_unknown_fields)]
+ pub struct MemAgent {
+     #[serde(default, alias = "mem_agent_enable")]
+     pub enable: bool,
+@@ -58,6 +59,7 @@ pub struct MemAgent {
+ 
+ /// Kata agent configuration information.
+ #[derive(Debug, Deserialize, Serialize, Clone)]
++#[serde(deny_unknown_fields)]
+ pub struct Agent {
+     /// If enabled, the agent will log additional debug messages to the system log.
+     #[serde(default, rename = "enable_debug")]
+diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
+index 29b7aefb281358f9f7618e77e7db31e73221198b..5fb3d90a1d3649b549c9706c3bead89e1dd4eb41 100644
+--- a/src/libs/kata-types/src/config/hypervisor/mod.rs
++++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
+@@ -1158,6 +1158,7 @@ impl NetworkInfo {
+ 
+ /// Configuration information for rootless user.
+ #[derive(Clone, Debug, Default, Deserialize, Serialize)]
++#[serde(deny_unknown_fields)]
+ pub struct RootlessUser {
+     /// The UID of the rootless user.
+     #[serde(default)]
+@@ -1589,6 +1590,7 @@ impl VmTemplateInfo {
+ 
+ /// Configuration information for VM factory (templating, caches, etc.).
+ #[derive(Clone, Debug, Default, Deserialize, Serialize)]
++#[serde(deny_unknown_fields)]
+ pub struct Factory {
+     /// Enable VM templating support.
+     /// When enabled, new VMs may be created from a template to speed up creation.
+diff --git a/src/libs/kata-types/src/config/shared_mount.rs b/src/libs/kata-types/src/config/shared_mount.rs
+index e02342a3ecdfc59744be7b986e5921f0353b4191..d1f8a6c4829243d21975d2402aeb9594f057a483 100644
+--- a/src/libs/kata-types/src/config/shared_mount.rs
++++ b/src/libs/kata-types/src/config/shared_mount.rs
+@@ -8,6 +8,7 @@ use std::io::Result;
+ use regex::Regex;
+ 
+ #[derive(Debug, Deserialize, Serialize, Clone, Default)]
++#[serde(deny_unknown_fields)]
+ pub struct SharedMount {
+     /// Name is used to identify a pair of shared mount points.
+     /// This field cannot be omitted.
+@@ -143,7 +144,6 @@ mod tests {
+                 shared_mount_annotation: r#"
+                 {
+                     "name": "test",
+-                    "src": "sidecar",
+                     "src_path": "/mnt/storage",
+                     "dst_ctr": "app",
+                     "dst_path": "/mnt/storage"
+@@ -156,7 +156,6 @@ mod tests {
+                 {
+                     "name": "test",
+                     "src_ctr": "sidecar",
+-                    "src_dir": "/mnt/storage",
+                     "dst_ctr": "app",
+                     "dst_path": "/mnt/storage"
+                 }"#,
+@@ -169,7 +168,6 @@ mod tests {
+                     "name": "test",
+                     "src_ctr": "sidecar",
+                     "src_path": "/mnt/storage",
+-                    "dst_container": "app",
+                     "dst_path": "/mnt/storage"
+                 }"#,
+                 result: false,
+@@ -181,8 +179,7 @@ mod tests {
+                     "name": "test",
+                     "src_ctr": "sidecar",
+                     "src_path": "/mnt/storage",
+-                    "dst_ctr": "app",
+-                    "path": "/mnt/storage"
++                    "dst_ctr": "app"
+                 }"#,
+                 result: false,
+                 message: "shared_mount: field 'dst_path' couldn't be empty.",
+diff --git a/src/libs/kata-types/tests/texture/configuration-anno-0.toml b/src/libs/kata-types/tests/texture/configuration-anno-0.toml
+index a2f1dac02e8932bf2fd3c23f71d7260ad3aee2b8..5d93c36b5f16d875f5709ad0b4b7a76881a0e46c 100644
+--- a/src/libs/kata-types/tests/texture/configuration-anno-0.toml
++++ b/src/libs/kata-types/tests/texture/configuration-anno-0.toml
+@@ -65,8 +65,8 @@ enable_guest_swap = true
+ [agent.agent0]
+ enable_tracing = true
+ debug_console_enabled = true
+-debug = true
+-dial_timeout = 1
++enable_debug = true
++dial_timeout_ms = 1000
+ kernel_modules = ["e1000e InterruptThrottleRate=3000,3000,3000 EEE=1","i915_enabled_ppgtt=0"]
+ container_pipe_size = 2
+ [runtime]
+diff --git a/src/libs/kata-types/tests/texture/configuration-anno-1.toml b/src/libs/kata-types/tests/texture/configuration-anno-1.toml
+index 12a4e85f94d0883863563b9a8968cf56a4fb06f5..dce864839fdfc433b39c5703a9017576ef021553 100644
+--- a/src/libs/kata-types/tests/texture/configuration-anno-1.toml
++++ b/src/libs/kata-types/tests/texture/configuration-anno-1.toml
+@@ -64,8 +64,8 @@ enable_guest_swap = true
+ [agent.agent0]
+ enable_tracing = true
+ debug_console_enabled = true
+-debug = true
+-dial_timeout = 1
++enable_debug = true
++dial_timeout_ms = 1000
+ kernel_modules = ["e1000e InterruptThrottleRate=3000,3000,3000 EEE=1","i915_enabled_ppgtt=0"]
+ container_pipe_size = 2
+ [runtime]

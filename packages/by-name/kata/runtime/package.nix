@@ -146,6 +146,10 @@ buildGoModule (finalAttrs: {
       # together with being specific to our use case. There are no plans to upstream it.
       ./0022-runtime-add-SNP-ID-block-from-Pod-annotations.patch
       ./0023-runtime-rs-add-SNP-ID-block-from-Pod-annotations.patch
+
+      # Deny unknown fields where possible to ease migration. This isn't possible where flatten is used.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12756.
+      ./0024-runtime-rs-deny-unknown-fields-in-config.patch
     ];
   };
 
