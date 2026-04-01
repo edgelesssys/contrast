@@ -6,6 +6,8 @@
   buildGoModule,
   contrast,
   cli,
+  makeWrapper,
+  openssl,
 }:
 
 buildGoModule {
@@ -87,6 +89,12 @@ buildGoModule {
     "e2e/workloadsecret"
     # keep-sorted end
   ];
+
+  nativeBuildInputs = [ makeWrapper ];
+
+  postInstall = ''
+    wrapProgram "$out/bin/coordinator.test" --prefix PATH : "${openssl}/bin"
+  '';
 
   # Skip fixup as binaries are already stripped and we don't
   # need any other fixup, saving some seconds.

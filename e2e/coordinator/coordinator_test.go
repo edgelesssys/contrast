@@ -7,8 +7,12 @@ package coordinator
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rand"
+	"crypto/sha256"
 	"flag"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -106,6 +110,67 @@ func TestCoordinator(t *testing.T) {
 		transitionHash, err := os.ReadFile(filepath.Join(ct.WorkDir, "verify/latest-transition"))
 		require.NoError(err)
 		require.NoError(ct.RunSet(ctx, "--atomic", "--latest-transition", string(transitionHash)))
+	})
+
+	t.Run("signed manifest update", func(t *testing.T) {
+		require := require.New(t)
+		ct := contrasttest.New(t)
+
+		resources := kuberesource.CoordinatorBundle()
+		resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+		resources = kuberesource.AddPortForwarders(resources)
+		ct.Init(t, resources)
+
+		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
+		t.Cleanup(cancel)
+
+		// Initial signed manifest update with a valid signature.
+		require.NoError(ct.RunSign(ctx, "--out", filepath.Join(ct.WorkDir, "transition.sig")))
+
+		keyBytes, err := os.ReadFile(filepath.Join(ct.WorkDir, "workload-owner.pem"))
+		require.NoError(err)
+		key, err := manifest.ParseWorkloadOwnerPrivateKey(keyBytes)
+		require.NoError(err)
+		// Rename the key so that it is not passed to the CLI.
+		require.NoError(os.Rename(filepath.Join(ct.WorkDir, "workload-owner.pem"), filepath.Join(ct.WorkDir, "key.pem")))
+
+		require.NoError(ct.RunSet(ctx, "--signature", filepath.Join(ct.WorkDir, "transition.sig")))
+
+		require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+
+		// Manifest update without workload owner key or signature should fail.
+		require.ErrorContains(ct.RunSet(ctx), "peer not authorized")
+
+		// Signed manifest update with a valid signature computed with Go.
+		require.NoError(ct.RunSign(ctx, "--prepare", "--out", filepath.Join(ct.WorkDir, "next-transition")))
+
+		transitionHash, err := os.ReadFile(filepath.Join(ct.WorkDir, "next-transition"))
+		require.NoError(err)
+
+		transitionHashShaSum := sha256.Sum256(transitionHash)
+		sig, err := ecdsa.SignASN1(rand.Reader, key, transitionHashShaSum[:])
+		require.NoError(err)
+		require.NoError(os.WriteFile(filepath.Join(ct.WorkDir, "transition.sig"), sig, 0o644))
+
+		require.NoError(ct.RunSet(ctx, "--signature", filepath.Join(ct.WorkDir, "transition.sig")))
+
+		require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+
+		// Signed manifest update with a valid signature computed with OpenSSL.
+		require.NoError(ct.RunSign(ctx, "--prepare", "--out", filepath.Join(ct.WorkDir, "next-transition")))
+
+		opensslCmd := exec.CommandContext(ctx, "openssl", "dgst", "-sha256", "-sign", filepath.Join(ct.WorkDir, "key.pem"), "-out", filepath.Join(ct.WorkDir, "transition.sig"), filepath.Join(ct.WorkDir, "next-transition"))
+		require.NoError(opensslCmd.Run())
+
+		whichCmd := exec.CommandContext(ctx, "which", "openssl")
+		out, err := whichCmd.Output()
+		require.NoError(err)
+		t.Logf("Using OpenSSL from: %s", string(out))
+
+		require.NoError(ct.RunSet(ctx, "--signature", filepath.Join(ct.WorkDir, "transition.sig")))
 	})
 }
 
