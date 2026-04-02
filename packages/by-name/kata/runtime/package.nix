@@ -145,6 +145,7 @@ buildGoModule (finalAttrs: {
       # This patch relies on changes made by 0001-emulate-CPU-model-that-most-closely-matches-the-host.patch
       # together with being specific to our use case. There are no plans to upstream it.
       ./0022-runtime-add-SNP-ID-block-from-Pod-annotations.patch
+      ./0023-runtime-rs-add-SNP-ID-block-from-Pod-annotations.patch
     ];
   };
 
