@@ -96,8 +96,6 @@ jobs:
           just get-credentials
       - name: E2E Test
         run: |
-          nix build ".#${SET}.scripts.get-logs"
-          nix run ".#${SET}.scripts.get-logs" start workspace/just.namespace &
           just e2e "${TEST_NAME}"
       - name: Check for skipped
         id: skipped

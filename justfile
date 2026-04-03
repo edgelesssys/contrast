@@ -80,7 +80,7 @@ e2e target=default_deploy_target platform=default_platform set=default_set:
     echo "Using set=$RESOLVED_SET for test '{{ target }}'"
     set="$RESOLVED_SET" just _e2e {{ target }} {{ platform }}
 
-_e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform)
+_e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell k8s-log-collector (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
@@ -97,6 +97,10 @@ _e2e target=default_deploy_target platform=default_platform set=default_set: sof
     if [[ {{ target }} == "containerd-11644-reproducer" ]]; then
         just containerd-reproducer
     fi
+    get_logs=$(nix build .#{{ set }}.scripts.get-logs --no-link --print-out-paths)
+    "$get_logs/bin/get-logs" start ./{{ workspace_dir }}/just.namespace &
+    get_logs_pid=$!
+    trap 'kill $get_logs_pid || true' EXIT
     nix shell .#{{ set }}.contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
