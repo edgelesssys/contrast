@@ -29,6 +29,9 @@ spec:
             - mountPath: /logs
               name: log-volume
               readOnly: true
+            - mountPath: /journal
+              name: journal-volume
+              readOnly: true
           env:
             - name: POD_NAMESPACE
               valueFrom:
@@ -40,6 +43,11 @@ spec:
           hostPath:
             path: /var/log/pods
             type: Directory
+        - name: journal-volume
+          # mount the systemd journal for host-level log collection
+          hostPath:
+            path: /var/log/journal
+            type: DirectoryOrCreate
 ---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass

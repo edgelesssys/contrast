@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 {
-  lib,
   pkgs,
   contrastPkgs,
   dockerTools,
@@ -165,9 +164,10 @@
       coreutils
       gnutar
       gzip
+      contrastPkgs.k8s-log-collector
     ];
     config = {
-      Cmd = [ "${lib.getExe contrastPkgs.k8s-log-collector}" ];
+      Cmd = [ "${contrastPkgs.k8s-log-collector}/bin/collect-pod-logs" ];
       Volumes."/logs" = { };
     };
   };
