@@ -33,9 +33,7 @@ deploy_collectors() {
   trap cleanup INT TERM EXIT
   tail -n +1 -f "$namespace_file" |
     while IFS= read -r namespace; do
-      cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
-      echo "Starting log collector in namespace $namespace" >&2
-      retry kubectl apply -n "$namespace" -f ./workspace/log-collector.yaml
+      deploy_to_namespace "$namespace"
     done
 }
 
@@ -48,6 +46,18 @@ kill_deploy_collectors() {
   echo "Namespace file $namespace_file deleted, terminating log collector deployment..." >&2
   kill -- -"$deploy_pid" 2>/dev/null || true
   wait "$deploy_pid" 2>/dev/null || true
+}
+
+deploy_to_namespace() {
+  local namespace="$1"
+  cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
+  replacement=$(grep "k8s-log-collector:latest=" ./workspace/just.containerlookup 2>/dev/null | tail -1 | cut -d= -f2- || true)
+  if [[ -n $replacement ]]; then
+    echo "Using pushed log-collector image: $replacement" >&2
+    sed -i "s|image: .*k8s-log-collector.*|image: \"$replacement\"|" ./workspace/log-collector.yaml
+  fi
+  echo "Starting log collector in namespace $namespace" >&2
+  retry kubectl apply -n "$namespace" -f ./workspace/log-collector.yaml
 }
 
 if [[ $# -lt 2 ]]; then
@@ -73,7 +83,14 @@ download)
   mkdir -p "./workspace/logs"
   log_pods_missing=false
   while read -r namespace; do
+    start_time=$(kubectl get ns "$namespace" -o jsonpath='{.metadata.creationTimestamp}')
+
     pods="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5- || true)"
+    if [[ -z $pods ]]; then
+      deploy_to_namespace "$namespace"
+      kubectl rollout status daemonset/log-collector -n "$namespace" --timeout=60s
+      pods="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5- || true)"
+    fi
     if [[ -z $pods ]]; then
       echo "No log-collector pods found in namespace $namespace" >&2
       log_pods_missing=true
@@ -83,7 +100,18 @@ download)
       echo "Collecting logs from namespace $namespace, pod $pod" >&2
       retry kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod"
       echo "Pod $pod is ready" >&2
-      retry kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; cp -r /export /export-no-stream; tar zcvf /exported-logs.tar.gz /export-no-stream; rm -rf /export-no-stream"
+
+      echo "Collecting host-level logs (since $start_time)..." >&2
+      retry kubectl exec -n "$namespace" "$pod" -- \
+        collect-host-logs "$start_time" || true
+
+      retry kubectl exec -n "$namespace" "$pod" -- /bin/bash -c '
+        rm -f /exported-logs.tar.gz
+        cp -r /export /export-no-stream
+        find /export-no-stream -empty -delete
+        tar zcvf /exported-logs.tar.gz /export-no-stream
+        rm -rf /export-no-stream
+      '
       retry kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
       echo "Downloaded logs tarball for namespace $namespace, pod $pod, extracting..." >&2
       tar xzvf ./workspace/logs/exported-logs.tar.gz --directory "./workspace/logs"
