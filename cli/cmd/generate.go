@@ -145,6 +145,11 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		usedPlatforms.Add(flags.referenceValuesPlatform)
 	}
 
+	usedCPUs, err := usedCPUsFromUnstructured(fileMap)
+	if err != nil {
+		return fmt.Errorf("determining cpu counts used in deployment: %w", err)
+	}
+
 	// generate a manifest by checking if a manifest exists and using that,
 	// or otherwise using a default.
 	var mnf *manifest.Manifest
@@ -175,6 +180,14 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("validate existing manifest: %w", err)
 		}
 	}
+
+	var filteredSNP []manifest.SNPReferenceValues
+	for _, snp := range mnf.ReferenceValues.SNP {
+		if snp.CPUs == 0 || slices.Contains(usedCPUs, snp.CPUs) {
+			filteredSNP = append(filteredSNP, snp)
+		}
+	}
+	mnf.ReferenceValues.SNP = filteredSNP
 
 	var runtimeHandler string
 	if flags.referenceValuesPlatform == platforms.Unknown {
@@ -679,6 +692,37 @@ func runtimeClassesFromUnstructured(fileMap map[string][]*unstructured.Unstructu
 	return runtimeClasses, nil
 }
 
+func usedCPUsFromUnstructured(fileMap map[string][]*unstructured.Unstructured) ([]uint64, error) {
+	used := make(map[uint64]struct{})
+	for _, resources := range fileMap {
+		for _, r := range resources {
+			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(r)
+			if err != nil {
+				return nil, err
+			}
+			if !isCCWorkload(applyConfig) {
+				continue
+			}
+
+			kuberesource.MapPodSpec(applyConfig, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+				if spec == nil {
+					return spec
+				}
+
+				totalCPUs := getPodCPUCount(spec)
+				used[totalCPUs] = struct{}{}
+				return spec
+			})
+		}
+	}
+
+	var out []uint64
+	for k := range used {
+		out = append(out, k)
+	}
+	return out, nil
+}
+
 func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSpecApplyConfiguration) (*applycorev1.PodSpecApplyConfiguration, error) {
 	return func(spec *applycorev1.PodSpecApplyConfiguration) (*applycorev1.PodSpecApplyConfiguration, error) {
 		if spec == nil || spec.RuntimeClassName == nil {
@@ -734,24 +778,8 @@ func patchIDBlockAnnotation(res any) error {
 			return meta, spec, nil
 		}
 
-		var regularContainersCPU int64
-		for _, container := range spec.Containers {
-			regularContainersCPU += getCPUCount(container.Resources)
-		}
-		var initContainersCPU int64
-		for _, container := range spec.InitContainers {
-			cpuCount := getCPUCount(container.Resources)
-			initContainersCPU += cpuCount
-			// Sidecar containers remain running alongside the actual application, consuming CPU resources
-			if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
-				regularContainersCPU += cpuCount
-			}
-		}
-		podLevelCPU := getCPUCount(spec.Resources)
-
-		// Convert milliCPUs to number of CPUs (rounding up), and add 1 for hypervisor overhead
-		totalMilliCPUs := max(regularContainersCPU, initContainersCPU, podLevelCPU)
-		cpuCount := strconv.FormatInt((totalMilliCPUs+999)/1000+1, 10)
+		totalCPUs := getPodCPUCount(spec)
+		cpuCount := strconv.FormatUint(totalCPUs, 10)
 
 		platform := strings.ToLower(targetPlatform.String())
 
@@ -787,6 +815,28 @@ func getCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) 
 		return resources.Limits.Cpu().MilliValue()
 	}
 	return 0
+}
+
+func getPodCPUCount(spec *applycorev1.PodSpecApplyConfiguration) uint64 {
+	var regularContainersCPU int64
+	for _, container := range spec.Containers {
+		regularContainersCPU += getCPUCount(container.Resources)
+	}
+	var initContainersCPU int64
+	for _, container := range spec.InitContainers {
+		cpuCount := getCPUCount(container.Resources)
+		initContainersCPU += cpuCount
+		// Sidecar containers remain running alongside the actual application, consuming CPU resources
+		if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+			regularContainersCPU += cpuCount
+		}
+	}
+	podLevelCPU := getCPUCount(spec.Resources)
+
+	// Convert milliCPUs to number of CPUs (rounding up), and add 1 for hypervisor overhead
+	totalMilliCPUs := max(regularContainersCPU, initContainersCPU, podLevelCPU)
+	totalCPUs := (totalMilliCPUs+999)/1000 + 1
+	return uint64(totalCPUs)
 }
 
 type generateFlags struct {
