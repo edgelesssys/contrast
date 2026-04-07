@@ -186,7 +186,7 @@ URIs?
 userland
 UUID
 validators?
-vCPU
+vCPUs?
 vendored
 virsh
 virtualized

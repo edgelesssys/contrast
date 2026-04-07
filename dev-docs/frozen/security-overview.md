@@ -91,7 +91,7 @@ The report includes the following information:
 The manifest, enforced by the Contrast coordinator, contains reference values used to verify all application pods. It can be seen as the trusted reference state of the deployment. The manifest includes:
 
 - **Policies:** One cryptographic hash per pod, representing its enforced runtime policy.
-- **ReferenceValues**: The launch digests of the CVMs, based on AMD SEV-SNP. This doesn't include any application code but tracks the setup of the CVM. Confidential Pods on the same CPU have the same reference values.
+- **ReferenceValues**: The launch digests of the CVMs, based on AMD SEV-SNP. This doesn't include any application code but tracks the setup of the CVM. Reference values are grouped by CPU count, as the measurement depends on the number of vCPUs assigned to the VM.
 - **WorkloadOwnerKeyDigests**: A public key digest used to authenticate subsequent manifest updates.
 - **SeedshareOwnerPubKeys**: Used for coordinator recovery. For details, see [later sections](#secret-recovery).
 
@@ -127,7 +127,10 @@ Here is an example manifest:
           "MicrocodeVersion": 72
         },
         "ProductName": "Genoa",
-        "TrustedMeasurement": "92a34339f1e1ec94b911830cafa875082d4f51b9805f3c2638ce468c6fda038be5acaca52fea5cb767e18cc1edfb1f7c"
+        "TrustedMeasurements": {
+          "1": "92a34339f1e1ec94b911830cafa875082d4f51b9805f3c2638ce468c6fda038be5acaca52fea5cb767e18cc1edfb1f7c",
+          "2": "..."
+        }
       }
     ]
   },

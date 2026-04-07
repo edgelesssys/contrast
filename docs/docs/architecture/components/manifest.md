@@ -19,7 +19,11 @@ The manifest has the following higher level structure:
     "snp": [
       {
         "ProductName": "<product-name>",
-        "TrustedMeasurement": "<trusted-measurement>",
+        "TrustedMeasurements": {
+          "1": "<trusted-measurement-1-cpu>",
+          "2": "<trusted-measurement-2-cpus>",
+          ...
+        },
         "MinimumTCB": { },
         "GuestPolicy": { },
         "PlatformInfo": { }
@@ -125,13 +129,16 @@ The Coordinator will accept a workload if its attestation report matches _any_ o
 The product name of your platform.
 `Milan` and `Genoa` are supported by Contrast.
 
-### `ReferenceValues.snp.*.TrustedMeasurement` {#snp-trusted-measurement}
+### `ReferenceValues.snp.*.TrustedMeasurements` {#snp-trusted-measurements}
 
-The `TrustedMeasurement` is a hash over the initial memory contents and state of the confidential VM.
+The `TrustedMeasurements` is a map of vCPU counts to their respective launch measurements.
+A launch measurement is a hash over the initial memory contents and state of the confidential VM.
 It covers the guest firmware, the initrd and kernel as well as the kernel command line.
 The kernel command line contains the dm-verity hash of the root filesystem, which contains all Contrast components that run inside the guest.
 
-It's the (launch) `MEASUREMENT` from the SNP `ATTESTATION_REPORT`, according to Table 23 in the [SEV ABI Spec].
+Contrast currently supports 1 to 8 vCPUs per pod. The manifest must contain the measurement for the specific vCPU count used by the workload.
+
+The values are (launch) `MEASUREMENT`s from the SNP `ATTESTATION_REPORT`, according to Table 23 in the [SEV ABI Spec].
 
 ### `ReferenceValues.snp.*.MinimumTCB` {#snp-minimum-tcb}
 
