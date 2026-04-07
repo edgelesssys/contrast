@@ -737,7 +737,7 @@ func GPU(name string, gpuClass string, gpuQuantity int64) []any {
 // Vault returns the resources for deploying a user managed vault.
 func Vault(namespace string) []any {
 	const (
-		vaultImage = "quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa"
+		vaultImage = "quay.io/openbao/openbao:2.5.2@sha256:6c75c97223873807260352f269640935a07db0c26b3dbf12a98a36ec43ad9878"
 
 		vaultServerEntrypoint = `set -e
 config=/dev/shm/config.hcl
