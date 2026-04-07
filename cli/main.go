@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -78,10 +80,10 @@ func buildVersionString() (string, error) {
 		}
 		for _, snp := range values.SNP {
 			fmt.Fprintf(versionsWriter, "\t- product name:\t%s\n", snp.ProductName)
-			for cpu, meas := range snp.TrustedMeasurements {
-				fmt.Fprintf(versionsWriter, "\t  vCPUs:\t%s\n", cpu)
-				fmt.Fprintf(versionsWriter, "\t  launch digest:\t%s\n", meas.String())
-			}
+			fmt.Fprintf(versionsWriter, "\t  launch digest per vCPU count:\n")
+			forSortedMeasurement(snp.TrustedMeasurements, func(cpu string, meas manifest.HexString) {
+				fmt.Fprintf(versionsWriter, "\t  %3s: %s\n", cpu, meas.String())
+			})
 			fmt.Fprint(versionsWriter, "\t  default SNP TCB:\t\n")
 			printOptionalSVN("bootloader", snp.MinimumTCB.BootloaderVersion)
 			printOptionalSVN("tee", snp.MinimumTCB.TEEVersion)
@@ -158,4 +160,24 @@ func signalContext(ctx context.Context, sig os.Signal) (context.Context, context
 
 func preRunRoot(cmd *cobra.Command, _ []string) {
 	cmd.SilenceUsage = true
+}
+
+func forSortedMeasurement(
+	m map[string]manifest.HexString,
+	fn func(cpu string, meas manifest.HexString),
+) {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		ai, _ := strconv.Atoi(keys[i])
+		bi, _ := strconv.Atoi(keys[j])
+		return ai < bi
+	})
+
+	for _, k := range keys {
+		fn(k, m[k])
+	}
 }

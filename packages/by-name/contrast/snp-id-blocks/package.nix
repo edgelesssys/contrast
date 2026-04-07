@@ -38,7 +38,7 @@ let
           };
         };
 
-      vcpuCounts = lib.range 1 8;
+      vcpuCounts = lib.range 1 220;
       allVcpuBlocks = builtins.listToAttrs (
         map (vcpus: {
           name = toString vcpus;

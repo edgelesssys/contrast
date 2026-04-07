@@ -136,8 +136,6 @@ A launch measurement is a hash over the initial memory contents and state of the
 It covers the guest firmware, the initrd and kernel as well as the kernel command line.
 The kernel command line contains the dm-verity hash of the root filesystem, which contains all Contrast components that run inside the guest.
 
-Contrast currently supports 1 to 8 vCPUs per pod. The manifest must contain the measurement for the specific vCPU count used by the workload.
-
 The values are (launch) `MEASUREMENT`s from the SNP `ATTESTATION_REPORT`, according to Table 23 in the [SEV ABI Spec].
 
 ### `ReferenceValues.snp.*.MinimumTCB` {#snp-minimum-tcb}

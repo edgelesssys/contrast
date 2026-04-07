@@ -25,7 +25,7 @@ let
         platformInfo = {
           SMTEnabled = true;
         };
-        vcpuCounts = lib.range 1 8;
+        vcpuCounts = lib.range 1 220;
         products = [
           "Milan"
           "Genoa"
