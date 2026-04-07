@@ -532,7 +532,7 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 			SNPVersion:        &svn0,
 			MicrocodeVersion:  &svn0,
 		},
-		TrustedMeasurement: manifest.NewHexString(measurement[:]),
+		TrustedMeasurements: map[string]manifest.HexString{"1": manifest.NewHexString(measurement[:])},
 		GuestPolicy: abi.SnpPolicy{
 			SMT: true,
 		},

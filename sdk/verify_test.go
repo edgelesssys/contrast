@@ -195,7 +195,7 @@ var testManifest = []byte(`
           "MicrocodeVersion": 213
         },
         "ProductName": "Milan",
-        "TrustedMeasurement": "05c504736ca974b9ac0c84b5099f957907507c09e4844bd0672d0b647205f35837bd479ae35567b22b69ce636666c286",
+        "TrustedMeasurements": { "1": "05c504736ca974b9ac0c84b5099f957907507c09e4844bd0672d0b647205f35837bd479ae35567b22b69ce636666c286" },
         "GuestPolicy": {
           "ABIMinor": 0,
           "ABIMajor": 0,

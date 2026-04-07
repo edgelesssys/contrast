@@ -32,22 +32,32 @@ let
         ];
 
         generateRefVal =
-          vcpus: product:
+          product:
           let
-            launch-digest = kata.calculateSnpLaunchDigest {
-              inherit os-image vcpus;
-              inherit (node-installer-image) withDebug;
-            };
             filename = "${lib.toLower product}.hex";
+            getMeasurement =
+              vcpus:
+              let
+                launch-digest = kata.calculateSnpLaunchDigest {
+                  inherit os-image vcpus;
+                  inherit (node-installer-image) withDebug;
+                };
+              in
+              builtins.readFile "${launch-digest}/${filename}";
+
+            TrustedMeasurements = builtins.listToAttrs (
+              map (vcpus: {
+                name = toString vcpus;
+                value = getMeasurement vcpus;
+              }) vcpuCounts
+            );
           in
           {
-            inherit guestPolicy platformInfo;
-            trustedMeasurement = builtins.readFile "${launch-digest}/${filename}";
+            inherit guestPolicy platformInfo TrustedMeasurements;
             productName = product;
-            cpus = vcpus;
           };
       in
-      builtins.concatLists (map (vcpus: map (product: generateRefVal vcpus product) products) vcpuCounts);
+      map generateRefVal products;
   };
 
   snpRefVals = snpRefValsWith node-installer-image.os-image;

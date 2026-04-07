@@ -34,8 +34,8 @@ func newTestManifestSNP() *Manifest {
 						SNPVersion:        toPtr(SVN(2)),
 						MicrocodeVersion:  toPtr(SVN(2)),
 					},
-					ProductName:        "Milan",
-					TrustedMeasurement: HexString("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+					ProductName:         "Milan",
+					TrustedMeasurements: map[string]HexString{"1": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
 					GuestPolicy: abi.SnpPolicy{
 						SMT: true,
 					},
@@ -109,7 +109,7 @@ func TestValidate(t *testing.T) {
 		"trusted measurement empty": {
 			m: newTestManifestSNP(),
 			mutate: func(m *Manifest) {
-				m.ReferenceValues.SNP[0].TrustedMeasurement = HexString("")
+				m.ReferenceValues.SNP[0].TrustedMeasurements = nil
 			},
 			wantErr: true,
 		},
@@ -311,7 +311,7 @@ func TestSNPValidateOpts(t *testing.T) {
 	assert.NotNil(tcb.SNPVersion)
 	assert.NotNil(tcb.MicrocodeVersion)
 
-	trustedMeasurement, err := m.ReferenceValues.SNP[0].TrustedMeasurement.Bytes()
+	trustedMeasurement, err := m.ReferenceValues.SNP[0].TrustedMeasurements["1"].Bytes()
 	assert.NoError(err)
 
 	assert.Equal(trustedMeasurement, opts[0].ValidateOpts.Measurement)
@@ -450,7 +450,7 @@ func TestExpectedMissingReferenceValues(t *testing.T) {
 		"snp with unexpected validation errors": {
 			m: func() *Manifest {
 				m := newTestManifestSNP()
-				m.ReferenceValues.SNP[0].TrustedMeasurement = ""
+				m.ReferenceValues.SNP[0].TrustedMeasurements = nil
 				return m
 			}(),
 			want: false,

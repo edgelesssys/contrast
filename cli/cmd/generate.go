@@ -183,7 +183,16 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 
 	var filteredSNP []manifest.SNPReferenceValues
 	for _, snp := range mnf.ReferenceValues.SNP {
-		if snp.CPUs == 0 || slices.Contains(usedCPUs, snp.CPUs) {
+		filteredMeasurements := make(map[string]manifest.HexString)
+		for cpuStr, meas := range snp.TrustedMeasurements {
+			cpu, _ := strconv.ParseUint(cpuStr, 10, 64)
+			if slices.Contains(usedCPUs, cpu) {
+				filteredMeasurements[cpuStr] = meas
+			}
+		}
+
+		if len(filteredMeasurements) > 0 {
+			snp.TrustedMeasurements = filteredMeasurements
 			filteredSNP = append(filteredSNP, snp)
 		}
 	}

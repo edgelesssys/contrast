@@ -130,77 +130,79 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 
 	var out []SNPValidatorOptions
 	for _, refVal := range m.ReferenceValues.SNP {
-		if len(refVal.TrustedMeasurement) == 0 {
-			return nil, errors.New("trusted measurement cannot be empty")
+		if len(refVal.TrustedMeasurements) == 0 {
+			return nil, errors.New("trusted measurements cannot be empty")
 		}
 
-		trustedMeasurement, err := refVal.TrustedMeasurement.Bytes()
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
-		}
-
-		verifyOpts := snpverify.DefaultOptions()
-		// Setting the productLine explicitly, because of full dependence of trustedMeasurements and derivation of trustedRoots on productLine.
-		verifyOpts.Product, err = kds.ParseProductLine(string(refVal.ProductName))
-		if err != nil {
-			return nil, fmt.Errorf("SNP reference values: %w", err)
-		}
-		verifyOpts.TrustedRoots, err = amdTrustedRootCerts(refVal.ProductName)
-		if err != nil {
-			return nil, fmt.Errorf("determine trusted roots: %w", err)
-		}
-		verifyOpts.CheckRevocations = true
-		verifyOpts.Getter = kdsGetter.SNPGetter()
-
-		// Generate static public IDKey based on the launch digest and guest policy.
-		_, authBlk, err := idblock.IDBlocksFromLaunchDigest([48]byte(trustedMeasurement), refVal.GuestPolicy)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate ID blocks: %w", err)
-		}
-		idKeyBytes, err := authBlk.IDKey.MarshalBinary()
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal IDKey: %w", err)
-		}
-		idKeyHash := sha512.Sum384(idKeyBytes)
-
-		validateOpts := &snpvalidate.Options{
-			Measurement:  trustedMeasurement,
-			PlatformInfo: &refVal.PlatformInfo,
-			GuestPolicy:  refVal.GuestPolicy,
-			VMPL:         new(int), // VMPL0
-			MinimumTCB: kds.TCBParts{
-				BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
-				TeeSpl:   refVal.MinimumTCB.TEEVersion.UInt8(),
-				SnpSpl:   refVal.MinimumTCB.SNPVersion.UInt8(),
-				UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
-			},
-			MinimumLaunchTCB: kds.TCBParts{
-				BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
-				TeeSpl:   refVal.MinimumTCB.TEEVersion.UInt8(),
-				SnpSpl:   refVal.MinimumTCB.SNPVersion.UInt8(),
-				UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
-			},
-			PermitProvisionalFirmware:      true,
-			RequireIDBlock:                 true,
-			TrustedIDKeyHashes:             [][]byte{idKeyHash[:]},
-			MinimumLaunchMitigationVector:  refVal.MinimumMitigationVector,
-			MinimumCurrentMitigationVector: refVal.MinimumMitigationVector,
-		}
-
-		var allowedChipIDs [][]byte
-		for _, chipIDHex := range refVal.AllowedChipIDs {
-			chipID, err := chipIDHex.Bytes()
+		for _, tm := range refVal.TrustedMeasurements {
+			trustedMeasurement, err := tm.Bytes()
 			if err != nil {
-				return nil, fmt.Errorf("failed to convert AllowedChipID from manifest to byte slices: %w", err)
+				return nil, fmt.Errorf("failed to convert TrustedMeasurements from manifest to byte slices: %w", err)
 			}
-			allowedChipIDs = append(allowedChipIDs, chipID)
-		}
 
-		out = append(out, SNPValidatorOptions{
-			VerifyOpts:     verifyOpts,
-			ValidateOpts:   validateOpts,
-			AllowedChipIDs: allowedChipIDs,
-		})
+			verifyOpts := snpverify.DefaultOptions()
+			// Setting the productLine explicitly, because of full dependence of trustedMeasurements and derivation of trustedRoots on productLine.
+			verifyOpts.Product, err = kds.ParseProductLine(string(refVal.ProductName))
+			if err != nil {
+				return nil, fmt.Errorf("SNP reference values: %w", err)
+			}
+			verifyOpts.TrustedRoots, err = amdTrustedRootCerts(refVal.ProductName)
+			if err != nil {
+				return nil, fmt.Errorf("determine trusted roots: %w", err)
+			}
+			verifyOpts.CheckRevocations = true
+			verifyOpts.Getter = kdsGetter.SNPGetter()
+
+			// Generate static public IDKey based on the launch digest and guest policy.
+			_, authBlk, err := idblock.IDBlocksFromLaunchDigest([48]byte(trustedMeasurement), refVal.GuestPolicy)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate ID blocks: %w", err)
+			}
+			idKeyBytes, err := authBlk.IDKey.MarshalBinary()
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal IDKey: %w", err)
+			}
+			idKeyHash := sha512.Sum384(idKeyBytes)
+
+			validateOpts := &snpvalidate.Options{
+				Measurement:  trustedMeasurement,
+				PlatformInfo: &refVal.PlatformInfo,
+				GuestPolicy:  refVal.GuestPolicy,
+				VMPL:         new(int), // VMPL0
+				MinimumTCB: kds.TCBParts{
+					BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
+					TeeSpl:   refVal.MinimumTCB.TEEVersion.UInt8(),
+					SnpSpl:   refVal.MinimumTCB.SNPVersion.UInt8(),
+					UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
+				},
+				MinimumLaunchTCB: kds.TCBParts{
+					BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
+					TeeSpl:   refVal.MinimumTCB.TEEVersion.UInt8(),
+					SnpSpl:   refVal.MinimumTCB.SNPVersion.UInt8(),
+					UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
+				},
+				PermitProvisionalFirmware:      true,
+				RequireIDBlock:                 true,
+				TrustedIDKeyHashes:             [][]byte{idKeyHash[:]},
+				MinimumLaunchMitigationVector:  refVal.MinimumMitigationVector,
+				MinimumCurrentMitigationVector: refVal.MinimumMitigationVector,
+			}
+
+			var allowedChipIDs [][]byte
+			for _, chipIDHex := range refVal.AllowedChipIDs {
+				chipID, err := chipIDHex.Bytes()
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert AllowedChipID from manifest to byte slices: %w", err)
+				}
+				allowedChipIDs = append(allowedChipIDs, chipID)
+			}
+
+			out = append(out, SNPValidatorOptions{
+				VerifyOpts:     verifyOpts,
+				ValidateOpts:   validateOpts,
+				AllowedChipIDs: allowedChipIDs,
+			})
+		}
 	}
 
 	return out, nil

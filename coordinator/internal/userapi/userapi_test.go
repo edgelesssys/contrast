@@ -865,7 +865,7 @@ func newManifestWithSeedshareOwner(t *testing.T) ([]byte, [][]byte) {
 			SNPVersion:        &svn0,
 			MicrocodeVersion:  &svn0,
 		},
-		TrustedMeasurement: manifest.NewHexString(measurement[:]),
+		TrustedMeasurements: map[string]manifest.HexString{"1": manifest.NewHexString(measurement[:])},
 		GuestPolicy: abi.SnpPolicy{
 			SMT: true,
 		},
