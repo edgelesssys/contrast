@@ -122,8 +122,9 @@ func TestWorkloadOwnerKeyParseMarshal(t *testing.T) {
 	privateKey, err := ParseWorkloadOwnerPrivateKey(keyData)
 	require.NoError(t, err)
 
-	keyDigest := HashWorkloadOwnerKey(&privateKey.PublicKey)
-	assert.Len(t, keyDigest, 64)
+	pubKeyHex := MarshalWorkloadOwnerPubKey(&privateKey.PublicKey)
+	_, err = ParseWorkloadOwnerPublicKey(pubKeyHex)
+	require.NoError(t, err)
 
 	publicKeyBytes, err := ExtractWorkloadOwnerPublicKey(keyData)
 	require.NoError(t, err)

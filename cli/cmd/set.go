@@ -274,13 +274,13 @@ func loadWorkloadOwnerKey(path string, manifst *manifest.Manifest, log *slog.Log
 
 	// Check workload owner key configuration in manifest on set.
 	if manifst != nil {
-		if len(manifst.WorkloadOwnerKeyDigests) == 0 {
+		if len(manifst.WorkloadOwnerPubKeys) == 0 {
 			log.Warn("No workload owner keys in manifest. Further manifest updates will be rejected by the Coordinator")
 			return workloadOwnerKey, nil
 		}
-		log.Debug("Workload owner keys in manifest", "keys", manifst.WorkloadOwnerKeyDigests)
-		ownerKeyHex := manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)
-		if !slices.Contains(manifst.WorkloadOwnerKeyDigests, ownerKeyHex) {
+		log.Debug("Workload owner keys in manifest", "keys", manifst.WorkloadOwnerPubKeys)
+		ownerKeyHex := manifest.MarshalWorkloadOwnerPubKey(&workloadOwnerKey.PublicKey)
+		if !slices.Contains(manifst.WorkloadOwnerPubKeys, ownerKeyHex) {
 			log.Warn("Workload owner key not found in manifest. This may lock you out from further updates")
 		}
 	}

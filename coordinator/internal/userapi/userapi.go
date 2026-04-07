@@ -17,7 +17,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -97,7 +96,7 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 	if oldState != nil {
 		oldManifest := oldState.Manifest()
 		// Subsequent SetManifest call, check permissions of caller.
-		if err := validatePeer(ctx, oldManifest.WorkloadOwnerKeyDigests); err != nil {
+		if err := validatePeer(ctx, oldManifest.WorkloadOwnerPubKeys); err != nil {
 			s.logger.Warn("SetManifest peer validation failed", "err", err)
 			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
 		}
@@ -230,16 +229,7 @@ type seedAuthorizer struct {
 }
 
 func (a *seedAuthorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
-	var digests []manifest.HexString
-	for _, pubKey := range mnfst.SeedshareOwnerPubKeys {
-		bytes, err := pubKey.Bytes()
-		if err != nil {
-			return nil, nil, status.Errorf(codes.FailedPrecondition, "seedshare owner public key is not hex-encoded")
-		}
-		sum := sha256.Sum256(bytes)
-		digests = append(digests, manifest.NewHexString(sum[:]))
-	}
-	if err := validatePeer(ctx, digests); err != nil {
+	if err := validatePeer(ctx, mnfst.SeedshareOwnerPubKeys); err != nil {
 		return nil, nil, status.Errorf(codes.PermissionDenied, "peer not authorized to recover existing state: %v", err)
 	}
 
@@ -256,8 +246,8 @@ func (a *seedAuthorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifes
 	return se, meshKey, nil
 }
 
-func validatePeer(ctx context.Context, keyDigests []manifest.HexString) error {
-	if len(keyDigests) == 0 {
+func validatePeer(ctx context.Context, keys []manifest.HexString) error {
+	if len(keys) == 0 {
 		return errors.New("setting manifest is disabled")
 	}
 
@@ -265,13 +255,12 @@ func validatePeer(ctx context.Context, keyDigests []manifest.HexString) error {
 	if err != nil {
 		return err
 	}
-	peerPub256Sum := sha256.Sum256(peerPubKey)
-	for _, key := range keyDigests {
-		trustedWorkloadOwnerSHA256, err := key.Bytes()
+	for _, key := range keys {
+		trustedWorkloadOwnerKey, err := key.Bytes()
 		if err != nil {
 			return fmt.Errorf("parsing key: %w", err)
 		}
-		if bytes.Equal(peerPub256Sum[:], trustedWorkloadOwnerSHA256) {
+		if bytes.Equal(peerPubKey, trustedWorkloadOwnerKey) {
 			return nil
 		}
 	}
