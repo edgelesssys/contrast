@@ -511,9 +511,6 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	policyHash := sha256.Sum256(policy)
 	policyHashHex := manifest.NewHexString(policyHash[:])
 
-	workloadOwnerKey := testkeys.ECDSA(t)
-	keyDigest := manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)
-
 	mnfst := &manifest.Manifest{}
 	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{
 		policyHashHex: {
@@ -537,7 +534,9 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 			SMT: true,
 		},
 	}}
-	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{keyDigest}
+	workloadOwnerKey := testkeys.ECDSA(t)
+	workloadOwnerKeyHex := manifest.MarshalWorkloadOwnerPubKey(&workloadOwnerKey.PublicKey)
+	mnfst.WorkloadOwnerPubKeys = []manifest.HexString{workloadOwnerKeyHex}
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)
 	return mnfst, mnfstBytes, [][]byte{policy}

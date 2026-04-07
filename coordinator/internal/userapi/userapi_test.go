@@ -54,10 +54,8 @@ func TestSetManifest(t *testing.T) {
 	}
 	trustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[0])
 	untrustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
-	manifestWithTrustedKey, err := manifestWithWorkloadOwnerKey(trustedKey)
-	require.NoError(t, err)
-	manifestWithoutTrustedKey, err := manifestWithWorkloadOwnerKey(nil)
-	require.NoError(t, err)
+	manifestWithTrustedKey := manifestWithWorkloadOwnerKey(trustedKey)
+	manifestWithoutTrustedKey := manifestWithWorkloadOwnerKey(nil)
 
 	testCases := map[string]struct {
 		req              *userapi.SetManifestRequest
@@ -227,7 +225,7 @@ func TestSetManifest(t *testing.T) {
 
 		coordinator := newCoordinator()
 		req := &userapi.SetManifestRequest{Manifest: []byte(`{ "policies": 1 }`)}
-		_, err = coordinator.SetManifest(t.Context(), req)
+		_, err := coordinator.SetManifest(t.Context(), req)
 		require.Error(err)
 		require.Equal(codes.InvalidArgument, status.Code(err))
 	})
@@ -633,8 +631,8 @@ func TestStoreRaces(t *testing.T) {
 	workloadOwnerKey := testkeys.ECDSA(t)
 
 	manifestBytes, err := json.Marshal(&manifest.Manifest{
-		WorkloadOwnerKeyDigests: []manifest.HexString{manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)},
-		SeedshareOwnerPubKeys:   []manifest.HexString{manifest.MarshalSeedShareOwnerKey(&seedshareOwnerKey.PublicKey)},
+		WorkloadOwnerPubKeys:  []manifest.HexString{manifest.MarshalWorkloadOwnerPubKey(&workloadOwnerKey.PublicKey)},
+		SeedshareOwnerPubKeys: []manifest.HexString{manifest.MarshalSeedShareOwnerKey(&seedshareOwnerKey.PublicKey)},
 	})
 	require.NoError(err)
 	req := &userapi.SetManifestRequest{
@@ -780,8 +778,8 @@ func TestNotificationRaces(t *testing.T) {
 	workloadOwnerKey := testkeys.ECDSA(t)
 
 	manifestBytes, err := json.Marshal(&manifest.Manifest{
-		WorkloadOwnerKeyDigests: []manifest.HexString{manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)},
-		SeedshareOwnerPubKeys:   []manifest.HexString{manifest.MarshalSeedShareOwnerKey(&seedshareOwnerKey.PublicKey)},
+		WorkloadOwnerPubKeys:  []manifest.HexString{manifest.MarshalWorkloadOwnerPubKey(&workloadOwnerKey.PublicKey)},
+		SeedshareOwnerPubKeys: []manifest.HexString{manifest.MarshalSeedShareOwnerKey(&seedshareOwnerKey.PublicKey)},
 	})
 	require.NoError(err)
 	req := &userapi.SetManifestRequest{
@@ -871,8 +869,8 @@ func newManifestWithSeedshareOwner(t *testing.T) ([]byte, [][]byte) {
 		},
 	}}
 	workloadOwnerKey := testkeys.ECDSA(t)
-	workloadOwnerKeyDigest := manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)
-	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{workloadOwnerKeyDigest}
+	workloadOwnerKeyBytes := manifest.MarshalWorkloadOwnerPubKey(&workloadOwnerKey.PublicKey)
+	mnfst.WorkloadOwnerPubKeys = []manifest.HexString{workloadOwnerKeyBytes}
 	seedShareOwnerKey := testkeys.RSA(t)
 	seedShareOwnerKeyBytes := manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)
 	mnfst.SeedshareOwnerPubKeys = []manifest.HexString{seedShareOwnerKeyBytes}
@@ -902,19 +900,13 @@ func rpcContext(ctx context.Context, cryptoKey crypto.PrivateKey) context.Contex
 	})
 }
 
-func manifestWithWorkloadOwnerKey(key *ecdsa.PrivateKey) (*manifest.Manifest, error) {
+func manifestWithWorkloadOwnerKey(key *ecdsa.PrivateKey) *manifest.Manifest {
 	m := &manifest.Manifest{}
 	if key == nil {
-		return m, nil
+		return m
 	}
-	pubKey, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
-	if err != nil {
-		return nil, err
-	}
-	ownerKeyHash := sha256.Sum256(pubKey)
-	ownerKeyHex := manifest.NewHexString(ownerKeyHash[:])
-	m.WorkloadOwnerKeyDigests = []manifest.HexString{ownerKeyHex}
-	return m, nil
+	m.WorkloadOwnerPubKeys = []manifest.HexString{manifest.MarshalWorkloadOwnerPubKey(&key.PublicKey)}
+	return m
 }
 
 func parsePEMCertificate(t *testing.T, pemCert []byte) *x509.Certificate {

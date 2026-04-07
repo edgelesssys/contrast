@@ -32,8 +32,8 @@ type Manifest struct {
 	// of the reference values validates the attestation report of the workload,
 	// the workload is considered valid.
 	ReferenceValues ReferenceValues
-	// WorkloadOwnerKeyDigests is a list of ECDSA public keys in PKIX DER format, hashed with SHA256 and hex-encoded.
-	WorkloadOwnerKeyDigests []HexString
+	// WorkloadOwnerPubKeys is a list of ECDSA public keys in PKIX DER format, hex-encoded.
+	WorkloadOwnerPubKeys []HexString
 	// SeedshareOwnerPubKeys is a list of RSA public keys in PKCS1 DER format, hex-encoded.
 	SeedshareOwnerPubKeys []HexString
 }
@@ -95,11 +95,9 @@ func (m *Manifest) Validate() error {
 		errs = append(errs, newValidationError("ReferenceValues", err))
 	}
 
-	for i, keyDigest := range m.WorkloadOwnerKeyDigests {
-		if _, err := keyDigest.Bytes(); err != nil {
-			errs = append(errs, newValidationError(fmt.Sprintf("WorkloadOwnerKeyDigests[%d]", i), err))
-		} else if len(keyDigest) != hex.EncodedLen(sha256.Size) {
-			errs = append(errs, newValidationError(fmt.Sprintf("WorkloadOwnerKeyDigests[%d]", i), fmt.Errorf("invalid length: %d (expected %d)", len(keyDigest), hex.EncodedLen(sha256.Size))))
+	for i, key := range m.WorkloadOwnerPubKeys {
+		if _, err := ParseWorkloadOwnerPublicKey(key); err != nil {
+			errs = append(errs, newValidationError(fmt.Sprintf("WorkloadOwnerPubKeys[%d]", i), err))
 		}
 	}
 

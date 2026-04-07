@@ -6,7 +6,6 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -243,7 +242,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	if flags.disableUpdates {
-		mnf.WorkloadOwnerKeyDigests = nil
+		mnf.WorkloadOwnerPubKeys = nil
 	} else {
 		for _, keyPath := range flags.workloadOwnerKeys {
 			if err := addWorkloadOwnerKeyToManifest(mnf, keyPath); err != nil {
@@ -251,7 +250,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}
-	slices.Sort(mnf.WorkloadOwnerKeyDigests)
+	slices.Sort(mnf.WorkloadOwnerPubKeys)
 
 	for _, keyPath := range flags.seedshareOwnerKeys {
 		if err := addSeedshareOwnerKeyToManifest(mnf, keyPath); err != nil {
@@ -605,14 +604,11 @@ func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) e
 		return fmt.Errorf("reading workload owner key: %w", err)
 	}
 
-	hash := sha256.Sum256(publicKey)
-	hashString := manifest.NewHexString(hash[:])
-	for _, existingHash := range manifst.WorkloadOwnerKeyDigests {
-		if existingHash == hashString {
-			return nil
-		}
+	hexString := manifest.NewHexString(publicKey)
+	if slices.Contains(manifst.WorkloadOwnerPubKeys, hexString) {
+		return nil
 	}
-	manifst.WorkloadOwnerKeyDigests = append(manifst.WorkloadOwnerKeyDigests, hashString)
+	manifst.WorkloadOwnerPubKeys = append(manifst.WorkloadOwnerPubKeys, hexString)
 	return nil
 }
 
