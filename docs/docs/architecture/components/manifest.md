@@ -132,6 +132,7 @@ It covers the guest firmware, the initrd and kernel as well as the kernel comman
 The kernel command line contains the dm-verity hash of the root filesystem, which contains all Contrast components that run inside the guest.
 
 It's the (launch) `MEASUREMENT` from the SNP `ATTESTATION_REPORT`, according to Table 23 in the [SEV ABI Spec].
+Contrast is able to extrapolate from this single-vCPU measurement to those for up to 220 vCPUs.
 
 ### `ReferenceValues.snp.*.MinimumTCB` {#snp-minimum-tcb}
 
