@@ -31,6 +31,21 @@ debugshell: (push "debugshell")
 
 k8s-log-collector: (push "k8s-log-collector")
 
+# Download all logs (pod logs + host journal). Deploys the log-collector if not already running.
+download-logs set=default_set:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Only push if not already pushed (e.g. by _e2e).
+    if ! grep -q "k8s-log-collector" "{{ workspace_dir }}/just.containerlookup" 2>/dev/null; then
+      just k8s-log-collector
+    fi
+    namespace_file="{{ workspace_dir }}/just.namespace"
+    if [[ ! -f "$namespace_file" ]]; then
+      echo "No namespace file found at $namespace_file. Deploy something first." >&2
+      exit 1
+    fi
+    nix run .#{{ set }}.scripts.get-logs -- download "$namespace_file"
+
 containerd-reproducer set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
