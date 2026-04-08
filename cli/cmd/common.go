@@ -17,7 +17,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/fsstore"
-	"github.com/google/go-sev-guest/abi"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -43,20 +42,22 @@ const (
 //go:embed assets/image-replacements.txt
 var ReleaseImageReplacements []byte
 
-// SNPIDBlockData contains the SNP ID blocks for different vCPU counts and CPU generations
-// as a JSON map of platform -> vCPU count -> CPU generation -> SnpIDBlock.
+// SNPLaunchDigestData contains the SNP launch digests for different vCPU counts and CPU generations
+// as a JSON map of platform -> vCPU count -> CPU generation -> SNPLaunchDigest.
+// The ID block and ID auth are computed at generate time using the guest policy from the manifest.
 //
-//go:embed assets/snp-id-blocks.json
-var SNPIDBlockData []byte
+//go:embed assets/snp-launch-digests.json
+var SNPLaunchDigestData []byte
 
-// SNPIDBlocks maps runtime -> cpu_count -> product_line -> [SNPIDBlock].
-type SNPIDBlocks map[string]map[string]map[string]SNPIDBlock
+// SNPLaunchDigests maps runtime -> cpu_count -> product_line -> SNPLaunchDigest.
+type SNPLaunchDigests map[string]map[string]map[string]SNPLaunchDigest
 
-// SNPIDBlock represents the SNP ID block and ID auth used for SEV-SNP guests.
-type SNPIDBlock struct {
-	IDBlock     string        `json:"idBlock"`
-	IDAuth      string        `json:"idAuth"`
-	GuestPolicy abi.SnpPolicy `json:"guestPolicy"`
+// SNPLaunchDigest holds the pre-computed SNP launch digest for a given platform / vCPU / product
+// combination. The actual ID block and ID auth are derived at generate time together with the
+// guest policy configured in the manifest.
+type SNPLaunchDigest struct {
+	// LaunchDigest is the hex-encoded 48-byte SNP launch digest.
+	LaunchDigest string `json:"launchDigest"`
 }
 
 func commandOut() io.Writer {

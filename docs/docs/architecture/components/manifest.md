@@ -206,7 +206,15 @@ Always `None` for Milan and Genoa platforms.
 This is the guest policy according to Section 4.3 of the [SEV ABI Spec].
 It's enforced during the launch of the confidential VM.
 
-The guest policy is currently static in Contrast, values can't be changed.
+The guest policy is configurable. `contrast generate` reads the policy from the manifest and uses it
+to compute the SNP ID block that's injected as a pod annotation during generate.
+
+:::warn
+
+Changing the guest policy requires re-running `contrast generate` to update annotations on the confidential pods' YAML,
+even if the deployment YAML itself hasn't changed.
+
+:::
 
 <!-- TODO(katexochen): Add more detailed description and recommendation for these fields.
 #### `ReferenceValues.snp.*.GuestPolicy.ABIMinor`

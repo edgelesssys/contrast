@@ -162,13 +162,6 @@ func TestValidate(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		"snp guest policy smt not set": {
-			m: newTestManifestSNP(),
-			mutate: func(m *Manifest) {
-				m.ReferenceValues.SNP[0].GuestPolicy.SMT = false
-			},
-			wantErr: true,
-		},
 		"no reference values": {
 			m: newTestManifestSNP(),
 			mutate: func(m *Manifest) {
