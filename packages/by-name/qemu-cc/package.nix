@@ -53,6 +53,12 @@
       # kernels and VFIO devices.
       # The fix is not in 10.2.1, but should be coming with at least 10.3.
       ./0005-hw-vfio-cpr-iommufd-Fix-wrong-usage-of-migrate_add_b.patch
+      # Backport from QEMU 11.0: convert SEV-ES termination requests to guest
+      # panic events instead of printing a register dump and hanging in poll().
+      # With this patch, QEMU exits cleanly on SEV-ES guest termination.
+      # Upstream: https://github.com/qemu/qemu/commit/56d89db2cfd82c53439778fbf39294bf35194dba
+      # Can be dropped when upgrading to QEMU 11.0.
+      ./0007-target-i386-convert-SEV-ES-termination-requests-to-g.patch
     ]
     ++ lib.optionals (!gpuSupport) [
       # If we're not building with GPU support, we can omit the PCI-related ACPI tables

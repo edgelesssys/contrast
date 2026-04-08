@@ -1,0 +1,159 @@
+From 56d89db2cfd82c53439778fbf39294bf35194dba Mon Sep 17 00:00:00 2001
+From: Paolo Bonzini <pbonzini@redhat.com>
+Date: Wed, 26 Jun 2024 15:54:09 +0200
+Subject: [PATCH] target/i386: convert SEV-ES termination requests to guest
+ panic events
+
+This produces a good error message instead of:
+
+KVM: unknown exit reason 24
+EAX=00000000 EBX=00000000 ECX=00000000 EDX=00a00f11
+ESI=00000000 EDI=00000000 EBP=00000000 ESP=00000000
+EIP=0000b004 EFL=00000002 [-------] CPL=0 II=0 A20=1 SMM=0 HLT=1
+ES =0000 00000000 0000ffff 00009300
+CS =f000 00800000 0000ffff 00009b00
+SS =0000 00000000 0000ffff 00009300
+DS =0000 00000000 0000ffff 00009300
+FS =0000 00000000 0000ffff 00009300
+GS =0000 00000000 0000ffff 00009300
+LDT=0000 00000000 0000ffff 00008200
+TR =0000 00000000 0000ffff 00008b00
+GDT=     00000000 0000ffff
+IDT=     00000000 0000ffff
+CR0=60000010 CR2=00000000 CR3=00000000 CR4=00000000
+DR0=0000000000000000 DR1=0000000000000000 DR2=0000000000000000 DR3=0000000000000000
+DR6=00000000ffff0ff0 DR7=0000000000000400
+EFER=0000000000000000
+Code=00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 <00> 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+Reported-by: Jin Liu <jinl@redhat.com>
+Cc: Michael Roth <michael.roth@amd.com>
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+---
+ accel/kvm/kvm-all.c      |  1 +
+ qapi/run-state.json      | 23 +++++++++++++++++++++--
+ system/runstate.c        |  4 ++++
+ target/i386/cpu-system.c | 22 ++++++++++++++++++++++
+ 4 files changed, 48 insertions(+), 2 deletions(-)
+
+diff --git a/accel/kvm/kvm-all.c b/accel/kvm/kvm-all.c
+index 8301a512e7..0d8b0c4347 100644
+--- a/accel/kvm/kvm-all.c
++++ b/accel/kvm/kvm-all.c
+@@ -3300,6 +3300,7 @@ int kvm_cpu_exec(CPUState *cpu)
+                 qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
+                 ret = EXCP_INTERRUPT;
+                 break;
++            case KVM_SYSTEM_EVENT_SEV_TERM:
+             case KVM_SYSTEM_EVENT_CRASH:
+                 kvm_cpu_synchronize_state(cpu);
+                 bql_lock();
+diff --git a/qapi/run-state.json b/qapi/run-state.json
+index a6bc94a44b..a5771ad468 100644
+--- a/qapi/run-state.json
++++ b/qapi/run-state.json
+@@ -504,10 +504,12 @@
+ #
+ # @tdx: tdx guest panic information type (Since: 10.1)
+ #
++# @sev: AMD SEV-ES guest termination information type (Since: 11.0)
++#
+ # Since: 2.9
+ ##
+ { 'enum': 'GuestPanicInformationType',
+-  'data': [ 'hyper-v', 's390', 'tdx' ] }
++  'data': [ 'hyper-v', 's390', 'tdx', 'sev' ] }
+ 
+ ##
+ # @GuestPanicInformation:
+@@ -523,7 +525,8 @@
+  'discriminator': 'type',
+  'data': {'hyper-v': 'GuestPanicInformationHyperV',
+           's390': 'GuestPanicInformationS390',
+-          'tdx' : 'GuestPanicInformationTdx'}}
++          'tdx': 'GuestPanicInformationTdx',
++          'sev': 'GuestPanicInformationSev' }}
+ 
+ ##
+ # @GuestPanicInformationHyperV:
+@@ -625,6 +628,22 @@
+           'message': 'str',
+           '*gpa': 'uint64'}}
+ 
++##
++# @GuestPanicInformationSev:
++#
++# Information for AMD SEV-specific termination request (GHCB MSR
++# contents)
++#
++# @set: The reason code set provided by the guest
++#
++# @code: The reason code provided by the guest
++#
++# Since: 11.0
++##
++{'struct': 'GuestPanicInformationSev',
++ 'data': {'set': 'uint32',
++          'code': 'uint32'}}
++
+ ##
+ # @MEMORY_FAILURE:
+ #
+diff --git a/system/runstate.c b/system/runstate.c
+index ed2db56480..d091a2bddd 100644
+--- a/system/runstate.c
++++ b/system/runstate.c
+@@ -669,6 +669,10 @@ void qemu_system_guest_panicked(GuestPanicInformation *info)
+                               "can be found at gpa page: 0x%" PRIx64 "\n",
+                               info->u.tdx.gpa);
+             }
++        } else if (info->type == GUEST_PANIC_INFORMATION_TYPE_SEV) {
++            qemu_log_mask(LOG_GUEST_ERROR, "SEV termination (reason set: %d code: %d)",
++                          info->u.sev.set,
++                          info->u.sev.code);
+         }
+ 
+         qapi_free_GuestPanicInformation(info);
+diff --git a/target/i386/cpu-system.c b/target/i386/cpu-system.c
+index b1494aa674..c8bbf0cbaf 100644
+--- a/target/i386/cpu-system.c
++++ b/target/i386/cpu-system.c
+@@ -18,6 +18,8 @@
+  */
+ 
+ #include "qemu/osdep.h"
++#include "qemu/error-report.h"
++#include "system/kvm.h"
+ #include "cpu.h"
+ #include "qapi/error.h"
+ #include "qapi/qapi-visit-run-state.h"
+@@ -272,6 +274,26 @@ GuestPanicInformation *x86_cpu_get_crash_info(CPUState *cs)
+     CPUX86State *env = &cpu->env;
+     GuestPanicInformation *panic_info = NULL;
+ 
++#ifdef CONFIG_KVM
++    if (kvm_enabled()) {
++        struct kvm_run *run = cs->kvm_run;
++
++        if (run->exit_reason == KVM_EXIT_SYSTEM_EVENT &&
++            run->system_event.type == KVM_SYSTEM_EVENT_SEV_TERM) {
++            panic_info = g_new0(GuestPanicInformation, 1);
++
++            panic_info->type = GUEST_PANIC_INFORMATION_TYPE_SEV;
++            /* There should always be one data item, otherwise use zeroes.  */
++            if (run->system_event.ndata > 0) {
++                panic_info->u.sev.set = (run->system_event.data[0] >> 12) & 0xf;
++                panic_info->u.sev.code = (run->system_event.data[0] >> 16) & 0xff;
++            } else {
++                warn_report("Hypervisor did not provide any data for SEV-ES termination");
++            }
++        }
++    } else
++#endif
++
+     if (hyperv_feat_enabled(cpu, HYPERV_FEAT_CRASH)) {
+         panic_info = g_new0(GuestPanicInformation, 1);
+ 
+-- 
+2.53.0
+
