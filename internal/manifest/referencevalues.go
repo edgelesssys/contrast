@@ -234,40 +234,8 @@ func (r SNPReferenceValues) Validate() error {
 		errs = append(errs, newValidationError("TrustedMeasurement", err))
 	}
 
-	noModificationPermittedErr := errors.New("modifying this field is not permitted")
-	var guestPolicyErrs []error
-	if r.GuestPolicy.ABIMajor != 0 {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("ABIMajor", noModificationPermittedErr))
-	}
-	// AbiMinor is 0 on bare metal and 31 on AKS.
-	if r.GuestPolicy.ABIMinor != 0 && r.GuestPolicy.ABIMinor != 31 {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("ABIMinor", noModificationPermittedErr))
-	}
-	if !r.GuestPolicy.SMT {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("SMT", noModificationPermittedErr))
-	}
-	if r.GuestPolicy.MigrateMA {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("MigrateMA", noModificationPermittedErr))
-	}
-	if r.GuestPolicy.Debug {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("Debug", noModificationPermittedErr))
-	}
-	if r.GuestPolicy.SingleSocket {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("SingleSocket", noModificationPermittedErr))
-	}
-	if r.GuestPolicy.CXLAllowed {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("CXLAllowed", noModificationPermittedErr))
-	}
-	if r.GuestPolicy.MemAES256XTS {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("MemAES256XTS", noModificationPermittedErr))
-	}
-	if r.GuestPolicy.RAPLDis {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("RAPLDis", noModificationPermittedErr))
-	}
-	if r.GuestPolicy.CipherTextHidingDRAM {
-		guestPolicyErrs = append(guestPolicyErrs, newValidationError("CipherTextHidingDRAM", noModificationPermittedErr))
-	}
-	errs = append(errs, newValidationError("GuestPolicy", guestPolicyErrs...))
+	// GuestPolicy is intentionally not validated here: it is user-configurable.
+	// Validation occurs during generate.
 
 	for i, chipID := range r.AllowedChipIDs {
 		if err := validateHexString(chipID, abi.ChipIDSize); err != nil {

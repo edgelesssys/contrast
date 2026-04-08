@@ -6,6 +6,8 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +22,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
 	"github.com/edgelesssys/contrast/cli/verifier"
+	"github.com/edgelesssys/contrast/internal/idblock"
 	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -186,7 +189,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("get runtime handler: %w", err)
 		}
 	}
-	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags); err != nil {
+	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags, mnf); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
@@ -473,7 +476,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 	})
 }
 
-func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags) error {
+func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags, mnf *manifest.Manifest) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -521,7 +524,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 			return nil, err
 		}
 
-		if err := patchIDBlockAnnotation(res); err != nil {
+		if err := patchIDBlockAnnotation(res, mnf); err != nil {
 			return nil, fmt.Errorf("injecting ID block annotations: %w", err)
 		}
 
@@ -711,9 +714,65 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 	}
 }
 
-func patchIDBlockAnnotation(res any) error {
-	var snpIDBlocks SNPIDBlocks
-	if err := json.Unmarshal(SNPIDBlockData, &snpIDBlocks); err != nil {
+// computeAndAnnotateIDBlockAnnotations computes the ID Block annotations for the given platform and vCPU count,
+// and modifies the passed annotations map to include them.
+func computeAndAnnotateIDBlockAnnotations(targetPlatform platforms.Platform, cpuCount string, productName string, snpLaunchDigests SNPLaunchDigests, mnf *manifest.Manifest, annotations map[string]string) error {
+	platform := strings.ToLower(targetPlatform.String())
+
+	// Ensure the required launch digest has been pre-computed.
+	if snpLaunchDigests[platform] == nil || snpLaunchDigests[platform][cpuCount] == nil ||
+		snpLaunchDigests[platform][cpuCount][productName].LaunchDigest == "" {
+		return fmt.Errorf("missing launch digest configuration for runtime %s with %s vCPUs for product %s", platform, cpuCount, productName)
+	}
+
+	// Convert cpuCount string to uint64 for lookup
+	cpus, err := strconv.ParseUint(cpuCount, 10, 64)
+	if err != nil {
+		return fmt.Errorf("parse CPU count: %w", err)
+	}
+
+	// Retrieve the guest policy from the manifest for the specific product and CPU count.
+	policy, ok := snpGuestPolicyForProduct(mnf.ReferenceValues.SNP, targetPlatform, productName, cpus)
+	if !ok {
+		return fmt.Errorf("no SNP reference values with product %q and %d CPUs found in manifest for platform %q", productName, cpus, targetPlatform)
+	}
+
+	// Decode the pre-computed launch digest.
+	digestBytes, err := hex.DecodeString(snpLaunchDigests[platform][cpuCount][productName].LaunchDigest)
+	if err != nil {
+		return fmt.Errorf("decode %s launch digest: %w", productName, err)
+	}
+
+	// Compute ID blocks from launch digest + guest policy.
+	idBlk, idAuth, err := idblock.IDBlocksFromLaunchDigest([48]byte(digestBytes), policy)
+	if err != nil {
+		return fmt.Errorf("compute %s ID blocks: %w", productName, err)
+	}
+
+	idBlkBytes, err := idBlk.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("marshal %s ID block: %w", productName, err)
+	}
+	idAuthBytes, err := idAuth.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("marshal %s ID auth: %w", productName, err)
+	}
+
+	// Populate annotations
+	annotations[idBlockAnnotation+productName] = base64.StdEncoding.EncodeToString(idBlkBytes)
+	annotations[idAuthAnnotationKey+productName] = base64.StdEncoding.EncodeToString(idAuthBytes)
+	annotations[guestPolicyAnnotationKey+productName] = strconv.FormatUint(abi.SnpPolicyToBytes(policy), 10)
+
+	return nil
+}
+
+// patchIDBlockAnnotation computes the SNP ID block and ID auth for each CC workload and injects
+// them as Kata annotations. The guest policy is read from the manifest's SNP reference values;
+// the launch digest is looked up from the embedded snp-launch-digests.json. Both are combined at
+// generate time via idblock.IDBlocksFromLaunchDigest.
+func patchIDBlockAnnotation(res any, mnf *manifest.Manifest) error {
+	var snpLaunchDigests SNPLaunchDigests
+	if err := json.Unmarshal(SNPLaunchDigestData, &snpLaunchDigests); err != nil {
 		return fmt.Errorf("unmarshal SNP ID blocks: %w", err)
 	}
 
@@ -749,33 +808,42 @@ func patchIDBlockAnnotation(res any) error {
 		totalMilliCPUs := max(regularContainersCPU, initContainersCPU, podLevelCPU)
 		cpuCount := strconv.FormatInt((totalMilliCPUs+999)/1000+1, 10)
 
-		platform := strings.ToLower(targetPlatform.String())
-
-		genoa, milan := string(manifest.Genoa), string(manifest.Milan)
-		// Ensure we pre-calculated the required blocks
-		if snpIDBlocks[platform] == nil || snpIDBlocks[platform][cpuCount] == nil ||
-			snpIDBlocks[platform][cpuCount][genoa].IDBlock == "" || snpIDBlocks[platform][cpuCount][milan].IDBlock == "" {
-			return meta, spec, fmt.Errorf("missing ID block configuration for runtime %s with %s CPUs", platform, cpuCount)
-		}
-
 		if meta == nil {
 			meta = &applymetav1.ObjectMetaApplyConfiguration{}
 		}
 		if meta.Annotations == nil {
-			meta.Annotations = make(map[string]string, 6)
+			meta.Annotations = make(map[string]string)
 		}
-		meta.Annotations[idBlockAnnotation+genoa] = snpIDBlocks[platform][cpuCount][genoa].IDBlock
-		meta.Annotations[idBlockAnnotation+milan] = snpIDBlocks[platform][cpuCount][milan].IDBlock
-		meta.Annotations[idAuthAnnotationKey+genoa] = snpIDBlocks[platform][cpuCount][genoa].IDAuth
-		meta.Annotations[idAuthAnnotationKey+milan] = snpIDBlocks[platform][cpuCount][milan].IDAuth
-		meta.Annotations[guestPolicyAnnotationKey+genoa] = strconv.FormatUint(abi.SnpPolicyToBytes(snpIDBlocks[platform][cpuCount][genoa].GuestPolicy), 10)
-		meta.Annotations[guestPolicyAnnotationKey+milan] = strconv.FormatUint(abi.SnpPolicyToBytes(snpIDBlocks[platform][cpuCount][milan].GuestPolicy), 10)
+
+		products := []string{string(manifest.Genoa), string(manifest.Milan)}
+		var errs error
+		var found bool
+		for _, product := range products {
+			if err := computeAndAnnotateIDBlockAnnotations(targetPlatform, cpuCount, product, snpLaunchDigests, mnf, meta.Annotations); err != nil {
+				errs = errors.Join(errs, err)
+				continue
+			}
+			found = true
+		}
+
+		if !found {
+			return meta, spec, fmt.Errorf("could not compute ID block for any product: %w", errs)
+		}
 
 		return meta, spec, nil
 	}
 
 	_, err := kuberesource.MapPodSpecWithMetaAndErrors(res, mapFunc)
 	return err
+}
+
+func snpGuestPolicyForProduct(refVals []manifest.SNPReferenceValues, platform platforms.Platform, product string, cpuCount uint64) (abi.SnpPolicy, bool) {
+	for _, rv := range refVals {
+		if rv.Platform == platform.String() && string(rv.ProductName) == product && rv.CPUs == cpuCount {
+			return rv.GuestPolicy, true
+		}
+	}
+	return abi.SnpPolicy{}, false
 }
 
 func getCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) int64 {
