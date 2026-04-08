@@ -44,3 +44,23 @@ for all your application resources.
 As described above, a manifest update triggers rotation of the mesh CA certificate, the intermediate CA certificate and the workload certificates.
 You can use this to force a certificate rotation or to constrain the certificate validity period.
 Setting the current manifest once more causes a certificate rotation, without changing the reference values enforced by the Coordinator.
+
+### Atomic manifest updates
+
+Setting the manifest won't consider the previous state of the Coordinator.
+This means that after a manifest update, you may have accidentally overwritten a previous Coordinator state set by another party.
+To prevent this, use the `--atomic` flag:
+
+```sh
+contrast set -c "${coordinator}:1313" --atomic resources/
+```
+
+This will only update the manifest if the manifest history at the Coordinator matches the expected history.
+When setting the manifest on an already initialized Coordinator, the latest transition hash has to be obtained by running `contrast verify`.
+An atomic manifest update will then automatically read the hash from `verify/latest-transition`.
+When setting the manifest for the first time, the expected transition hash is `00...00` (32 zero bytes, hex-encoded) and will be set automatically if the `verify/latest-transition` file doesn't exist.
+Optionally, you can specify a transition hash using the `--latest-transition` flag:
+
+```sh
+contrast set -c "${coordinator}:1313" --atomic --latest-transition ab...cd resources/
+```
