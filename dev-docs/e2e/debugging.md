@@ -45,6 +45,8 @@ workspace/logs/
 │   ├── kubelet.log                # journalctl -u kubelet (non-k3s runners)
 │   ├── containerd.log             # journalctl -u containerd (non-k3s runners)
 │   └── kata.log                   # journalctl -t kata (QEMU lifecycle, register dumps)
+├── metadata/
+│   └── sandbox-map.txt            # CVM pod name -> kata sandbox ID
 └── <namespace>-k8s-events.yaml    # kubernetes events
 ```
 
@@ -66,43 +68,25 @@ pod logs -the guest never starts. Look at host-level logs instead:
 
 ## Tracing a pod to its sandbox in kata.log
 
-kata.log contains interleaved logs from all sandboxes. To find logs for a
-specific pod, you need to go from runtime class to sandbox ID.
+kata.log contains interleaved logs from all sandboxes. The collected metadata
+file (`metadata/sandbox-map.txt`) maps CVM pod names to kata sandbox IDs.
+The sandbox map only includes pods that are still running at log collection time.
+Pods that might have been deleted earlier in the test (one such example is the
+regression test which creates and tears down multiple rounds of pods) won't have entries.
 
-1. Find the test namespace:
+1. Find the sandbox ID for a pod:
 
 ```bash
-ns=$(cat workspace/just.namespace)
+cat workspace/logs/metadata/sandbox-map.txt
+# coordinator-0                     f4bb878b2e58bd3bd5a89fe2bc99b7368fc6aa070a0b8490a5c69a7c9816be65
+# openssl-backend-757688b785-dvr4c  3658285f5581ad51...
+# openssl-frontend-575dfdbb89-srwvr 828d8660496f6ac4...
 ```
 
-2. List pods and their runtime classes:
+2. Filter kata.log for a specific pod's sandbox:
 
 ```bash
-kubectl get pods -n "$ns" -o custom-columns='NAME:.metadata.name,RUNTIME:.spec.runtimeClassName'
-# NAME                              RUNTIME
-# openssl-backend-85cd89c76-q6w6h   contrast-cc-metal-qemu-snp-fd4512d5
-# openssl-frontend-97f6d865d-mvph4  contrast-cc-metal-qemu-snp-fd4512d5
-# coordinator-0                     contrast-cc-metal-qemu-snp-fd4512d5
-```
-
-3. Get the runtime hash and list sandbox IDs. The hash is the last component
-   of the runtime class name (for example, `fd4512d5` from
-   `contrast-cc-metal-qemu-snp-fd4512d5`):
-
-```bash
-hash="fd4512d5"
-grep "$hash" workspace/logs/host/kata.log | grep -oP 'sandbox=\K[a-f0-9]+' | sort -u
-# 8c0277d1f16fbbce871d5ab4982fbc376aa7c39e3ae00615cf0722f9b0d7f9a9
-# 2fbc275ee03b0fe9929f4e6ef474dd6e855c1da6cfbcd4843a535e51e8ba5441
-# 548cbab9ee75a3f1...
-```
-
-   Each sandbox ID corresponds to one pod/CVM.
-
-4. Filter kata.log for a specific sandbox:
-
-```bash
-sandbox="8c0277d1f16fbbce"
+sandbox=$(grep coordinator workspace/logs/metadata/sandbox-map.txt | awk '{print $2}')
 grep "$sandbox" workspace/logs/host/kata.log
 ```
 

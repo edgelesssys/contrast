@@ -32,6 +32,12 @@ spec:
             - mountPath: /journal
               name: journal-volume
               readOnly: true
+            - mountPath: /run/containerd
+              name: containerd-run
+              readOnly: true
+            - mountPath: /run/k3s/containerd
+              name: k3s-containerd-run
+              readOnly: true
           env:
             - name: POD_NAMESPACE
               valueFrom:
@@ -47,6 +53,14 @@ spec:
           # mount the systemd journal for host-level log collection
           hostPath:
             path: /var/log/journal
+            type: DirectoryOrCreate
+        - name: containerd-run
+          hostPath:
+            path: /run/containerd
+            type: DirectoryOrCreate
+        - name: k3s-containerd-run
+          hostPath:
+            path: /run/k3s/containerd
             type: DirectoryOrCreate
 ---
 apiVersion: scheduling.k8s.io/v1
