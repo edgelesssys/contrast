@@ -1,0 +1,354 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Spyros Seimenis <sespiros@gmail.com>
+Date: Wed, 8 Apr 2026 00:44:30 +0300
+Subject: [PATCH] runtime: detect hypervisor exit and cancel pending agent dial
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Combines improvements from multiple investigation rounds:
+
+1. Set q.stopped on QEMU exit (LogAndWait) and guest panic
+   (handleGuestPanic via GUEST_PANICKED QMP event). This ensures
+   the monitor's Check() immediately detects the failure without
+   trying to reconnect to the dead QMP socket. Implements the TODO
+   from https://github.com/kata-containers/kata-containers/issues/1026.
+
+2. Cancel the sandbox context when the hypervisor exits, aborting
+   the agent vsock connection dial that otherwise blocks for the
+   full dial_timeout (~90 seconds). The kernel's vhost_vsock_dev_release
+   only resets connected sockets, not sockets in TCP_SYN_SENT state,
+   so each vsock.Dial() blocks for 2 seconds (VSOCK_DEFAULT_CONNECT_TIMEOUT)
+   before returning ETIMEDOUT, and commonDialer retries in a tight
+   loop for the entire dial_timeout.
+
+3. Make commonDialer context-aware: check ctx.Done() between dial
+   retries and in the main select. Also fixes a latency bug in the
+   original code where "cancel <- true" blocks for up to 2 seconds
+   when the dial goroutine is inside vsock.Dial().
+
+Implementation:
+- Add markStopped() method (guarded by sync.Once) that sets q.stopped
+  and calls the onStop callback.
+- Add SetOnStop() for thread-safe callback registration.
+- Create cancellable context in newSandbox() (before agent.init so
+  k.ctx inherits it). Wire q.SetOnStop to the cancel function in
+  startVM() before StartVM() to avoid race with LogAndWait.
+- Thread context.Context through the dialer type, commonDialer,
+  VsockDialer, HybridVSockDialer, RemoteSockDialer, and
+  MockHybridVSockDialer.
+- Clean up vmCancel on sandbox creation failure to avoid context
+  goroutine leak.
+
+With this change, when QEMU exits:
+- LogAndWait calls markStopped -> sets q.stopped, cancels context
+- commonDialer's goroutine finishes current vsock.Dial() (max 2s)
+  then checks ctx.Done() and exits
+- Main select sees ctx.Done() and returns immediately
+- Total: ≤2 seconds from QEMU exit to error propagation (was ~90s)
+---
+ src/runtime/cmd/kata-runtime/kata-exec.go     |  5 +-
+ .../pkg/agent/protocols/client/client.go      | 38 +++++++--------
+ src/runtime/virtcontainers/qemu.go            | 48 ++++++++++++++++---
+ src/runtime/virtcontainers/sandbox.go         | 30 +++++++++++-
+ 4 files changed, 90 insertions(+), 31 deletions(-)
+
+diff --git a/src/runtime/cmd/kata-runtime/kata-exec.go b/src/runtime/cmd/kata-runtime/kata-exec.go
+index 0a7b80d7028647eb17ed5d8e2559f01bd2ffc207..c2d5722fa4bda3eb38d7539e98b5f7efcf972fa9 100644
+--- a/src/runtime/cmd/kata-runtime/kata-exec.go
++++ b/src/runtime/cmd/kata-runtime/kata-exec.go
+@@ -10,6 +10,7 @@ import (
+ 	"fmt"
+ 	"io"
+ 	"net"
++	"context"
+ 	"net/http"
+ 	"net/url"
+ 	"os"
+@@ -189,7 +190,7 @@ func getConn(sandboxID string, port uint64) (net.Conn, error) {
+ 			return nil, fmt.Errorf("Invalid vsock scheme: %s", sock)
+ 		}
+ 		shimAddr := fmt.Sprintf("%s:%s:%d", clientUtils.VSockSocketScheme, cidAndPort[0], port)
+-		return clientUtils.VsockDialer(shimAddr, defaultTimeout)
++		return clientUtils.VsockDialer(context.Background(), shimAddr, defaultTimeout)
+ 
+ 	case clientUtils.HybridVSockScheme:
+ 		// addr: hvsock:///run/vc/firecracker/340b412c97bf1375cdda56bfa8f18c8a/root/kata.hvsock:1024
+@@ -200,7 +201,7 @@ func getConn(sandboxID string, port uint64) (net.Conn, error) {
+ 
+ 		// hvsock:///run/vc/firecracker/340b412c97bf1375cdda56bfa8f18c8a/root/kata.hvsock
+ 		shimAddr := fmt.Sprintf("%s:%s:%d", clientUtils.HybridVSockScheme, hvsocket[0], port)
+-		return clientUtils.HybridVSockDialer(shimAddr, defaultTimeout)
++		return clientUtils.HybridVSockDialer(context.Background(), shimAddr, defaultTimeout)
+ 	}
+ 
+ 	return nil, fmt.Errorf("schema %s not found", addr.Scheme)
+diff --git a/src/runtime/virtcontainers/pkg/agent/protocols/client/client.go b/src/runtime/virtcontainers/pkg/agent/protocols/client/client.go
+index 80e1427e82fcc2c9f42616a64b5562c8c88379a9..716a323a2969751b299e662d14cc80bb258e2a53 100644
+--- a/src/runtime/virtcontainers/pkg/agent/protocols/client/client.go
++++ b/src/runtime/virtcontainers/pkg/agent/protocols/client/client.go
+@@ -59,7 +59,7 @@ type AgentClient struct {
+ 	conn               *ttrpc.Client
+ }
+ 
+-type dialer func(string, time.Duration) (net.Conn, error)
++type dialer func(context.Context, string, time.Duration) (net.Conn, error)
+ 
+ // NewAgentClient creates a new agent gRPC client and handles both unix and vsock addresses.
+ //
+@@ -83,7 +83,7 @@ func NewAgentClient(ctx context.Context, sock string, timeout uint32) (*AgentCli
+ 
+ 	var conn net.Conn
+ 	var d = agentDialer(parsedAddr)
+-	conn, err = d(grpcAddr, dialTimeout)
++	conn, err = d(ctx, grpcAddr, dialTimeout)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -320,15 +320,13 @@ func parseGrpcHybridVSockAddr(sock string) (string, uint32, error) {
+ // it is not reasonable to have such aggressive backoffs which would kill kata
+ // containers boot up speed. For more information, see
+ // https://github.com/grpc/grpc/blob/master/doc/connection-backoff.md
+-func commonDialer(timeout time.Duration, dialFunc func() (net.Conn, error), timeoutErrMsg error) (net.Conn, error) {
++func commonDialer(ctx context.Context, timeout time.Duration, dialFunc func() (net.Conn, error), timeoutErrMsg error) (net.Conn, error) {
+ 	t := time.NewTimer(timeout)
+-	cancel := make(chan bool)
+ 	ch := make(chan net.Conn)
+ 	go func() {
+ 		for {
+ 			select {
+-			case <-cancel:
+-				// canceled or channel closed
++			case <-ctx.Done():
+ 				return
+ 			default:
+ 			}
+@@ -347,24 +345,20 @@ func commonDialer(timeout time.Duration, dialFunc func() (net.Conn, error), time
+ 		}
+ 	}()
+ 
+-	var conn net.Conn
+-	var ok bool
+ 	select {
+-	case conn, ok = <-ch:
++	case conn, ok := <-ch:
+ 		if !ok {
+ 			return nil, timeoutErrMsg
+ 		}
++		return conn, nil
+ 	case <-t.C:
+-		// close instead of send: an unbuffered send would stall waiting for
+-		// the dial goroutine, which can take up to ~10s in HybridVSockDialer.
+-		close(cancel)
+ 		return nil, timeoutErrMsg
++	case <-ctx.Done():
++		return nil, ctx.Err()
+ 	}
+-
+-	return conn, nil
+ }
+ 
+-func VsockDialer(sock string, timeout time.Duration) (net.Conn, error) {
++func VsockDialer(ctx context.Context, sock string, timeout time.Duration) (net.Conn, error) {
+ 	cid, port, err := parseGrpcVsockAddr(sock)
+ 	if err != nil {
+ 		return nil, err
+@@ -376,11 +370,11 @@ func VsockDialer(sock string, timeout time.Duration) (net.Conn, error) {
+ 
+ 	timeoutErr := grpcStatus.Errorf(codes.DeadlineExceeded, "timed out connecting to vsock %d:%d", cid, port)
+ 
+-	return commonDialer(timeout, dialFunc, timeoutErr)
++	return commonDialer(ctx, timeout, dialFunc, timeoutErr)
+ }
+ 
+ // HybridVSockDialer dials to a hybrid virtio socket
+-func HybridVSockDialer(sock string, timeout time.Duration) (net.Conn, error) {
++func HybridVSockDialer(ctx context.Context, sock string, timeout time.Duration) (net.Conn, error) {
+ 	udsPath, port, err := parseGrpcHybridVSockAddr(sock)
+ 	if err != nil {
+ 		return nil, err
+@@ -451,11 +445,11 @@ func HybridVSockDialer(sock string, timeout time.Duration) (net.Conn, error) {
+ 	}
+ 
+ 	timeoutErr := grpcStatus.Errorf(codes.DeadlineExceeded, "timed out connecting to hybrid vsocket %s", sock)
+-	return commonDialer(timeout, dialFunc, timeoutErr)
++	return commonDialer(ctx, timeout, dialFunc, timeoutErr)
+ }
+ 
+ // RemoteSockDialer dials to an agent in a remote hypervisor sandbox
+-func RemoteSockDialer(sock string, timeout time.Duration) (net.Conn, error) {
++func RemoteSockDialer(ctx context.Context, sock string, timeout time.Duration) (net.Conn, error) {
+ 
+ 	s := strings.Split(sock, ":")
+ 	if len(s) != 2 || s[0] != RemoteSockScheme {
+@@ -476,11 +470,11 @@ func RemoteSockDialer(sock string, timeout time.Duration) (net.Conn, error) {
+ 
+ 	timeoutErr := grpcStatus.Errorf(codes.DeadlineExceeded, "timed out connecting to remote sock: %s", socketPath)
+ 
+-	return commonDialer(timeout, dialFunc, timeoutErr)
++	return commonDialer(ctx, timeout, dialFunc, timeoutErr)
+ }
+ 
+ // just for tests use.
+-func MockHybridVSockDialer(sock string, timeout time.Duration) (net.Conn, error) {
++func MockHybridVSockDialer(ctx context.Context, sock string, timeout time.Duration) (net.Conn, error) {
+ 	sock = strings.TrimPrefix(sock, "mock:")
+ 
+ 	dialFunc := func() (net.Conn, error) {
+@@ -488,5 +482,5 @@ func MockHybridVSockDialer(sock string, timeout time.Duration) (net.Conn, error)
+ 	}
+ 
+ 	timeoutErr := grpcStatus.Errorf(codes.DeadlineExceeded, "timed out connecting to mock hybrid vsocket %s", sock)
+-	return commonDialer(timeout, dialFunc, timeoutErr)
++	return commonDialer(ctx, timeout, dialFunc, timeoutErr)
+ }
+diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
+index 5f7e38a774955c62b82f304929c9cc73197bd486..34046774bbfacfbae89195ca37e247b55dd15028 100644
+--- a/src/runtime/virtcontainers/qemu.go
++++ b/src/runtime/virtcontainers/qemu.go
+@@ -118,6 +118,12 @@ type qemu struct {
+ 
+ 	stopped int32
+ 
++	// stopOnce ensures markStopped is called exactly once.
++	stopOnce sync.Once
++	// onStop is called when the hypervisor exits to cancel pending
++	// operations. Protected by mu, set via SetOnStop.
++	onStop func()
++
+ 	mu sync.Mutex
+ }
+ 
+@@ -1106,8 +1112,35 @@ func (q *qemu) LogAndWait(qemuCmd *exec.Cmd, reader io.ReadCloser) {
+ 	if err := qemuCmd.Wait(); err != nil {
+ 		q.Logger().WithField("qemuPid", pid).WithField("error", err).Warn("QEMU exited with an error")
+ 	}
++	q.markStopped("QEMU process exited")
+ }
+ 
++// markStopped atomically sets q.stopped and calls the onStop callback
++// to cancel pending operations. Safe to call multiple times — only the
++// first call takes effect.
++func (q *qemu) markStopped(reason string) {
++	q.stopOnce.Do(func() {
++		atomic.StoreInt32(&q.stopped, 1)
++		q.Logger().WithField("reason", reason).Info("hypervisor marked as stopped")
++		q.mu.Lock()
++		onStop := q.onStop
++		q.mu.Unlock()
++		if onStop != nil {
++			onStop()
++		}
++	})
++}
++
++// SetOnStop registers a callback that is invoked when the hypervisor
++// exits unexpectedly. The callback is called at most once.
++// Must be called before StartVM to avoid races with LogAndWait.
++func (q *qemu) SetOnStop(fn func()) {
++	q.mu.Lock()
++	defer q.mu.Unlock()
++	q.onStop = fn
++}
++
++
+ // StartVM will start the Sandbox's VM.
+ func (q *qemu) StartVM(ctx context.Context, timeout int) error {
+ 	span, ctx := katatrace.Trace(ctx, q.Logger(), "StartVM", qemuTracingTags, map[string]string{"sandbox_id": q.id})
+@@ -1453,20 +1486,23 @@ func (q *qemu) loopQMPEvent(event chan govmmQemu.QMPEvent) {
+ 	for e := range event {
+ 		q.Logger().WithField("event", e).Debug("got QMP event")
+ 		if e.Name == "GUEST_PANICKED" {
+-			go q.handleGuestPanic()
++			go q.handleGuestPanic(e)
+ 		}
+ 	}
+ 	q.Logger().Infof("QMP event channel closed")
+ }
+ 
+-func (q *qemu) handleGuestPanic() {
++func (q *qemu) handleGuestPanic(event govmmQemu.QMPEvent) {
++	q.Logger().WithField("event", event).Error("guest panic event received")
++
++	// Mark the hypervisor as stopped immediately so that pending
++	// operations (agent dial, monitor Check) abort promptly.
++	// This implements the TODO from https://github.com/kata-containers/kata-containers/issues/1026.
++	q.markStopped("guest panic event")
++
+ 	if err := q.dumpGuestMemory(q.config.GuestMemoryDumpPath); err != nil {
+ 		q.Logger().WithError(err).Error("failed to dump guest memory")
+ 	}
+-
+-	// TODO: how to notify the upper level sandbox to handle the error
+-	// to do a fast fail(shutdown or others).
+-	// tracked by https://github.com/kata-containers/kata-containers/issues/1026
+ }
+ 
+ // canDumpGuestMemory check if can do a guest memory dump operation.
+diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
+index 6ceae42de927cfb1dd5337b45ce2222ed0b8e42b..68b8e105afe92f1b06603e7a92d772964d7c67c0 100644
+--- a/src/runtime/virtcontainers/sandbox.go
++++ b/src/runtime/virtcontainers/sandbox.go
+@@ -265,6 +265,10 @@ type Sandbox struct {
+ 	disableVMShutdown bool
+ 	isVCPUsPinningOn  bool
+ 
++	// cancelVM cancels s.ctx when the hypervisor exits, aborting
++	// pending agent connection attempts.
++	cancelVM context.CancelFunc
++
+ 	// hotplugNetworkConfigApplied prevents network config API being called
+ 	// multiple times for hot-plugged network device when Sandbox has multiple
+ 	// containers.
+@@ -675,6 +679,13 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
+ 		return nil, err
+ 	}
+ 
++	// Wrap the context so it can be cancelled when the hypervisor exits
++	// unexpectedly. This cancellation aborts pending agent connection
++	// attempts (vsock dial) that would otherwise block for the full
++	// dial timeout. Created here (before agent.init) so that k.ctx
++	// inherits the cancellation via k.ctx = sandbox.ctx.
++	vmCtx, vmCancel := context.WithCancel(ctx)
++
+ 	s := &Sandbox{
+ 		id:              sandboxConfig.ID,
+ 		factory:         factory,
+@@ -689,12 +700,21 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
+ 		shmSize:         sandboxConfig.ShmSize,
+ 		sharePidNs:      sandboxConfig.SharePidNs,
+ 		network:         network,
+-		ctx:             ctx,
++		ctx:             vmCtx,
++		cancelVM:        vmCancel,
+ 		swapDeviceNum:   0,
+ 		swapSizeBytes:   0,
+ 		swapDevices:     []*config.BlockDrive{},
+ 	}
+ 
++	// Ensure vmCancel is called if sandbox creation fails, to avoid
++	// leaking the context goroutine.
++	defer func() {
++		if retErr != nil {
++			vmCancel()
++		}
++	}()
++
+ 	fsShare, err := NewFilesystemShare(s)
+ 	if err != nil {
+ 		return nil, err
+@@ -1578,6 +1598,14 @@ func (s *Sandbox) startVM(ctx context.Context, prestartHookFunc func(context.Con
+ 		}
+ 	}
+ 
++	// Wire up the VM exit callback BEFORE starting QEMU so that
++	// LogAndWait (which runs as soon as QEMU is launched) can call
++	// it even if QEMU crashes immediately. This avoids a race where
++	// QEMU exits before startVM wires up the callback.
++	if q, ok := s.hypervisor.(*qemu); ok && s.cancelVM != nil {
++		q.SetOnStop(s.cancelVM)
++	}
++
+ 	if err := s.network.Run(ctx, func() error {
+ 		if s.factory != nil {
+ 			vm, err := s.factory.GetVM(ctx, VMConfig{

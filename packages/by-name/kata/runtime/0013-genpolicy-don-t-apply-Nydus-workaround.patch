@@ -5,8 +5,8 @@ Subject: [PATCH] genpolicy: don't apply Nydus workaround
 
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
- src/tools/genpolicy/src/registry.rs | 55 +++++++++++++----------------
- 1 file changed, 24 insertions(+), 31 deletions(-)
+ src/tools/genpolicy/src/registry.rs | 53 +++++++++++++----------------
+ 1 file changed, 23 insertions(+), 30 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
 index 501611b8db7bb3b4ceb63ce9341045a9345499f3..1eac180a2d466d3f4f27be92b32fbf0303535a77 100644
@@ -31,16 +31,6 @@ index 501611b8db7bb3b4ceb63ce9341045a9345499f3..1eac180a2d466d3f4f27be92b32fbf03
 -            )
 -            .await
 -            .unwrap();
--
--            // Find the last layer with an /etc/* file, respecting whiteouts.
--            info!("Parsing users and groups in image layers");
--            for layer in &image_layers {
--                if layer.passwd == WHITEOUT_MARKER {
--                    passwd = String::new();
--                } else if !layer.passwd.is_empty() {
--                    passwd = layer.passwd.clone();
--                    debug!("Container:new: Found in image layer passwd = \n{passwd}");
--                }
 +        let image_layers = get_image_layers(
 +            &config.layers_cache,
 +            &mut client,
@@ -50,7 +40,16 @@ index 501611b8db7bb3b4ceb63ce9341045a9345499f3..1eac180a2d466d3f4f27be92b32fbf03
 +        )
 +        .await
 +        .unwrap();
-+
+ 
+-            // Find the last layer with an /etc/* file, respecting whiteouts.
+-            info!("Parsing users and groups in image layers");
+-            for layer in &image_layers {
+-                if layer.passwd == WHITEOUT_MARKER {
+-                    passwd = String::new();
+-                } else if !layer.passwd.is_empty() {
+-                    passwd = layer.passwd.clone();
+-                    debug!("Container:new: Found in image layer passwd = \n{passwd}");
+-                }
 +        // Find the last layer with an /etc/* file, respecting whiteouts.
 +        info!("Parsing users and groups in image layers");
 +        for layer in &image_layers {
