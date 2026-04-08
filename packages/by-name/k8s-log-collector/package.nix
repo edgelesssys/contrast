@@ -10,6 +10,8 @@
   gnused,
   gnugrep,
   systemdMinimal,
+  cri-tools,
+  jq,
 }:
 
 let
@@ -34,6 +36,8 @@ let
     runtimeInputs = [
       coreutils
       systemdWithJournal
+      cri-tools
+      jq
     ];
     text = builtins.readFile ./collect-host-logs.sh;
   };
