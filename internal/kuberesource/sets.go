@@ -532,7 +532,10 @@ func VolumeStatefulSet() []any {
 										WithMountPropagation(corev1.MountPropagationHostToContainer),
 								).
 								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(200),
+									// The memory limit here does not need to take the image into
+									// account, since it's already pulled for the initializer
+									// container.
+									WithMemoryLimitAndRequest(50),
 								),
 						),
 				),
