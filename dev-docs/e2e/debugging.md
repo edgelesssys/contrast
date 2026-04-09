@@ -39,13 +39,13 @@ get the Artifact download URL.
 workspace/logs/
 ├── <namespace>_<pod>_<uid>/       # pod container logs
 │   └── <container>/0.log
-├── host/                          # host-level journal logs
+├── host/<node-name>/              # host-level journal logs (per node)
 │   ├── kernel.log                 # journalctl -k (SEV-ES termination, VFIO/IOMMU)
 │   ├── k3s.log                    # journalctl -u k3s (k3s-specific kubelet/containerd)
 │   ├── kubelet.log                # journalctl -u kubelet (non-k3s runners)
 │   ├── containerd.log             # journalctl -u containerd (non-k3s runners)
 │   └── kata.log                   # journalctl -t kata (QEMU lifecycle, register dumps)
-├── metadata/
+├── metadata/<node-name>/
 │   └── sandbox-map.txt            # CVM pod name -> kata sandbox ID
 └── <namespace>-k8s-events.yaml    # kubernetes events
 ```
@@ -77,7 +77,7 @@ regression test which creates and tears down multiple rounds of pods) won't have
 1. Find the sandbox ID for a pod:
 
 ```bash
-cat workspace/logs/metadata/sandbox-map.txt
+cat workspace/logs/metadata/*/sandbox-map.txt
 # coordinator-0                     f4bb878b2e58bd3bd5a89fe2bc99b7368fc6aa070a0b8490a5c69a7c9816be65
 # openssl-backend-757688b785-dvr4c  3658285f5581ad51...
 # openssl-frontend-575dfdbb89-srwvr 828d8660496f6ac4...
@@ -86,7 +86,7 @@ cat workspace/logs/metadata/sandbox-map.txt
 2. Filter kata.log for a specific pod's sandbox:
 
 ```bash
-sandbox=$(grep coordinator workspace/logs/metadata/sandbox-map.txt | awk '{print $2}')
+sandbox=$(grep coordinator workspace/logs/metadata/*/sandbox-map.txt | awk '{print $2}')
 grep "$sandbox" workspace/logs/host/kata.log
 ```
 

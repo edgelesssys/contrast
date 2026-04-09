@@ -108,15 +108,14 @@ download)
       retry kubectl exec -n "$namespace" "$pod" -- /bin/bash -c '
         rm -f /exported-logs.tar.gz
         cp -r /export /export-no-stream
-        find /export-no-stream -empty -delete
-        tar zcvf /exported-logs.tar.gz /export-no-stream
+        tar zcvf /exported-logs.tar.gz -C / export-no-stream
         rm -rf /export-no-stream
       '
       retry kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
       echo "Downloaded logs tarball for namespace $namespace, pod $pod, extracting..." >&2
       tar xzvf ./workspace/logs/exported-logs.tar.gz --directory "./workspace/logs"
       rm ./workspace/logs/exported-logs.tar.gz
-      mv ./workspace/logs/export-no-stream/logs/* ./workspace/logs/
+      cp -rn ./workspace/logs/export-no-stream/logs/* ./workspace/logs/
       rm -rf ./workspace/logs/export-no-stream
     done
     echo "Collecting Kubernetes events for namespace $namespace" >&2
