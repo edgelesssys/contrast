@@ -145,7 +145,7 @@ func writeJSONError(w http.ResponseWriter, status int, err error) {
 		Version: constants.Version,
 		Err:     err.Error(),
 	}
-	if errEncode := json.NewEncoder(w).Encode(apiErr); err != nil {
-		log.Printf("encoding error response %v: %v", err, errEncode)
+	if errEncode := json.NewEncoder(w).Encode(apiErr); errEncode != nil {
+		log.Printf("encoding error response %v failed: %v", err, errEncode)
 	}
 }
