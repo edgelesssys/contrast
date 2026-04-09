@@ -86,7 +86,7 @@ func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Aut
 		TLSHandshakeTimeout:   5 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 		DialContext: (&net.Dialer{
-			Timeout: 5 * time.Second,
+			Timeout: 10 * time.Second,
 		}).DialContext,
 	}
 	if registry.CACerts != "" {
