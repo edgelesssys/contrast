@@ -453,7 +453,8 @@ func Initializer(coordinatorHost string) *applycorev1.ContainerApplyConfiguratio
 		WithName("contrast-initializer").
 		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 		WithResources(ResourceRequirements().
-			WithMemoryLimitAndRequest(50),
+			// In v1.18.0, the initializer image was 50MiB compressed, 160MiB uncompressed.
+			WithMemoryLimitAndRequest(210),
 		).
 		WithEnv(NewEnvVar("COORDINATOR_HOST", coordinatorHost)).
 		WithVolumeMounts(VolumeMount().
