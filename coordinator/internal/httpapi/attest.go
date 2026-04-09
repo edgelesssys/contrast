@@ -102,9 +102,15 @@ func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Limit size to a small value to avoid abuse (nonce only expected).
-	defer r.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(r.Body, 1024))
+	bodyReader := http.MaxBytesReader(w, r.Body, 1024)
+	defer bodyReader.Close()
+	body, err := io.ReadAll(bodyReader)
 	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			writeJSONError(w, http.StatusRequestEntityTooLarge, maxBytesErr)
+			return
+		}
 		writeJSONError(w, http.StatusBadRequest, err)
 		return
 	}
