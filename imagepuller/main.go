@@ -18,6 +18,7 @@ import (
 	"github.com/containerd/ttrpc"
 	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
 	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
+	"github.com/edgelesssys/contrast/imagepuller/internal/resolvconf"
 	"github.com/edgelesssys/contrast/imagepuller/internal/service"
 	"github.com/edgelesssys/contrast/internal/katacomponents"
 	"github.com/spf13/cobra"
@@ -63,6 +64,10 @@ func run(cmd *cobra.Command, _ []string) error {
 
 	fmt.Fprintf(os.Stderr, "Contrast image-puller %s\n", version)
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
+
+	if err := resolvconf.Wait(ctxSignal, log.WithGroup("DNS")); err != nil {
+		return fmt.Errorf("waiting for DNS: %w", err)
+	}
 
 	socketPath := cmd.Flag("listen").Value.String()
 	if err := os.MkdirAll(filepath.Dir(socketPath), os.ModePerm); err != nil {
