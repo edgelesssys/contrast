@@ -137,7 +137,7 @@ A function `Default` is added to create a instance of the struct with default va
 
 ```go
 func Default() Config {
-	return Config{
+	return Config {
 		CLI: {
 			// shared
 			LogLevel: "warn",
@@ -209,10 +209,11 @@ func NewGenerateCmd(cfg Config) *cobra.Command {
 }
 ```
 
-Here, `AddArgs` takes the provided (default) `Config` and the `cobra.Command`, as well as a slice of argument names matching the ones used in the `toml` annotations.
-It then adds a `cobra.Command` argument for each one of those names, using the metadata from the `toml` annotations for short names and help texts.
+Here, `AddArgs` takes the provided (default) `Config` and the `cobra.Command`, as well as a slice of argument names matching the ones used in the `toml` annotations, defining the available flags for the (sub-)commands.
+`AddArgs` then adds a `cobra.Command` argument for each one of these flags, using the metadata from the `toml` annotations for short names and help texts.
 
-Validation of the provided arguments continues to work just as it currently does (for example `parseGenerateFlags`), with the only difference being that this also runs on the new `Config` struct.
+Validation of the provided arguments continues to work just as it currently does, with the validation functions rewritten as methods of the new `Config` struct.
+For example, `parseGenerateFlags` could become `config.validateGenerateFlags` or similar.
 
 ### Configuration loading and precedence
 
