@@ -145,7 +145,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		usedPlatforms.Add(flags.referenceValuesPlatform)
 	}
 
-	usedCPUs, err := usedCPUsFromUnstructured(fileMap)
+	usedCPUs, coordinatorCPU, err := usedCPUsFromUnstructured(fileMap)
 	if err != nil {
 		return fmt.Errorf("determining cpu counts used in deployment: %w", err)
 	}
@@ -193,6 +193,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 
 		if len(filteredMeasurements) > 0 {
 			snp.TrustedMeasurements = filteredMeasurements
+			if coordinatorCPU > 0 {
+				snp.TrustedMeasurement = filteredMeasurements[strconv.FormatUint(coordinatorCPU, 10)]
+			}
 			filteredSNP = append(filteredSNP, snp)
 		}
 	}
@@ -701,18 +704,20 @@ func runtimeClassesFromUnstructured(fileMap map[string][]*unstructured.Unstructu
 	return runtimeClasses, nil
 }
 
-func usedCPUsFromUnstructured(fileMap map[string][]*unstructured.Unstructured) ([]uint64, error) {
+func usedCPUsFromUnstructured(fileMap map[string][]*unstructured.Unstructured) ([]uint64, uint64, error) {
 	used := make(map[uint64]struct{})
+	var coordinatorCPU uint64
 	for _, resources := range fileMap {
 		for _, r := range resources {
 			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(r)
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
 			if !isCCWorkload(applyConfig) {
 				continue
 			}
 
+			isCoord := isCoordinator(applyConfig)
 			kuberesource.MapPodSpec(applyConfig, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
 				if spec == nil {
 					return spec
@@ -720,6 +725,9 @@ func usedCPUsFromUnstructured(fileMap map[string][]*unstructured.Unstructured) (
 
 				totalCPUs := getPodCPUCount(spec)
 				used[totalCPUs] = struct{}{}
+				if isCoord {
+					coordinatorCPU = totalCPUs
+				}
 				return spec
 			})
 		}
@@ -729,7 +737,7 @@ func usedCPUsFromUnstructured(fileMap map[string][]*unstructured.Unstructured) (
 	for k := range used {
 		out = append(out, k)
 	}
-	return out, nil
+	return out, coordinatorCPU, nil
 }
 
 func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSpecApplyConfiguration) (*applycorev1.PodSpecApplyConfiguration, error) {

@@ -244,6 +244,21 @@ func TestValidate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		"fallback to trusted measurement": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.ReferenceValues.SNP[0].TrustedMeasurement = m.ReferenceValues.SNP[0].TrustedMeasurements["1"]
+				m.ReferenceValues.SNP[0].TrustedMeasurements = nil
+			},
+		},
+		"trusted measurements empty and trusted measurement empty": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.ReferenceValues.SNP[0].TrustedMeasurements = nil
+				m.ReferenceValues.SNP[0].TrustedMeasurement = ""
+			},
+			wantErr: true,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -324,6 +339,29 @@ func TestSNPValidateOpts(t *testing.T) {
 	}
 	assert.Equal(tcbParts, opts[0].ValidateOpts.MinimumTCB)
 	assert.Equal(tcbParts, opts[0].ValidateOpts.MinimumLaunchTCB)
+}
+
+func TestSNPValidateOptsFallback(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	m := newTestManifestSNP()
+	m.ReferenceValues.SNP[0].TrustedMeasurement = m.ReferenceValues.SNP[0].TrustedMeasurements["1"]
+	m.ReferenceValues.SNP[0].TrustedMeasurements = nil
+
+	m.Policies = map[HexString]PolicyEntry{
+		HexString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"): {
+			Role: RoleCoordinator,
+		},
+	}
+
+	opts, err := m.SNPValidateOpts(nil)
+	require.NoError(err)
+	require.Len(opts, 1)
+
+	trustedMeasurement, err := m.ReferenceValues.SNP[0].TrustedMeasurement.Bytes()
+	assert.NoError(err)
+	assert.Equal(trustedMeasurement, opts[0].ValidateOpts.Measurement)
 }
 
 func TestHexString(t *testing.T) {

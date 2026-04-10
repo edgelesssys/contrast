@@ -195,6 +195,7 @@ type SNPReferenceValues struct {
 	Platform                string
 	ProductName             ProductName
 	TrustedMeasurements     map[string]HexString
+	TrustedMeasurement      HexString
 	MinimumTCB              SNPTCB
 	GuestPolicy             abi.SnpPolicy
 	PlatformInfo            abi.SnpPlatformInfo
@@ -226,12 +227,17 @@ func (r SNPReferenceValues) Validate() error {
 		errs = append(errs, newValidationError("ProductName", fmt.Errorf("unknown product name: %s", r.ProductName)))
 	}
 
-	if len(r.TrustedMeasurements) == 0 {
+	if len(r.TrustedMeasurements) == 0 && r.TrustedMeasurement == "" {
 		errs = append(errs, newValidationError("TrustedMeasurements", fmt.Errorf("field cannot be empty")))
 	}
 	for cpu, tm := range r.TrustedMeasurements {
 		if err := validateHexString(tm, abi.MeasurementSize); err != nil {
 			errs = append(errs, newValidationError(fmt.Sprintf("TrustedMeasurements[%s]", cpu), err))
+		}
+	}
+	if r.TrustedMeasurement != "" {
+		if err := validateHexString(r.TrustedMeasurement, abi.MeasurementSize); err != nil {
+			errs = append(errs, newValidationError("TrustedMeasurement", err))
 		}
 	}
 

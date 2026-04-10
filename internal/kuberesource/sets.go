@@ -80,7 +80,11 @@ func OpenSSL() []any {
 									WithContainerPort(443),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(250),
+								WithMemoryLimitAndRequest(250).
+								WithLimits(corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("250Mi"),
+									corev1.ResourceCPU:    resource.MustParse("2"),
+								}),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).

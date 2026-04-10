@@ -130,14 +130,19 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 
 	var out []SNPValidatorOptions
 	for _, refVal := range m.ReferenceValues.SNP {
-		if len(refVal.TrustedMeasurements) == 0 {
+		measurements := refVal.TrustedMeasurements
+		if len(measurements) == 0 && refVal.TrustedMeasurement != "" {
+			measurements = map[string]HexString{"coordinator": refVal.TrustedMeasurement}
+		}
+
+		if len(measurements) == 0 {
 			return nil, errors.New("trusted measurements cannot be empty")
 		}
 
-		for _, tm := range refVal.TrustedMeasurements {
+		for cpus, tm := range measurements {
 			trustedMeasurement, err := tm.Bytes()
 			if err != nil {
-				return nil, fmt.Errorf("failed to convert TrustedMeasurements from manifest to byte slices: %w", err)
+				return nil, fmt.Errorf("failed to convert TrustedMeasurements for %s vCPUs from manifest to byte slices: %w", cpus, err)
 			}
 
 			verifyOpts := snpverify.DefaultOptions()
