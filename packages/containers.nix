@@ -4,6 +4,7 @@
 {
   lib,
   pkgs,
+  pkgsMusl,
   contrastPkgs,
   dockerTools,
 }:
@@ -13,7 +14,7 @@
     name = "coordinator";
     tag = "v${contrastPkgs.contrast.coordinator.version}";
     copyToRoot =
-      (with pkgs; [
+      (with pkgsMusl; [
         busybox
         e2fsprogs # mkfs.ext4
         libuuid # blkid
@@ -33,7 +34,7 @@
     name = "initializer";
     tag = "v${contrastPkgs.contrast.initializer.version}";
     copyToRoot =
-      (with pkgs; [
+      (with pkgsMusl; [
         busybox
         cryptsetup
         e2fsprogs # mkfs.ext4
