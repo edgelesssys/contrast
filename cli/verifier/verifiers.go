@@ -18,6 +18,7 @@ func AllVerifiersBeforeGenerate(cmd *cobra.Command) []Verifier {
 		&ImageRefValid{ExcludeContrastImages: true},
 		&ServiceMeshEgressNotEmpty{},
 		&RuntimeClassesExist{Command: cmd},
+		&CPUCountValid{},
 	}
 }
 
