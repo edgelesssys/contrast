@@ -349,7 +349,11 @@ func AddImageStore(resources []any) []any {
 			WithSecurityContext(SecurityContext().
 				WithPrivileged(true).SecurityContextApplyConfiguration).
 			WithResources(ResourceRequirements().
-				WithMemoryLimitAndRequest(50),
+				// If the pod does not have an initializer, or the main container has a memory
+				// limit larger than the initializer, the VM might receive too little memory to fit
+				// the initializer as sidecar. Thus, we're conservatively reserving the full size
+				// here.
+				WithMemoryLimitAndRequest(420),
 			).
 			WithVolumeDevices(
 				applycorev1.VolumeDevice().
