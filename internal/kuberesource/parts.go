@@ -300,7 +300,10 @@ func Coordinator(namespace string) *CoordinatorConfig {
 									WithPath("/probe/readiness")),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(200),
+								// As of v1.18.0, the Coordinator is roughly 200MiB unpacked.
+								// Double that to account for only 50% of VM memory being available
+								// for /run.
+								WithMemoryLimitAndRequest(400),
 							),
 					).
 					WithAffinity(
@@ -454,7 +457,8 @@ func Initializer(coordinatorHost string) *applycorev1.ContainerApplyConfiguratio
 		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 		WithResources(ResourceRequirements().
 			// In v1.18.0, the initializer image was 50MiB compressed, 160MiB uncompressed.
-			WithMemoryLimitAndRequest(210),
+			// Double that because only 50% of the VM memory are available for /run.
+			WithMemoryLimitAndRequest(420),
 		).
 		WithEnv(NewEnvVar("COORDINATOR_HOST", coordinatorHost)).
 		WithVolumeMounts(VolumeMount().
