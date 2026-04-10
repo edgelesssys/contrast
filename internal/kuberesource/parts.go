@@ -523,3 +523,38 @@ func getPorts(podSpec *applycorev1.PodSpecApplyConfiguration) (ports []applycore
 	}
 	return ports
 }
+
+// GetCPUCount returns the CPU count in milliCPUs from resources.
+func GetCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) int64 {
+	if resources != nil && resources.Limits != nil {
+		return resources.Limits.Cpu().MilliValue()
+	}
+	return 0
+}
+
+// GetPodCPUCount computes the total CPU count (in whole CPUs) required by a pod, adding hypervisor overhead.
+func GetPodCPUCount(spec *applycorev1.PodSpecApplyConfiguration) uint64 {
+	var regularContainersCPU int64
+	for _, container := range spec.Containers {
+		regularContainersCPU += GetCPUCount(container.Resources)
+	}
+	var maxInitContainerCPU int64
+	for _, container := range spec.InitContainers {
+		cpuCount := GetCPUCount(container.Resources)
+		// Sidecar containers remain running alongside the actual application, consuming CPU resources
+		if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+			regularContainersCPU += cpuCount
+		} else {
+			if cpuCount > maxInitContainerCPU {
+				maxInitContainerCPU = cpuCount
+			}
+		}
+	}
+	podLevelCPU := GetCPUCount(spec.Resources)
+
+	// Convert milliCPUs to number of CPUs (rounding up), and add 1 for hypervisor overhead.
+	// Pod resources are added to the maximum of regular containers and init containers.
+	totalMilliCPUs := max(regularContainersCPU, maxInitContainerCPU) + podLevelCPU
+	totalCPUs := (totalMilliCPUs+999)/1000 + 1
+	return uint64(totalCPUs)
+}
