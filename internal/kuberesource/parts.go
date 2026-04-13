@@ -513,7 +513,7 @@ func DebugShell() *applycorev1.ContainerApplyConfiguration {
 		WithImage("ghcr.io/edgelesssys/contrast/debugshell:latest").
 		WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
 		WithResources(ResourceRequirements().
-			WithMemoryLimitAndRequest(500),
+			WithMemoryLimitAndRequest(1000),
 		)
 }
 
