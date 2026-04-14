@@ -1,184 +1,229 @@
 {
-  "contrast": [
+  "contrast-x86_64-linux": [
     {
       "version": "v0.2.0",
-      "hash": "sha256-cGyWvUmL/rbjX3Bu1OPGTZlk5PgVW/O0qdo9KmZPo+U="
+      "hash": "sha256-cGyWvUmL/rbjX3Bu1OPGTZlk5PgVW/O0qdo9KmZPo+U=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.3.0",
-      "hash": "sha256-8yVZLhwf2bsWIMxSAqXUKDNCjltCSGA6bwrXTi+cJB0="
+      "hash": "sha256-8yVZLhwf2bsWIMxSAqXUKDNCjltCSGA6bwrXTi+cJB0=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.4.0",
-      "hash": "sha256-mc0Wqej8yfj1hPFi78JQykFUqHP/ckNX6Fn6B5w2tDI="
+      "hash": "sha256-mc0Wqej8yfj1hPFi78JQykFUqHP/ckNX6Fn6B5w2tDI=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.4.1",
-      "hash": "sha256-cF0H85j2BAREoO0MUINGMT+IHH2CRmH+JPUGGTDA9iw="
+      "hash": "sha256-cF0H85j2BAREoO0MUINGMT+IHH2CRmH+JPUGGTDA9iw=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.5.0",
-      "hash": "sha256-X/t9DP858cLpYM4a9ic+DHVOH8N0tu2nfiYbQCzjaZE="
+      "hash": "sha256-X/t9DP858cLpYM4a9ic+DHVOH8N0tu2nfiYbQCzjaZE=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.5.1",
-      "hash": "sha256-bxUIis/6uKTdqOa/uILLGOs0M2XqMkrq371EfnwsvtQ="
+      "hash": "sha256-bxUIis/6uKTdqOa/uILLGOs0M2XqMkrq371EfnwsvtQ=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.6.0",
-      "hash": "sha256-7SNMImiEQijTsMnFaKvmQ9TYQdLa2IaDYmtd13+atfw="
+      "hash": "sha256-7SNMImiEQijTsMnFaKvmQ9TYQdLa2IaDYmtd13+atfw=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.6.1",
-      "hash": "sha256-wkFrKsnoTfoe+iKM3GwJShLdLzdgwl5S+3RToGdMdUg="
+      "hash": "sha256-wkFrKsnoTfoe+iKM3GwJShLdLzdgwl5S+3RToGdMdUg=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.7.0",
-      "hash": "sha256-0arNzOsh9FBUV+uzF/bOZe/2Bat+Qb7EqS5n5VCUcJQ="
+      "hash": "sha256-0arNzOsh9FBUV+uzF/bOZe/2Bat+Qb7EqS5n5VCUcJQ=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.7.1",
-      "hash": "sha256-Gsj5P2ueHj8lzx620sK53qG5E6flsiZSvA5Wi+ushpA="
+      "hash": "sha256-Gsj5P2ueHj8lzx620sK53qG5E6flsiZSvA5Wi+ushpA=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.7.2",
-      "hash": "sha256-Niwf4abVh3ZSBcH14CDfSiZJK/bYJfmXkZuRP1Xmo6w="
+      "hash": "sha256-Niwf4abVh3ZSBcH14CDfSiZJK/bYJfmXkZuRP1Xmo6w=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.7.3",
-      "hash": "sha256-368liwe9gtPXvZ5uOusXI65chP/Gz9eVopSuzmXQ0Rw="
+      "hash": "sha256-368liwe9gtPXvZ5uOusXI65chP/Gz9eVopSuzmXQ0Rw=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.8.0",
-      "hash": "sha256-azff9V0WNSBMmtiYTmfS5ddlLRgzEm6/i9N1Ot24IYk="
+      "hash": "sha256-azff9V0WNSBMmtiYTmfS5ddlLRgzEm6/i9N1Ot24IYk=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.8.1",
-      "hash": "sha256-2nYsLRY8PfVCZ7p5CF8zFr/mFKfbgX6EGNvRKpkKBSM="
+      "hash": "sha256-2nYsLRY8PfVCZ7p5CF8zFr/mFKfbgX6EGNvRKpkKBSM=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v0.9.0",
-      "hash": "sha256-l0/zbWiAt6ONFrbl+L1ROluIKPuFPNiLxlzFFMjgbPU="
+      "hash": "sha256-l0/zbWiAt6ONFrbl+L1ROluIKPuFPNiLxlzFFMjgbPU=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.0.0",
-      "hash": "sha256-lS64+W85dzpTNZxvO55hNig7lgubjjRZ/Nw0P915CHw="
+      "hash": "sha256-lS64+W85dzpTNZxvO55hNig7lgubjjRZ/Nw0P915CHw=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.1.0",
-      "hash": "sha256-E+ggSt0dkcUOoNYHIlz8+Dhvs9f+41BXl3rzf1pmETY="
+      "hash": "sha256-E+ggSt0dkcUOoNYHIlz8+Dhvs9f+41BXl3rzf1pmETY=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.1.1",
-      "hash": "sha256-muOarmU9dJYDf/NI2YpgaJQ94FZqq0zPMRF5G56uKtg="
+      "hash": "sha256-muOarmU9dJYDf/NI2YpgaJQ94FZqq0zPMRF5G56uKtg=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.2.0",
-      "hash": "sha256-EOcEvjQJVjr9HL+UITSi3nqTENqX/KyRrKH8zHaICdY="
+      "hash": "sha256-EOcEvjQJVjr9HL+UITSi3nqTENqX/KyRrKH8zHaICdY=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.2.1",
-      "hash": "sha256-OddDHKydFLvbuu29uX+wHK+iqAbqKgsuG8O4UJNpTKo="
+      "hash": "sha256-OddDHKydFLvbuu29uX+wHK+iqAbqKgsuG8O4UJNpTKo=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.3.0",
-      "hash": "sha256-2hmF+nXxqX77V7zdT88ls8IUvLzmLlFQKpecip/4OFk="
+      "hash": "sha256-2hmF+nXxqX77V7zdT88ls8IUvLzmLlFQKpecip/4OFk=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.4.0",
-      "hash": "sha256-rNdc8g/jQGelrH7wg8E1mLV1AcMj1eNWQ04yZSjLxkM="
+      "hash": "sha256-rNdc8g/jQGelrH7wg8E1mLV1AcMj1eNWQ04yZSjLxkM=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.4.1",
-      "hash": "sha256-nVslQ/crceeENbKwmhVDwMOmjR2iJUfk4lqeZ+2G+8o="
+      "hash": "sha256-nVslQ/crceeENbKwmhVDwMOmjR2iJUfk4lqeZ+2G+8o=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.5.0",
-      "hash": "sha256-5UoxDZ8F7XP/uze0seMBcdak+vKYwm6lsXjJXFuTI1I="
+      "hash": "sha256-5UoxDZ8F7XP/uze0seMBcdak+vKYwm6lsXjJXFuTI1I=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.5.1",
-      "hash": "sha256-pQ5M062sU5s2EDthxpi/94hy/6S2gm/8NOGJLZIwO+s="
+      "hash": "sha256-pQ5M062sU5s2EDthxpi/94hy/6S2gm/8NOGJLZIwO+s=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.6.0",
-      "hash": "sha256-sD6RSM+TutEgfLx1dwfkenbzJ5aidfG1BOAtc14IWH0="
+      "hash": "sha256-sD6RSM+TutEgfLx1dwfkenbzJ5aidfG1BOAtc14IWH0=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.7.0",
-      "hash": "sha256-iA1LgwxAp0qChKY+PC3lp3XVQTueeMv71YUZycwg/BU="
+      "hash": "sha256-iA1LgwxAp0qChKY+PC3lp3XVQTueeMv71YUZycwg/BU=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.8.0",
-      "hash": "sha256-hwSm5IRYx/zHCDEVBPLBkk9vUySJ5zILYiqC3b94c+w="
+      "hash": "sha256-hwSm5IRYx/zHCDEVBPLBkk9vUySJ5zILYiqC3b94c+w=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.8.1",
-      "hash": "sha256-aJ1tAo4cHF+MvZrAFfYsxRqTJNo9EcQdtLFM+N2Twio="
+      "hash": "sha256-aJ1tAo4cHF+MvZrAFfYsxRqTJNo9EcQdtLFM+N2Twio=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.9.0",
-      "hash": "sha256-VKnOWmEdQDd2SMK63DgB87D/5Y/cjJ4p+W3WR2OX964="
+      "hash": "sha256-VKnOWmEdQDd2SMK63DgB87D/5Y/cjJ4p+W3WR2OX964=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.9.1",
-      "hash": "sha256-/xTyiVmeeLXVY3DHTlVVDPq3dj2038nMOW7htedNeRw="
+      "hash": "sha256-/xTyiVmeeLXVY3DHTlVVDPq3dj2038nMOW7htedNeRw=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.10.0",
-      "hash": "sha256-2DWekFV08DUB2UexWsCmw2hFYbfWreXXJBIVsOUdQ9A="
+      "hash": "sha256-2DWekFV08DUB2UexWsCmw2hFYbfWreXXJBIVsOUdQ9A=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.11.0",
-      "hash": "sha256-7XCX6XXOWG3p6DvRExKZJaOISLhbshK4bRtqOBgQRQM="
+      "hash": "sha256-7XCX6XXOWG3p6DvRExKZJaOISLhbshK4bRtqOBgQRQM=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.12.0",
-      "hash": "sha256-AdmbPl0P1Hxn9mu+kU//5bvMK7Y/zWIp0YZobZDj9/Q="
+      "hash": "sha256-AdmbPl0P1Hxn9mu+kU//5bvMK7Y/zWIp0YZobZDj9/Q=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.12.1",
-      "hash": "sha256-sOa2azwCbBbU5SMtPelLiDYd7JDC2u2oPiIv5Qolf80="
+      "hash": "sha256-sOa2azwCbBbU5SMtPelLiDYd7JDC2u2oPiIv5Qolf80=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.12.2",
-      "hash": "sha256-Jyt14E7zkYWIBUa40CEyrCnNbrnT/LQkn4ll4bymtIg="
+      "hash": "sha256-Jyt14E7zkYWIBUa40CEyrCnNbrnT/LQkn4ll4bymtIg=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.13.0",
-      "hash": "sha256-8hLXBDMgn4Te8Xq7FH0V3UWORsvoHZjDQF29+Z2cbPI="
+      "hash": "sha256-8hLXBDMgn4Te8Xq7FH0V3UWORsvoHZjDQF29+Z2cbPI=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.14.0",
-      "hash": "sha256-HRqWnSB2eisDdVc9J/VSSucuHv4G/xJPoS/PT+RC5SQ="
+      "hash": "sha256-HRqWnSB2eisDdVc9J/VSSucuHv4G/xJPoS/PT+RC5SQ=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.15.0",
-      "hash": "sha256-JTMSltH/1bYrr+4q6g3n3Bond18UAWrSMchidVgnRpA="
+      "hash": "sha256-JTMSltH/1bYrr+4q6g3n3Bond18UAWrSMchidVgnRpA=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.15.1",
-      "hash": "sha256-7tf9N55vLKTxqEbGJF/bEZ7Dy6KzsmV2+CxxEQcwE3Q="
+      "hash": "sha256-7tf9N55vLKTxqEbGJF/bEZ7Dy6KzsmV2+CxxEQcwE3Q=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.16.0",
-      "hash": "sha256-nQIP7GDiDqCvLB3T0PNurQxJ4KdK7yiZT/rWyjyqe98="
+      "hash": "sha256-nQIP7GDiDqCvLB3T0PNurQxJ4KdK7yiZT/rWyjyqe98=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.16.1",
-      "hash": "sha256-wSkfwbI4XqCTWkb988MGyowipcnBiXmKh5FefGA51zc="
+      "hash": "sha256-wSkfwbI4XqCTWkb988MGyowipcnBiXmKh5FefGA51zc=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.17.0",
-      "hash": "sha256-nOyiWhDIlfUQCz7YV2S/GfH/bcA5nefy+Z9TYcfmC6Y="
+      "hash": "sha256-nOyiWhDIlfUQCz7YV2S/GfH/bcA5nefy+Z9TYcfmC6Y=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.18.0",
-      "hash": "sha256-P4wKg6GQbg8M/vG8B0oYrz/XijOZ5ymG4utigyaiPeA="
+      "hash": "sha256-P4wKg6GQbg8M/vG8B0oYrz/XijOZ5ymG4utigyaiPeA=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.19.0",
-      "hash": "sha256-v6rEvtH2K5leBaJAv4qt3F0Se1lpFBkAZoNLiPG1smk="
+      "hash": "sha256-v6rEvtH2K5leBaJAv4qt3F0Se1lpFBkAZoNLiPG1smk=",
+      "filenameOverride": "contrast"
     },
     {
       "version": "v1.20.0",

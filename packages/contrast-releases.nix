@@ -13,9 +13,9 @@ let
   json = builtins.fromJSON (builtins.readFile ./contrast-releases.json);
 
   findInstall =
-    filename:
+    key:
     {
-      "contrast" = path: ''
+      "contrast-x86_64-linux" = path: ''
         mkdir -p $out/bin
         install -m 777 ${path} $out/bin/contrast
         installShellCompletion --cmd contrast \
@@ -43,9 +43,9 @@ let
         install -m 644 ${path} $out/deployment/vault-demo.yml
       '';
     }
-    ."${filename}" or
+    ."${key}" or
     # default to generic install for other files.
-    (path: "install -m 644 ${path} $out/${filename}");
+    (path: "install -m 644 ${path} $out/${key}");
 
   findVersion = versions: version: lib.lists.findFirst (f: f.version == version) { } versions;
 
@@ -66,9 +66,13 @@ let
     let
       files = lib.pipe json [
         (lib.filterAttrs (_: versions: lib.any (v: v.version == version) versions))
-        (lib.mapAttrsToList (filename: versions: { inherit filename; } // (findVersion versions version)))
+        (lib.mapAttrsToList (key: versions: { inherit key; } // (findVersion versions version)))
+        # Default the URL filename to the JSON key. Historical entries set
+        # `filenameOverride` when the artifact name on the release page differs
+        # from the current naming convention.
+        (lib.map (file: file // { filename = file.filenameOverride or file.key; }))
         (lib.map (file: file // { path = fetchReleasedFile file; }))
-        (lib.map (file: file // { install = findInstall file.filename; }))
+        (lib.map (file: file // { install = findInstall file.key; }))
       ];
       installFiles = lib.concatStringsSep "\n" (lib.map (file: file.install file.path) files);
     in
@@ -82,7 +86,12 @@ let
       } installFiles;
     };
 
-  releases = builtins.listToAttrs (map buildContrastRelease json.contrast);
-  latestVersion = builtins.replaceStrings [ "." ] [ "-" ] (lib.last json.contrast).version;
+  # The linux CLI is the canonical version index: it's the only artifact
+  # shipped in every release from v0.2.0 onwards, so its entries enumerate
+  # all known versions in order.
+  releases = builtins.listToAttrs (map buildContrastRelease json."contrast-x86_64-linux");
+  latestVersion =
+    builtins.replaceStrings [ "." ] [ "-" ]
+      (lib.last json."contrast-x86_64-linux").version;
 in
 releases // { latest = releases.${latestVersion}; }
