@@ -141,7 +141,6 @@ func TestPolicy(t *testing.T) {
 		newResources := make([]*unstructured.Unstructured, 0, len(r))
 		for _, resource := range r {
 			name := resource.GetName()
-			require.NoError(err)
 			if strings.Contains(name, opensslFrontend) {
 				continue
 			}
