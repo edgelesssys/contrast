@@ -8,6 +8,7 @@
   yq-go,
   git,
   applyPatches,
+  withHypervisorExitFix ? true,
 }:
 
 buildGoModule (finalAttrs: {
@@ -184,7 +185,8 @@ buildGoModule (finalAttrs: {
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
       # TODO(sse): retire this carry once contrast migrates to runtime-rs.
       ./0028-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
-
+    ]
+    ++ lib.optionals withHypervisorExitFix [
       # Detect hypervisor exit and cancel pending agent dial. Sets q.stopped
       # on QEMU exit/guest panic, makes commonDialer context-aware, and cancels
       # the sandbox context to abort the vsock dial (~90s -> ~2s).
