@@ -73,6 +73,7 @@ in
       blacklist nvidia_drm
       blacklist nvidia_modeset
       blacklist nvidia_uvm
+      options nvidia NVreg_RmMsg=":"
     '';
 
     # WARNING: Kata sets systemd's default target to `kata-containers.target`. Thus, some upstream services may not work out-of-the-box,
