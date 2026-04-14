@@ -65,10 +65,6 @@ func run(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintf(os.Stderr, "Contrast image-puller %s\n", version)
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
 
-	if err := resolvconf.Wait(ctxSignal, log.WithGroup("DNS")); err != nil {
-		return fmt.Errorf("waiting for DNS: %w", err)
-	}
-
 	socketPath := cmd.Flag("listen").Value.String()
 	if err := os.MkdirAll(filepath.Dir(socketPath), os.ModePerm); err != nil {
 		return fmt.Errorf("creating directory for socket: %w", err)
@@ -77,12 +73,19 @@ func run(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("removing existing socket: %w", err)
 	}
 
-	l, err := (&net.ListenConfig{}).Listen(ctxSignal, "unix", socketPath)
+	// We ListenUnix specifically to avoid the resolver being initialized, see below.
+	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: socketPath})
 	if err != nil {
 		return fmt.Errorf("listening on socket: %w", err)
 	}
 	defer l.Close()
 	defer os.RemoveAll(socketPath)
+
+	// Wait to accept connections until we have a valid resolv.conf. Otherwise, we won't be able to
+	// connect to remote services and fail the first pull.
+	if err := resolvconf.Wait(ctxSignal, log.WithGroup("DNS")); err != nil {
+		return fmt.Errorf("waiting for DNS: %w", err)
+	}
 
 	s, err := ttrpc.NewServer()
 	if err != nil {
