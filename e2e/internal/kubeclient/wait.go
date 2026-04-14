@@ -59,7 +59,7 @@ func (c *Kubeclient) WaitForCoordinator(ctx context.Context, namespace string) e
 		return err
 	}
 	ls := labels.SelectorFromSet(s.Spec.Selector.MatchLabels)
-	return c.WaitForPodCondition(ctx, namespace, &oneRunning{ls: ls})
+	return c.WaitForPodCondition(ctx, namespace, &containerRunning{ls: ls, podName: "coordinator-0", containerName: "coordinator"})
 }
 
 // WaitForDaemonSet waits until the DaemonSet is ready.
@@ -300,12 +300,43 @@ func (cr *containerReady) Check(lister listerscorev1.PodLister) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	return checkContainerStatus(pods, cr.podName, cr.containerName, func(cs corev1.ContainerStatus) bool {
+		return cs.Ready
+	}), nil
+}
+
+func (cr *containerReady) String() string {
+	return fmt.Sprintf("PodCondition(container %s in pod %s is ready)", cr.containerName, cr.podName)
+}
+
+// containerRunning checks that a named container in a named pod is running.
+type containerRunning struct {
+	ls            labels.Selector
+	podName       string
+	containerName string
+}
+
+func (cr *containerRunning) Check(lister listerscorev1.PodLister) (bool, error) {
+	pods, err := lister.List(cr.ls)
+	if err != nil {
+		return false, err
+	}
+	return checkContainerStatus(pods, cr.podName, cr.containerName, func(cs corev1.ContainerStatus) bool {
+		return cs.State.Running != nil
+	}), nil
+}
+
+func (cr *containerRunning) String() string {
+	return fmt.Sprintf("PodCondition(container %s in pod %s is running)", cr.containerName, cr.podName)
+}
+
+func checkContainerStatus(pods []*corev1.Pod, podName, containerName string, check func(corev1.ContainerStatus) bool) bool {
 	for _, pod := range pods {
-		if pod.Name != cr.podName {
+		if pod.Name != podName {
 			continue
 		}
 		if pod.DeletionTimestamp != nil {
-			return false, nil
+			return false
 		}
 		for _, statuses := range [][]corev1.ContainerStatus{
 			pod.Status.InitContainerStatuses,
@@ -313,40 +344,11 @@ func (cr *containerReady) Check(lister listerscorev1.PodLister) (bool, error) {
 			pod.Status.EphemeralContainerStatuses,
 		} {
 			for _, cs := range statuses {
-				if cs.Name == cr.containerName {
-					return cs.Ready, nil
+				if cs.Name == containerName {
+					return check(cs)
 				}
 			}
 		}
-		return false, nil
 	}
-	return false, nil
-}
-
-func (cr *containerReady) String() string {
-	return fmt.Sprintf("PodCondition(container %s in pod %s is ready)", cr.containerName, cr.podName)
-}
-
-type oneRunning struct {
-	ls labels.Selector
-}
-
-func (or *oneRunning) Check(lister listerscorev1.PodLister) (bool, error) {
-	pods, err := lister.List(or.ls)
-	if err != nil {
-		return false, err
-	}
-	for _, pod := range pods {
-		if pod.DeletionTimestamp != nil {
-			continue
-		}
-		if pod.Status.Phase == corev1.PodRunning {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func (or *oneRunning) String() string {
-	return fmt.Sprintf("PodCondition(one pod matching %s is running)", or.ls)
+	return false
 }

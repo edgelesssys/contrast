@@ -18,7 +18,8 @@ func TestStringRepresentation(t *testing.T) {
 		&numReady{n: 5, ls: sel},
 		&numSucceeded{n: 3, ls: sel},
 		&singlePodReady{name: "my-pod"},
-		&oneRunning{ls: sel},
+		&containerReady{podName: "my-pod", containerName: "my-container"},
+		&containerRunning{ls: sel, podName: "my-pod", containerName: "my-container"},
 	} {
 		t.Run(fmt.Sprintf("%T", cond), func(t *testing.T) {
 			assert := assert.New(t)
