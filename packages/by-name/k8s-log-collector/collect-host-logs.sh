@@ -9,15 +9,15 @@ node="${NODE_NAME:?NODE_NAME must be set}"
 hostdir="/export/logs/host/$node"
 mkdir -p "$hostdir"
 echo "Collecting kernel logs (since $since)..." >&2
-journalctl --directory=/journal -k -q --since="$since" --no-pager >"$hostdir/kernel.log" 2>/dev/null || true
+journalctl --directory=/journal -o short-iso-precise -k -q --since="$since" --no-pager >"$hostdir/kernel.log" 2>/dev/null || true
 echo "Collecting k3s logs (since $since)..." >&2
-journalctl --directory=/journal -u k3s -q --since="$since" --no-pager >"$hostdir/k3s.log" 2>/dev/null || true
+journalctl --directory=/journal -o short-iso-precise -u k3s -q --since="$since" --no-pager >"$hostdir/k3s.log" 2>/dev/null || true
 echo "Collecting kubelet logs (since $since)..." >&2
-journalctl --directory=/journal -u kubelet -q --since="$since" --no-pager >"$hostdir/kubelet.log" 2>/dev/null || true
+journalctl --directory=/journal -o short-iso-precise -u kubelet -q --since="$since" --no-pager >"$hostdir/kubelet.log" 2>/dev/null || true
 echo "Collecting containerd logs (since $since)..." >&2
-journalctl --directory=/journal -u containerd -q --since="$since" --no-pager >"$hostdir/containerd.log" 2>/dev/null || true
+journalctl --directory=/journal -o short-iso-precise -u containerd -q --since="$since" --no-pager >"$hostdir/containerd.log" 2>/dev/null || true
 echo "Collecting kata logs (since $since)..." >&2
-journalctl --directory=/journal -t kata -q --since="$since" --no-pager >"$hostdir/kata.log" 2>/dev/null || true
+journalctl --directory=/journal -o short-iso-precise -t kata -q --since="$since" --no-pager >"$hostdir/kata.log" 2>/dev/null || true
 # Remove empty log files (services not running on this node).
 for f in "$hostdir"/*.log; do
   [[ -s $f ]] || rm -f "$f"
