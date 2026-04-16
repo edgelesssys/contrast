@@ -50,10 +50,6 @@ lib.makeScope pkgs.newScope (scripts: {
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.debugshell
       echo "Updating vendorHash of service-mesh package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.service-mesh
-      echo "Updating vendorHash of igvm-go package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.igvm-go
-      echo "Updating vendorHash of snp-id-block-generator package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.snp-id-block-generator
       echo "Updating imagepuller package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.imagepuller
       echo "Updating imagestore package" >&2

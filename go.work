@@ -8,10 +8,8 @@ use (
 	./initdata-processor
 	./service-mesh
 	./tools/debugshell
-	./tools/igvm
 	./tools/imagepuller-benchmark
 	./tools/kernelconfig
-	./tools/snp-id-block-generator
 	./tools/tdx-measure
 // keep-sorted end
 )
