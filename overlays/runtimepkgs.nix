@@ -51,7 +51,6 @@ else
           qemu-cc
           pause-bundle
           OVMF-TDX
-          calculateSnpIDBlock
           ;
 
         scripts = cPrev.scripts.overrideScope (
