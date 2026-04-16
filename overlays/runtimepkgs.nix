@@ -38,6 +38,8 @@ else
               initializer
               node-installer-image
               nodeinstaller
+              reference-values
+              snp-id-blocks
               ;
           }
         );
