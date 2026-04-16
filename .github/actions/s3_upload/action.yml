@@ -1,0 +1,42 @@
+name: upload to S3
+description: Upload files to the contrast-public S3 bucket (assumes role via OIDC)
+
+inputs:
+  files:
+    description: Newline-separated list of files or glob patterns to upload
+    required: true
+  s3-bucket-path:
+    description: S3 key prefix (under the contrast-public bucket)
+    required: true
+
+outputs:
+  url:
+    description: Public URL of the uploaded artifacts
+    value: ${{ steps.upload-artifacts.outputs.url }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: AWS login (IAM role)
+      uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
+      with:
+        role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
+        aws-region: eu-central-1
+    - name: Upload pre-release artifacts to S3 bucket contrast-public
+      id: upload-artifacts
+      shell: bash
+      env:
+        S3_BUCKET_PATH: ${{ inputs.s3-bucket-path }}
+        FILES: ${{ inputs.files }}
+      run: |
+        shopt -s nullglob
+        readarray -t patterns <<< "$FILES"
+        for pattern in "${patterns[@]}"; do
+          matches=($pattern)
+          for file in "${matches[@]}"; do
+            aws s3 cp "$file" "s3://contrast-public/${S3_BUCKET_PATH}/"
+          done
+        done
+        url="https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/"
+        echo "Artifacts available at $url" | tee -a "$GITHUB_STEP_SUMMARY"
+        echo "url=$url" | tee -a "$GITHUB_OUTPUT"
