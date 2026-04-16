@@ -192,19 +192,18 @@ runs:
       id: upload-artifacts
       shell: bash
       env:
-        S3_BUCKET_PATH: ${{ inputs.s3-bucket-path }}
+        S3_BUCKET_PATH: ${{ inputs.s3-bucket-path }}/${{ github.run_id }}/${{ github.run_attempt }}
         FILES: ${{ steps.artifact-paths.outputs.paths }}
       run: |
         set -u
         shopt -s nullglob
-        unix=$(date +%s)
         readarray -t patterns <<< "$FILES"
         for pattern in "${patterns[@]}"; do
           matches=($pattern)
           for file in "${matches[@]}"; do
-            aws s3 cp "$file" "s3://contrast-public/${S3_BUCKET_PATH}/$unix/"
+            aws s3 cp "$file" "s3://contrast-public/${S3_BUCKET_PATH}/"
           done
         done
-        url="https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/$unix/"
+        url="https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/"
         echo "Artifacts available at $url" | tee -a "$GITHUB_STEP_SUMMARY"
         echo "url=$url" | tee -a "$GITHUB_OUTPUT"
