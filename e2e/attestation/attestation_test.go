@@ -327,6 +327,46 @@ func TestAttestation(t *testing.T) {
 		})
 		require.True(t.Run("set", ct.Set), "set should succeed as long as one validator passes")
 	})
+
+	// Test that the SNP guest policy is configurable.
+	t.Run("configurable-guest-policy", func(t *testing.T) {
+		platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
+		require.NoError(t, err)
+		// Only run on SNP hosts, SNP guest policy irrelevant on other platforms.
+		if !platforms.IsSNP(platform) {
+			t.Skip()
+		}
+		ct := contrasttest.New(t)
+
+		runtimeHandler, err := manifest.RuntimeHandler(platform)
+		require.NoError(t, err)
+		resources := kuberesource.CoordinatorBundle()
+		resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+		resources = kuberesource.AddPortForwarders(resources)
+
+		ct.Init(t, resources)
+		require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+		require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+		require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
+		require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+		unstructured, err := kuberesource.ResourcesToUnstructured(resources)
+		require.NoError(t, err)
+		require.NoError(t, ct.Kubeclient.Delete(t.Context(), unstructured...))
+		require.NoError(t, ct.Kubeclient.WaitForDeletion(t.Context(), unstructured...))
+
+		// Change the guest policy. By default, the minimum required ABIMinor version is 0
+		// (read from packages/by-name/contrast/reference-values/snpGuestPolicyQEMU.json).
+		ct.PatchManifest(t, func(m manifest.Manifest) (manifest.Manifest, error) {
+			for i := range m.ReferenceValues.SNP {
+				m.ReferenceValues.SNP[i].GuestPolicy.ABIMinor++
+			}
+			return m, nil
+		})
+		require.True(t, t.Run("changed guest policy generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+		require.True(t, t.Run("changed guest policy apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+		require.True(t, t.Run("changed guest policy set", ct.Set), "contrast set needs to succeed for subsequent tests")
+		require.True(t, t.Run("changed guest policy contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+	})
 }
 
 func TestMain(m *testing.M) {
