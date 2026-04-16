@@ -55,7 +55,6 @@ else
           pause-bundle
           OVMF-SNP
           OVMF-TDX
-          calculateSnpIDBlock
           ;
 
         scripts = cPrev.scripts.overrideScope (
