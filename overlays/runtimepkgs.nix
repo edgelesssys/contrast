@@ -43,6 +43,7 @@ else
         );
 
         inherit (final.runtimePkgs)
+          badaml-payload
           debugshell
           service-mesh
           k8s-log-collector
@@ -50,6 +51,7 @@ else
           boot-microvm
           qemu-cc
           pause-bundle
+          OVMF-SNP
           OVMF-TDX
           calculateSnpIDBlock
           ;
