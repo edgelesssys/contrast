@@ -118,6 +118,7 @@ _e2e target=default_deploy_target platform=default_platform set=default_set: sof
     trap 'kill $get_logs_pid || true' EXIT
     nix shell .#{{ set }}.contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
+            --genpolicy-cache-path ./{{ workspace_dir }}/layers-cache.json \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --platform {{ platform }} \
             --node-installer-target-conf-type "${node_installer_target_conf_type}" \
