@@ -1,0 +1,647 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Thu, 9 Apr 2026 16:02:14 +0200
+Subject: [PATCH] genpolicy: restrict symlinks in CopyFile
+
+Allowing arbitrary symlinks in the shared directory is unsafe for
+confidential VM use cases. In order to make CopyFile safe both for the
+VM as well for the consuming containers, we implement the following
+rules for symlinks (in addition to the existing rules for other files):
+
+1. Symlinks may not be placed directly into the shared directory.
+2. Symlinks must not point 'upwards', i.e. contain `..` as a path
+   element.
+3. Symlinks must be relative.
+
+These rules ensure that all writes initiated by CopyFile are restricted
+to the shared directory (protecting the VM), and that symlinks can't
+point outside their mount points (protecting the container).
+
+These new restrictions mean that we can't support arbitrary mount
+sources (which might not follow these rules), but the usual k8s suspects
+(ConfigMap, Secret, ServiceAccountToken) should still pass.
+
+In order to aid writing the policy, we convert the CopyFileRequest to a
+structure that does not contain binary data, but well-defined strings
+and types.
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ Cargo.lock                                    |   2 +
+ src/agent/policy/Cargo.toml                   |   7 +
+ src/agent/policy/src/policy.rs                | 222 +++++++++++++++++-
+ src/agent/src/policy.rs                       |   9 +-
+ src/agent/src/rpc.rs                          |  17 +-
+ src/tools/genpolicy/rules.rego                |  50 +++-
+ src/tools/genpolicy/tests/policy/main.rs      |   8 +-
+ .../policy/testdata/copyfile/testcases.json   |  97 ++++++++
+ 8 files changed, 398 insertions(+), 14 deletions(-)
+
+diff --git a/Cargo.lock b/Cargo.lock
+index d02cf4b3d23a0b422ce45248b4fcfffc52131057..3c581657f439da4bacd2096966034c652729d280 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2758,6 +2758,8 @@ version = "0.1.0"
+ dependencies = [
+  "anyhow",
+  "json-patch 2.0.0",
++ "libc",
++ "protocols",
+  "regorus",
+  "serde",
+  "serde_json",
+diff --git a/src/agent/policy/Cargo.toml b/src/agent/policy/Cargo.toml
+index 3562008b91fefa14c0ce810986655aba29b039e1..0e8016a2e3ccab27665c5067c538c8bdacf856da 100644
+--- a/src/agent/policy/Cargo.toml
++++ b/src/agent/policy/Cargo.toml
+@@ -25,8 +25,15 @@ regorus = { version = "0.2.8", default-features = false, features = [
+ ] }
+ json-patch = "2.0.0"
+ 
++# POSIX
++libc.workspace = true
++
+ 
+ # Note: this crate sets the slog 'max_*' features which allows the log level
+ # to be modified at runtime.
+ slog.workspace = true
+ slog-scope.workspace = true
++
++# Internal dependencies
++
++protocols = { workspace = true, features = ["with-serde"] }
+diff --git a/src/agent/policy/src/policy.rs b/src/agent/policy/src/policy.rs
+index 4e4a9debb1b2650bb6fd539406976f960d01bbdd..0aa2c1081c9c4f9998e9ec4bb72e5a3e4bee9aa8 100644
+--- a/src/agent/policy/src/policy.rs
++++ b/src/agent/policy/src/policy.rs
+@@ -6,7 +6,10 @@
+ 
+ //! Policy evaluation for the kata-agent.
+ 
+-use anyhow::{bail, Result};
++use std::{ffi::OsStr, os::unix::ffi::OsStrExt as _};
++
++use anyhow::{bail, Error, Result};
++use protocols::agent::CopyFileRequest;
+ use slog::{debug, error, info, warn};
+ use tokio::io::AsyncWriteExt;
+ 
+@@ -241,3 +244,220 @@ impl AgentPolicy {
+         Ok(())
+     }
+ }
++
++/// FileType represents the S_IFMT part of the POSIX file mode such that it's easier to check in
++/// Rego.
++#[derive(serde::Deserialize, serde::Serialize, Clone, Debug, Default, PartialEq)]
++pub enum FileType {
++    #[default]
++    Unknown,
++    Regular,
++    Directory,
++    Symlink,
++}
++
++impl From<u32> for FileType {
++    fn from(raw_mode: u32) -> Self {
++        match raw_mode & libc::S_IFMT {
++            libc::S_IFREG => Self::Regular,
++            libc::S_IFDIR => Self::Directory,
++            libc::S_IFLNK => Self::Symlink,
++            _ => Self::Unknown,
++        }
++    }
++}
++
++/// PolicyCopyFileRequest is a pre-processed variant of the CopyFileRequest that avoids byte
++/// manipulation in Rego rules.
++#[derive(serde::Deserialize, serde::Serialize, Clone, Debug, Default, PartialEq)]
++#[serde(default)]
++pub struct PolicyCopyFileRequest {
++    pub path: String,
++    pub file_type: FileType,
++    pub symlink_target: Option<String>,
++
++    // Below fields are copied from the original request. They are not used by the genpolicy rules,
++    // but might be relevant for alternative rule sets. The data field is intentionally omitted to
++    // reduce serde overhead and protect the rules engine.
++
++    pub file_size: i64,
++    pub file_mode: u32,
++    pub dir_mode: u32,
++    pub uid: i32,
++    pub gid: i32,
++    pub offset: i64,
++}
++
++impl std::convert::TryFrom<&CopyFileRequest> for PolicyCopyFileRequest {
++    type Error = Error;
++
++    fn try_from(req: &CopyFileRequest) -> Result<Self> {
++        let file_type = req.file_mode.into();
++        let symlink_target: Option<String> = match file_type {
++            FileType::Symlink => {
++                if let Some(s) = OsStr::from_bytes(&req.data).to_str() {
++                    Some(s.to_owned())
++                } else {
++                    bail!("invalid symlink content")
++                }
++            }
++            _ => None,
++        };
++
++        Ok(PolicyCopyFileRequest {
++            path: req.path.clone(),
++            file_type,
++            symlink_target,
++            file_size: req.file_size,
++            file_mode: req.file_mode,
++            dir_mode: req.dir_mode,
++            uid: req.uid,
++            gid: req.gid,
++            offset: req.offset,
++        })
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::convert::TryInto;
++
++    use protocols::agent::CopyFileRequest;
++
++    struct TestCase {
++        name: String,
++        input: CopyFileRequest,
++        output: Option<PolicyCopyFileRequest>,
++    }
++
++    #[test]
++    fn test_copyfile_translation() {
++        let test_cases = [
++            TestCase {
++                name: "regular".to_owned(),
++                input: CopyFileRequest {
++                    file_mode: libc::S_IFREG,
++                    path: "/foo/bar".to_owned(),
++                    ..Default::default()
++                },
++                output: Some(PolicyCopyFileRequest {
++                    file_mode: libc::S_IFREG,
++                    file_type: FileType::Regular,
++                    path: "/foo/bar".to_owned(),
++                    ..Default::default()
++                }),
++            },
++            TestCase {
++                name: "directory".to_owned(),
++                input: CopyFileRequest {
++                    file_mode: libc::S_IFDIR,
++                    path: "/foo".to_owned(),
++                    ..Default::default()
++                },
++                output: Some(PolicyCopyFileRequest {
++                    file_mode: libc::S_IFDIR,
++                    file_type: FileType::Directory,
++                    path: "/foo".to_owned(),
++                    ..Default::default()
++                }),
++            },
++            TestCase {
++                name: "socket".to_owned(),
++                input: CopyFileRequest {
++                    file_mode: libc::S_IFSOCK,
++                    path: "/foo/sock".to_owned(),
++                    ..Default::default()
++                },
++                output: Some(PolicyCopyFileRequest {
++                    file_mode: libc::S_IFSOCK,
++                    file_type: FileType::Unknown,
++                    path: "/foo/sock".to_owned(),
++                    ..Default::default()
++                }),
++            },
++            TestCase {
++                name: "mixed".to_owned(),
++                input: CopyFileRequest {
++                    file_mode: libc::S_IFDIR | libc::S_IFREG,
++                    path: "/foo/dunno".to_owned(),
++                    ..Default::default()
++                },
++                output: Some(PolicyCopyFileRequest {
++                    file_mode: libc::S_IFDIR | libc::S_IFREG,
++                    file_type: FileType::Unknown,
++                    path: "/foo/dunno".to_owned(),
++                    ..Default::default()
++                }),
++            },
++            TestCase {
++                name: "all".to_owned(),
++                input: CopyFileRequest {
++                    file_mode: libc::S_IFMT,
++                    path: "/wat".to_owned(),
++                    ..Default::default()
++                },
++                output: Some(PolicyCopyFileRequest {
++                    file_mode: libc::S_IFMT,
++                    file_type: FileType::Unknown,
++                    path: "/wat".to_owned(),
++                    ..Default::default()
++                }),
++            },
++            TestCase {
++                name: "none".to_owned(),
++                input: CopyFileRequest {
++                    file_mode: 0,
++                    path: "/0".to_owned(),
++                    ..Default::default()
++                },
++                output: Some(PolicyCopyFileRequest {
++                    file_mode: 0,
++                    file_type: FileType::Unknown,
++                    path: "/0".to_owned(),
++                    ..Default::default()
++                }),
++            },
++            TestCase {
++                name: "link/valid".to_owned(),
++                input: CopyFileRequest {
++                    data: b"..data/foo".to_vec(),
++                    file_mode: libc::S_IFLNK,
++                    path: "/foo/lnk".to_owned(),
++                    ..Default::default()
++                },
++                output: Some(PolicyCopyFileRequest {
++                    file_mode: libc::S_IFLNK,
++                    file_type: FileType::Symlink,
++                    symlink_target: Some("..data/foo".to_owned()),
++                    path: "/foo/lnk".to_owned(),
++                    ..Default::default()
++                }),
++            },
++            TestCase {
++                name: "link/invalid".to_owned(),
++                input: CopyFileRequest {
++                    file_mode: libc::S_IFLNK,
++                    data: vec![0x00, 0xFF, 0xFF, 0x00],
++                    ..Default::default()
++                },
++                output: None,
++            },
++        ];
++
++        for test_case in test_cases {
++            let output_res: Result<PolicyCopyFileRequest> = (&test_case.input).try_into();
++            if let Some(expected) = test_case.output {
++                let output = output_res.expect(&format!("test case {}", &test_case.name));
++                assert_eq!(expected, output, "test case {}", &test_case.name)
++            } else {
++                assert!(
++                    output_res.is_err(),
++                    "test case {}\nunexpected success: {:?}",
++                    &test_case.name,
++                    output_res
++                )
++            }
++        }
++    }
++}
+diff --git a/src/agent/src/policy.rs b/src/agent/src/policy.rs
+index 1b8f391c0b1322d79ed1b89307c1f76876a40c0d..fddef06ed29bc38a7363600586dabb1f1e18e22b 100644
+--- a/src/agent/src/policy.rs
++++ b/src/agent/src/policy.rs
+@@ -29,9 +29,16 @@ async fn allow_request(policy: &mut AgentPolicy, ep: &str, request: &str) -> ttr
+ }
+ 
+ pub async fn is_allowed(req: &(impl MessageDyn + serde::Serialize)) -> ttrpc::Result<()> {
++    is_allowed_with_entrypoint(req.descriptor_dyn().name(), &req).await
++}
++
++pub async fn is_allowed_with_entrypoint(
++    ep: &str,
++    req: &impl serde::Serialize,
++) -> ttrpc::Result<()> {
+     let request = serde_json::to_string(req).unwrap();
+     let mut policy = AGENT_POLICY.lock().await;
+-    allow_request(&mut policy, req.descriptor_dyn().name(), &request).await
++    allow_request(&mut policy, ep, &request).await
+ }
+ 
+ pub async fn do_set_policy(req: &protocols::agent::SetPolicyRequest) -> ttrpc::Result<()> {
+diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
+index bd3be1b66a1d3d04478fa1bfdc38b9c6ae6a6bc5..0afef15adcabbbb629e2311d4fabe8ddd17b1630 100644
+--- a/src/agent/src/rpc.rs
++++ b/src/agent/src/rpc.rs
+@@ -4,12 +4,16 @@
+ //
+ 
+ use async_trait::async_trait;
++#[cfg(feature = "agent-policy")]
++use kata_agent_policy::policy::PolicyCopyFileRequest;
+ use rustjail::{pipestream::PipeStream, process::StreamType};
+ use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf};
+ use tokio::sync::Mutex;
+ use tokio::time::{timeout, Duration};
+ 
+ use std::convert::TryFrom;
++#[cfg(feature = "agent-policy")]
++use std::convert::TryInto as _;
+ use std::ffi::{CString, OsStr};
+ use std::fmt::Debug;
+ use std::io;
+@@ -28,6 +32,8 @@ use anyhow::{anyhow, Context, Result};
+ use cgroups::freezer::FreezerState;
+ use oci::{Hooks, LinuxNamespace, Spec};
+ use oci_spec::runtime as oci;
++#[cfg(feature = "agent-policy")]
++use protobuf::MessageDyn;
+ use protobuf::MessageField;
+ use protocols::agent::{
+     AddSwapPathRequest, AddSwapRequest, AgentDetails, CopyFileRequest, GetIPTablesRequest,
+@@ -85,7 +91,7 @@ use crate::trace_rpc_call;
+ use crate::tracer::extract_carrier_from_ttrpc;
+ 
+ #[cfg(feature = "agent-policy")]
+-use crate::policy::{do_set_policy, is_allowed};
++use crate::policy::{do_set_policy, is_allowed, is_allowed_with_entrypoint};
+ 
+ use opentelemetry::global;
+ use tracing::span;
+@@ -1519,6 +1525,15 @@ impl agent_ttrpc::AgentService for AgentService {
+         req: protocols::agent::CopyFileRequest,
+     ) -> ttrpc::Result<Empty> {
+         trace_rpc_call!(ctx, "copy_file", req);
++        #[cfg(feature = "agent-policy")]
++        {
++            let req_for_policy: PolicyCopyFileRequest = (&req)
++                .try_into()
++                .context("parsing CopyFileRequest for policy")
++                .map_ttrpc_err(same)?;
++            is_allowed_with_entrypoint(req.descriptor_dyn().name(), &req_for_policy).await?;
++        }
++        #[cfg(not(feature = "agent-policy"))]
+         is_allowed(&req).await?;
+ 
+         do_copy_file(&req).map_ttrpc_err(same)?;
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index 77a0a6b55aa1326b67dd20ed54faaa7aa06973b2..2b1d621b50c4cb2371cbc99a71e4cdfaad91f5fa 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -1528,19 +1528,55 @@ allow_sandbox_storage(p_storages, i_storage) if {
+ }
+ 
+ CopyFileRequest if {
+-    print("CopyFileRequest: input.path =", input.path)
++    print("CopyFileRequest: input =", input)
+ 
+-    check_directory_traversal(input.path)
++    allow_copy_file
++
++    print("CopyFileRequest: true")
++}
++
++allow_copy_file if {
++    print("allow_copy_file regular")
++
++    input.file_type == "Regular"
++    allow_copy_file_path(input.path, "")
++
++    print("allow_copy_file regular: true")
++}
++
++allow_copy_file if {
++    print("allow_copy_file directory")
++
++    input.file_type == "Directory"
++    allow_copy_file_path(input.path, "")
++
++    print("allow_copy_file directory: true")
++}
++
++allow_copy_file if {
++    print("allow_copy_file symlink")
++
++    input.file_type == "Symlink"
++    # Symlinks are not allowed on the top-level of the shared directory, from which we mount.
++    allow_copy_file_path(input.path, ".*/.+")
++    # Symlinks must be normalized.
++    check_directory_traversal(input.symlink_target)
++    # Symlinks must be relative.
++    not startswith(input.symlink_target, "/")
++
++    print("allow_copy_file symlink: true")
++}
++
++allow_copy_file_path(path, regex_suffix) if {
++    check_directory_traversal(path)
+ 
+     some regex1 in policy_data.request_defaults.CopyFileRequest
+     regex2 := replace(regex1, "$(sfprefix)", policy_data.common.sfprefix)
+     regex3 := replace(regex2, "$(cpath)", policy_data.common.cpath)
+     regex4 := replace(regex3, "$(bundle-id)", "[a-z0-9]{64}")
+-    print("CopyFileRequest: regex4 =", regex4)
+-
+-    regex.match(regex4, input.path)
+-
+-    print("CopyFileRequest: true")
++    regex5 := concat("", [regex4, regex_suffix])
++    print("allow_copy_file_path: regex5 =", regex5)
++    regex.match(regex5, path)
+ }
+ 
+ CreateSandboxRequest if {
+diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
+index e8879d17da739dbff315f3a6ce908dd7f891593f..e18481322629916cda44da4a9ac2f821026c6628 100644
+--- a/src/tools/genpolicy/tests/policy/main.rs
++++ b/src/tools/genpolicy/tests/policy/main.rs
+@@ -12,12 +12,12 @@ mod tests {
+     use std::str;
+ 
+     use protocols::agent::{
+-        AddARPNeighborsRequest, CopyFileRequest, CreateContainerRequest, CreateSandboxRequest,
+-        ExecProcessRequest, RemoveContainerRequest, UpdateInterfaceRequest, UpdateRoutesRequest,
++        AddARPNeighborsRequest, CreateContainerRequest, CreateSandboxRequest, ExecProcessRequest,
++        RemoveContainerRequest, UpdateInterfaceRequest, UpdateRoutesRequest,
+     };
+     use serde::{Deserialize, Serialize};
+ 
+-    use kata_agent_policy::policy::AgentPolicy;
++    use kata_agent_policy::policy::{AgentPolicy, PolicyCopyFileRequest};
+ 
+     // Translate each test case in testcases.json
+     // to one request type.
+@@ -25,7 +25,7 @@ mod tests {
+     #[serde(tag = "kind", content = "request")]
+     #[allow(clippy::enum_variant_names)] // The tags need to match the entrypoint logged by the agent.
+     enum TestRequest {
+-        CopyFileRequest(CopyFileRequest),
++        CopyFileRequest(PolicyCopyFileRequest),
+         CreateContainerRequest(CreateContainerRequest),
+         CreateSandboxRequest(CreateSandboxRequest),
+         ExecProcessRequest(ExecProcessRequest),
+diff --git a/src/tools/genpolicy/tests/policy/testdata/copyfile/testcases.json b/src/tools/genpolicy/tests/policy/testdata/copyfile/testcases.json
+index 17e52f2e1bcc407209a8b6ea351eebebf60089d0..ed4d4d1fbd5d73d8cc4569d69d8c077bb7f79a36 100644
+--- a/src/tools/genpolicy/tests/policy/testdata/copyfile/testcases.json
++++ b/src/tools/genpolicy/tests/policy/testdata/copyfile/testcases.json
+@@ -4,6 +4,7 @@
+     "description": "copy initiated by k8s mount",
+     "kind": "CopyFileRequest",
+     "request": {
++      "file_type": "Regular",
+       "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-resolv.conf"
+     }
+   },
+@@ -12,6 +13,7 @@
+     "description": "a dirname can have trailing dots",
+     "kind": "CopyFileRequest",
+     "request": {
++      "file_type": "Regular",
+       "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo../bar"
+     }
+   },
+@@ -20,6 +22,7 @@
+     "description": "attempt to copy outside of container root",
+     "kind": "CopyFileRequest",
+     "request": {
++      "file_type": "Regular",
+       "path": "/etc/ssl/cert.pem"
+     }
+   },
+@@ -28,6 +31,7 @@
+     "description": "attempt to write into container root",
+     "kind": "CopyFileRequest",
+     "request": {
++      "file_type": "Regular",
+       "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc/rootfs/bin/sh"
+     }
+   },
+@@ -36,6 +40,7 @@
+     "description": "attempt to write into container root - guest pull",
+     "kind": "CopyFileRequest",
+     "request": {
++      "file_type": "Regular",
+       "path": "/run/kata-containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc/rootfs/bin/sh"
+     }
+   },
+@@ -44,6 +49,7 @@
+     "description": "attempted directory traversal",
+     "kind": "CopyFileRequest",
+     "request": {
++      "file_type": "Regular",
+       "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo/../../../../../etc/ssl/cert.pem"
+     }
+   },
+@@ -52,6 +58,7 @@
+     "description": "attempted directory traversal - parent directory",
+     "kind": "CopyFileRequest",
+     "request": {
++      "file_type": "Directory",
+       "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo/.."
+     }
+   },
+@@ -60,6 +67,7 @@
+     "description": "relative path",
+     "kind": "CopyFileRequest",
+     "request": {
++      "file_type": "Regular",
+       "path": "etc/ssl/cert.pem"
+     }
+   },
+@@ -68,7 +76,96 @@
+     "description": "relative path - parent directory",
+     "kind": "CopyFileRequest",
+     "request": {
++      "file_type": "Directory",
+       "path": ".."
+     }
++  },
++  {
++    "allowed": false,
++    "description": "unsupported file type",
++    "kind": "CopyFileRequest",
++    "request": {
++      "file_type": "Unknown",
++      "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo/bar"
++    }
++  },
++  {
++    "allowed": true,
++    "description": "directory in top-level shared directory",
++    "kind": "CopyFileRequest",
++    "request": {
++      "file_type": "Directory",
++      "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo"
++    }
++  },
++  {
++    "allowed": false,
++    "description": "symlink in top-level shared directory",
++    "kind": "CopyFileRequest",
++    "request": {
++      "symlink_target": "abc",
++      "file_type": "Symlink",
++      "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo"
++    }
++  },
++  {
++    "allowed": true,
++    "description": "symlink beneath top-level shared directory",
++    "kind": "CopyFileRequest",
++    "request": {
++      "symlink_target": "abc",
++      "file_type": "Symlink",
++      "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo/lnk"
++    }
++  },
++  {
++    "allowed": false,
++    "description": "symlink pointing up - leading",
++    "kind": "CopyFileRequest",
++    "request": {
++      "symlink_target": "../abc",
++      "file_type": "Symlink",
++      "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo/lnk"
++    }
++  },
++  {
++    "allowed": false,
++    "description": "symlink pointing up - middle",
++    "kind": "CopyFileRequest",
++    "request": {
++      "symlink_target": "a/../../b",
++      "file_type": "Symlink",
++      "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo/lnk"
++    }
++  },
++  {
++    "allowed": false,
++    "description": "symlink pointing up - trailing",
++    "kind": "CopyFileRequest",
++    "request": {
++      "symlink_target": "foo/..",
++      "file_type": "Symlink",
++      "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo/lnk"
++    }
++  },
++  {
++    "allowed": false,
++    "description": "symlink pointing up - ..",
++    "kind": "CopyFileRequest",
++    "request": {
++      "symlink_target": "..",
++      "file_type": "Symlink",
++      "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo/lnk"
++    }
++  },
++  {
++    "allowed": false,
++    "description": "symlink with absolute target",
++    "kind": "CopyFileRequest",
++    "request": {
++      "symlink_target": "/abc",
++      "file_type": "Symlink",
++      "path": "/run/kata-containers/shared/containers/81e5f43bc8599c5661e66f959ac28df5bfb30da23c5d583f2dcc6f9e0c5186dc-ce23cfeb91e75aaa-foo/lnk"
++    }
+   }
+ ]
