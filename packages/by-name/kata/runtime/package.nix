@@ -144,6 +144,11 @@ buildGoModule (finalAttrs: {
       # This patch relies on changes made by 0001-emulate-CPU-model-that-most-closely-matches-the-host.patch
       # together with being specific to our use case. There are no plans to upstream it.
       ./0021-runtime-add-SNP-ID-block-from-Pod-annotations.patch
+
+      # Fixes a vulnerability in the CopyFile policy.
+      # Drop after upgrading to Kata 3.29.0.
+      # https://github.com/kata-containers/kata-containers/security/advisories/GHSA-q49m-57vm-c8cc
+      ./0022-genpolicy-restrict-symlinks-in-CopyFile.patch
     ];
   };
 
