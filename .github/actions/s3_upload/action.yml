@@ -30,13 +30,11 @@ runs:
         FILES: ${{ inputs.files }}
       run: |
         shopt -s nullglob
-        readarray -t patterns <<< "$FILES"
-        for pattern in "${patterns[@]}"; do
-          matches=($pattern)
-          for file in "${matches[@]}"; do
+        while IFS= read -r pattern; do
+          for file in $pattern; do
             aws s3 cp "$file" "s3://contrast-public/${S3_BUCKET_PATH}/"
           done
-        done
+        done <<< "$FILES"
         url="https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/"
         echo "Artifacts available at $url" | tee -a "$GITHUB_STEP_SUMMARY"
         echo "url=$url" | tee -a "$GITHUB_OUTPUT"
