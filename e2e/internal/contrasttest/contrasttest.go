@@ -50,6 +50,7 @@ var Flags testFlags
 type testFlags struct {
 	PlatformStr                 string
 	ImageReplacementsFile       string
+	GenpolicyCachePath          string
 	NamespaceFile               string
 	NamespaceSuffix             string
 	NodeInstallerTargetConfType string
@@ -60,6 +61,7 @@ type testFlags struct {
 // RegisterFlags registers the flags that are shared between all tests.
 func RegisterFlags() {
 	flag.StringVar(&Flags.ImageReplacementsFile, "image-replacements", "", "path to image replacements file")
+	flag.StringVar(&Flags.GenpolicyCachePath, "genpolicy-cache-path", "", "path to the genpolicy image layer cache file")
 	flag.StringVar(&Flags.NamespaceFile, "namespace-file", "", "file to store the namespace in")
 	flag.StringVar(&Flags.NamespaceSuffix, "namespace-suffix", "", "suffix to append to the namespace")
 	flag.StringVar(&Flags.PlatformStr, "platform", "", "Deployment platform")
@@ -225,8 +227,11 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 		"--image-replacements", ct.ImageReplacementsFile,
 		"--reference-values", ct.Platform.String(),
 		fmt.Sprintf("--insecure-enable-debug-shell-access=%t", Flags.InsecureEnableDebugShell),
-		ct.WorkDir,
 	)
+	if Flags.GenpolicyCachePath != "" {
+		args = append(args, "--genpolicy-cache-path", Flags.GenpolicyCachePath)
+	}
+	args = append(args, ct.WorkDir)
 
 	generate := cmd.NewGenerateCmd()
 	generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
