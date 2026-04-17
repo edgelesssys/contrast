@@ -17,11 +17,11 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.cleanup == 'false'
     runs-on: ubuntu-24.04
     permissions:
-      pull-requests: write
-      issues: write
       contents: read
       packages: write
       id-token: write
+    outputs:
+      s3-bucket-url: ${{ steps.create-artifacts.outputs.s3-bucket-url }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -51,6 +51,42 @@ jobs:
           version: ${{ steps.get-version.outputs.version }}
           container_registry: ghcr.io/edgelesssys
           s3-bucket-path: "pr-artifacts"
+
+  build-darwin-cli:
+    name: Build aarch64-darwin CLI for PR
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.cleanup == 'false'
+    needs: [create-release-artifacts]
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SET: base
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - uses: ./.github/actions/build_cli
+        with:
+          system: aarch64-darwin
+      - uses: ./.github/actions/s3_upload
+        with:
+          files: workspace/contrast-aarch64-darwin
+          s3-bucket-path: pr-artifacts/${{ github.run_id }}/${{ github.run_attempt }}
+
+  notify:
+    name: Create PR comment with artifact links
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.cleanup == 'false'
+    needs: [create-release-artifacts, build-darwin-cli]
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
       - name: Get PR number
         id: get-pr-number
         env:
@@ -75,7 +111,7 @@ jobs:
 
             The pre-release artifacts for this commit are available at the following link:
 
-            ${{ steps.create-artifacts.outputs.s3-bucket-url }}
+            ${{ needs.create-release-artifacts.outputs.s3-bucket-url }}
 
             Created by @${{ github.actor }} in [pr_release_artifacts workflow](
               https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}?pr=${{ steps.get-pr-number.outputs.pr_number }}
