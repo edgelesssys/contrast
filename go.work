@@ -10,6 +10,7 @@ use (
 	./tools/debugshell
 	./tools/imagepuller-benchmark
 	./tools/kernelconfig
+	./tools/sev-snp-measure-go
 	./tools/tdx-measure
 // keep-sorted end
 )
