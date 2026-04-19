@@ -15,12 +15,12 @@ import (
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-// RuntimeClassesExist verifies that all used contrast-cc -prefixed runtimeClassNames are valid.
+// RuntimeClassesExist verifies that all used contrast-cc or contrast-insecure prefixed runtimeClassNames are valid.
 type RuntimeClassesExist struct {
 	Command *cobra.Command
 }
 
-// Verify verifies that all used contrast-cc -prefixed runtimeClassNames are valid.
+// Verify verifies that all used contrast-cc or contrast-insecure prefixed runtimeClassNames are valid.
 func (r *RuntimeClassesExist) Verify(toVerify any) error {
 	var collectedErrs error
 	collectedMissingRuntimes := map[string]error{}
@@ -34,11 +34,11 @@ func (r *RuntimeClassesExist) Verify(toVerify any) error {
 		if spec == nil || spec.RuntimeClassName == nil {
 			return spec
 		}
-		if defaultRuntimeClass == "" && *spec.RuntimeClassName == "contrast-cc" {
-			collectedMissingRuntimes["contrast-cc"] = fmt.Errorf("no default platform was specified using --reference-values")
+		if defaultRuntimeClass == "" && (*spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "contrast-insecure") {
+			collectedMissingRuntimes[*spec.RuntimeClassName] = fmt.Errorf("no default platform was specified using --reference-values")
 			return spec
 		}
-		if !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") {
+		if !(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure-")) {
 			return spec
 		}
 

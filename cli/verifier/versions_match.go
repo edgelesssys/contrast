@@ -34,7 +34,8 @@ func (v *VersionsMatch) Verify(toVerify any) error {
 		meta *applymetav1.ObjectMetaApplyConfiguration,
 		spec *applycorev1.PodSpecApplyConfiguration,
 	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil ||
+			!(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure")) {
 			return meta, spec
 		}
 

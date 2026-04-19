@@ -46,7 +46,7 @@ func AddInitializer(
 		if meta != nil && meta.Annotations[skipInitializerAnnotationKey] == "true" {
 			return meta, spec
 		}
-		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure")) {
 			return meta, spec
 		}
 		if meta != nil && meta.Annotations[securePVAnnotationKey] != "" {
@@ -173,7 +173,7 @@ func AddServiceMesh(
 	serviceMeshProxy *applycorev1.ContainerApplyConfiguration,
 ) (res any, retErr error) {
 	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure")) {
 			return meta, spec
 		}
 
@@ -230,7 +230,7 @@ func AddDebugShell(
 	debugShell *applycorev1.ContainerApplyConfiguration,
 ) (any, error) {
 	return MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure")) {
 			return spec
 		}
 
@@ -319,7 +319,7 @@ func AddDmesg(resources []any) []any {
 			WithPrivileged(true).SecurityContextApplyConfiguration)
 
 	addDmesg := func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure")) {
 			return spec
 		}
 		spec.Containers = append(spec.Containers, *dmesgContainer)
@@ -380,7 +380,7 @@ func AddImageStore(resources []any) []any {
 
 	addPvc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
 	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure")) {
 			return meta, spec
 		}
 
@@ -733,7 +733,7 @@ func PatchNodeSelector(resources []any) []any {
 	var out []any
 	for _, resource := range resources {
 		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-			if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+			if spec == nil || spec.RuntimeClassName == nil || !(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure")) {
 				return spec
 			}
 			spec = spec.WithNodeSelector(map[string]string{

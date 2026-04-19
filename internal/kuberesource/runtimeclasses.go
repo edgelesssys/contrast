@@ -90,7 +90,12 @@ func (p PlatformCollection) AddFromResources(resources []any) error {
 	for _, resource := range resources {
 		_ = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
 		) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-			if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") {
+			if spec == nil || spec.RuntimeClassName == nil || !(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure-")) {
+				return meta, spec
+			}
+			// Bare runtime class names (e.g. "contrast-cc") are placeholders
+			// that get resolved during generate. Skip them here.
+			if *spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "contrast-insecure" {
 				return meta, spec
 			}
 			platform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)

@@ -179,6 +179,16 @@ func DefaultMemoryInMebiBytes(p Platform) int {
 	}
 }
 
+// IsInsecure returns true if the platform is an insecure (non-CC) platform.
+func IsInsecure(p Platform) bool {
+	switch p {
+	case MetalQEMUSNPInsecure, MetalQEMUTDXInsecure, MetalQEMUSNPGPUInsecure, MetalQEMUTDXGPUInsecure:
+		return true
+	default:
+		return false
+	}
+}
+
 // IsSNP returns true if the platform is a SEV-SNP platform.
 func IsSNP(p Platform) bool {
 	switch p {
