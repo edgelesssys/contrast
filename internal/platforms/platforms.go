@@ -24,11 +24,22 @@ const (
 	MetalQEMUSNPGPU
 	// MetalQEMUTDXGPU is the generic platform for bare-metal TDX deployments with GPU passthrough.
 	MetalQEMUTDXGPU
+	// MetalQEMUSNPInsecure is the platform for bare-metal SNP deployments with a non-CC runtime class.
+	MetalQEMUSNPInsecure
+	// MetalQEMUTDXInsecure is the platform for bare-metal TDX deployments with a non-CC runtime class.
+	MetalQEMUTDXInsecure
+	// MetalQEMUSNPGPUInsecure is the platform for bare-metal SNP deployments with GPU passthrough and a non-CC runtime class.
+	MetalQEMUSNPGPUInsecure
+	// MetalQEMUTDXGPUInsecure is the platform for bare-metal TDX deployments with GPU passthrough and a non-CC runtime class.
+	MetalQEMUTDXGPUInsecure
 )
 
 // All returns a list of all available platforms.
 func All() []Platform {
-	return []Platform{MetalQEMUSNP, MetalQEMUTDX, MetalQEMUSNPGPU, MetalQEMUTDXGPU}
+	return []Platform{
+		MetalQEMUSNP, MetalQEMUTDX, MetalQEMUSNPGPU, MetalQEMUTDXGPU,
+		MetalQEMUSNPInsecure, MetalQEMUTDXInsecure, MetalQEMUSNPGPUInsecure, MetalQEMUTDXGPUInsecure,
+	}
 }
 
 // AllStrings returns a list of all available platforms as strings.
@@ -51,6 +62,14 @@ func (p Platform) String() string {
 		return "Metal-QEMU-TDX"
 	case MetalQEMUTDXGPU:
 		return "Metal-QEMU-TDX-GPU"
+	case MetalQEMUSNPInsecure:
+		return "Metal-QEMU-SNP-Insecure"
+	case MetalQEMUTDXInsecure:
+		return "Metal-QEMU-TDX-Insecure"
+	case MetalQEMUSNPGPUInsecure:
+		return "Metal-QEMU-SNP-GPU-Insecure"
+	case MetalQEMUTDXGPUInsecure:
+		return "Metal-QEMU-TDX-GPU-Insecure"
 	default:
 		return "Unknown"
 	}
@@ -99,6 +118,14 @@ func FromString(s string) (Platform, error) {
 		return MetalQEMUTDX, nil
 	case "metal-qemu-tdx-gpu":
 		return MetalQEMUTDXGPU, nil
+	case "metal-qemu-snp-insecure":
+		return MetalQEMUSNPInsecure, nil
+	case "metal-qemu-tdx-insecure":
+		return MetalQEMUTDXInsecure, nil
+	case "metal-qemu-snp-gpu-insecure":
+		return MetalQEMUSNPGPUInsecure, nil
+	case "metal-qemu-tdx-gpu-insecure":
+		return MetalQEMUTDXGPUInsecure, nil
 	default:
 		return Unknown, fmt.Errorf("unknown platform: %s", s)
 	}
@@ -121,10 +148,18 @@ func FromRuntimeClassString(s string) (Platform, error) {
 		return MetalQEMUSNPGPU, nil
 	case strings.HasPrefix(s, "contrast-cc-metal-qemu-snp"):
 		return MetalQEMUSNP, nil
+	case strings.HasPrefix(s, "contrast-insecure-metal-qemu-snp-gpu"):
+		return MetalQEMUSNPGPUInsecure, nil
+	case strings.HasPrefix(s, "contrast-insecure-metal-qemu-snp"):
+		return MetalQEMUSNPInsecure, nil
 	case strings.HasPrefix(s, "contrast-cc-metal-qemu-tdx-gpu"):
 		return MetalQEMUTDXGPU, nil
 	case strings.HasPrefix(s, "contrast-cc-metal-qemu-tdx"):
 		return MetalQEMUTDX, nil
+	case strings.HasPrefix(s, "contrast-insecure-metal-qemu-tdx-gpu"):
+		return MetalQEMUTDXGPUInsecure, nil
+	case strings.HasPrefix(s, "contrast-insecure-metal-qemu-tdx"):
+		return MetalQEMUTDXInsecure, nil
 	default:
 		return Unknown, fmt.Errorf("unknown platform: %s", s)
 	}
@@ -167,7 +202,7 @@ func IsTDX(p Platform) bool {
 // IsGPU returns true if the platform supports GPUs.
 func IsGPU(p Platform) bool {
 	switch p {
-	case MetalQEMUSNPGPU, MetalQEMUTDXGPU:
+	case MetalQEMUSNPGPU, MetalQEMUTDXGPU, MetalQEMUSNPGPUInsecure, MetalQEMUTDXGPUInsecure:
 		return true
 	default:
 		return false
@@ -177,7 +212,8 @@ func IsGPU(p Platform) bool {
 // IsQEMU returns true if the platform uses QEMU as the hypervisor.
 func IsQEMU(p Platform) bool {
 	switch p {
-	case MetalQEMUSNP, MetalQEMUSNPGPU, MetalQEMUTDX, MetalQEMUTDXGPU:
+	case MetalQEMUSNP, MetalQEMUSNPGPU, MetalQEMUTDX, MetalQEMUTDXGPU,
+		MetalQEMUSNPInsecure, MetalQEMUTDXInsecure, MetalQEMUSNPGPUInsecure, MetalQEMUTDXGPUInsecure:
 		return true
 	default:
 		return false
@@ -191,6 +227,10 @@ func (p Platform) WithGPU() Platform {
 		return MetalQEMUSNPGPU
 	case MetalQEMUTDX, MetalQEMUTDXGPU:
 		return MetalQEMUTDXGPU
+	case MetalQEMUSNPInsecure, MetalQEMUSNPGPUInsecure:
+		return MetalQEMUSNPGPUInsecure
+	case MetalQEMUTDXInsecure, MetalQEMUTDXGPUInsecure:
+		return MetalQEMUTDXGPUInsecure
 	default:
 		return Unknown
 	}
