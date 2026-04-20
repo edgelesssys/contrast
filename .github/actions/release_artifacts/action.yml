@@ -186,7 +186,7 @@ runs:
       run: |
         nix build -L ".#${SET}.contrast.cli-release" --out-link workspace/contrast-cli
     - name: AWS login (IAM role)
-      uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
+      uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
       with:
         role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
         aws-region: eu-central-1
