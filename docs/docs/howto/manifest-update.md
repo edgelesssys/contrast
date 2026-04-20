@@ -64,3 +64,31 @@ Optionally, you can specify a transition hash using the `--latest-transition` fl
 ```sh
 contrast set -c "${coordinator}:1313" --atomic --latest-transition ab...cd resources/
 ```
+
+### Signed manifest updates
+
+Only authorized users with access to a trusted workload owner key can set a manifest at the Coordinator.
+During a normal manifest update, the workload owner key is passed to the CLI and used directly in the TLS handshake with the Coordinator.
+It's also possible to use externally managed keys, for example, in a hardware security module (HSM) or a cloud key management service (KMS).
+In this case, the manifest update can be signed with the workload owner key and only the signature is needed to set the manifest.
+
+The signature is generated over the manifest content and the latest transition hash, which is obtained from a previous `contrast verify`.
+Use the `contrast sign` subcommand with the `--prepare` flag to get the blob that needs to be signed:
+
+```sh
+contrast sign --prepare --out next-transition
+```
+
+Then, sign the blob with the workload owner key and pass the signature to the CLI:
+
+```sh
+openssl dgst -sha256 -sign <workload-owner-key> -out transition.sig next-transition
+contrast set -c "${coordinator}:1313" -s transition.sig resources/
+```
+
+If you have direct access to the workload owner key, you can also sign the manifest update using the CLI:
+
+```sh
+contrast sign --out transition.sig
+contrast set -c "${coordinator}:1313" -s transition.sig resources/
+```
