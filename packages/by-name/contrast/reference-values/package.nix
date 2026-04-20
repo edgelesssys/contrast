@@ -99,7 +99,12 @@ let
     };
     withGPU = true;
   };
-  insecureRefVals = { };
+  insecureSnpRefVals = {
+    snp = [ { } ];
+  };
+  insecureTdxRefVals = {
+    tdx = [ { } ];
+  };
 in
 
 builtins.toFile "reference-values.json" (
@@ -108,9 +113,9 @@ builtins.toFile "reference-values.json" (
     "${cc-metal-qemu-snp-handler}" = snpRefVals;
     "${cc-metal-qemu-snp-gpu-handler}" = snpGpuRefVals;
     "${cc-metal-qemu-tdx-gpu-handler}" = tdxGpuRefVals;
-    "${insecure-metal-qemu-snp-handler}" = insecureRefVals;
-    "${insecure-metal-qemu-snp-gpu-handler}" = insecureRefVals;
-    "${insecure-metal-qemu-tdx-handler}" = insecureRefVals;
-    "${insecure-metal-qemu-tdx-gpu-handler}" = insecureRefVals;
+    "${insecure-metal-qemu-snp-handler}" = insecureSnpRefVals;
+    "${insecure-metal-qemu-snp-gpu-handler}" = insecureSnpRefVals;
+    "${insecure-metal-qemu-tdx-handler}" = insecureTdxRefVals;
+    "${insecure-metal-qemu-tdx-gpu-handler}" = insecureTdxRefVals;
   }
 )

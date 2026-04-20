@@ -5,16 +5,20 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/initdata-processor/policy"
 	"github.com/edgelesssys/contrast/initdata-processor/validator"
+	"github.com/edgelesssys/contrast/internal/attestation/insecure"
 	"github.com/edgelesssys/contrast/internal/initdata"
 )
 
@@ -31,6 +35,9 @@ func main() {
 	log.Printf("Contrast initdata-processor %s", version)
 	log.Print("Report issues at https://github.com/edgelesssys/contrast/issues")
 
+	var hostdata []byte
+	var insecurePlatform bool
+
 	// Handle initdata.
 	if err := os.MkdirAll(measuredConfigPath, 0o755); err != nil {
 		failf("Could not create directory %q: %v", measuredConfigPath, err)
@@ -46,7 +53,8 @@ func main() {
 		failf("%s is not an initdata device: %v", device, err)
 		return
 	}
-	if err := handleInitdata(doc); err != nil {
+	hostdata, insecurePlatform, err = handleInitdata(doc)
+	if err != nil {
 		failf("handling initdata: %v", err)
 		return
 	}
@@ -60,48 +68,89 @@ func main() {
 	device, err = checkDeviceAvailability("imagepuller")
 	if err != nil {
 		log.Println("No imagepuller auth config found, only unauthenticated pulls will be available")
-		return
+	} else {
+		doc, err = initdata.FromDevice(device, "imgpullr")
+		if err != nil {
+			failf("%s is not an imagepuller config device: %v", device, err)
+			return
+		}
+		if err := handleImagepullerAuthConfig(doc); err != nil {
+			failf("handling imagepuller auth config: %v", err)
+			return
+		}
+		log.Printf("Processed imagepuller auth config from %q ", device)
 	}
-	doc, err = initdata.FromDevice(device, "imgpullr")
-	if err != nil {
-		failf("%s is not an imagepuller config device: %v", device, err)
-		return
+
+	// Signal systemd that initdata processing is complete.
+	sdNotifyReady()
+
+	// On insecure platforms, serve the hostdata digest via HTTP so that
+	// the insecure aTLS issuer (running inside containers) can fetch it.
+	if insecurePlatform {
+		log.Printf("Starting insecure hostdata server on %s", insecure.HostdataAddr)
+		if err := serveHostdata(hostdata); err != nil {
+			log.Printf("Hostdata server error: %v", err)
+		}
 	}
-	if err := handleImagepullerAuthConfig(doc); err != nil {
-		failf("handling imagepuller auth config: %v", err)
-		return
-	}
-	log.Printf("Processed imagepuller auth config from %q ", device)
 }
 
-func handleInitdata(doc initdata.Raw) error {
-	v, err := validator.New()
-	// TODO: Fine to just skip unconditionally here?
-	if errors.Is(err, validator.ErrNoPlatform) {
-		log.Print("WARNING: No TEE platform detected, skipping initdata digest validation. This is expected on insecure platforms.")
-	} else if err != nil {
-		return fmt.Errorf("creating validator: %w", err)
-	} else {
-		digest, err := doc.Digest()
-		if err != nil {
-			return fmt.Errorf("computing initdata digest: %w", err)
-		}
-		if err := v.ValidateDigest(digest); err != nil {
-			return fmt.Errorf("validating initdata digest: %w", err)
-		}
+func handleInitdata(doc initdata.Raw) (hostdata []byte, insecurePlatform bool, retErr error) {
+	digest, err := doc.Digest()
+	if err != nil {
+		return nil, false, fmt.Errorf("computing initdata digest: %w", err)
 	}
+
+	v, verr := validator.New()
+	if errors.Is(verr, validator.ErrNoPlatform) {
+		log.Print("WARNING: No TEE platform detected, skipping initdata digest validation. This is expected on insecure platforms.")
+		insecurePlatform = true
+	} else if verr != nil {
+		return nil, false, fmt.Errorf("creating validator: %w", verr)
+	} else if err := v.ValidateDigest(digest); err != nil {
+		return nil, false, fmt.Errorf("validating initdata digest: %w", err)
+	}
+
 	data, err := doc.Parse()
 	if err != nil {
-		return fmt.Errorf("parsing initdata: %w", err)
+		return nil, false, fmt.Errorf("parsing initdata: %w", err)
 	}
 	for name, content := range data.Data {
 		name = filepath.Clean(name)
 		path := filepath.Join(measuredConfigPath, name)
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-			return fmt.Errorf("writing file %q: %w", path, err)
+			return nil, false, fmt.Errorf("writing file %q: %w", path, err)
 		}
 	}
-	return nil
+	return digest, insecurePlatform, nil
+}
+
+// serveHostdata starts an HTTP server that serves the hostdata digest.
+func serveHostdata(hostdata []byte) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /hostdata", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/octet-stream")
+		if _, err := w.Write(hostdata); err != nil {
+			log.Printf("hostdata write error: %v", err)
+		}
+	})
+	return http.ListenAndServe(insecure.HostdataAddr, mux)
+}
+
+// sdNotifyReady signals systemd that the service is ready.
+func sdNotifyReady() {
+	addr := os.Getenv("NOTIFY_SOCKET")
+	if addr == "" {
+		return
+	}
+	conn, err := (&net.Dialer{}).DialContext(context.Background(), "unixgram", addr)
+	if err != nil {
+		log.Printf("sd_notify: dial: %v", err)
+		return
+	}
+	defer conn.Close()
+	if _, err := conn.Write([]byte("READY=1")); err != nil {
+		log.Printf("sd_notify: write: %v", err)
+	}
 }
 
 func handleImagepullerAuthConfig(doc initdata.Raw) error {
