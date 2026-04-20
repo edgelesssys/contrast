@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -74,16 +75,20 @@ func main() {
 }
 
 func handleInitdata(doc initdata.Raw) error {
-	digest, err := doc.Digest()
-	if err != nil {
-		return fmt.Errorf("initdata validation failed: %w", err)
-	}
-	validator, err := validator.New()
-	if err != nil {
+	v, err := validator.New()
+	// TODO: Fine to just skip unconditionally here?
+	if errors.Is(err, validator.ErrNoPlatform) {
+		log.Print("WARNING: No TEE platform detected, skipping initdata digest validation. This is expected on insecure platforms.")
+	} else if err != nil {
 		return fmt.Errorf("creating validator: %w", err)
-	}
-	if err := validator.ValidateDigest(digest); err != nil {
-		return fmt.Errorf("validating initdata digest: %w", err)
+	} else {
+		digest, err := doc.Digest()
+		if err != nil {
+			return fmt.Errorf("computing initdata digest: %w", err)
+		}
+		if err := v.ValidateDigest(digest); err != nil {
+			return fmt.Errorf("validating initdata digest: %w", err)
+		}
 	}
 	data, err := doc.Parse()
 	if err != nil {

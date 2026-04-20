@@ -29,7 +29,7 @@ func New() (*Validator, error) {
 	if terr == nil {
 		return &Validator{&tdxDigestGetter{tqp}}, nil
 	}
-	return nil, fmt.Errorf("%w:\nTDX:%w\nSNP:%w", errBadPlatform, terr, serr)
+	return nil, fmt.Errorf("%w:\nTDX:%w\nSNP:%w", ErrNoPlatform, terr, serr)
 }
 
 // ValidateDigest compares the given digest with either MRCONFIGID or HOSTDATA, and returns an error if they don't match.
@@ -85,7 +85,9 @@ func getTDXQuoteProvider() (tdxclient.QuoteProvider, error) {
 }
 
 var (
-	errBadPlatform          = errors.New("no digest getter available for current platform")
+	// ErrNoPlatform is returned by New when no TEE platform is available for digest validation.
+	ErrNoPlatform = errors.New("no digest getter available for current platform")
+
 	errUnexpectedDigestSize = errors.New("unexpected digest size")
 	errDigestMismatch       = errors.New("digests don't match")
 )
