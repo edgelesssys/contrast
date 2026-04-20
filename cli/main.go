@@ -122,6 +122,7 @@ func newRootCmd() (*cobra.Command, error) {
 		cmd.NewSetCmd(),
 		cmd.NewVerifyCmd(),
 		cmd.NewRecoverCmd(),
+		cmd.NewSignCmd(),
 	)
 
 	return root, nil
