@@ -168,7 +168,7 @@ func FromRuntimeClassString(s string) (Platform, error) {
 // DefaultMemoryInMebiBytes returns the desired VM overhead for the given platform.
 func DefaultMemoryInMebiBytes(p Platform) int {
 	switch p {
-	case MetalQEMUSNPGPU, MetalQEMUTDXGPU:
+	case MetalQEMUSNPGPU, MetalQEMUTDXGPU, MetalQEMUSNPGPUInsecure, MetalQEMUTDXGPUInsecure:
 		// Guest components contribute around 600MiB with GPU enabled.
 		return 1024
 	default:
