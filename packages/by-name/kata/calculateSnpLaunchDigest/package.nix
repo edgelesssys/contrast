@@ -6,13 +6,13 @@
   stdenvNoCC,
   kata,
   OVMF-SNP,
-  python3Packages,
 }:
 
 {
   os-image,
   withDebug ? false,
   vcpus,
+  sev-snp-measure ? kata.sev-snp-measure,
 }:
 
 let
@@ -38,7 +38,7 @@ stdenvNoCC.mkDerivation {
 
   buildPhase = ''
     mkdir $out
-    ${lib.getExe kata.sev-snp-measure} \
+    ${lib.getExe sev-snp-measure} \
       --mode snp \
       --ovmf ${ovmf-snp} \
       --vcpus ${toString vcpus} \
@@ -47,7 +47,7 @@ stdenvNoCC.mkDerivation {
       --initrd ${initrd} \
       --append "${cmdline}" \
       --output-format hex > $out/milan.hex
-    ${lib.getExe kata.sev-snp-measure} \
+    ${lib.getExe sev-snp-measure} \
       --mode snp \
       --ovmf ${ovmf-snp} \
       --vcpus ${toString vcpus} \
