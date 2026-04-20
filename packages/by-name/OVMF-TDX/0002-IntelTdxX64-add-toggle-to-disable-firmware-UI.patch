@@ -4,10 +4,12 @@ Date: Wed, 11 Feb 2026 13:26:05 +0100
 Subject: [PATCH] IntelTdxX64: add toggle to disable firmware UI
 
 Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+Co-authored-by: Spyros Seimenis <sse@edgeless.systems>
 ---
- OvmfPkg/IntelTdx/IntelTdxX64.dsc | 10 ++++++++++
- OvmfPkg/IntelTdx/IntelTdxX64.fdf |  6 ++++--
- 2 files changed, 14 insertions(+), 2 deletions(-)
+ OvmfPkg/IntelTdx/IntelTdxX64.dsc                     | 10 ++++++++++
+ OvmfPkg/IntelTdx/IntelTdxX64.fdf                     |  6 ++++--
+ OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c | 11 +++++++++++
+ 3 files changed, 25 insertions(+), 2 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.dsc b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
 index 18fd116311e14f611be609d202339c1deb52a7fb..7294a071ec953bb72b49941882ebfbbed48f6f6c 100644
@@ -69,3 +71,25 @@ index da48f67fb34279ca74636bd42825696db296bb75..238ff73d7ae7bfb08ebdaf14063c7496
  INF  OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.inf
  INF  MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
  INF  MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
+diff --git a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
+index b696f1b3389b38757621f7dd289b53a15a7fa8c0..153f509eb7057b884ecff44434dc819cf40e797f 100644
+--- a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
++++ b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
+@@ -152,6 +152,17 @@ PlatformRegisterOptionsAndKeys (
+   Esc.ScanCode    = SCAN_ESC;
+   Esc.UnicodeChar = CHAR_NULL;
+   Status          = EfiBootManagerGetBootManagerMenu (&BootOption);
++  if (Status == EFI_NOT_FOUND) {
++    //
++    // Firmware was built without BootManagerMenuApp (BUILD_FIRMWARE_UI=FALSE),
++    // so the FFS lookup above returns EFI_NOT_FOUND. In DEBUG builds,
++    // ASSERT_EFI_ERROR below would halt the firmware. Skip F2/ESC hotkey
++    // registration instead, consistent with the graceful handling elsewhere
++    // in this file.
++    //
++    return;
++  }
++
+   ASSERT_EFI_ERROR (Status);
+   Status = EfiBootManagerAddKeyOptionVariable (
+              NULL,
