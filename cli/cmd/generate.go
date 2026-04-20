@@ -342,6 +342,16 @@ func isCoordinator(resource any) bool {
 	return false
 }
 
+func patchCoordinatorAllowInsecure(resource any) {
+	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
+	if !ok || !isCoordinator(resource) {
+		return
+	}
+	if len(r.Spec.Template.Spec.Containers) > 0 {
+		r.Spec.Template.Spec.Containers[0].WithEnv(kuberesource.NewEnvVar("CONTRAST_ALLOW_INSECURE", "1"))
+	}
+}
+
 func runVerifiers(fileMap map[string][]*unstructured.Unstructured, verifiers []verifier.Verifier) error {
 	var findings error
 	for _, v := range verifiers {
@@ -520,6 +530,9 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 		}
 		if flags.injectImageStore {
 			kuberesource.AddImageStore([]any{res})
+		}
+		if flags.allowInsecureRuntimes {
+			patchCoordinatorAllowInsecure(res)
 		}
 
 		kuberesource.PatchImages([]any{res}, replacements)

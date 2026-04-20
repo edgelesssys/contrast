@@ -230,6 +230,34 @@ func TestSetManifest(t *testing.T) {
 		require.Equal(codes.InvalidArgument, status.Code(err))
 	})
 
+	t.Run("insecure manifest rejected", func(t *testing.T) {
+		require := require.New(t)
+
+		// Default coordinator does not allow insecure manifests.
+		coordinator := newCoordinator()
+		m := newInsecureManifest(t)
+		manifestBytes, err := json.Marshal(m)
+		require.NoError(err)
+		req := &userapi.SetManifestRequest{Manifest: manifestBytes}
+		_, err = coordinator.SetManifest(t.Context(), req)
+		require.Error(err)
+		require.Equal(codes.InvalidArgument, status.Code(err))
+		require.ErrorContains(err, "insecure")
+	})
+
+	t.Run("insecure manifest accepted when allowed", func(t *testing.T) {
+		require := require.New(t)
+
+		coordinator := newCoordinatorAllowInsecure()
+		m := newInsecureManifest(t)
+		manifestBytes, err := json.Marshal(m)
+		require.NoError(err)
+		req := &userapi.SetManifestRequest{Manifest: manifestBytes}
+		resp, err := coordinator.SetManifest(t.Context(), req)
+		require.NoError(err)
+		require.NotNil(resp)
+	})
+
 	t.Run("atomic manifest update", func(t *testing.T) {
 		require := require.New(t)
 
@@ -366,7 +394,7 @@ func TestRecovery(t *testing.T) {
 			fs := afero.NewMemMapFs()
 			store := aferostore.New(&afero.Afero{Fs: fs})
 			hist := history.NewWithStore(slog.Default(), store)
-			auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
+			auth := stateguard.New(hist, prometheus.NewRegistry(), logger, false)
 			discovery := &stubDiscovery{
 				peers: tc.peers,
 				err:   tc.peersErr,
@@ -400,7 +428,7 @@ func TestRecovery(t *testing.T) {
 			}
 
 			// Simulate a restarted Coordinator.
-			a.guard = stateguard.New(hist, prometheus.NewRegistry(), slog.Default())
+			a.guard = stateguard.New(hist, prometheus.NewRegistry(), slog.Default(), false)
 			_, err = a.GetManifests(t.Context(), nil)
 			require.ErrorContains(err, ErrNeedsRecovery.Error())
 			_, err = a.Recover(rpcContext(t.Context(), seedShareOwnerKey), recoverReq)
@@ -422,7 +450,7 @@ func TestRecoveryFlow(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	store := aferostore.New(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
+	auth := stateguard.New(hist, prometheus.NewRegistry(), logger, false)
 	a := New(logger, auth, &stubDiscovery{})
 
 	// 2. A manifest is set and the returned seed is recorded.
@@ -458,7 +486,7 @@ func TestRecoveryFlow(t *testing.T) {
 	// 3. A new Coordinator is created with the existing history.
 	// GetManifests and SetManifest are expected to fail.
 
-	a.guard = stateguard.New(hist, prometheus.NewRegistry(), slog.Default())
+	a.guard = stateguard.New(hist, prometheus.NewRegistry(), slog.Default(), false)
 	_, err = a.SetManifest(t.Context(), req)
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
 
@@ -501,7 +529,7 @@ func TestUserAPIConcurrent(t *testing.T) {
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := aferostore.New(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
+	auth := stateguard.New(hist, prometheus.NewRegistry(), logger, false)
 	coordinator := New(logger, auth, &stubDiscovery{})
 
 	setReq := &userapi.SetManifestRequest{
@@ -815,14 +843,32 @@ func newCoordinatorWithRegistry(reg *prometheus.Registry) *Server {
 	fs := afero.NewMemMapFs()
 	store := aferostore.New(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	auth := stateguard.New(hist, reg, logger)
+	auth := stateguard.New(hist, reg, logger, false)
 	return New(logger, auth, &stubDiscovery{})
+}
+
+func newCoordinatorAllowInsecure() *Server {
+	logger := slog.Default()
+	fs := afero.NewMemMapFs()
+	store := aferostore.New(&afero.Afero{Fs: fs})
+	hist := history.NewWithStore(slog.Default(), store)
+	auth := stateguard.New(hist, prometheus.NewRegistry(), logger, true)
+	return New(logger, auth, &stubDiscovery{})
+}
+
+func newInsecureManifest(t *testing.T) *manifest.Manifest {
+	t.Helper()
+	mnfst := &manifest.Manifest{}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{
+		{Platform: "Metal-QEMU-SNP-Insecure"},
+	}
+	return mnfst
 }
 
 func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Server {
 	t.Helper()
 	logger := slog.Default()
-	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
+	auth := stateguard.New(hist, prometheus.NewRegistry(), logger, false)
 	coordinator := New(logger, auth, &stubDiscovery{})
 
 	ctx, cancel := context.WithCancel(t.Context())
