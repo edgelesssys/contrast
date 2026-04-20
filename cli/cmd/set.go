@@ -58,6 +58,8 @@ issuer certificates.`,
 	cmd.Flags().String("workload-owner-key", workloadOwnerPEM, "path to workload owner key (.pem) file")
 	cmd.Flags().Bool("atomic", false, "only set the manifest if the coordinator's state matches the latest transition hash")
 	cmd.Flags().String("latest-transition", "", "latest transition hash set at the coordinator (hex string)")
+	cmd.Flags().StringP("signature", "s", "", "path to a detached transition signature (DER) file")
+	must(cmd.MarkFlagFilename("signature"))
 
 	return cmd
 }
@@ -90,6 +92,13 @@ func runSet(cmd *cobra.Command, args []string) error {
 		workloadOwnerKey = nil
 	} else if err != nil {
 		return fmt.Errorf("loading workload owner key: %w", err)
+	}
+	var signatureBytes []byte
+	if flags.signaturePath != "" {
+		signatureBytes, err = os.ReadFile(flags.signaturePath)
+		if err != nil {
+			return fmt.Errorf("reading signature file: %w", err)
+		}
 	}
 
 	paths, err := findYamlFiles(args)
@@ -153,6 +162,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		Manifest:               manifestBytes,
 		Policies:               getInitdataDocuments(policies),
 		PreviousTransitionHash: previousTransitionHash,
+		Signature:              signatureBytes,
 	}
 	resp, err := setLoop(cmd.Context(), client, cmd.OutOrStdout(), req)
 	if err != nil {
@@ -160,7 +170,9 @@ func runSet(cmd *cobra.Command, args []string) error {
 		if ok {
 			if grpcSt.Code() == codes.PermissionDenied {
 				msg := "Permission denied."
-				if workloadOwnerKey == nil {
+				if signatureBytes != nil {
+					msg += " Ensure the signature is valid and corresponds to the latest transition hash."
+				} else if workloadOwnerKey == nil {
 					msg += " Specify a workload owner key with --workload-owner-key."
 				} else {
 					msg += " Ensure you are using a trusted workload owner key."
@@ -204,6 +216,7 @@ type setFlags struct {
 	workloadOwnerKeyPath string
 	atomic               bool
 	latestTransition     string
+	signaturePath        string
 	workspaceDir         string
 }
 
@@ -231,11 +244,13 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting latest-transition flag: %w", err)
 	}
-
 	if !flags.atomic && flags.latestTransition != "" {
 		return nil, fmt.Errorf("\"latest-transition\" flag cannot be set without \"atomic\" flag")
 	}
-
+	flags.signaturePath, err = cmd.Flags().GetString("signature")
+	if err != nil {
+		return nil, fmt.Errorf("getting signature flag: %w", err)
+	}
 	flags.workspaceDir, err = cmd.Flags().GetString("workspace-dir")
 	if err != nil {
 		return nil, fmt.Errorf("getting workspace-dir flag: %w", err)
