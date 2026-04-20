@@ -3,7 +3,7 @@
 
 _final: prev: {
   contrastPkgs = prev.contrastPkgs.overrideScope (
-    contrastPkgsFinal: contrastPkgsPrev: {
+    _contrastPkgsFinal: contrastPkgsPrev: {
       # Build OVMF with debug output to serial port.
       OVMF-SNP = contrastPkgsPrev.OVMF-SNP.override {
         debug = true;
@@ -14,8 +14,6 @@ _final: prev: {
       contrast = contrastPkgsPrev.contrast.overrideScope (
         _contrastFinal: contrastPrev: {
           node-installer-image = contrastPrev.node-installer-image.override {
-            inherit (contrastPkgsFinal) OVMF-SNP;
-            inherit (contrastPkgsFinal) OVMF-TDX;
             withDebug = true;
           };
         }
