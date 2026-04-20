@@ -14,6 +14,7 @@ message SetManifestRequest {
   bytes Manifest = 1;
   repeated bytes Policies = 2;
   bytes PreviousTransitionHash = 3;
+  bytes Signature = 4;
 }
 
 message SetManifestResponse {

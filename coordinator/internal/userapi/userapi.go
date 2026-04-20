@@ -18,6 +18,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -96,9 +97,14 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 	if oldState != nil {
 		oldManifest := oldState.Manifest()
 		// Subsequent SetManifest call, check permissions of caller.
-		if err := validatePeer(ctx, oldManifest.WorkloadOwnerPubKeys); err != nil {
-			s.logger.Warn("SetManifest peer validation failed", "err", err)
-			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
+		if err := validateSignature(oldManifest.WorkloadOwnerPubKeys, oldState.LatestTransition().TransitionHash, req); err != nil && !errors.Is(err, errNoSignature) {
+			s.logger.Warn("SetManifest signature validation failed", "err", err)
+			return nil, status.Errorf(codes.PermissionDenied, "validating manifest signature: %v", err)
+		} else if errors.Is(err, errNoSignature) {
+			if err := validatePeer(ctx, oldManifest.WorkloadOwnerPubKeys); err != nil {
+				s.logger.Warn("SetManifest peer validation failed", "err", err)
+				return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
+			}
 		}
 		se = oldState.SeedEngine()
 		if slices.Compare(oldManifest.SeedshareOwnerPubKeys, m.SeedshareOwnerPubKeys) != 0 {
@@ -110,6 +116,12 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		}
 	} else {
 		// First SetManifest call, initialize seed engine.
+		if req.Signature != nil {
+			if err := validateSignature(m.WorkloadOwnerPubKeys, [history.HashSize]byte{}, req); err != nil {
+				s.logger.Warn("SetManifest signature validation failed for initial manifest", "err", err)
+				return nil, status.Errorf(codes.PermissionDenied, "validating manifest signature: %v", err)
+			}
+		}
 		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(req.GetPreviousTransitionHash(), make([]byte, history.HashSize)) {
 			return nil, status.Errorf(codes.FailedPrecondition, "previous transition hash '%x' requested but manifest history is empty", req.GetPreviousTransitionHash())
 		}
@@ -246,6 +258,34 @@ func (a *seedAuthorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifes
 	return se, meshKey, nil
 }
 
+func validateSignature(keys []manifest.HexString, latestTransitionHash [history.HashSize]byte, req *userapi.SetManifestRequest) error {
+	if len(keys) == 0 {
+		return errors.New("setting manifest is disabled (no workload owner keys in manifest)")
+	}
+	if len(req.Signature) == 0 {
+		return errNoSignature
+	}
+
+	tr := &history.Transition{
+		ManifestHash:           history.Digest(req.Manifest),
+		PreviousTransitionHash: latestTransitionHash,
+	}
+	hash := tr.Digest()
+	// Hash again because we do hash+sign on the blob that contains the hex-encoded next transition hash.
+	hash = history.Digest(hex.AppendEncode(nil, hash[:]))
+
+	for _, key := range keys {
+		trustedWorkloadOwnerKey, err := manifest.ParseWorkloadOwnerPublicKey(key)
+		if err != nil {
+			return fmt.Errorf("parsing key: %w", err)
+		}
+		if ecdsa.VerifyASN1(trustedWorkloadOwnerKey, hash[:], req.Signature) {
+			return nil
+		}
+	}
+	return errors.New("invalid manifest signature")
+}
+
 func validatePeer(ctx context.Context, keys []manifest.HexString) error {
 	if len(keys) == 0 {
 		return errors.New("setting manifest is disabled")
@@ -297,4 +337,6 @@ var (
 	ErrAlreadyRecovered = errors.New("coordinator is already recovered")
 	// ErrNeedsRecovery is returned if state exists, but no secrets are available, e.g. after restart.
 	ErrNeedsRecovery = errors.New("coordinator is in recovery mode")
+
+	errNoSignature = errors.New("manifest signature is empty")
 )

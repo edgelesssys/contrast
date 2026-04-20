@@ -8,10 +8,12 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -250,6 +252,42 @@ func TestSetManifest(t *testing.T) {
 		req = &userapi.SetManifestRequest{Manifest: m, PreviousTransitionHash: prevTransitionHash[:]}
 		_, err = coordinator.SetManifest(ctx, req)
 		require.Error(err)
+	})
+
+	t.Run("signed manifest update", func(t *testing.T) {
+		require := require.New(t)
+
+		coordinator := newCoordinator()
+		ctx := rpcContext(t.Context(), nil)
+		m, err := json.Marshal(manifestWithTrustedKey)
+		require.NoError(err)
+		tr := history.Transition{
+			ManifestHash: history.Digest(m),
+		}
+		nextTransitionHash := tr.Digest()
+		signBlob := history.Digest(hex.AppendEncode(nil, nextTransitionHash[:]))
+		sig, err := ecdsa.SignASN1(rand.Reader, trustedKey, signBlob[:])
+		require.NoError(err)
+		req := &userapi.SetManifestRequest{
+			Manifest:  m,
+			Signature: sig,
+		}
+		_, err = coordinator.SetManifest(ctx, req)
+		require.NoError(err)
+		tr = history.Transition{
+			ManifestHash:           history.Digest(m),
+			PreviousTransitionHash: nextTransitionHash,
+		}
+		nextTransitionHash = tr.Digest()
+		signBlob = history.Digest(hex.AppendEncode(nil, nextTransitionHash[:]))
+		sig, err = ecdsa.SignASN1(rand.Reader, trustedKey, signBlob[:])
+		require.NoError(err)
+		req = &userapi.SetManifestRequest{
+			Manifest:  m,
+			Signature: sig,
+		}
+		_, err = coordinator.SetManifest(ctx, req)
+		require.NoError(err)
 	})
 }
 
@@ -890,6 +928,8 @@ func rpcContext(ctx context.Context, cryptoKey crypto.PrivateKey) context.Contex
 		if key != nil {
 			peerCertificates = append(peerCertificates, &x509.Certificate{PublicKey: key.Public(), PublicKeyAlgorithm: x509.ECDSA})
 		}
+	case nil:
+		// No key, no certificates.
 	default:
 		panic(fmt.Sprintf("unsupported key type for rpcContext: %T", cryptoKey))
 	}
