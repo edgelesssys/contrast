@@ -13,7 +13,7 @@ require (
 	github.com/elazarl/goproxy v1.8.2
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/google/go-containerregistry v0.21.2
-	github.com/google/go-github/v72 v72.0.0
+	github.com/google/go-github/v85 v85.0.0
 	github.com/google/go-sev-guest v0.14.2-0.20251119154202-af1c107a648f
 	github.com/google/go-tdx-guest v0.3.2-0.20260104162950-32866d7a678f
 	github.com/google/logger v1.1.2
