@@ -44,6 +44,17 @@ on:
           - Metal-QEMU-SNP-GPU
           - Metal-QEMU-TDX
           - Metal-QEMU-TDX-GPU
+      set:
+        description: "Package set"
+        required: false
+        type: choice
+        options:
+          - base
+          - debug
+          - badaml-sandbox
+          - badaml-vuln
+          - testcase-default
+        default: testcase-default
       skip-undeploy:
         description: "Skip undeploy"
         required: false
@@ -102,6 +113,7 @@ jobs:
       runner: ${{ needs.determine-platform-params.outputs.runner }}
       self-hosted: ${{ fromJSON(needs.determine-platform-params.outputs.self-hosted) }}
       debug-shell: ${{ inputs.debug-shell }}
+      set: ${{ inputs.set != 'default' && inputs.set || '' }}
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
