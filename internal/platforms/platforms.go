@@ -75,6 +75,23 @@ func (p Platform) String() string {
 	}
 }
 
+// InsecureVariant returns the insecure (non-CC) variant of the
+// platform, or Unknown if there is no such variant.
+func (p Platform) InsecureVariant() Platform {
+	switch p {
+	case MetalQEMUSNP:
+		return MetalQEMUSNPInsecure
+	case MetalQEMUTDX:
+		return MetalQEMUTDXInsecure
+	case MetalQEMUSNPGPU:
+		return MetalQEMUSNPGPUInsecure
+	case MetalQEMUTDXGPU:
+		return MetalQEMUTDXGPUInsecure
+	default:
+		return Unknown
+	}
+}
+
 // MarshalJSON marshals a Platform type to a JSON string.
 func (p Platform) MarshalJSON() ([]byte, error) {
 	return fmt.Appendf(nil, `"%s"`, p.String()), nil

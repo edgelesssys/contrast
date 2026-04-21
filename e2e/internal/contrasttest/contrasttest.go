@@ -231,6 +231,9 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 	if Flags.GenpolicyCachePath != "" {
 		args = append(args, "--genpolicy-cache-path", Flags.GenpolicyCachePath)
 	}
+	if platforms.IsInsecure(ct.Platform) {
+		args = append(args, "--INSECURE")
+	}
 	args = append(args, ct.WorkDir)
 
 	generate := cmd.NewGenerateCmd()
@@ -365,7 +368,11 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
-	if err := ct.runAgainstCoordinator(ctx, cmd.NewVerifyCmd()); err != nil {
+	var verifyArgs []string
+	if platforms.IsInsecure(ct.Platform) {
+		verifyArgs = append(verifyArgs, "--INSECURE")
+	}
+	if err := ct.runAgainstCoordinator(ctx, cmd.NewVerifyCmd(), verifyArgs...); err != nil {
 		return err
 	}
 
@@ -569,7 +576,8 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 // Baseline is AKS.
 func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Duration {
 	switch ct.Platform {
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU, platforms.MetalQEMUTDXGPU:
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU, platforms.MetalQEMUTDXGPU,
+		platforms.MetalQEMUSNPInsecure, platforms.MetalQEMUTDXInsecure, platforms.MetalQEMUSNPGPUInsecure, platforms.MetalQEMUTDXGPUInsecure:
 		return 2 * timeout
 	default:
 		panic(fmt.Sprintf("FactorPlatformTimeout not configured for platform %q", ct.Platform))
