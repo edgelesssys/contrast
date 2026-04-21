@@ -72,6 +72,7 @@ jobs:
           - volumestatefulset
           - workloadsecret
           # keep-sorted end
+        set: [""]
         exclude:
           - platform:
               name: Metal-QEMU-SNP
@@ -83,6 +84,38 @@ jobs:
             test-name: badaml-vuln
           - debug-shell: false
             test-name: badaml-sandbox
+        include:
+          # Exercise the debug set on every platform with the cheapest
+          # per-platform test, to catch regressions in the debug overlay
+          # that the base-set matrix cannot surface.
+          - set: debug
+            debug-shell: false
+            test-name: openssl
+            platform:
+              name: Metal-QEMU-SNP
+              runner: SNP
+              self-hosted: true
+          - set: debug
+            debug-shell: false
+            test-name: gpu
+            platform:
+              name: Metal-QEMU-SNP-GPU
+              runner: SNP-GPU
+              self-hosted: true
+          - set: debug
+            debug-shell: false
+            test-name: openssl
+            platform:
+              name: Metal-QEMU-TDX
+              runner: TDX
+              self-hosted: true
+          - set: debug
+            debug-shell: false
+            test-name: gpu
+            platform:
+              name: Metal-QEMU-TDX-GPU
+              runner: TDX-GPU
+              self-hosted: true
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
@@ -93,6 +126,7 @@ jobs:
       runner: ${{ matrix.platform.runner }}
       self-hosted: ${{ matrix.platform.self-hosted }}
       debug-shell: ${{ matrix.debug-shell }}
+      set: ${{ matrix.set }}
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
