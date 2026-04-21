@@ -1,0 +1,36 @@
+name: e2e test attestation
+
+on:
+  pull_request:
+    paths:
+      - e2e/attestation/**
+
+jobs:
+  test_matrix:
+    strategy:
+      matrix:
+        platform:
+          - name: Metal-QEMU-SNP
+            runner: SNP
+            self-hosted: true
+          - name: Metal-QEMU-TDX
+            runner: TDX
+            self-hosted: true
+      fail-fast: false
+    name: "${{ matrix.platform.name }}"
+    uses: ./.github/workflows/e2e.yml
+    with:
+      skip-undeploy: false
+      test-name: attestation
+      platform: ${{ matrix.platform.name }}
+      runner: ${{ matrix.platform.runner }}
+      self-hosted: ${{ matrix.platform.self-hosted }}
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+      TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
+    permissions:
+      contents: read
+      packages: write
