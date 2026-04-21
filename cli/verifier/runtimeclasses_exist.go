@@ -6,7 +6,6 @@ package verifier
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -31,14 +30,15 @@ func (r *RuntimeClassesExist) Verify(toVerify any) error {
 	}
 
 	kuberesource.MapPodSpec(toVerify, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec == nil || spec.RuntimeClassName == nil {
+		if !kuberesource.IsContrastPod(spec) {
 			return spec
 		}
-		if defaultRuntimeClass == "" && (*spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "contrast-insecure") {
-			collectedMissingRuntimes[*spec.RuntimeClassName] = fmt.Errorf("no default platform was specified using --reference-values")
-			return spec
-		}
-		if !(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure-")) {
+		// Bare runtime class names (without hash suffix) are placeholders that
+		// get resolved during generate. They can't be parsed as platforms.
+		if *spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "contrast-insecure" {
+			if defaultRuntimeClass == "" {
+				collectedMissingRuntimes[*spec.RuntimeClassName] = fmt.Errorf("no default platform was specified using --reference-values")
+			}
 			return spec
 		}
 

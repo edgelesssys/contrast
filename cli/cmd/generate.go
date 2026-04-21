@@ -320,8 +320,7 @@ func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f fun
 
 func isContrastWorkload(resource any) (ret bool) {
 	kuberesource.MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec != nil && spec.RuntimeClassName != nil &&
-			(strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure")) {
+		if kuberesource.IsContrastPod(spec) {
 			ret = true
 		}
 		return spec
@@ -740,7 +739,7 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 			}
 			return spec, nil
 		}
-		if !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") && !strings.HasPrefix(*spec.RuntimeClassName, "contrast-insecure-") {
+		if !kuberesource.IsContrastPod(spec) {
 			return spec, nil
 		}
 		overridePlatform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
