@@ -21,6 +21,10 @@ on:
       debug-shell:
         description: "Debug shell"
         type: boolean
+      set:
+        description: "Package set override (e.g. debug). Empty falls back to the test-name derived default."
+        type: string
+        default: ""
     secrets:
       GITHUB_TOKEN_IN:
         required: true
@@ -39,7 +43,7 @@ env:
 
 jobs:
   test:
-    name: "${{ inputs.test-name }}${{ inputs.debug-shell && ' (with debug shell)' || '' }}"
+    name: "${{ inputs.test-name }}${{ inputs.debug-shell && ' (with debug shell)' || '' }}${{ inputs.set != '' && format(' [{0}]', inputs.set) || '' }}"
     runs-on: ${{ inputs.runner }}
     permissions:
       contents: read
@@ -53,6 +57,7 @@ jobs:
       DEBUG_SHELL: ${{ inputs.debug-shell }}
       SET: >-
         ${{
+          (inputs.set != '' && inputs.set) ||
           (inputs.test-name == 'badaml-sandbox' && 'badaml-sandbox') ||
           (inputs.test-name == 'badaml-vuln' && 'badaml-vuln') ||
           'base'
@@ -131,7 +136,7 @@ jobs:
         if: always() && steps.skipped.outputs.skipped == 'false'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: e2e_pod_logs-${{ inputs.platform }}-${{ inputs.test-name }}${{ inputs.debug-shell && '-debug-shell' || '' }}
+          name: e2e_pod_logs-${{ inputs.platform }}-${{ inputs.test-name }}${{ inputs.debug-shell && '-debug-shell' || '' }}${{ inputs.set != '' && format('-{0}', inputs.set) || '' }}
           path: workspace/logs
           if-no-files-found: error
       - name: Notify teams channel of failure
