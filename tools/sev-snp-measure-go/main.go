@@ -105,5 +105,39 @@ Kata Containers SNP measurement). Output is the hex-encoded SHA-384 digest.`,
 		return nil
 	}
 
+	cmd.AddCommand(newAPEIPCmd())
+
+	return cmd
+}
+
+func newAPEIPCmd() *cobra.Command {
+	var ovmfPath string
+
+	cmd := &cobra.Command{
+		Use:   "ap-eip",
+		Short: "Print the SEV-ES AP reset EIP from an OVMF firmware image",
+		Long: `ap-eip reads the SEV-ES AP reset EIP from the OVMF footer table and prints
+it as an 8-digit lowercase hex value. This value is specific to the OVMF build
+and is needed to calculate launch measurements for varying vCPU counts at
+verify time without storing per-vCPU measurements.`,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			if ovmfPath == "" {
+				return fmt.Errorf("--ovmf is required")
+			}
+			ovmf, err := snp.NewOVMF(ovmfPath)
+			if err != nil {
+				return fmt.Errorf("parsing OVMF: %w", err)
+			}
+			apEIP, err := ovmf.SEVESResetEIP()
+			if err != nil {
+				return fmt.Errorf("reading OVMF reset EIP: %w", err)
+			}
+			fmt.Printf("%08x\n", apEIP)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&ovmfPath, "ovmf", "", "Path to OVMF firmware binary (required)")
+
 	return cmd
 }
