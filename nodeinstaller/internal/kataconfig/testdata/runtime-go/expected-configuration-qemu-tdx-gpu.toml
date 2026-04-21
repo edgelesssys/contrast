@@ -1,17 +1,18 @@
-[Hypervisor]
-[Hypervisor.qemu]
+[hypervisor]
+[hypervisor.qemu]
 block_device_aio = 'threads'
 block_device_cache_direct = false
 block_device_cache_noflush = false
 block_device_cache_set = false
 block_device_driver = 'virtio-scsi'
+cold_plug_vfio = 'root-port'
 confidential_guest = true
 contrast_imagepuller_config = ''
 cpu_features = 'pmu=off'
 default_bridges = 1
 default_maxmemory = 0
 default_maxvcpus = 0
-default_memory = 512
+default_memory = 1024
 default_vcpus = 1
 disable_block_device_use = true
 disable_guest_selinux = true
@@ -74,22 +75,22 @@ virtio_fs_daemon = '/opt/kata/libexec/virtiofsd'
 virtio_fs_extra_args = ['--thread-pool-size=1', '--announce-submounts']
 virtio_fs_queue_size = 1024
 
-[Agent]
-[Agent.kata]
+[agent]
+[agent.kata]
 debug_console_enabled = false
-dial_timeout = 120
+dial_timeout = 600
 enable_debug = false
 enable_tracing = false
 kernel_modules = []
 
-[Factory]
+[factory]
 enable_template = false
 template_path = '/run/vc/vm/template'
 vm_cache_endpoint = '/var/run/kata-containers/cache.sock'
 vm_cache_number = 0
 
-[Runtime]
-create_container_timeout = 120
+[runtime]
+create_container_timeout = 600
 dan_conf = '/run/kata-containers/dans'
 disable_guest_empty_dir = false
 disable_guest_seccomp = true
@@ -107,7 +108,7 @@ jaeger_endpoint = ''
 jaeger_password = ''
 jaeger_user = ''
 kubelet_root_dir = '/var/lib/kubelet'
-pod_resource_api_sock = ''
+pod_resource_api_sock = '/var/lib/kubelet/pod-resources/kubelet.sock'
 sandbox_bind_mounts = []
 sandbox_cgroup_only = true
 static_sandbox_resource_mgmt = true

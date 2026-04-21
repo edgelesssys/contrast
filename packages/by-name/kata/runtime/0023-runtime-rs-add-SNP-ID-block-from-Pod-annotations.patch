@@ -1,0 +1,231 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Thu, 2 Apr 2026 12:38:29 +0200
+Subject: [PATCH] runtime-rs: add SNP ID block from Pod annotations
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/libs/kata-types/src/annotations/mod.rs    | 37 ++++++++++
+ .../kata-types/src/config/hypervisor/mod.rs   | 26 +++++++
+ .../hypervisor/src/qemu/cmdline_generator.rs  | 74 ++++++++++++++++++-
+ 3 files changed, 135 insertions(+), 2 deletions(-)
+
+diff --git a/src/libs/kata-types/src/annotations/mod.rs b/src/libs/kata-types/src/annotations/mod.rs
+index 249742df51b1f14bba5420becd746af2ae587a44..e0737d74840f7190151edd7f0aa4459e381c3543 100644
+--- a/src/libs/kata-types/src/annotations/mod.rs
++++ b/src/libs/kata-types/src/annotations/mod.rs
+@@ -277,6 +277,19 @@ pub const KATA_ANNO_CFG_HYPERVISOR_MSIZE_9P: &str = "io.katacontainers.config.hy
+ /// The initdata annotation passed in when CVM launchs
+ pub const KATA_ANNO_CFG_HYPERVISOR_INIT_DATA: &str =
+     "io.katacontainers.config.hypervisor.cc_init_data";
++/// Suffix added to SNP related annotations for the Milan platform.
++pub const KATA_ANNO_SNP_SUFFIX_MILAN: &str = "_Milan";
++/// Suffix added to SNP related annotations for the Genoa platform.
++pub const KATA_ANNO_SNP_SUFFIX_GENOA: &str = "_Genoa";
++/// A sandbox annotation to provide a custom SNP ID block for the VM.
++pub const KATA_ANNO_CFG_HYPERVISOR_SNP_ID_BLOCK: &str =
++    "io.katacontainers.config.hypervisor.snp_id_block";
++/// A sandbox annotation to provide a custom SNP ID auth for the VM.
++pub const KATA_ANNO_CFG_HYPERVISOR_SNP_ID_AUTH: &str =
++    "io.katacontainers.config.hypervisor.snp_id_auth";
++/// A sandbox annotation to specify the SNP guest policy for the VM.
++pub const KATA_ANNO_CFG_HYPERVISOR_SNP_GUEST_POLICY: &str =
++    "io.katacontainers.config.hypervisor.snp_guest_policy";
+ 
+ /// GPU specific annotations for remote hypervisor to help with instance selection
+ /// It's for minimum number of GPUs required for the VM.
+@@ -925,6 +938,30 @@ impl Annotation {
+                         hv.security_info.initdata =
+                             add_hypervisor_initdata_overrides(value).unwrap();
+                     }
++                    key if key == format!("{}{}", KATA_ANNO_CFG_HYPERVISOR_SNP_ID_BLOCK, KATA_ANNO_SNP_SUFFIX_MILAN) => {
++                        hv.security_info.snp_id_block_milan = value.to_string();
++                    }
++                    key if key == format!("{}{}", KATA_ANNO_CFG_HYPERVISOR_SNP_ID_BLOCK, KATA_ANNO_SNP_SUFFIX_GENOA) => {
++                        hv.security_info.snp_id_block_genoa = value.to_string();
++                    }
++                    key if key == format!("{}{}", KATA_ANNO_CFG_HYPERVISOR_SNP_ID_AUTH, KATA_ANNO_SNP_SUFFIX_MILAN) => {
++                        hv.security_info.snp_id_auth_milan = value.to_string();
++                    }
++                    key if key == format!("{}{}", KATA_ANNO_CFG_HYPERVISOR_SNP_ID_AUTH, KATA_ANNO_SNP_SUFFIX_GENOA) => {
++                        hv.security_info.snp_id_auth_genoa = value.to_string();
++                    }
++                    key if key == format!("{}{}", KATA_ANNO_CFG_HYPERVISOR_SNP_GUEST_POLICY, KATA_ANNO_SNP_SUFFIX_MILAN) => {
++                        match value.parse::<u32>() {
++                            Ok(policy) => hv.security_info.snp_guest_policy_milan = Some(policy),
++                            Err(_) => return Err(u32_err),
++                        }
++                    }
++                    key if key == format!("{}{}", KATA_ANNO_CFG_HYPERVISOR_SNP_GUEST_POLICY, KATA_ANNO_SNP_SUFFIX_GENOA) => {
++                        match value.parse::<u32>() {
++                            Ok(policy) => hv.security_info.snp_guest_policy_genoa = Some(policy),
++                            Err(_) => return Err(u32_err),
++                        }
++                    }
+                     KATA_ANNO_CFG_HYPERVISOR_DEFAULT_GPUS => match self.get_value::<u32>(key) {
+                         Ok(r) => {
+                             hv.remote_info.default_gpus = r.unwrap_or_default();
+diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
+index 04f3bb2d77900b110f7239353ab806dfaa9d32a7..29b7aefb281358f9f7618e77e7db31e73221198b 100644
+--- a/src/libs/kata-types/src/config/hypervisor/mod.rs
++++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
+@@ -1236,6 +1236,32 @@ pub struct SecurityInfo {
+     #[serde(default = "default_snp_guest_policy")]
+     pub snp_guest_policy: u32,
+ 
++    /// Per-CPU-model SNP 'ID Block' for Milan (96-byte, base64-encoded).
++    #[serde(default)]
++    pub snp_id_block_milan: String,
++
++    /// Per-CPU-model SNP 'ID Authentication Information Structure' for Milan (4096-byte, base64-encoded).
++    #[serde(default)]
++    pub snp_id_auth_milan: String,
++
++    /// Per-CPU-model SNP Guest Policy for Milan.
++    /// If unset, falls back to `snp_guest_policy`.
++    #[serde(default)]
++    pub snp_guest_policy_milan: Option<u32>,
++
++    /// Per-CPU-model SNP 'ID Block' for Genoa (96-byte, base64-encoded).
++    #[serde(default)]
++    pub snp_id_block_genoa: String,
++
++    /// Per-CPU-model SNP 'ID Authentication Information Structure' for Genoa (4096-byte, base64-encoded).
++    #[serde(default)]
++    pub snp_id_auth_genoa: String,
++
++    /// Per-CPU-model SNP Guest Policy for Genoa.
++    /// If unset, falls back to `snp_guest_policy`.
++    #[serde(default)]
++    pub snp_guest_policy_genoa: Option<u32>,
++
+     /// Path to OCI hook binaries in the *guest rootfs*.
+     ///
+     /// This setting does not affect host-side hooks, which must instead be
+diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
+index b5bad8eb64f9fb57aff62d6aaee0fe693c90be25..28837281465bba7b89d903dda11c1eae43457fe3 100644
+--- a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
++++ b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
+@@ -1881,6 +1881,8 @@ struct ObjectSevSnpGuest {
+     host_data: Option<String>,
+     policy: u32,
+     is_snp: bool,
++    id_block: String,
++    id_auth: String,
+ }
+ 
+ impl ObjectSevSnpGuest {
+@@ -1893,6 +1895,8 @@ impl ObjectSevSnpGuest {
+             host_data,
+             policy: 0x30000,
+             is_snp,
++            id_block: String::new(),
++            id_auth: String::new(),
+         }
+     }
+ 
+@@ -1900,6 +1904,16 @@ impl ObjectSevSnpGuest {
+         self.policy = policy;
+         self
+     }
++
++    fn set_id_block(&mut self, id_block: String) -> &mut Self {
++        self.id_block = id_block;
++        self
++    }
++
++    fn set_id_auth(&mut self, id_auth: String) -> &mut Self {
++        self.id_auth = id_auth;
++        self
++    }
+ }
+ 
+ #[async_trait]
+@@ -1926,6 +1940,12 @@ impl ToQemuParams for ObjectSevSnpGuest {
+             if let Some(host_data) = &self.host_data {
+                 params.push(format!("host-data={host_data}"))
+             }
++            if !self.id_block.is_empty() {
++                params.push(format!("id-block={}", self.id_block));
++            }
++            if !self.id_auth.is_empty() {
++                params.push(format!("id-auth={}", self.id_auth));
++            }
+         }
+         Ok(vec!["-object".to_owned(), params.join(",")])
+     }
+@@ -2185,6 +2205,29 @@ fn is_running_in_vm() -> Result<bool> {
+     Ok(res)
+ }
+ 
++const CPU_MODEL_EPYC_MILAN: &str = "EPYC-Milan";
++const CPU_MODEL_EPYC_GENOA: &str = "EPYC-Genoa";
++const CPU_MODEL_EPYC_GENERIC: &str = "EPYC-v4";
++
++fn detect_amd_cpu_model() -> &'static str {
++    let cpuinfo = match read_to_string("/proc/cpuinfo") {
++        Ok(s) => s,
++        Err(_) => return CPU_MODEL_EPYC_GENERIC,
++    };
++
++    let model = cpuinfo
++        .lines()
++        .find(|line| line.starts_with("model\t"))
++        .and_then(|line| line.split(':').nth(1))
++        .and_then(|val| val.trim().parse::<u32>().ok());
++
++    match model {
++        Some(0x01) => CPU_MODEL_EPYC_MILAN,
++        Some(0x11) => CPU_MODEL_EPYC_GENOA,
++        _ => CPU_MODEL_EPYC_GENERIC,
++    }
++}
++
+ fn should_disable_modern() -> bool {
+     match is_running_in_vm() {
+         Ok(retval) => retval,
+@@ -2583,7 +2626,34 @@ impl<'a> QemuCmdLine<'a> {
+ 
+         let mut sev_snp_object =
+             ObjectSevSnpGuest::new(true, cbitpos, phys_addr_reduction, host_data.clone());
+-        sev_snp_object.set_policy(self.config.security_info.snp_guest_policy);
++
++        let cpu_model = detect_amd_cpu_model();
++
++        match cpu_model {
++            CPU_MODEL_EPYC_MILAN => {
++                if let Some(policy) = self.config.security_info.snp_guest_policy_milan {
++                    sev_snp_object.set_policy(policy);
++                } else {
++                    sev_snp_object.set_policy(self.config.security_info.snp_guest_policy);
++                }
++                sev_snp_object.set_id_block(self.config.security_info.snp_id_block_milan.clone());
++                sev_snp_object.set_id_auth(self.config.security_info.snp_id_auth_milan.clone());
++            }
++            CPU_MODEL_EPYC_GENOA => {
++                if let Some(policy) = self.config.security_info.snp_guest_policy_genoa {
++                    sev_snp_object.set_policy(policy);
++                } else {
++                    sev_snp_object.set_policy(self.config.security_info.snp_guest_policy);
++                }
++                sev_snp_object.set_id_block(self.config.security_info.snp_id_block_genoa.clone());
++                sev_snp_object.set_id_auth(self.config.security_info.snp_id_auth_genoa.clone());
++            }
++            _ => {
++                sev_snp_object.set_policy(self.config.security_info.snp_guest_policy);
++                sev_snp_object.set_id_block(self.config.security_info.snp_id_block.clone());
++                sev_snp_object.set_id_auth(self.config.security_info.snp_id_auth.clone());
++            }
++        }
+ 
+         self.devices.push(Box::new(sev_snp_object));
+ 
+@@ -2594,7 +2664,7 @@ impl<'a> QemuCmdLine<'a> {
+             .set_confidential_guest_support("snp")
+             .set_nvdimm(false);
+ 
+-        self.cpu.set_type("EPYC-v4");
++        self.cpu.set_type(cpu_model);
+     }
+ 
+     pub fn add_tdx_protection_device(

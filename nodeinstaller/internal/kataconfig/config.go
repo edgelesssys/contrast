@@ -4,7 +4,6 @@
 package kataconfig
 
 import (
-	_ "embed"
 	"fmt"
 	"path/filepath"
 
@@ -12,22 +11,8 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-var (
-	// kataBareMetalQEMUTDXBaseConfig is the configuration file for the Kata runtime on bare-metal TDX
-	// with QEMU.
-	//
-	//go:embed configuration-qemu-tdx.toml
-	kataBareMetalQEMUTDXBaseConfig string
-
-	// kataBareMetalQEMUSNPBaseConfig is the configuration file for the Kata runtime on bare-metal SNP
-	// with QEMU.
-	//
-	//go:embed configuration-qemu-snp.toml
-	kataBareMetalQEMUSNPBaseConfig string
-
-	// RuntimeNamePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
-	RuntimeNamePlaceholder = "@@runtimeName@@"
-)
+// RuntimeNamePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
+var RuntimeNamePlaceholder = "@@runtimeName@@"
 
 // KataRuntimeConfig returns the Kata runtime configuration.
 func KataRuntimeConfig(
@@ -72,18 +57,6 @@ func KataRuntimeConfig(
 		// and logs it to the journal.
 		config.Hypervisor["qemu"]["use_legacy_serial"] = true
 	}
-	// For larger images, we've been running into timeouts in e2e tests.
-	config.Agent["kata"]["dial_timeout"] = 120
-	config.Runtime["create_container_timeout"] = 120
-	// GPU-specific settings
-	if platforms.IsGPU(platform) {
-		config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
-		// GPU images tend to be larger, so give a better default timeout that
-		// allows for pulling those.
-		config.Agent["kata"]["dial_timeout"] = 600
-		config.Runtime["create_container_timeout"] = 600
-		config.Runtime["pod_resource_api_sock"] = "/var/lib/kubelet/pod-resources/kubelet.sock"
-	}
 
 	// Use the resources installed by Contrast node-installer.
 	config.Hypervisor["qemu"]["initrd"] = filepath.Join(baseDir, "share", "kata-initrd.zst")
@@ -96,8 +69,6 @@ func KataRuntimeConfig(
 	// TODO(katexochen): Remove after https://github.com/kata-containers/kata-containers/pull/12472 is merged.
 	config.Hypervisor["qemu"]["disable_image_nvdimm"] = true
 
-	// Force container image gust pull so we don't have to use nydus-snapshotter.
-	config.Runtime["experimental_force_guest_pull"] = true
 	// Replace the kernel params entirely (and don't append) since that's
 	// also what we do when calculating the launch measurement.
 	config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
@@ -109,10 +80,11 @@ func KataRuntimeConfig(
 	// Fix and align guest memory calculation.
 	config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMebiBytes(platform)
 	config.Runtime["sandbox_cgroup_only"] = true
-	// Currently not using the upstream encrypted emptyDir feature.
-	config.Runtime["emptydir_mode"] = "shared-fs"
+
 	// TODO: Check again why we need this and how we can avoid it.
 	config.Hypervisor["qemu"]["block_device_aio"] = "threads"
+
+	config = extraRuntimeConfig(config, platform)
 
 	return &config, nil
 }
@@ -121,11 +93,11 @@ func KataRuntimeConfig(
 // Source: https://github.com/kata-containers/kata-containers/blob/4029d154ba0c26fcf4a8f9371275f802e3ef522c/src/runtime/pkg/katautils/Config.go
 // This is a simplified version of the actual configuration.
 type Config struct {
-	Hypervisor map[string]hypervisorConfig
-	Agent      map[string]agentConfig
-	Image      imageConfig
-	Factory    factoryConfig
-	Runtime    runtimeConfig
+	Hypervisor map[string]hypervisorConfig `toml:"hypervisor"`
+	Agent      map[string]agentConfig      `toml:"agent"`
+	Image      imageConfig                 `toml:"image"`
+	Factory    factoryConfig               `toml:"factory"`
+	Runtime    runtimeConfig               `toml:"runtime"`
 }
 
 // Marshal encodes the configuration as TOML.

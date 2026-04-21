@@ -81,6 +81,7 @@ buildGoModule {
     "e2e/proxy"
     "e2e/regression"
     "e2e/release"
+    "e2e/runtime-rs-tmp"
     "e2e/servicemesh"
     "e2e/vault"
     "e2e/volumestatefulset"

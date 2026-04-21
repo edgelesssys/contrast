@@ -57,93 +57,106 @@ buildGoModule (finalAttrs: {
       # No upstream patch available, changes first need to be discussed with Kata maintainers.
       # See https://katacontainers.slack.com/archives/C879ACQ00/p1731928491942299
       ./0006-runtime-allow-initrd-AND-image-to-be-set.patch
+      ./0007-runtime-rs-allow-initrd-AND-image-to-be-set.patch
 
       # Simple genpolicy logging redaction of the policy annotation
       # This avoids printing the entire annotation on log level debug, which resulted in errors of the logtranslator.go
       # upstream didn't accept this patch: https://github.com/kata-containers/kata-containers/pull/10647
-      ./0007-genpolicy-do-not-log-policy-annotation-in-debug.patch
+      ./0008-genpolicy-do-not-log-policy-annotation-in-debug.patch
 
       # Allow running generate with ephemeral volumes.
       #
       # This may be merged upstream through either of:
       # - https://github.com/kata-containers/kata-containers/pull/10947 (this patch)
       # - https://github.com/kata-containers/kata-containers/pull/10559 (superset including the patch)
-      ./0008-genpolicy-support-ephemeral-volume-source.patch
+      ./0009-genpolicy-support-ephemeral-volume-source.patch
 
       # Don't add storages for volumes declared in the image config.
       # This fixes a security issue where the host is able to write untrusted content to paths
       # under these volumes, by failing the policy generation if volumes without mounts are found.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11546.
-      ./0009-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+      ./0010-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
 
       # Imagepulling has moved into the CDH in Kata 3.18.0. Since we are not using the CDH,we are instead starting our own Imagepuller.
       # This patch redirects calls by upstream's PullImage ttRPC client implementation to communicate with our imagepuller ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0010-agent-use-custom-implementation-for-image-pulling.patch
+      ./0011-agent-use-custom-implementation-for-image-pulling.patch
 
       # Changes the unix socket used for ttRPC communication with the imagepuller.
       # Necessary to allow a separate imagestore service.
       # Can be removed in conjunction with patch 0018-agent-use-custom-implementation-for-image-pulling.patch.
-      ./0011-agent-use-separate-unix-socket-for-image-pulling.patch
+      ./0012-agent-use-separate-unix-socket-for-image-pulling.patch
 
       # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
       # This patch redirects calls by upstream's SecureImageStore ttRPC client implementation to communicate with our own ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0012-agent-use-custom-implementation-for-secure-mounting.patch
+      ./0013-agent-use-custom-implementation-for-secure-mounting.patch
 
       # Upstream expects guest pull to only use Nydus and applies workarounds that are not
       # necessary with force_guest_pull. This patch removes the workaround.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757.
-      ./0013-genpolicy-don-t-apply-Nydus-workaround.patch
+      ./0014-genpolicy-don-t-apply-Nydus-workaround.patch
 
       # We're using a dedicated initdata-processor job and don't want the Kata agent to manage
       # initdata for us.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11532.
-      ./0014-agent-remove-initdata-processing.patch
+      ./0015-agent-remove-initdata-processing.patch
 
       # In addition to the initdata device, we also require the imagepuller's auth config
       # to be passed to the VM in a similar manner.
-      ./0015-runtime-pass-imagepuller-config-device-to-vm.patch
+      ./0016-runtime-pass-imagepuller-config-device-to-vm.patch
 
       # Privatemode requires GPU sharing between containers of the same pod.
       # In the hook-based flow, this worked because all devices and libs were (accidentally) handed to all containers.
       # With the CDI-based flow, this no longer happens.
       # Instead, this patch ensures that if a container has NVIDIA_VISIBLE_DEVICES=all set as an env var,
       # that container receives ALL Nvidia GPU devices known to the pod.
-      ./0016-runtime-assign-GPU-devices-to-multiple-containers.patch
+      ./0017-runtime-assign-GPU-devices-to-multiple-containers.patch
 
       # With recent versions of the sandbox-device-plugin, a /dev/iommu device is added
       # to the container spec for GPU-enabled containers.
       # Since the same thing is done by the CTK within the PodVM, and we only want this
       # to influence VM creation, we remove this device from the container spec in the agent.
       # Upstream bug: https://github.com/kata-containers/kata-containers/issues/12246.
-      ./0017-runtime-remove-iommu-device.patch
+      ./0018-runtime-remove-iommu-device.patch
 
       # We are observing frequent pull failures from genpolicy due to the connection being reset by the registry.
       # This patch allows genpolicy to retry these failed pulls multiple times.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12300.
-      ./0018-genpolicy-retry-failed-image-pulls.patch
+      ./0019-genpolicy-retry-failed-image-pulls.patch
 
       # In clusters that don't use the sandbox-device-plugin's P_GPU_ALIAS, we will not be able to
       # look up the device via PodResources. This patch adds additional resolution logic for that
       # case, relaxing the matching requirement to just the name (without vendor and class).
       # This is unlikely to be fixed in Kata upstream, but rather in the NVIDIA components.
       # Upstream issue: https://github.com/NVIDIA/sandbox-device-plugin/issues/46
-      ./0019-shim-guess-CDI-devices-without-direct-match.patch
+      ./0020-shim-guess-CDI-devices-without-direct-match.patch
 
       # Kata takes a default_maxvcpus config option. Ordinarily, we could set this to 240 and do the same in the kernel commandline below.
       # However, kata then reduces this number to the actually available number of CPUs at runtime.
       # This is a problem for us because we need to know the precise kernel command line at buildtime.
       # TODO(charludo): attempt to make this behavior configurable upstream
-      ./0020-runtime-do-not-add-nr_vcpus-to-kernel-command-line.patch
+      ./0021-runtime-do-not-add-nr_vcpus-to-kernel-command-line.patch
 
       # Enables the Kata runtime to set the SNP ID blocks for the CPU model it is running on
       # based on Pod annotations. This allows us to run Pods with multiple CPUs.
       # This patch relies on changes made by 0001-emulate-CPU-model-that-most-closely-matches-the-host.patch
       # together with being specific to our use case. There are no plans to upstream it.
-      ./0021-runtime-add-SNP-ID-block-from-Pod-annotations.patch
+      ./0022-runtime-add-SNP-ID-block-from-Pod-annotations.patch
+      ./0023-runtime-rs-add-SNP-ID-block-from-Pod-annotations.patch
+
+      # Deny unknown fields where possible to ease migration. This isn't possible where flatten is used.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12756.
+      ./0024-runtime-rs-deny-unknown-fields-in-config.patch
+
+      # Use virtio-blk with serial name for initdata
+      # Our initdata-processor expects the initdata device to be present at /dev/disks/by-label/initdata,
+      # which requires the device to have a stable name. Using virtio-blk with a serial number achieves this.
+      # TODO: check if we can improve the situation upstream or implement a fallback in the initdata-processor.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12764.
+      ./0025-runtime-rs-force-virtio-blk-with-serial-name-for-ini.patch
     ];
   };
 

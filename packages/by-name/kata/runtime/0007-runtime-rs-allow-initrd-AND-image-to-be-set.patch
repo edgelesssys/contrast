@@ -1,0 +1,78 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Mon, 30 Mar 2026 08:51:40 +0200
+Subject: [PATCH] runtime-rs: allow initrd AND image to be set
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/libs/kata-types/src/config/hypervisor/mod.rs           | 5 -----
+ src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs  | 4 ----
+ .../crates/runtimes/virt_container/src/factory/vm.rs       | 4 ----
+ .../crates/runtimes/virt_container/src/sandbox.rs          | 7 +++----
+ 4 files changed, 3 insertions(+), 17 deletions(-)
+
+diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
+index 6284103102c58da41e88da7a263a77c247c2760d..04f3bb2d77900b110f7239353ab806dfaa9d32a7 100644
+--- a/src/libs/kata-types/src/config/hypervisor/mod.rs
++++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
+@@ -473,11 +473,6 @@ impl BootInfo {
+         validate_path!(self.image, "guest boot image file {} is invalid: {}")?;
+         validate_path!(self.initrd, "guest initrd image file {} is invalid: {}")?;
+         validate_path!(self.firmware, "firmware image file {} is invalid: {}")?;
+-        if !self.image.is_empty() && !self.initrd.is_empty() {
+-            return Err(std::io::Error::other(
+-                "Can not configure both initrd and image for boot",
+-            ));
+-        }
+ 
+         let l = [
+             VIRTIO_BLK_PCI,
+diff --git a/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs b/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
+index cd6998a649f0ab0838d4c78f03af01c2ffef3839..bd124e5d74defefcaab67e1cfe60bfda690e3f4e 100644
+--- a/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
++++ b/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
+@@ -130,10 +130,6 @@ impl TryFrom<NamedHypervisorConfig> for VmConfig {
+         let use_initrd = !boot_info.initrd.is_empty();
+         let use_image = !boot_info.image.is_empty();
+ 
+-        if use_initrd && use_image {
+-            return Err(VmConfigError::MultipleBootFiles);
+-        }
+-
+         if !use_initrd && !use_image {
+             return Err(VmConfigError::NoBootFile);
+         }
+diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs b/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
+index 9be1e68aed0e5fa9529fd0ad8e8db53b7a6887f1..9fb0d82a91f1f32c2cea609a32e8f30d814cb977 100644
+--- a/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
++++ b/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
+@@ -111,10 +111,6 @@ impl VmConfig {
+             return Err(anyhow!("missing image and initrd path"));
+         }
+ 
+-        if has_image && has_initrd {
+-            return Err(anyhow!("image and initrd path cannot both be set"));
+-        }
+-
+         Ok(())
+     }
+ 
+diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
+index 232c0547802bfd07a0432497ea1aab2ed052e2df..dd222d191e328190ab64a469f608a7ce2a9af957 100644
+--- a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
++++ b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
+@@ -356,11 +356,10 @@ impl VirtSandbox {
+         let boot_info = self.hypervisor.hypervisor_config().await.boot_info;
+         let security_info = self.hypervisor.hypervisor_config().await.security_info;
+ 
+-        if !boot_info.initrd.is_empty() {
+-            return Ok(None);
+-        }
+-
+         if boot_info.image.is_empty() {
++            if !boot_info.initrd.is_empty() {
++                return Ok(None);
++            }
+             let is_remote_hypervisor = Arc::clone(&self.resource_manager.config().await)
+                 .runtime
+                 .hypervisor_name
