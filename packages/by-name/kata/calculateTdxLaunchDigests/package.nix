@@ -30,6 +30,12 @@ let
   # When we get more heterogenous test systems, or when TDX-GPU goes into production use,
   # this needs to be made configurable.
   gpuFlag = lib.optionalString withGPU "-g b200";
+  # The nodeinstaller sets use_legacy_serial=true when withDebug is enabled so
+  # OVMF's DEBUG_ON_SERIAL_PORT output reaches the host. That drops
+  # virtio-serial-pci from the QEMU command line and changes the ACPI tables
+  # the firmware measures into RTMR[0]. Tell tdx-measure so it picks the
+  # matching set of hardcoded ACPI hashes.
+  legacySerialFlag = lib.optionalString withDebug "--legacy-serial";
 in
 
 stdenvNoCC.mkDerivation {
@@ -42,7 +48,7 @@ stdenvNoCC.mkDerivation {
     mkdir $out
 
     ${lib.getExe tdx-measure} mrtd -f ${ovmf-tdx} --eventlog-dir eventlogs > $out/mrtd.hex
-    ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 0 > $out/rtmr0.hex
+    ${lib.getExe tdx-measure} rtmr ${gpuFlag} ${legacySerialFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 0 > $out/rtmr0.hex
     ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 1 > $out/rtmr1.hex
     ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 2 > $out/rtmr2.hex
     ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 3 > $out/rtmr3.hex

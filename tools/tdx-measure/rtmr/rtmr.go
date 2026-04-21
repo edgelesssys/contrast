@@ -112,8 +112,11 @@ var (
 	}
 )
 
-// CalcRtmr0 calculates RTMR[0] for the given firmware.
-func CalcRtmr0(firmware []byte, gpu GPUModel) ([48]byte, error) {
+// CalcRtmr0 calculates RTMR[0] for the given firmware. If legacySerial is true,
+// the hardcoded ACPI hashes for a VM launched with -serial chardev:... are
+// used instead of the ones for a VM with virtio-serial-pci; the two topologies
+// produce different ACPI tables.
+func CalcRtmr0(firmware []byte, gpu GPUModel, legacySerial bool) ([48]byte, error) {
 	var rtmr Rtmr
 
 	// We don't measure the Hobs, the firmware verifies them instead.
@@ -142,16 +145,47 @@ func CalcRtmr0(firmware []byte, gpu GPUModel) ([48]byte, error) {
 	rtmr.extendSeparator()
 
 	// TODO(freax13): Don't hard-code these, calculate them instead.
+	//
+	// TODO(sespiros): the obvious approach of invoking qemu in the Nix
+	// build and hashing etc/acpi/* via fw_cfg does not work in a pure
+	// build sandbox (tdx-guest needs KVM, vhost-vsock-pci needs
+	// /dev/vhost-vsock). Refresh the digests by hand from inside any
+	// pod running on the set you want to capture. OVMF writes a TCG
+	// CC event log as it extends the RTMRs, and Linux exposes the
+	// raw log at /sys/firmware/acpi/tables/data/CCEL. Each ACPI DATA
+	// event's 48-byte SHA-384 digest sits 52 bytes before the marker
+	// (TCG_PCR_EVENT2: digest[48] + eventSize[4]):
+	//
+	//   kubectl exec -i -n <ns> <pod> -c contrast-debug-shell -- \
+	//       debugshell '
+	//     F=/sys/firmware/acpi/tables/data/CCEL
+	//     for off in $(grep -aob "ACPI DATA" "$F" | cut -d: -f1); do
+	//       dd if="$F" bs=1 skip=$((off-52)) count=48 status=none \
+	//         | xxd -p -c 48
+	//     done'
+	//
+	// Prints three digests in OVMF's measurement order; paste them
+	// into the matching hash set below.
 	acpiHashes := []string{
-		// These are the hashes for the ACPI tables (ACPI DATA).
-		// They might change depending on firmware/qemu version or qemu command line.
+		// Default (virtio-serial-pci + virtconsole) topology.
 		"978413224c711ace8c588bd45f9585657572c8053410df87f94bed7254feb88b4ce82233ead3db3721198a3a215efc1b",
 		"7d49579cd2b17a399b29b8fd40f2fd66bf3d0fafcbfdfd9a3b912b7d4f81dd7dba85ee15768b36214d7507dc10fc6464",
 		"4f564889e597ba62b02a0f5ad95ad9f8883947deadc3275fe289f5096c01ed3db8323d70681d04f694c025ee8426be11",
 	}
+	legacySerialAcpiHashes := []string{
+		// Legacy-serial topology, used when kata sets use_legacy_serial=true
+		// (debug set) so OVMF's DEBUG_ON_SERIAL_PORT output reaches the host.
+		"8916ff48d947a6c51cdd91015d1cac0c0fdaddb4f008730fb9f275521affea17c4dac10372f7073a5bfa22e53411ab34",
+		"855f3ccb8bc8d4f66f0097d8b893a62d9e8a903c0da1663bc03a1a268b0dc3e826d82199c5e4a3721a6d83e692b4a6dc",
+		"94c46e0d8c85d3632c241f6bcfba203287259711ab9616fa1f1174cdd2e30e777f9b393ef93b8aa4ac721deef3f54a59",
+	}
 	var configHashes []string
 	if gpu == GPUModelNone {
-		configHashes = slices.Concat(acpiHashes)
+		if legacySerial {
+			configHashes = slices.Concat(legacySerialAcpiHashes)
+		} else {
+			configHashes = slices.Concat(acpiHashes)
+		}
 	}
 	for _, hash := range configHashes {
 		var buffer [48]byte
