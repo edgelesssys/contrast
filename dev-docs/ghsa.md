@@ -27,10 +27,12 @@ We use temporary private forks to develop a security fix, following this process
    Don't be too specific in the commit message, because it will be publicly visible before the fix can be adopted by users.
 3. Run e2e tests on the branch with `tools/run-release-test-matrix/run-tests.sh`, covering as many supported platforms as possible.
    GitHub actions don't run on private forks.
-4. Add reviewers and follow regular code review practice until approval.
-5. Create a new branch based on the latest release branch and cherry-pick the commits from the first branch.
-6. Run e2e tests on this branch, too.
-7. Add reviewers and follow regular code review practice until approval.
+4. Open a pull request targeting `main`.
+5. Add reviewers and follow regular code review practice until approval.
+6. Create a new branch based on the latest release branch and cherry-pick the commits from the first branch.
+7. Run e2e tests on this branch, too.
+8. Open a pull request targeting the latest release branch.
+9. Add reviewers and follow regular code review practice until approval.
 
 **NOTE**: At the end of this process, there can only be one PR per target branch.
 This is a limitation imposed by GitHub.
@@ -45,7 +47,8 @@ Follow the checklist below to publish the advisory.
    3. _Patches_ section describes how the vulnerability was fixed.
    4. _Severity_ calculation uses CVSSv3 and matches the impact description.
 2. Merge all PRs on the temporary fork.
-3. Create a patch release for the latest released version.
+   You will need to tick the _bypass branch protections_ box. That's okay.
+3. Create a [patch release](release.md#patch) for the latest released version.
 4. From the advisory's drop-down menu, select _Publish Advisory_ and click the button.
    We don't usually request CVE assignments through GitHub.
 
