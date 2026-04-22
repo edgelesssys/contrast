@@ -13,10 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/informers"
-	listerscorev1 "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog/v2"
 )
 
 // WaitForDeployment waits until the Deployment is ready.
@@ -151,68 +147,51 @@ type PodCondition interface {
 	//
 	// It receives a namespaced pod lister and returns true if the desired condition is satisfied,
 	// false if waiting should continue, or an error if something went wrong.
-	Check(listerscorev1.PodLister) (bool, error)
+	Check(PodLister) (bool, error)
+}
+
+type PodLister interface {
+	List(selector labels.Selector) (ret []*corev1.Pod, err error)
+}
+
+type ListerFunc func(selector labels.Selector) (ret []*corev1.Pod, err error)
+
+func (f ListerFunc) List(selector labels.Selector) (ret []*corev1.Pod, err error) {
+	return f(selector)
 }
 
 // WaitForPodCondition waits until the pods in the given namespace satisfy the given condition or the context expires.
 func (c *Kubeclient) WaitForPodCondition(ctx context.Context, namespace string, podCondition PodCondition) error {
 	logger := c.log.With("namespace", namespace)
-	factory := informers.NewSharedInformerFactoryWithOptions(c.Client, 5*time.Second, informers.WithNamespace(namespace))
 
-	// The notifications channel will be written to whenever the informer records a pod change.
-	notifications := make(chan struct{}, 256)
-	registration, err := factory.Core().V1().Pods().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(any) {
-			notifications <- struct{}{}
-		},
-		UpdateFunc: func(any, any) {
-			notifications <- struct{}{}
-		},
-		DeleteFunc: func(any) {
-			notifications <- struct{}{}
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("registering informer event handler: %w", err)
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	factory.Start(ctx.Done())
-
-	// Prevent the cache from logging "Waiting for caches to sync"/"Caches are synced".
-	ctxLessLogs := klog.NewContext(ctx, klog.Logger{}.V(5))
-	if ok := cache.WaitForNamedCacheSyncWithContext(ctxLessLogs, registration.HasSynced); !ok {
-		return fmt.Errorf("pod informer did not sync")
-	}
-	podLister := factory.Core().V1().Pods().Lister()
-
-loop:
-	for {
-		select {
-		case <-notifications:
-			done, err := podCondition.Check(podLister)
+	poll := func(ctx context.Context) (done bool, err error) {
+		return podCondition.Check(ListerFunc(func(selector labels.Selector) (ret []*corev1.Pod, err error) {
+			podList, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector.String()})
 			if err != nil {
-				logger.Warn("error checking pods", "error", err)
-				continue
+				// TODO(burgerdev): should we just log and return false here?
+				return nil, err
 			}
-			if done {
-				logger.Debug("done waiting", "condition", podCondition)
-				return nil
+			var out []*corev1.Pod
+			for i := range podList.Items {
+				out = append(out, &podList.Items[i])
 			}
-		case <-ctx.Done():
-			break loop
-		}
+			return out, nil
+		}))
+	}
+
+	err := wait.PollUntilContextCancel(ctx, 2*time.Second /*immediate*/, true, poll)
+	if err == nil {
+		return nil
 	}
 
 	logger.Debug("context expired while waiting", "condition", podCondition)
 	// Fetch and print debug information.
-	pods, listPodsErr := podLister.List(labels.Everything())
+	podList, listPodsErr := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if listPodsErr != nil {
 		logger.Error("could not fetch pods", "error", listPodsErr)
 		return err
 	}
-	for _, pod := range pods {
+	for _, pod := range podList.Items {
 		logger.Debug("pod status", "name", pod.Name, "status", c.toJSON(pod.Status))
 	}
 	return fmt.Errorf("context expired while waiting: %w", ctx.Err())
@@ -224,7 +203,7 @@ type numReady struct {
 	n  int
 }
 
-func (nm *numReady) Check(lister listerscorev1.PodLister) (bool, error) {
+func (nm *numReady) Check(lister PodLister) (bool, error) {
 	pods, err := lister.List(nm.ls)
 	if err != nil {
 		return false, err
@@ -248,7 +227,7 @@ type numSucceeded struct {
 	n  int
 }
 
-func (ns *numSucceeded) Check(lister listerscorev1.PodLister) (bool, error) {
+func (ns *numSucceeded) Check(lister PodLister) (bool, error) {
 	pods, err := lister.List(ns.ls)
 	if err != nil {
 		return false, err
@@ -271,7 +250,7 @@ type singlePodReady struct {
 	name string
 }
 
-func (f *singlePodReady) Check(lister listerscorev1.PodLister) (bool, error) {
+func (f *singlePodReady) Check(lister PodLister) (bool, error) {
 	pods, err := lister.List(labels.Everything())
 	if err != nil {
 		return false, err
@@ -295,7 +274,7 @@ type containerReady struct {
 	containerName string
 }
 
-func (cr *containerReady) Check(lister listerscorev1.PodLister) (bool, error) {
+func (cr *containerReady) Check(lister PodLister) (bool, error) {
 	pods, err := lister.List(labels.Everything())
 	if err != nil {
 		return false, err
@@ -316,7 +295,7 @@ type containerRunning struct {
 	containerName string
 }
 
-func (cr *containerRunning) Check(lister listerscorev1.PodLister) (bool, error) {
+func (cr *containerRunning) Check(lister PodLister) (bool, error) {
 	pods, err := lister.List(cr.ls)
 	if err != nil {
 		return false, err
