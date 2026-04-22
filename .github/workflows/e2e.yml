@@ -84,6 +84,7 @@ jobs:
           set="${SET}"
           EOF
       - name: Build and push container images
+        if: env.TEST_NAME != 'release'
         run: |
           just coordinator initializer port-forwarder openssl service-mesh-proxy memdump debugshell node-installer
       - name: Build and push the (impure) containerd-reproducer image
@@ -95,8 +96,24 @@ jobs:
         run: |
           just get-credentials
       - name: E2E Test
+        if: env.TEST_NAME != 'release'
         run: |
           just e2e "${TEST_NAME}"
+      - name: E2E Test (release)
+        if: env.TEST_NAME == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+        run: |
+          tag=$(
+            curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              https://api.github.com/repos/${{ github.repository }}/releases \
+            | jq -r '.[0].tag_name' \
+            | head -n1
+          )
+          [[ -n $tag ]]
+          just e2e-release "$tag"
       - name: Check for skipped
         id: skipped
         if: always()

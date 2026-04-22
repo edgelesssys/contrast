@@ -28,6 +28,7 @@ on:
           - policy
           - proxy
           - regression
+          - release
           - servicemesh
           - vault
           - volumestatefulset
