@@ -28,7 +28,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
-	listerscorev1 "k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -259,7 +258,7 @@ type initContainerRunningCondition struct {
 	name string
 }
 
-func (c *initContainerRunningCondition) Check(lister listerscorev1.PodLister) (bool, error) {
+func (c *initContainerRunningCondition) Check(lister kubeclient.PodLister) (bool, error) {
 	pods, err := lister.List(labels.Everything())
 	if err != nil {
 		return false, err
