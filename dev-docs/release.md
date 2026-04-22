@@ -67,13 +67,13 @@
 
     ```sh
     git switch -c "tmp/$REL_VER"
-    git push
+    git push -u origin "tmp/$REL_VER"
     ```
 
 5. Trigger the release workflow
 
     ```sh
-    gh workflow run release.yml --ref $(git rev-parse --abbrev-ref HEAD) -f kind=patch -f version="$REL_VER"
+    gh workflow run release.yml --ref $(git rev-parse --abbrev-ref HEAD) -f kind=patch -f version="$REL_VER" --repo edgelesssys/contrast
     ```
 
 6. Review the release notes. If label/title/description changes are necessary, change them on the PR itself, then regenerate. Ensure the release is based on the latest patch release. Test the binary artifact.
@@ -87,4 +87,3 @@
 10. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
 
 11. Check that the release publish action succeeds.
-
