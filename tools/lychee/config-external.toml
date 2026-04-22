@@ -13,8 +13,11 @@ exclude = [
     '^https://mysql\.com/', # returns 403
     '^http(s)?://localhost',
     '^https://github\.com/edgelesssys/contrast/(settings|deployments)', # not public
+    '^https://github\.com/edgelesssys/nix-remote-builders', # not public
     '^https://.*\.hashicorp\.com', # strict bot protection
     '^https://.*\.medium\.com', # strict bot protection
+    '^https://www\.intel\.com/content/www/us/en/content-details/865802/intel-tdx-module-abi-specification\.html$', # version from 2025-09-01 is bot protected
+    '^https://www\.intel\.com/content/www/us/en/content-details/867568/intel-tdx-module-base-architecture-specification\.html$' # version from 2025-10-21 is bot protected
 ]
 exclude_path = [
     "dev-docs/frozen",
@@ -25,3 +28,7 @@ exclude_link_local = true
 # https://github.com/lycheeverse/lychee/issues/1593
 threads = 1
 max_concurrency = 1
+
+# This is necessary such that lychee can find static pages.
+# All other links should be relative anyway!
+root_dir = "./docs/static"
