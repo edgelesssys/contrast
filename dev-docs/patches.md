@@ -86,7 +86,7 @@ When updating a package, you might need to rebase the current patch set.
 When done, recreate the patch set:
 
 ```sh
-git format-patch -N --no-signature --zero-commit --full-index -o $pkgDir $rev
+git format-patch -N --no-signature --zero-commit --full-index --diff-algorithm=myers -o $pkgDir $rev
 ```
 
 Don't forget to `git add` patches you just added and to `git rm` patches you removed or renamed.
