@@ -9,7 +9,6 @@
   installShellFiles,
   contrastPkgsStatic,
   reference-values,
-  snp-launch-digests,
   snp-ap-eip,
 }:
 
@@ -58,7 +57,6 @@ buildGoModule (finalAttrs: {
     install -D ${lib.getExe contrastPkgsStatic.kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${reference-values} internal/manifest/assets/reference-values.json
-    install -D ${snp-launch-digests} cli/cmd/assets/snp-launch-digests.json
     install -D ${snp-ap-eip}/ap-eip.hex cli/cmd/assets/ap-eip.hex
   '';
 

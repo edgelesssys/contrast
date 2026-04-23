@@ -138,8 +138,9 @@ func TestRecoverFromPeer(t *testing.T) {
 	assert.Equal(expectedAddr, dialer.recordedAddress)
 	assert.NotNil(dialer.recordedIssuer)
 	assert.True(dialer.closeCalled)
+	// One SNP reference value with APEIP set yields one IterativeValidator.
 	require.Len(dialer.recordedValidators, 1)
-	assert.IsType(&snp.Validator{}, dialer.recordedValidators[0])
+	assert.IsType(&snp.IterativeValidator{}, dialer.recordedValidators[0])
 }
 
 type fakeStaleGuard struct {
@@ -269,6 +270,7 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte) {
 			MicrocodeVersion:  &svn0,
 		},
 		TrustedMeasurement: manifest.NewHexString(measurement[:]),
+		APEIP:              "0080b004",
 		GuestPolicy: abi.SnpPolicy{
 			SMT: true,
 		},

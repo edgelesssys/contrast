@@ -6,11 +6,14 @@ package cmd
 import (
 	"context"
 	_ "embed"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
@@ -42,22 +45,22 @@ const (
 //go:embed assets/image-replacements.txt
 var ReleaseImageReplacements []byte
 
-// SNPLaunchDigestData contains the SNP launch digests for different vCPU counts and CPU generations
-// as a JSON map of platform -> vCPU count -> CPU generation -> SNPLaunchDigest.
-// The ID block and ID auth are computed at generate time using the guest policy from the manifest.
+// snpAPEIPHex contains the SEV-ES AP reset EIP read from the OVMF firmware at build time,
+// encoded as an 8-character lowercase hex string (4 bytes, big-endian).
 //
-//go:embed assets/snp-launch-digests.json
-var SNPLaunchDigestData []byte
+//go:embed assets/ap-eip.hex
+var snpAPEIPHex []byte
 
-// SNPLaunchDigests maps runtime -> cpu_count -> product_line -> SNPLaunchDigest.
-type SNPLaunchDigests map[string]map[string]map[string]SNPLaunchDigest
-
-// SNPLaunchDigest holds the pre-computed SNP launch digest for a given platform / vCPU / product
-// combination. The actual ID block and ID auth are derived at generate time together with the
-// guest policy configured in the manifest.
-type SNPLaunchDigest struct {
-	// LaunchDigest is the hex-encoded 48-byte SNP launch digest.
-	LaunchDigest string `json:"launchDigest"`
+// parsedAPEIP parses the AP reset EIP embedded at build time and returns it as a uint32.
+func parsedAPEIP() (uint32, error) {
+	b, err := hex.DecodeString(strings.TrimSpace(string(snpAPEIPHex)))
+	if err != nil {
+		return 0, fmt.Errorf("invalid ap-eip.hex: %w", err)
+	}
+	if len(b) != 4 {
+		return 0, fmt.Errorf("invalid ap-eip.hex: expected 4 bytes, got %d", len(b))
+	}
+	return binary.BigEndian.Uint32(b), nil
 }
 
 func commandOut() io.Writer {

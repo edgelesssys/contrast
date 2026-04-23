@@ -902,6 +902,7 @@ func newManifestWithSeedshareOwner(t *testing.T) ([]byte, [][]byte) {
 			MicrocodeVersion:  &svn0,
 		},
 		TrustedMeasurement: manifest.NewHexString(measurement[:]),
+		APEIP:              "0080b004",
 		GuestPolicy: abi.SnpPolicy{
 			SMT: true,
 		},

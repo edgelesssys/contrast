@@ -35,7 +35,8 @@ func newTestManifestSNP() *Manifest {
 						MicrocodeVersion:  toPtr(SVN(2)),
 					},
 					ProductName:        "Milan",
-					TrustedMeasurement: HexString("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+					TrustedMeasurement: "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+					APEIP:              "0080b004",
 					GuestPolicy: abi.SnpPolicy{
 						SMT: true,
 					},
@@ -109,9 +110,17 @@ func TestValidate(t *testing.T) {
 		"trusted measurement empty": {
 			m: newTestManifestSNP(),
 			mutate: func(m *Manifest) {
-				m.ReferenceValues.SNP[0].TrustedMeasurement = HexString("")
+				m.ReferenceValues.SNP[0].TrustedMeasurement = ""
 			},
 			wantErr: true,
+		},
+		"apeip empty": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.ReferenceValues.SNP[0].APEIP = ""
+			},
+			// APEIP is optional for backwards compatibility with older manifests.
+			wantErr: false,
 		},
 		"invalid workload owner key": {
 			m: newTestManifestSNP(),
@@ -289,6 +298,7 @@ func TestSNPValidateOpts(t *testing.T) {
 
 	opts, err := m.SNPValidateOpts(nil)
 	require.NoError(err)
+	// One SNP entry yields one SNPValidatorOptions with the 1-vCPU seed and APEIP set.
 	require.Len(opts, 1)
 
 	tcb := m.ReferenceValues.SNP[0].MinimumTCB
@@ -299,8 +309,9 @@ func TestSNPValidateOpts(t *testing.T) {
 
 	trustedMeasurement, err := m.ReferenceValues.SNP[0].TrustedMeasurement.Bytes()
 	assert.NoError(err)
-
+	// Measurement holds the 1-vCPU seed; APEIP signals iterative validation.
 	assert.Equal(trustedMeasurement, opts[0].ValidateOpts.Measurement)
+	assert.Len(opts[0].APEIP, 4)
 
 	tcbParts := kds.TCBParts{
 		BlSpl:    tcb.BootloaderVersion.UInt8(),
