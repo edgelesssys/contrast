@@ -192,18 +192,22 @@ func (r *ReferenceValues) Patch(patches ReferenceValuePatches) error {
 
 // SNPReferenceValues contains reference values for SEV-SNP.
 type SNPReferenceValues struct {
-	Platform                string
-	ProductName             ProductName
-	TrustedMeasurement      HexString
+	Platform    string
+	ProductName ProductName
+	// TrustedMeasurement is the launch measurement for a single vCPU.
+	// At verify time the CLI derives measurements for vCPU counts 2–220 on
+	// the fly using ExtendSNPLaunchDigest together with APEIP.
+	TrustedMeasurement HexString
+	// APEIP is the SEV-ES AP reset EIP read from the OVMF footer table.
+	// It is required to reconstruct per-vCPU-count launch measurements.
+	// Optional: when absent, TrustedMeasurement is treated as an exact match
+	// (backwards compatibility with manifests generated before this field existed).
+	APEIP                   HexString
 	MinimumTCB              SNPTCB
 	GuestPolicy             abi.SnpPolicy
 	PlatformInfo            abi.SnpPlatformInfo
 	MinimumMitigationVector uint64
 	AllowedChipIDs          []HexString
-	// CPUs is the number of vCPUs assigned to the VM.
-	// This field is purely informative as [SNPReferenceValues.TrustedMeasurement]
-	// already implicitly contains the number of vCPUs
-	CPUs uint64
 }
 
 // Validate checks the validity of all fields in the AKS reference values.
@@ -230,8 +234,17 @@ func (r SNPReferenceValues) Validate() error {
 		errs = append(errs, newValidationError("ProductName", fmt.Errorf("unknown product name: %s", r.ProductName)))
 	}
 
-	if err := validateHexString(r.TrustedMeasurement, abi.MeasurementSize); err != nil {
-		errs = append(errs, newValidationError("TrustedMeasurement", err))
+	if r.TrustedMeasurement == "" {
+		errs = append(errs, newValidationError("TrustedMeasurement", fmt.Errorf("field cannot be empty")))
+	} else {
+		if err := validateHexString(r.TrustedMeasurement, abi.MeasurementSize); err != nil {
+			errs = append(errs, newValidationError("TrustedMeasurement", err))
+		}
+	}
+	if r.APEIP != "" {
+		if err := validateHexString(r.APEIP, 4); err != nil {
+			errs = append(errs, newValidationError("APEIP", err))
+		}
 	}
 
 	// GuestPolicy is intentionally not validated here: it is user-configurable.

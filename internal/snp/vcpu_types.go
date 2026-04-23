@@ -52,3 +52,16 @@ func LookupCPUSig(cpuType string) (uint32, error) {
 	}
 	return sig, nil
 }
+
+// CPUSigForProduct returns the CPUID signature for the given AMD SEV-SNP product name
+// ("Milan" → EPYC-Milan, "Genoa" → EPYC-Genoa).
+func CPUSigForProduct(productName string) (uint32, error) {
+	switch productName {
+	case "Milan":
+		return LookupCPUSig("EPYC-Milan")
+	case "Genoa":
+		return LookupCPUSig("EPYC-Genoa")
+	default:
+		return 0, fmt.Errorf("unknown SNP product name %q", productName)
+	}
+}
