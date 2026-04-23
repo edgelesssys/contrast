@@ -8,7 +8,10 @@
 // is implemented (--mode snp, VMM type QEMU).
 package snp
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 // CalcSNPLaunchDigest calculates the SEV-SNP launch measurement digest.
 //
@@ -57,6 +60,27 @@ func CalcSNPLaunchDigest(ovmfPath string, vcpus int, vcpuSig uint32,
 		gctx.UpdateVMSAPage(page)
 	}
 
+	return gctx.LaunchDigest(), nil
+}
+
+// ExtendSNPLaunchDigest derives the launch measurement for targetVCPUs vCPUs from the
+// measurement for a single vCPU (seed). It appends (targetVCPUs - 1) AP VMSA page
+// measurements to the GCTX, which is initialized from the 1-vCPU digest.
+//
+// The parameters apEIP, vcpuSig, and guestFeatures must match those used when computing
+// the original 1-vCPU measurement (derived from the OVMF binary and CPU type).
+func ExtendSNPLaunchDigest(seed [LaunchDigestSize]byte, targetVCPUs int, apEIP uint32, vcpuSig uint32) ([LaunchDigestSize]byte, error) {
+	if targetVCPUs < 1 || targetVCPUs > math.MaxUint16 {
+		return [LaunchDigestSize]byte{}, fmt.Errorf("invalid target vCPU count: %d", targetVCPUs)
+	}
+	if targetVCPUs == 1 {
+		return seed, nil
+	}
+	ap := BuildVMSASaveArea(apEIP, 0x1, vcpuSig)
+	gctx := NewGCTXWithSeed(seed)
+	for range targetVCPUs - 1 {
+		gctx.UpdateVMSAPage(ap)
+	}
 	return gctx.LaunchDigest(), nil
 }
 

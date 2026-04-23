@@ -6,6 +6,7 @@ package stateguard
 import (
 	"context"
 	"crypto/tls"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -19,6 +20,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/logger"
+	snpmeasure "github.com/edgelesssys/contrast/internal/snp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/credentials"
@@ -79,9 +81,15 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	for i, opt := range snpOpts {
 		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
-		validator := snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs,
-			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": name}),
-			&authInfo, name)
+		validatorLog := logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": name})
+		var validator atls.Validator
+		if len(opt.APEIP) == 4 {
+			seed := [snpmeasure.LaunchDigestSize]byte(opt.ValidateOpts.Measurement)
+			apEIP := binary.BigEndian.Uint32(opt.APEIP)
+			validator = snp.NewIterativeValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts, seed, apEIP, opt.VCPUSig, opt.AllowedChipIDs, validatorLog, &authInfo, name)
+		} else {
+			validator = snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, validatorLog, &authInfo, name)
+		}
 		validators = append(validators, validator)
 	}
 

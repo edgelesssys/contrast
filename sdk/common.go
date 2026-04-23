@@ -6,6 +6,7 @@
 package sdk
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	snpmeasure "github.com/edgelesssys/contrast/internal/snp"
 )
 
 // ValidatorsFromManifest returns a list of validators corresponding to the reference values in the given manifest.
@@ -40,9 +42,16 @@ func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.
 	for i, opt := range opts {
 		opt.ValidateOpts.HostData = coordPolicyHashBytes
 		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
-		validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs,
-			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name,
-		))
+		validatorLog := logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name})
+		var v atls.Validator
+		if len(opt.APEIP) == 4 {
+			seed := [snpmeasure.LaunchDigestSize]byte(opt.ValidateOpts.Measurement)
+			apEIP := binary.BigEndian.Uint32(opt.APEIP)
+			v = snp.NewIterativeValidator(opt.VerifyOpts, opt.ValidateOpts, seed, apEIP, opt.VCPUSig, opt.AllowedChipIDs, validatorLog, name)
+		} else {
+			v = snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, validatorLog, name)
+		}
+		validators = append(validators, v)
 	}
 
 	tdxOpts, err := m.TDXValidateOpts(kdsGetter)

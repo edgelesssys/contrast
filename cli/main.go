@@ -78,8 +78,7 @@ func buildVersionString() (string, error) {
 		}
 		for _, snp := range values.SNP {
 			fmt.Fprintf(versionsWriter, "\t- product name:\t%s\n", snp.ProductName)
-			fmt.Fprintf(versionsWriter, "\t  vCPUs:\t%d\n", snp.CPUs)
-			fmt.Fprintf(versionsWriter, "\t  launch digest:\t%s\n", snp.TrustedMeasurement.String())
+			fmt.Fprintf(versionsWriter, "\t  1-vCPU launch digest (seed): %s\n", snp.TrustedMeasurement.String())
 			fmt.Fprint(versionsWriter, "\t  default SNP TCB:\t\n")
 			printOptionalSVN("bootloader", snp.MinimumTCB.BootloaderVersion)
 			printOptionalSVN("tee", snp.MinimumTCB.TEEVersion)
