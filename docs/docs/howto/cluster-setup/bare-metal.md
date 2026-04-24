@@ -85,7 +85,7 @@ Contrast can be deployed with different Kubernetes distributions, provided that 
 
 The default configuration should work for a vanilla containerd installation.
 Other Kubernetes variants may need subtle tweaks.
-We'll show a configuration for k3s below, see [the node installer configuration reference](../../reference/node-installer-configuration.md) for more details.
+We'll show configurations for k3s and RKE2 below, see [the node installer configuration reference](../../reference/node-installer-configuration.md) for more details.
 
 ### K3s
 
@@ -106,12 +106,40 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 If you need to pull large images, configure K3s to use a longer `runtime-request-timeout` duration than the [default value of 2 minutes](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/) used by the kubelet,
 for example by setting
 
-```bash
+```yaml
 kubelet-arg:
   - "runtime-request-timeout=5m"
 ```
 
 in `/etc/rancher/k3s/config.yaml`.
+
+### RKE2
+
+[RKE2](https://docs.rke2.io/) is Rancher's enterprise-ready next-generation Kubernetes distribution.
+
+1. Follow the [RKE2 setup instructions](https://docs.rke2.io/) to create a cluster.
+   Only the Contrast runtime installation is currently tested on RKE2.
+2. Install a block storage provider such as [Longhorn](https://longhorn.io/docs/1.9.1/deploy/install/install-with-helm/) and mark it as the default storage class.
+3. Ensure that a load balancer controller is installed.
+   RKE2 doesn't come with a bundled load balancer controller.
+
+Then, install the ConfigMap to configure the Contrast node-installer for use with RKE2:
+
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/node-installer-target-config-rke2.yml
+```
+
+If you need to pull large images, configure RKE2 to use a longer `runtime-request-timeout` duration than the [default value of 2 minutes](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/) used by the kubelet,
+for example by setting
+
+```yaml
+kubelet-arg:
+  - "runtime-request-timeout=5m"
+```
+
+in `/etc/rancher/rke2/config.yaml`.
+
+<!-- TODO(burgerdev): add instructions for kubeadm and make the k8s distros tabs instead of sections. -->
 
 ## Preparing a cluster for GPU usage
 
