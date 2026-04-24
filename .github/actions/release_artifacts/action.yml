@@ -120,6 +120,7 @@ runs:
         workspace/mysql-demo.yml
         workspace/vault-demo.yml
         workspace/node-installer-target-config-k3s.yml
+        workspace/node-installer-target-config-rke2.yml
         EOM
         EOF
     - name: Create coordinator resource definitions
@@ -174,11 +175,18 @@ runs:
       env:
         SET: base
       run: |
-        nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
-          --node-installer-target-conf-type k3s \
-          --namespace contrast-system \
-          --add-namespace-object \
-          node-installer-target-conf > workspace/node-installer-target-config-k3s.yml
+        set -u
+        distros=(
+          k3s
+          rke2
+        )
+        for distro in "${distros[@]}"; do
+          nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
+            --node-installer-target-conf-type "${distro}" \
+            --namespace contrast-system \
+            --add-namespace-object \
+            node-installer-target-conf > "workspace/node-installer-target-config-${distro}.yml"
+        done
     - uses: ./.github/actions/build_cli
       with:
         system: x86_64-linux
