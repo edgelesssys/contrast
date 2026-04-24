@@ -155,6 +155,12 @@ func NodeInstallerTargetConfig(target string) (*applycorev1.ConfigMapApplyConfig
 				"containerd-config-path": "var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl",
 				"systemd-unit-name":      "k3s.service,k3s-agent.service",
 			}), nil
+	case "rke2":
+		return applycorev1.ConfigMap("contrast-node-installer-target-config", ns).
+			WithData(map[string]string{
+				"containerd-config-path": "var/lib/rancher/rke2/agent/etc/containerd/config.toml.tmpl",
+				"systemd-unit-name":      "rke2-server.service,rke2-agent.service",
+			}), nil
 	default:
 		return nil, fmt.Errorf("unsupported target %q", target)
 	}
