@@ -11,6 +11,7 @@
   libiconv,
   zlib,
   cmake,
+  stdenv,
   stdenvNoCC,
   applyPatches,
 }:
@@ -57,6 +58,9 @@ rustPlatform.buildRustPackage rec {
   preBuild = ''
     make -C src/tools/genpolicy src/version.rs
   '';
+
+  # TODO(sespiros): drop once kata-agent-policy compiles on Darwin upstream.
+  doCheck = stdenv.hostPlatform.isLinux;
 
   # Only run library tests, the integration tests need internet access.
   cargoTestFlags = [
