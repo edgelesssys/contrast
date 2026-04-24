@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Prepare a bare-metal instance | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/pr-preview/pr-2347/next/howto/cluster-setup/bare-metal"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Prepare a bare-metal instance | Contrast"><meta data-rh="true" name="description" content="Prerequisites"><meta data-rh="true" property="og:description" content="Prerequisites"><link data-rh="true" rel="icon" href="/contrast/pr-preview/pr-2347/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/pr-preview/pr-2347/next/howto/cluster-setup/bare-metal"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-2347/next/howto/cluster-setup/bare-metal" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-2347/next/howto/cluster-setup/bare-metal" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Bare metal","item":"https://docs.edgeless.systems/contrast/pr-preview/pr-2347/next/howto/cluster-setup/bare-metal"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-2347/assets/css/styles.3541c1a1.css">
-<script src="/contrast/pr-preview/pr-2347/assets/js/runtime~main.fe0fdca5.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-2347/assets/js/runtime~main.ffbdaf25.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-2347/assets/js/main.0f099ce4.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -53,7 +53,7 @@ Since older containerd versions <a class="" href="/contrast/pr-preview/pr-2347/n
 </ol>
 <p>The default configuration should work for a vanilla containerd installation.
 Other Kubernetes variants may need subtle tweaks.
-We&#x27;ll show a configuration for k3s below, see <a class="" href="/contrast/pr-preview/pr-2347/next/reference/node-installer-configuration">the node installer configuration reference</a> for more details.</p>
+We&#x27;ll show configurations for k3s and RKE2 below, see <a class="" href="/contrast/pr-preview/pr-2347/next/reference/node-installer-configuration">the node installer configuration reference</a> for more details.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="k3s">K3s<a href="#k3s" class="hash-link" aria-label="Direct link to K3s" title="Direct link to K3s" translate="no">​</a></h3>
 <p><a href="https://k3s.io/" target="_blank" rel="noopener noreferrer" class="">K3s</a> is a lightweight Kubernetes distribution that&#x27;s easy to set up.</p>
 <ol>
@@ -70,7 +70,7 @@ for example by setting</p>
 <div class="language-yaml codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-yaml codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token key atrule" style="color:#00a4db">kubelet-arg</span><span class="token punctuation" style="color:#393A34">:</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">-</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;runtime-request-timeout=5m&quot;</span><br></span></code></pre></div></div>
 <p>in <code>/etc/rancher/k3s/config.yaml</code>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="rke2">RKE2<a href="#rke2" class="hash-link" aria-label="Direct link to RKE2" title="Direct link to RKE2" translate="no">​</a></h3>
-<p><a href="https://docs.rke2.io/" target="_blank" rel="noopener noreferrer" class="">RKE2</a> is Rancher&#x27;s enterprise-ready next-generation Kubernetes distribution..</p>
+<p><a href="https://docs.rke2.io/" target="_blank" rel="noopener noreferrer" class="">RKE2</a> is Rancher&#x27;s enterprise-ready next-generation Kubernetes distribution.</p>
 <ol>
 <li class="">Follow the <a href="https://docs.rke2.io/" target="_blank" rel="noopener noreferrer" class="">RKE2 setup instructions</a> to create a cluster.
 Only the Contrast runtime installation is currently tested on RKE2.</li>
