@@ -1,0 +1,226 @@
+name: release promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      checkout_main_ref:
+        description: Checkout this git ref as main branch (some workflows run on this state)
+        type: string
+        required: false
+        default: main
+
+env:
+  container_registry: ghcr.io/edgelesssys
+  DO_NOT_TRACK: 1
+
+concurrency:
+  group: release-promote
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Verify nightly and prepare release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      EFFECTIVE_VERSION: ${{ steps.effective-version.outputs.value }}
+      WITHOUT_V: ${{ steps.version-info.outputs.without_v }}
+      MAJOR_MINOR: ${{ steps.version-info.outputs.major_minor }}
+      MAJOR_MINOR_PATCH: ${{ steps.version-info.outputs.major_minor_patch }}
+      RELEASE_BRANCH: ${{ steps.version-info.outputs.release_branch }}
+      WORKING_BRANCH: ${{ steps.branch.outputs.value }}
+      NEXT_MINOR: ${{ steps.version-info.outputs.next_minor }}
+      NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.next_minor_pre_without_v }}
+      PREVIOUS_MINOR_TAG: ${{ steps.version-info.outputs.previous_minor_tag }}
+      nightly_ref: ${{ steps.nightly-info.outputs.nightly_ref }}
+      nightly_tag: ${{ steps.nightly-info.outputs.nightly_tag }}
+      nightly_run_id: ${{ steps.nightly-info.outputs.nightly_run_id }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Determine version
+        id: effective-version
+        run: |
+          base=$(sed 's/-.*$//' version.txt)
+          FULL_VERSION="v${base}"
+          echo "FULL_VERSION=${FULL_VERSION}" | tee -a "$GITHUB_ENV"
+          echo "value=${FULL_VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Get nightly run info
+        id: nightly-info
+        env:
+          GH_REPO: ${{ github.repository }}
+        run: |
+          nightly_run_id=$(gh run list --repo "${GH_REPO}" --workflow=release_nightly.yml --status=completed --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [[ -z "${nightly_run_id}" ]]; then
+            echo "::error::No completed run of release_nightly.yml found."
+            exit 1
+          fi
+          nightly_ref=$(gh run view "${nightly_run_id}" --repo "${GH_REPO}" --json headSha --jq '.headSha')
+          nightly_date=$(gh run view "${nightly_run_id}" --repo "${GH_REPO}" --json createdAt --jq '.createdAt | .[0:10]')
+          nightly_tag="${FULL_VERSION}-${nightly_date}"
+          echo "nightly_run_id=${nightly_run_id}" | tee -a "$GITHUB_OUTPUT"
+          echo "nightly_ref=${nightly_ref}" | tee -a "$GITHUB_OUTPUT"
+          echo "nightly_tag=${nightly_tag}" | tee -a "$GITHUB_OUTPUT"
+      - name: Verify nightly tests passed
+        env:
+          NIGHTLY_RUN_ID: ${{ steps.nightly-info.outputs.nightly_run_id }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          failed=$(gh run view "${NIGHTLY_RUN_ID}" --repo "${GH_REPO}" --json jobs \
+            --jq '[.jobs[] | select(.name | startswith("release-requirement: ")) | select(.conclusion != "success")] | map("\(.name): \(.conclusion)") | .[]')
+          if [[ -n "${failed}" ]]; then
+            echo "::error::The following required jobs did not succeed in nightly run ${NIGHTLY_RUN_ID}:"
+            echo "${failed}"
+            exit 1
+          fi
+      - name: Verify nightly draft release has artifacts
+        env:
+          NIGHTLY_TAG: ${{ steps.nightly-info.outputs.nightly_tag }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          asset_count=$(gh release view "${NIGHTLY_TAG}" --repo "${GH_REPO}" --json assets --jq '.assets | length' 2>/dev/null || echo "0")
+          if [[ "${asset_count}" -eq 0 ]]; then
+            echo "::error::No assets found on nightly draft release ${NIGHTLY_TAG}. Expected artifacts from the build."
+            exit 1
+          fi
+          echo "Found ${asset_count} assets on ${NIGHTLY_TAG}."
+      - name: Don't overwrite published releases
+        run: |
+          is_draft=$(gh release view "${FULL_VERSION}" --json isDraft -q .isDraft 2>/dev/null || true)
+          if [[ "${is_draft}" == "false" ]]; then
+            echo "::error::Release ${FULL_VERSION} is already published."
+            exit 1
+          fi
+      - name: Get working branch
+        id: branch
+        run: echo "value=$(git branch --show-current)" >> "$GITHUB_OUTPUT"
+      - name: Parse version
+        id: version-info
+        uses: ./.github/actions/parse_version
+        with:
+          version: ${{ steps.effective-version.outputs.value }}
+
+  promote:
+    name: Promote nightly artifacts to release
+    runs-on: ubuntu-24.04
+    needs: prepare
+    permissions:
+      contents: write
+      actions: read
+    env:
+      VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download release artifacts from nightly run
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: contrast-release-artifacts
+          path: ./release-artifacts
+          run-id: ${{ needs.prepare.outputs.nightly_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download darwin CLI from nightly run
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: contrast-cli-aarch64-darwin
+          path: ./darwin-artifacts
+          run-id: ${{ needs.prepare.outputs.nightly_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release draft
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2  # zizmor: ignore[superfluous-actions]
+        with:
+          draft: true
+          generate_release_notes: true
+          tag_name: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+          previous_tag: ${{ needs.prepare.outputs.PREVIOUS_MINOR_TAG }}
+          target_commitish: ${{ needs.prepare.outputs.nightly_ref }}
+          fail_on_unmatched_files: true
+          files: |
+            ./release-artifacts/**
+            !./release-artifacts/LICENSE
+            ./darwin-artifacts/contrast-aarch64-darwin
+      - name: Delete nightly draft release
+        env:
+          NIGHTLY_TAG: ${{ needs.prepare.outputs.nightly_tag }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete "${NIGHTLY_TAG}" --repo "${GH_REPO}" --yes --cleanup-tag
+
+  prepare-github-release:
+    name: Create backport label and milestone
+    needs: prepare
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.prepare.outputs.nightly_ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/prepare_github_release
+        with:
+          release_branch: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
+          next_minor: ${{ needs.prepare.outputs.NEXT_MINOR }}
+          github_token: ${{ github.token }}
+
+  prepare-post-release-pr:
+    name: Prepare post-release PR to main
+    runs-on: ubuntu-24.04
+    needs: [prepare, promote]
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.prepare.outputs.nightly_ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/prepare_post_release_pr
+        with:
+          checkout_main_ref: ${{ inputs.checkout_main_ref }}
+          version: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+          major_minor: ${{ needs.prepare.outputs.MAJOR_MINOR }}
+          major_minor_patch: ${{ needs.prepare.outputs.MAJOR_MINOR_PATCH }}
+          without_v: ${{ needs.prepare.outputs.WITHOUT_V }}
+          next_minor_pre_without_v: ${{ needs.prepare.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
+          pr_branch_suffix: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          nunki_ci_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          artifacts_run_id: ${{ needs.prepare.outputs.nightly_run_id }}
+
+  publish:
+    name: Prepare post-release PR to main
+    needs: [prepare, promote, prepare-github-release, prepare-post-release-pr]
+    runs-on: ubuntu-24.04
+    environment: release-publish
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.prepare.outputs.nightly_ref }}
+          persist-credentials: true
+      - name: Create and push release tag
+        env:
+          VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+          REF: ${{ needs.prepare.outputs.nightly_ref }}
+        run: |
+          git tag "${VERSION}" "${REF}"
+          git push origin "${VERSION}"
+      - uses: ./.github/actions/regenerate_release_notes
+        with:
+          version: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+          previous_tag: ${{ needs.prepare.outputs.PREVIOUS_MINOR_TAG }}
+          github_token: ${{ github.token }}
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+        run: |
+          gh release edit "${VERSION}" --draft=false --repo "${{ github.repository }}"

@@ -1,0 +1,37 @@
+name: Regenerate release notes
+description: Regenerate the release notes for an existing tag and update the release body
+
+inputs:
+  version:
+    description: Release tag to regenerate notes for
+    required: true
+  previous_tag:
+    description: Previous tag to diff against when generating notes
+    required: true
+  github_token:
+    description: GitHub token with contents:write
+    required: true
+  github_repo:
+    description: Repository in owner/name form
+    required: false
+    default: ${{ github.repository }}
+
+runs:
+  using: composite
+  steps:
+    - name: Regenerate release notes against the now-existing tag
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        GH_REPO: ${{ inputs.github_repo }}
+        VERSION: ${{ inputs.version }}
+        PREVIOUS_TAG: ${{ inputs.previous_tag }}
+      run: |
+        notes=$(gh api \
+          --method POST \
+          -H "Accept: application/vnd.github+json" \
+          "/repos/${GH_REPO}/releases/generate-notes" \
+          -f "tag_name=${VERSION}" \
+          -f "previous_tag_name=${PREVIOUS_TAG}" \
+          --jq '.body')
+        gh release edit "${VERSION}" --repo "${GH_REPO}" --notes "${notes}"

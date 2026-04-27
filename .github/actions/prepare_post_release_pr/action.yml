@@ -1,0 +1,152 @@
+name: Update main branch
+description: >
+  Updates the main branch with release artifacts, docs, and a version bump, then opens a PR. Assumes the workspace root is already checked out to the working/release ref.
+inputs:
+  checkout_main_ref:
+    description: Git ref for the main branch
+    required: false
+    default: main
+  version:
+    description: Full release version, e.g. v1.2.3
+    required: true
+  major_minor:
+    description: Major.Minor, e.g. 1.2
+    required: true
+  major_minor_patch:
+    description: Major.Minor.Patch, e.g. 1.2.3
+    required: true
+  without_v:
+    description: Version without v prefix, e.g. 1.2.3
+    required: true
+  next_minor_pre_without_v:
+    description: Next minor pre-release version without v, e.g. 1.3.0-pre
+    required: true
+  pr_branch_suffix:
+    description: Suffix for the automated PR branch (automated/update-main-after-<suffix>)
+    required: true
+  create_docs_release:
+    description: Whether to create a versioned docs snapshot
+    required: false
+    default: 'true'
+  bump_version:
+    description: Whether to bump the flake version post-release
+    required: false
+    default: 'true'
+  github_token:
+    description: GitHub token
+    required: true
+  nunki_ci_token:
+    description: Token with push and PR creation permissions (NUNKI_CI_COMMIT_PUSH_PR)
+    required: true
+  cachix_token:
+    description: Cachix auth token
+    required: true
+  artifacts_run_id:
+    description: Workflow run ID to download artifacts from. Defaults to the current run.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout main
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: ${{ inputs.checkout_main_ref }}
+        path: contrast-main
+        persist-credentials: false
+    - uses: ./.github/actions/setup_nix
+      with:
+        githubToken: ${{ inputs.github_token }}
+        cachixToken: ${{ inputs.cachix_token }}
+    - name: Configure git
+      shell: bash
+      run: |
+        git config --global user.name "edgelessci"
+        git config --global user.email "edgelessci@users.noreply.github.com"
+    - name: Create docs release
+      if: inputs.create_docs_release == 'true'
+      shell: bash
+      working-directory: contrast-main/docs
+      env:
+        MAJOR_MINOR: ${{ inputs.major_minor }}
+      run: |
+        nix run ".#base.nixpkgs.yarn" install
+        nix run ".#base.nixpkgs.yarn" docusaurus docs:version "${MAJOR_MINOR}"
+        git add .
+        git commit -am "docs: release ${MAJOR_MINOR}"
+        # Clean up auxiliary files, so next steps run on a clean tree
+        git clean -fx :/
+        git reset --hard HEAD
+    - name: Download image replacements
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: image-replacements
+        run-id: ${{ inputs.artifacts_run_id || github.run_id }}
+        github-token: ${{ inputs.github_token }}
+    - name: Update release urls in docs with tags
+      shell: bash
+      working-directory: contrast-main
+      run: nix run ".#base.scripts.update-release-urls"
+    - name: Commit updated docs
+      shell: bash
+      working-directory: contrast-main
+      env:
+        MAJOR_MINOR: ${{ inputs.major_minor }}
+      run: |
+        git add "docs/versioned_docs/version-${MAJOR_MINOR}"
+        git commit -m "docs: update release download urls"
+        git clean -fx :/
+        git reset --hard HEAD
+    - name: Download release artifacts
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: contrast-release-artifacts
+        path: ./contrast-main
+        run-id: ${{ inputs.artifacts_run_id || github.run_id }}
+        github-token: ${{ inputs.github_token }}
+    - name: Download darwin CLI artifact
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: contrast-cli-aarch64-darwin
+        path: ./contrast-main/workspace
+        run-id: ${{ inputs.artifacts_run_id || github.run_id }}
+        github-token: ${{ inputs.github_token }}
+    - name: Update contrast-releases.json with new release
+      shell: bash
+      working-directory: contrast-main
+      run: nix run ".#base.scripts.update-contrast-releases"
+    - name: Commit updated contrast-releases.json
+      shell: bash
+      working-directory: contrast-main
+      env:
+        MAJOR_MINOR_PATCH: ${{ inputs.major_minor_patch }}
+      run: |
+        git add ./packages/contrast-releases.json
+        git commit -m "packages/contrast-releases: add ${MAJOR_MINOR_PATCH}"
+        git clean -fx :/
+        git reset --hard HEAD
+    - name: Bump flake version to post release pre-version
+      if: inputs.bump_version == 'true'
+      id: bump
+      uses: ./.github/actions/bump_version
+      with:
+        version: ${{ inputs.next_minor_pre_without_v }}
+        working-directory: contrast-main
+        commit: false
+    - name: Create PR
+      uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+      with:
+        title: Post ${{ inputs.without_v }} release updates to main
+        body: |
+          Updating main as part of the ${{ inputs.without_v }} release.
+          Only merge after the release is published.
+        commit-message: ${{ steps.bump.outputs.commit-msg }}
+        base: main
+        draft: false
+        labels: "no changelog"
+        branch: automated/update-main-after-${{ inputs.pr_branch_suffix }}
+        committer: edgelessci <edgelessci@users.noreply.github.com>
+        author: edgelessci <edgelessci@users.noreply.github.com>
+        token: ${{ inputs.nunki_ci_token }}
+        path: ./contrast-main

@@ -1,0 +1,97 @@
+name: e2e release test
+description: >
+  Runs the e2e release tests for a single platform. Assumes the workspace is already checked out to the release ref.
+inputs:
+  version:
+    description: Release tag to test against, e.g. v1.2.3
+    required: true
+  container_registry:
+    description: Container registry
+    required: true
+  platform_name:
+    description: Platform name, e.g. Metal-QEMU-SNP
+    required: true
+  node_installer_target_conf:
+    description: Node installer target configuration, e.g. none or k3s
+    required: true
+  self_hosted:
+    description: Whether this is a self-hosted runner ('true' or 'false')
+    required: true
+  github_token:
+    description: GitHub token
+    required: true
+  cachix_token:
+    description: Cachix auth token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/setup_nix
+      if: inputs.self_hosted != 'true'
+      with:
+        githubToken: ${{ inputs.github_token }}
+        cachixToken: ${{ inputs.cachix_token }}
+    - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+    - name: Log in to ghcr.io Container registry
+      uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.github_token }}
+    - name: Create justfile.env
+      shell: bash
+      env:
+        CONTAINER_REGISTRY: ${{ inputs.container_registry }}
+        PLATFORM_NAME: ${{ inputs.platform_name }}
+      run: |
+        cat <<EOF > justfile.env
+        container_registry=${CONTAINER_REGISTRY}
+        default_platform=${PLATFORM_NAME}
+        set="base"
+        EOF
+    - name: Get credentials for CI cluster
+      if: inputs.self_hosted != 'true'
+      shell: bash
+      run: |
+        just get-credentials
+    - name: Request fifo ticket
+      if: inputs.self_hosted != 'true' || inputs.platform_name == 'Metal-QEMU-SNP-GPU' || inputs.platform_name == 'Metal-QEMU-TDX-GPU'
+      shell: bash
+      run: |
+        just request-fifo-ticket
+    - name: E2E Test
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        VERSION: ${{ inputs.version }}
+        PLATFORM_NAME: ${{ inputs.platform_name }}
+        NODE_INSTALLER_TARGET_CONF: ${{ inputs.node_installer_target_conf }}
+      run: |
+        mkdir -p workspace
+        nix build ".#base.scripts.get-logs"
+        nix run ".#base.scripts.get-logs" start workspace/just.namespace &
+        nix shell -L ".#base.contrast.e2e" --command release.test \
+          -test.v \
+          --tag "${VERSION}" \
+          --platform "${PLATFORM_NAME}" \
+          --node-installer-target-conf "${NODE_INSTALLER_TARGET_CONF}" \
+          --namespace-file workspace/just.namespace
+    - name: Cleanup
+      if: always()
+      shell: bash
+      run: |
+        kubectl delete -f workspace/log-collector.yaml
+        rm -f workspace/just.namespace
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: e2e_pod_logs-${{ inputs.platform_name }}-release
+        path: workspace/logs
+        if-no-files-found: error
+    - name: Release fifo ticket
+      if: always() && (inputs.self_hosted != 'true' || inputs.platform_name == 'Metal-QEMU-SNP-GPU' || inputs.platform_name == 'Metal-QEMU-TDX-GPU')
+      shell: bash
+      run: |
+        just release-fifo-ticket

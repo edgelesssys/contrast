@@ -1,0 +1,97 @@
+name: Build and push release artifacts (x86_64-linux)
+description: >
+  Builds container images and CLI, creates the draft release, and optionally commits version bumps. Assumes the workspace is already checked out to the working/release ref.
+inputs:
+  effective_version:
+    description: Full release tag, e.g. v1.2.3 or v1.2.3-2024-01-01
+    required: true
+  without_v:
+    description: Base version without v prefix, e.g. 1.2.3
+    required: true
+  working_branch:
+    description: Working branch or ref name, used as release target and for git reset
+    required: true
+  container_registry:
+    description: Container registry to push images to
+    required: true
+  commit_version_bump:
+    description: Whether to commit the version bump and push a post-release patch pre-version
+    required: false
+    default: 'false'
+  next_patch_pre_without_v:
+    description: Post-release patch pre-version without v, e.g. 1.2.4-pre. Required when commit_version_bump is true.
+    required: false
+    default: ''
+  previous_tag:
+    description: Tag to use as the base for generated release notes. If empty, GitHub auto-detects.
+    required: false
+    default: ''
+  github_token:
+    description: GitHub token
+    required: true
+  cachix_token:
+    description: Cachix auth token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/setup_nix
+      with:
+        githubToken: ${{ inputs.github_token }}
+        cachixToken: ${{ inputs.cachix_token }}
+    - name: Log in to ghcr.io Container registry
+      uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.github_token }}
+    - name: Configure git
+      shell: bash
+      run: |
+        git config --global user.name "edgelessci"
+        git config --global user.email "edgelessci@users.noreply.github.com"
+    - name: Bump flake version to release version
+      uses: ./.github/actions/bump_version
+      with:
+        version: ${{ inputs.without_v }}
+        commit: ${{ inputs.commit_version_bump }}
+    - name: Create release artifacts
+      id: create-artifacts
+      uses: ./.github/actions/release_artifacts
+      with:
+        version: v${{ inputs.without_v }}
+        container_registry: ${{ inputs.container_registry }}
+        s3-bucket-path: pre-releases/${{ inputs.effective_version }}
+    - name: Upload release artifacts (for main branch PR)
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: contrast-release-artifacts
+        # Keep the LICENSE file! It isn't used, but ensures the paths of the other artifacts aren't stripped, see
+        # https://github.com/actions/upload-artifact/blob/6027e3dd177782cd8ab9af838c04fd81a07f1d47/README.md?plain=1#L187
+        path: |
+          LICENSE
+          ${{ steps.create-artifacts.outputs.paths }}
+    - name: Create draft release
+      uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2  # zizmor: ignore[superfluous-actions]
+      with:
+        draft: true
+        generate_release_notes: true
+        tag_name: ${{ inputs.effective_version }}
+        previous_tag: ${{ inputs.previous_tag }}
+        target_commitish: ${{ inputs.working_branch }}
+        fail_on_unmatched_files: true
+        files: ${{ steps.create-artifacts.outputs.paths }}
+    - name: Reset temporary changes
+      if: inputs.commit_version_bump == 'true'
+      shell: bash
+      env:
+        WORKING_BRANCH: ${{ inputs.working_branch }}
+      run: |
+        git reset --hard "${WORKING_BRANCH}"
+    - name: Bump flake version to post release patch pre-version
+      if: inputs.commit_version_bump == 'true'
+      uses: ./.github/actions/bump_version
+      with:
+        version: ${{ inputs.next_patch_pre_without_v }}
+        commit: true
