@@ -12,13 +12,28 @@ final: prev:
   #     hash = "";
   #   };
   # });
-  go_1_25 = prev.go_1_25.overrideAttrs (
+
+  # TODO(charludo): implement required changes to bump go version to 1.26
+  go_1_26 = prev.go_1_25.overrideAttrs (
     finalAttrs: _prevAttrs: {
       version = "1.25.9";
       src = final.fetchurl {
         url = "https://go.dev/dl/go${finalAttrs.version}.src.tar.gz";
         hash = "sha256-DsnvjrzqCXqsN97K6fCachi0Uc2Wvn1u1RPY5Lz5Cc8=";
       };
+    }
+  );
+  # nixpkgs version of treefmt fails to build with go <1.26.1
+  treefmt = prev.treefmt.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "2.4.1";
+      src = final.fetchFromGitHub {
+        owner = "numtide";
+        repo = "treefmt";
+        rev = "v${finalAttrs.version}";
+        hash = "sha256-OhzmgeSTlbChglTAEk7lefVwH1zrfJTc9eroihpPveg=";
+      };
+      vendorHash = "sha256-mpUFtc7LBRXevid9KzhCj9RxTUSeNO1XIPVWWvqPS9s=";
     }
   );
 
