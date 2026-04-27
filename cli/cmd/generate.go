@@ -284,17 +284,17 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// mapCCWorkloads applies the given function to all workloads with the 'contrast-cc' runtime class.
+// mapContrastWorkloads applies the given function to all workloads with a Contrast runtime class.
 // The callback receives an apply configuration together with the file path and index the unstructured object has in the file map.
 // Changes to the apply configuration are not applied to the original unstructured object.
-func mapCCWorkloads(fileMap map[string][]*unstructured.Unstructured, f func(res any, path string, idx int) (any, error)) error {
+func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f func(res any, path string, idx int) (any, error)) error {
 	for path, resources := range fileMap {
 		for idx, r := range resources {
 			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(r)
 			if err != nil {
 				continue
 			}
-			if !isCCWorkload(applyConfig) {
+			if !isContrastWorkload(applyConfig) {
 				continue
 			}
 			changed, err := f(applyConfig, path, idx)
@@ -313,11 +313,9 @@ func mapCCWorkloads(fileMap map[string][]*unstructured.Unstructured, f func(res 
 	return nil
 }
 
-func isCCWorkload(resource any) (ret bool) {
+func isContrastWorkload(resource any) (ret bool) {
 	kuberesource.MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec != nil && spec.RuntimeClassName != nil && strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
-			ret = true
-		}
+		ret = kuberesource.IsContrastPod(spec)
 		return spec
 	})
 	return ret
@@ -339,7 +337,7 @@ func isCoordinator(resource any) bool {
 func runVerifiers(fileMap map[string][]*unstructured.Unstructured, verifiers []verifier.Verifier) error {
 	var findings error
 	for _, v := range verifiers {
-		_ = mapCCWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
+		_ = mapContrastWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
 			if err := v.Verify(res); err != nil {
 				findings = errors.Join(findings, fmt.Errorf("failed to verify resource %q in file %q: %w", fileMap[path][idx].GetName(), path, err))
 			}
@@ -406,7 +404,7 @@ func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (
 			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(object)
 			if err != nil {
 				logger.Warn("Could not convert resource into ApplyConfiguration", "path", path, "err", err)
-			} else if isCCWorkload(applyConfig) {
+			} else if isContrastWorkload(applyConfig) {
 				containsCC = true
 				if isCoordinator(applyConfig) {
 					r, ok := applyConfig.(*applyappsv1.StatefulSetApplyConfiguration)
@@ -454,7 +452,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 		}
 	}()
 
-	return mapCCWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
+	return mapContrastWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
 		initdataAnno, err := runner.Run(ctx, res, extraPath, logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate policy for %q in %q: %w", fileMap[path][idx].GetName(), path, err)
@@ -496,7 +494,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 			return fmt.Errorf("parsing release image definitions %s: %w", ReleaseImageReplacements, err)
 		}
 	}
-	return mapCCWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
+	return mapContrastWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
 		if flags.insecureEnableDebugShell {
 			if _, err := kuberesource.AddDebugShell(res, kuberesource.DebugShell()); err != nil {
 				return nil, fmt.Errorf("injecting debug shell container: %w", err)
