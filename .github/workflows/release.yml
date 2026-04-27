@@ -325,7 +325,7 @@ jobs:
             LICENSE
             ${{ steps.create-artifacts.outputs.paths }}
       - name: Create draft release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2 # zizmor: ignore[superfluous-actions]
         with:
           draft: true
           generate_release_notes: true

@@ -23,6 +23,19 @@ final: prev:
       };
     }
   );
+  # nixpkgs version of treefmt fails to build with go <1.26.1
+  treefmt = prev.treefmt.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "2.4.1";
+      src = final.fetchFromGitHub {
+        owner = "numtide";
+        repo = "treefmt";
+        rev = "v${finalAttrs.version}";
+        hash = "sha256-OhzmgeSTlbChglTAEk7lefVwH1zrfJTc9eroihpPveg=";
+      };
+      vendorHash = "sha256-mpUFtc7LBRXevid9KzhCj9RxTUSeNO1XIPVWWvqPS9s=";
+    }
+  );
 
   erofs-utils = prev.erofs-utils.overrideAttrs (prevAttrs: {
     # The build environment sets SOURCE_DATE_EPOCH to 1980, but as mkfs.erofs
