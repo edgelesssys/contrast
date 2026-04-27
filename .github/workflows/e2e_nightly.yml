@@ -14,8 +14,6 @@ on:
         required: true
       CONTRAST_GHCR_READ:
         required: true
-  schedule:
-    - cron: "30 23 * * *" # 23:30 UTC, every day
 
 jobs:
   maintenance:
