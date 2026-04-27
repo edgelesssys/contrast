@@ -35,7 +35,7 @@ const (
 )
 
 // contrastRuntimeClassPrefixes lists runtime class prefixes that identify Contrast pods.
-var contrastRuntimeClassPrefixes = []string{"contrast-cc"}
+var contrastRuntimeClassPrefixes = []string{"contrast-cc", "contrast-insecure"}
 
 // IsContrastPod reports whether a pod uses a Contrast runtime.
 func IsContrastPod(spec *applycorev1.PodSpecApplyConfiguration) bool {

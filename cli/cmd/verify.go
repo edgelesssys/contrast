@@ -48,6 +48,7 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
+	cmd.Flags().Bool("INSECURE", false, "allow verification of insecure (non-CC) deployments (also requires the CONTRAST_ALLOW_INSECURE_RUNTIMES environment variable to be set)")
 
 	return cmd
 }
@@ -67,6 +68,19 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	manifestBytes, err := os.ReadFile(flags.manifestPath)
 	if err != nil {
 		return fmt.Errorf("failed to read manifest file: %w", err)
+	}
+
+	var mnfst manifest.Manifest
+	if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
+		return fmt.Errorf("unmarshalling manifest: %w", err)
+	}
+	if mnfst.AllowInsecure() {
+		if !flags.allowInsecureRuntimes {
+			return fmt.Errorf("manifest contains insecure platforms but --INSECURE flag not set")
+		}
+		if os.Getenv("CONTRAST_ALLOW_INSECURE_RUNTIMES") == "" {
+			return fmt.Errorf("manifest contains insecure platforms but CONTRAST_ALLOW_INSECURE_RUNTIMES environment variable not set")
+		}
 	}
 
 	kdsDir, err := cachedir("kds")
@@ -130,9 +144,10 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 }
 
 type verifyFlags struct {
-	manifestPath string
-	coordinator  string
-	workspaceDir string
+	manifestPath          string
+	coordinator           string
+	workspaceDir          string
+	allowInsecureRuntimes bool
 }
 
 func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
@@ -148,6 +163,10 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	allowInsecureRuntimes, err := cmd.Flags().GetBool("INSECURE")
+	if err != nil {
+		return nil, err
+	}
 
 	if workspaceDir != "" {
 		// Prepend default path with workspaceDir
@@ -157,9 +176,10 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	}
 
 	return &verifyFlags{
-		manifestPath: manifestPath,
-		coordinator:  coordinator,
-		workspaceDir: workspaceDir,
+		manifestPath:          manifestPath,
+		coordinator:           coordinator,
+		workspaceDir:          workspaceDir,
+		allowInsecureRuntimes: allowInsecureRuntimes,
 	}, nil
 }
 

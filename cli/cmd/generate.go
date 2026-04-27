@@ -97,6 +97,7 @@ subcommands.`,
 	cmd.Flags().Bool("inject-image-store", false, "inject an ephemeral storage device to pull images onto instead of into memory")
 	cmd.Flags().Bool("insecure-enable-debug-shell-access", false, "enable the debug shell service in the pod CVM to get access from container to guest VM")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
+	cmd.Flags().Bool("INSECURE", false, "allow generation for insecure (non-CC) runtimes (also requires the CONTRAST_ALLOW_INSECURE_RUNTIMES environment variable to be set)")
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
 	must(cmd.MarkFlagFilename("manifest", "json"))
@@ -146,6 +147,10 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 	if flags.referenceValuesPlatform != platforms.Unknown {
 		usedPlatforms.Add(flags.referenceValuesPlatform)
+	}
+
+	if err := validateInsecurePlatforms(usedPlatforms, flags.allowInsecureRuntimes); err != nil {
+		return err
 	}
 
 	// generate a manifest by checking if a manifest exists and using that,
@@ -301,7 +306,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// mapContrastWorkloads applies the given function to all workloads with a Contrast runtime class.
+// mapContrastWorkloads applies the given function to all workloads with the 'contrast-cc' or 'contrast-insecure' runtime class.
 // The callback receives an apply configuration together with the file path and index the unstructured object has in the file map.
 // Changes to the apply configuration are not applied to the original unstructured object.
 func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f func(res any, path string, idx int) (any, error)) error {
@@ -332,7 +337,9 @@ func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f fun
 
 func isContrastWorkload(resource any) (ret bool) {
 	kuberesource.MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		ret = kuberesource.IsContrastPod(spec)
+		if kuberesource.IsContrastPod(spec) {
+			ret = true
+		}
 		return spec
 	})
 	return ret
@@ -349,6 +356,16 @@ func isCoordinator(resource any) bool {
 		return true
 	}
 	return false
+}
+
+func patchCoordinatorAllowInsecure(resource any) {
+	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
+	if !ok || !isCoordinator(resource) {
+		return
+	}
+	if len(r.Spec.Template.Spec.Containers) > 0 {
+		r.Spec.Template.Spec.Containers[0].WithEnv(kuberesource.NewEnvVar("CONTRAST_ALLOW_INSECURE", "1"))
+	}
 }
 
 func runVerifiers(fileMap map[string][]*unstructured.Unstructured, verifiers []verifier.Verifier) error {
@@ -436,7 +453,7 @@ func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (
 		}
 	}
 	if len(fileMap) == 0 {
-		return nil, "", fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
+		return nil, "", fmt.Errorf("no .yml/.yaml files with 'contrast-cc' or 'contrast-insecure' runtime found")
 	}
 
 	extraData, err := kuberesource.EncodeUnstructured(extraResources)
@@ -530,6 +547,9 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 		if flags.injectImageStore {
 			kuberesource.AddImageStore([]any{res})
 		}
+		if flags.allowInsecureRuntimes {
+			patchCoordinatorAllowInsecure(res)
+		}
 
 		kuberesource.PatchImages([]any{res}, replacements)
 
@@ -567,6 +587,19 @@ func injectServiceMesh(resource any) error {
 	}
 	if _, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy()); err != nil {
 		return err
+	}
+	return nil
+}
+
+func validateInsecurePlatforms(usedPlatforms kuberesource.PlatformCollection, allowInsecure bool) error {
+	if !slices.ContainsFunc(usedPlatforms.Platforms(), platforms.IsInsecure) {
+		return nil
+	}
+	if !allowInsecure {
+		return fmt.Errorf("insecure runtime platforms detected but --INSECURE flag not set")
+	}
+	if os.Getenv("CONTRAST_ALLOW_INSECURE_RUNTIMES") == "" {
+		return fmt.Errorf("insecure runtime platforms detected but CONTRAST_ALLOW_INSECURE_RUNTIMES environment variable not set")
 	}
 	return nil
 }
@@ -698,7 +731,17 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 		if spec == nil || spec.RuntimeClassName == nil {
 			return spec, nil
 		}
-		if *spec.RuntimeClassName == "kata-cc-isolation" || *spec.RuntimeClassName == "contrast-cc" {
+		if *spec.RuntimeClassName == "kata-cc-isolation" || *spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "contrast-insecure" {
+			// Only allow the bare runtime class names if the default runtime handler is compatible.
+			// For example, `contrast-cc` should only resolve when `--reference-values` is set to a CC-enabled platform,
+			// and `contrast-insecure` should only resolve when `--reference-values` is set to an insecure platform.
+			if *spec.RuntimeClassName == "contrast-insecure" && !strings.HasPrefix(defaultRuntimeHandler, "contrast-insecure-") {
+				return nil, fmt.Errorf("bare 'contrast-insecure' runtime class requires --reference-values to be set to an insecure platform")
+			}
+			if (*spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "kata-cc-isolation") &&
+				strings.HasPrefix(defaultRuntimeHandler, "contrast-insecure-") {
+				return nil, fmt.Errorf("bare %q runtime class is incompatible with insecure --reference-values platform %q", *spec.RuntimeClassName, defaultRuntimeHandler)
+			}
 			spec.RuntimeClassName = &defaultRuntimeHandler
 			if kuberesource.PodSpecRequiresGPU(spec) {
 				platform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
@@ -713,7 +756,7 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 			}
 			return spec, nil
 		}
-		if !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") {
+		if !kuberesource.IsContrastPod(spec) {
 			return spec, nil
 		}
 		overridePlatform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
@@ -899,6 +942,7 @@ type generateFlags struct {
 	skipServiceMesh          bool
 	injectImageStore         bool
 	insecureEnableDebugShell bool
+	allowInsecureRuntimes    bool
 	outputFile               string
 }
 
@@ -996,6 +1040,10 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	allowInsecureRuntimes, err := cmd.Flags().GetBool("INSECURE")
+	if err != nil {
+		return nil, err
+	}
 	outputFile, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return nil, err
@@ -1021,6 +1069,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		skipServiceMesh:          skipServiceMesh,
 		injectImageStore:         injectImageStore,
 		insecureEnableDebugShell: insecureEnableDebugShell,
+		allowInsecureRuntimes:    allowInsecureRuntimes,
 		outputFile:               outputFile,
 	}, nil
 }
