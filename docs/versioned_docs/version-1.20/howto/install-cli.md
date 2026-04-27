@@ -18,7 +18,7 @@ Download the Contrast CLI from the latest release and install it in your PATH:
 <TabItem value="linux" label="Linux (x86_64)">
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast-x86_64-linux
+curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/download/v1.20.0/contrast-x86_64-linux
 sudo install contrast /usr/local/bin/contrast
 ```
 
@@ -26,7 +26,7 @@ sudo install contrast /usr/local/bin/contrast
 <TabItem value="macos" label="macOS (Apple Silicon)">
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast-aarch64-darwin
+curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/download/v1.20.0/contrast-aarch64-darwin
 sudo install contrast /usr/local/bin/contrast
 ```
 
