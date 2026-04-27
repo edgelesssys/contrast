@@ -18,7 +18,7 @@ import (
 )
 
 func manipulateInitdata(fileMap map[string][]*unstructured.Unstructured, manipulators ...func(*initdata.Initdata) error) error {
-	return mapCCWorkloads(fileMap, func(res any, path string, _ int) (resource any, retErr error) {
+	return mapContrastWorkloads(fileMap, func(res any, path string, _ int) (resource any, retErr error) {
 		return kuberesource.MapPodSpecWithMeta(res, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
 			if meta == nil {
 				return meta, spec
@@ -60,7 +60,7 @@ func manipulateInitdata(fileMap map[string][]*unstructured.Unstructured, manipul
 
 func policiesFromKubeResources(fileMap map[string][]*unstructured.Unstructured) ([]deployment, error) {
 	var deployments []deployment
-	if err := mapCCWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
+	if err := mapContrastWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
 		name := fileMap[path][idx].GetName()
 		namespace := orDefault(fileMap[path][idx].GetNamespace(), "default")
 		gvk := fileMap[path][idx].GetObjectKind().GroupVersionKind()
