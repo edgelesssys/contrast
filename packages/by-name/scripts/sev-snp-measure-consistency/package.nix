@@ -4,12 +4,13 @@
 {
   lib,
   writeShellApplication,
-  kata,
-  contrast,
+  contrastPkgs,
   python3Packages,
 }:
 
 let
+  inherit (contrastPkgs) contrast kata;
+
   vcpuCounts = lib.range 1 220;
   images = [
     {
