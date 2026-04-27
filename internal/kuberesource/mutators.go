@@ -26,7 +26,12 @@ import (
 const CollateralProxyDefaultService = "http://collateral-proxy.default.svc"
 
 // contrastRuntimeClassPrefixes lists runtime class prefixes that identify Contrast pods.
-var contrastRuntimeClassPrefixes = []string{"contrast-cc"}
+var contrastRuntimeClassPrefixes = []string{"contrast-cc", "contrast-insecure"}
+
+// IsBareContrastRuntimeClass reports whether name is a Contrast runtime class without a platform suffix.
+func IsBareContrastRuntimeClass(name string) bool {
+	return slices.Contains(contrastRuntimeClassPrefixes, name)
+}
 
 // IsContrastPod reports whether a pod uses a Contrast runtime.
 func IsContrastPod(spec *applycorev1.PodSpecApplyConfiguration) bool {
@@ -304,7 +309,7 @@ func SetCollateralProxyEnv(resources []any, proxyURL string) []any {
 				return meta, spec
 			}
 			for i := range spec.Containers {
-				setEnv(&spec.Containers[i], constants.CollateralProxyEnvVar, proxyURL)
+				SetContainerEnv(&spec.Containers[i], constants.CollateralProxyEnvVar, proxyURL)
 			}
 			return meta, spec
 		}))
@@ -312,11 +317,11 @@ func SetCollateralProxyEnv(resources []any, proxyURL string) []any {
 	return out
 }
 
-// setEnv sets the environment variable name to value on c, replacing any existing value.
-func setEnv(c *applycorev1.ContainerApplyConfiguration, name, value string) {
+// SetContainerEnv sets the environment variable name to value on c, replacing any existing value.
+func SetContainerEnv(c *applycorev1.ContainerApplyConfiguration, name, value string) {
 	for i := range c.Env {
 		if c.Env[i].Name != nil && *c.Env[i].Name == name {
-			c.Env[i].Value = &value
+			c.Env[i] = *NewEnvVar(name, value)
 			return
 		}
 	}
