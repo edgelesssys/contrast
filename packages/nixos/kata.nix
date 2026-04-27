@@ -57,7 +57,12 @@ in
       wants = [ "initdata.target" ];
 
       serviceConfig = {
-        Type = "oneshot";
+        # notify: the process signals READY=1 when initdata processing is
+        # complete, allowing initdata.target to be reached. On insecure
+        # platforms the process stays alive to serve hostdata via HTTP;
+        # on CC platforms it exits after signaling.
+        Type = "notify";
+        NotifyAccess = "main";
         RemainAfterExit = "yes";
         ExecStart = lib.getExe pkgs.contrastPkgs.initdata-processor;
       };
