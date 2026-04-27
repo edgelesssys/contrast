@@ -1,6 +1,8 @@
 name: release
 
 on:
+  schedule:
+    - cron: "30 23 * * *" # 23:30 UTC, every day dry-run release pipeline
   workflow_dispatch:
     inputs:
       version:
@@ -40,6 +42,7 @@ jobs:
     env:
       FULL_VERSION: ${{ inputs.version }}
     outputs:
+      VERSION: ${{ steps.version-info.outputs.VERSION }}
       WITHOUT_V: ${{ steps.version-info.outputs.WITHOUT_V }}
       PART_MAJOR: ${{ steps.version-info.outputs.PART_MAJOR }}
       PART_MINOR: ${{ steps.version-info.outputs.PART_MINOR }}
@@ -56,24 +59,31 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-tags: true
       - name: Working branch
         run: |
           echo "WORKING_BRANCH=$(git branch --show-current)" | tee -a "$GITHUB_ENV"
+      - name: Set nightly version
+        if: github.event_name == 'schedule'
+        run: |
+          base=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          echo "FULL_VERSION=${base}-$(date -u +%Y-%m-%d)" | tee -a "$GITHUB_ENV"
       - name: Verify minor version bump
-        if: inputs.kind == 'minor'
+        if: github.event_name != 'schedule' && inputs.kind == 'minor'
         run: |
           if [[ ! "${FULL_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Version must be in the form of vX.Y.Z"
             exit 1
           fi
       - name: Verify patch version bump
-        if: inputs.kind == 'patch'
+        if: github.event_name != 'schedule' && inputs.kind == 'patch'
         run: |
           if [[ ! "${FULL_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[1-9]+$ ]]; then
             echo "Version must be in the form of vX.Y.Z, where Z > 0"
             exit 1
           fi
       - name: Verify temporary branch for minor release
+        if: github.event_name != 'schedule'
         run: |
           if [[ ! "${WORKING_BRANCH}" =~ ^tmp/v[0-9]+\.[0-9]+\.[0-9] ]]; then
             echo "Workflow can only be triggered from a temporary branch in the form of tmp/vX.Y.Z"
@@ -92,6 +102,7 @@ jobs:
           NEXT_MINOR_PRE_WITHOUT_V=${PART_MAJOR}.$((PART_MINOR + 1)).0-pre
           NEXT_PATCH_PRE_WITHOUT_V=${PART_MAJOR}.${PART_MINOR}.$((PART_PATCH + 1))-pre
           {
+            echo "VERSION=${FULL_VERSION}"
             echo "WITHOUT_V=${WITHOUT_V}"
             echo "PART_MAJOR=${PART_MAJOR}"
             echo "PART_MINOR=${PART_MINOR}"
@@ -107,7 +118,7 @@ jobs:
           } | tee -a "$GITHUB_OUTPUT"
           echo "RELEASE_BRANCH=${RELEASE_BRANCH}" | tee -a "$GITHUB_ENV"
       - name: Don't overwrite published releases
-        if: (! inputs.overwrite_published_release)
+        if: github.event_name != 'schedule' && (! inputs.overwrite_published_release)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -120,6 +131,7 @@ jobs:
 
   update-main:
     name: Update main branch
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin]
     permissions:
@@ -127,7 +139,7 @@ jobs:
     env:
       RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-      VERSION: ${{ inputs.version }}
+      VERSION: ${{ needs.process-inputs.outputs.VERSION }}
       MAJOR_MINOR: ${{ needs.process-inputs.outputs.MAJOR_MINOR }}
       MAJOR_MINOR_PATCH: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
       SET: base
@@ -230,7 +242,7 @@ jobs:
       contents: write
       id-token: write
     env:
-      VERSION: ${{ inputs.version }}
+      VERSION: ${{ needs.process-inputs.outputs.VERSION }}
       SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -242,6 +254,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Bump flake version to release version
+        if: github.event_name != 'schedule'
         uses: ./.github/actions/bump_version
         with:
           version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
@@ -255,6 +268,7 @@ jobs:
           name: contrast-cli-aarch64-darwin
           path: workspace/contrast-aarch64-darwin
       - name: Remove existing darwin asset from draft release
+        if: github.event_name != 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -262,6 +276,7 @@ jobs:
             gh release delete-asset "${VERSION}" contrast-aarch64-darwin --repo "${{ github.repository }}" --yes
           fi
       - name: Attach to release
+        if: github.event_name != 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -269,7 +284,7 @@ jobs:
       - uses: ./.github/actions/s3_upload
         with:
           files: workspace/contrast-aarch64-darwin
-          s3-bucket-path: pre-releases/${{ inputs.version }}/${{ github.run_id }}/${{ github.run_attempt }}
+          s3-bucket-path: pre-releases/${{ needs.process-inputs.outputs.VERSION }}/${{ github.run_id }}/${{ github.run_attempt }}
 
   release-x86_64-linux:
     name: Build and push artifacts, create release
@@ -282,7 +297,7 @@ jobs:
     env:
       RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-      VERSION: ${{ inputs.version }}
+      VERSION: ${{ needs.process-inputs.outputs.VERSION }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -304,6 +319,7 @@ jobs:
           git config --global user.name "edgelessci"
           git config --global user.email "edgelessci@users.noreply.github.com"
       - name: Bump flake version to release version
+        if: github.event_name != 'schedule'
         uses: ./.github/actions/bump_version
         with:
           version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
@@ -312,9 +328,9 @@ jobs:
         id: create-artifacts
         uses: ./.github/actions/release_artifacts
         with:
-          version: ${{ inputs.version }}
+          version: ${{ needs.process-inputs.outputs.VERSION }}
           container_registry: ${{ env.container_registry }}
-          s3-bucket-path: "pre-releases/${{ inputs.version }}"
+          s3-bucket-path: "pre-releases/${{ needs.process-inputs.outputs.VERSION }}"
       - name: Upload release artifacts (for main branch PR)
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
@@ -325,6 +341,7 @@ jobs:
             LICENSE
             ${{ steps.create-artifacts.outputs.paths }}
       - name: Create draft release
+        if: github.event_name != 'schedule'
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           draft: true
@@ -334,9 +351,11 @@ jobs:
           fail_on_unmatched_files: true
           files: ${{ steps.create-artifacts.outputs.paths }}
       - name: Reset temporary changes
+        if: github.event_name != 'schedule'
         run: |
           git reset --hard "${WORKING_BRANCH}"
       - name: Bump flake version to post release patch pre-version
+        if: github.event_name != 'schedule'
         uses: ./.github/actions/bump_version
         with:
           version: ${{ needs.process-inputs.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
@@ -371,7 +390,7 @@ jobs:
       packages: read
     needs: [process-inputs, release-x86_64-linux, nightly]
     env:
-      VERSION: ${{ inputs.version }}
+      VERSION: ${{ needs.process-inputs.outputs.VERSION }}
       SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -455,6 +474,7 @@ jobs:
 
   publish:
     name: Publish release
+    if: github.event_name != 'schedule'
     needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, test]
     runs-on: ubuntu-24.04
     environment: release-publish
@@ -464,7 +484,7 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.process-inputs.outputs.VERSION }}
         run: |
           gh release edit "${VERSION}" --draft=false --repo "${{ github.repository }}"
 
