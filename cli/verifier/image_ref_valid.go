@@ -26,6 +26,7 @@ func (v *ImageRefValid) Verify(toVerify any) error {
 		spec *applycorev1.PodSpecApplyConfiguration,
 	) *applycorev1.PodSpecApplyConfiguration {
 		if !kuberesource.IsContrastPod(spec) {
+			// Non-Contrast pods are not subject to this verification.
 			return spec
 		}
 
