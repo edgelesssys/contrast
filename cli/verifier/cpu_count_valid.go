@@ -25,7 +25,7 @@ func (v *CPUCountValid) Verify(toVerify any) error {
 		}
 
 		cpuCount := kuberesource.GetPodCPUCount(spec)
-		if cpuCount < 1 || cpuCount > 8 {
+		if cpuCount < 1 || cpuCount > 220 {
 			// TODO(charludo): find way to add pod name to error message
 			findings = errors.Join(findings, fmt.Errorf("pod failed verification: currently only 0-7 additional vCPUs are supported (1-8 vCPUs in total), but %d were requested", cpuCount))
 		}

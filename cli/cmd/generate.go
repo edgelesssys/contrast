@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/hex"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,6 +27,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/edgelesssys/contrast/internal/snp"
 	"github.com/google/go-sev-guest/abi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -175,6 +176,21 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		}
 		if err := mnf.Validate(); err != nil {
 			return fmt.Errorf("validate existing manifest: %w", err)
+		}
+	}
+
+	// Inject the APEIP (from the OVMF passed at build time) into every SNP
+	// reference value entry. This allows SNPValidateOpts to derive launch
+	// measurements for all vCPU counts at verify time without storing them all.
+	// In unit tests the embedded ap-eip.hex is a placeholder, so we skip
+	// using the value. This means we fall back to assuming the launch digest to be exact.
+	if apEIP, err := parsedAPEIP(); err != nil {
+		log.Warn("AP EIP not available; falling back to pre-computed launch digests", "err", err)
+	} else {
+		apEIPBytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(apEIPBytes, apEIP)
+		for i := range mnf.ReferenceValues.SNP {
+			mnf.ReferenceValues.SNP[i].APEIP = manifest.NewHexString(apEIPBytes)
 		}
 	}
 
@@ -716,32 +732,40 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 
 // computeAndAnnotateIDBlockAnnotations computes the ID Block annotations for the given platform and vCPU count,
 // and modifies the passed annotations map to include them.
-func computeAndAnnotateIDBlockAnnotations(targetPlatform platforms.Platform, cpuCount string, productName string, snpLaunchDigests SNPLaunchDigests, mnf *manifest.Manifest, annotations map[string]string) error {
-	platform := strings.ToLower(targetPlatform.String())
-
-	// Ensure the required launch digest has been pre-computed.
-	if snpLaunchDigests[platform] == nil || snpLaunchDigests[platform][cpuCount] == nil ||
-		snpLaunchDigests[platform][cpuCount][productName].LaunchDigest == "" {
-		return fmt.Errorf("missing launch digest configuration for runtime %s with %s vCPUs for product %s", platform, cpuCount, productName)
-	}
-
-	// Convert cpuCount string to uint64 for lookup
+func computeAndAnnotateIDBlockAnnotations(targetPlatform platforms.Platform, cpuCount string, productName string, mnf *manifest.Manifest, annotations map[string]string) error {
 	cpus, err := strconv.ParseUint(cpuCount, 10, 64)
 	if err != nil {
 		return fmt.Errorf("parse CPU count: %w", err)
 	}
 
-	// Retrieve the guest policy from the manifest for the specific product and CPU count.
-	policy, ok := snpGuestPolicyForProduct(mnf.ReferenceValues.SNP, targetPlatform, productName, cpus)
+	// Retrieve the guest policy from the manifest for the specific product.
+	policy, ok := snpGuestPolicyForProduct(mnf.ReferenceValues.SNP, targetPlatform, productName)
 	if !ok {
 		return fmt.Errorf("no SNP reference values with product %q and %d CPUs found in manifest for platform %q", productName, cpus, targetPlatform)
 	}
 
-	// Decode the pre-computed launch digest.
-	digestBytes, err := hex.DecodeString(snpLaunchDigests[platform][cpuCount][productName].LaunchDigest)
-	if err != nil {
-		return fmt.Errorf("decode %s launch digest: %w", productName, err)
+	// Derive the exact launch digest for the given vCPU count from the 1-vCPU seed and APEIP.
+	seed, apeip, ok := snpSeedAndAPEIPForProduct(mnf.ReferenceValues.SNP, targetPlatform, productName)
+	if !ok || apeip == "" {
+		return fmt.Errorf("no SNP reference values with APEIP for product %q on platform %q", productName, targetPlatform)
 	}
+	seedBytes, err := seed.Bytes()
+	if err != nil {
+		return fmt.Errorf("decode TrustedMeasurement: %w", err)
+	}
+	apEIPBytes, err := apeip.Bytes()
+	if err != nil {
+		return fmt.Errorf("decode APEIP: %w", err)
+	}
+	vcpuSig, err := snp.CPUSigForProduct(productName)
+	if err != nil {
+		return fmt.Errorf("lookup CPU signature for product %q: %w", productName, err)
+	}
+	derived, err := snp.ExtendSNPLaunchDigest([48]byte(seedBytes), int(cpus), binary.BigEndian.Uint32(apEIPBytes), vcpuSig)
+	if err != nil {
+		return fmt.Errorf("derive launch digest for %d vCPUs: %w", cpus, err)
+	}
+	digestBytes := derived[:]
 
 	// Compute ID blocks from launch digest + guest policy.
 	idBlk, idAuth, err := idblock.IDBlocksFromLaunchDigest([48]byte(digestBytes), policy)
@@ -766,16 +790,21 @@ func computeAndAnnotateIDBlockAnnotations(targetPlatform platforms.Platform, cpu
 	return nil
 }
 
+// snpSeedAndAPEIPForProduct looks up the TrustedMeasurement (1-vCPU seed) and APEIP
+// for the given platform and CPU product from the SNP reference values.
+func snpSeedAndAPEIPForProduct(refVals []manifest.SNPReferenceValues, platform platforms.Platform, product string) (manifest.HexString, manifest.HexString, bool) {
+	for _, rv := range refVals {
+		if rv.Platform == platform.String() && string(rv.ProductName) == product {
+			return rv.TrustedMeasurement, rv.APEIP, true
+		}
+	}
+	return "", "", false
+}
+
 // patchIDBlockAnnotation computes the SNP ID block and ID auth for each CC workload and injects
 // them as Kata annotations. The guest policy is read from the manifest's SNP reference values;
-// the launch digest is looked up from the embedded snp-launch-digests.json. Both are combined at
-// generate time via idblock.IDBlocksFromLaunchDigest.
+// the launch digest is derived at generate time from the 1-vCPU seed and APEIP via idblock.IDBlocksFromLaunchDigest.
 func patchIDBlockAnnotation(res any, mnf *manifest.Manifest) error {
-	var snpLaunchDigests SNPLaunchDigests
-	if err := json.Unmarshal(SNPLaunchDigestData, &snpLaunchDigests); err != nil {
-		return fmt.Errorf("unmarshal SNP ID blocks: %w", err)
-	}
-
 	mapFunc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration, error) {
 		if spec == nil || spec.RuntimeClassName == nil {
 			return meta, spec, nil
@@ -819,7 +848,7 @@ func patchIDBlockAnnotation(res any, mnf *manifest.Manifest) error {
 		var errs error
 		var found bool
 		for _, product := range products {
-			if err := computeAndAnnotateIDBlockAnnotations(targetPlatform, cpuCount, product, snpLaunchDigests, mnf, meta.Annotations); err != nil {
+			if err := computeAndAnnotateIDBlockAnnotations(targetPlatform, cpuCount, product, mnf, meta.Annotations); err != nil {
 				errs = errors.Join(errs, err)
 				continue
 			}
@@ -837,9 +866,9 @@ func patchIDBlockAnnotation(res any, mnf *manifest.Manifest) error {
 	return err
 }
 
-func snpGuestPolicyForProduct(refVals []manifest.SNPReferenceValues, platform platforms.Platform, product string, cpuCount uint64) (abi.SnpPolicy, bool) {
+func snpGuestPolicyForProduct(refVals []manifest.SNPReferenceValues, platform platforms.Platform, product string) (abi.SnpPolicy, bool) {
 	for _, rv := range refVals {
-		if rv.Platform == platform.String() && string(rv.ProductName) == product && rv.CPUs == cpuCount {
+		if rv.Platform == platform.String() && string(rv.ProductName) == product {
 			return rv.GuestPolicy, true
 		}
 	}

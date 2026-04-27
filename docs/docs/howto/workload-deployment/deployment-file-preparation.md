@@ -196,7 +196,7 @@ Altogether, setting the limit to 10x the compressed image size should be suffici
 :::warning
 
 Each Contrast pod requires one CPU by default.
-Containers may request additional CPUs, up to a total of 8 CPUs per pod.
+Containers may request additional CPUs, up to a total of 220 CPUs per pod.
 Please note that fractional CPU requests are always rounded up to the nearest whole number, meaning a Pod with one container requesting 0.2 CPUs will require 2 CPUs in total.
 
 :::

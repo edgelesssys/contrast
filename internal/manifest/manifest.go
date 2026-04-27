@@ -16,6 +16,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/idblock"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	snpmeasure "github.com/edgelesssys/contrast/internal/snp"
 	"github.com/google/go-sev-guest/kds"
 	snpvalidate "github.com/google/go-sev-guest/validate"
 	snpverify "github.com/google/go-sev-guest/verify"
@@ -128,13 +129,9 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 
 	var out []SNPValidatorOptions
 	for _, refVal := range m.ReferenceValues.SNP {
-		if len(refVal.TrustedMeasurement) == 0 {
-			return nil, errors.New("trusted measurement cannot be empty")
-		}
-
-		trustedMeasurement, err := refVal.TrustedMeasurement.Bytes()
+		seed, err := refVal.TrustedMeasurement.Bytes()
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
+			return nil, fmt.Errorf("failed to decode TrustedMeasurement: %w", err)
 		}
 
 		verifyOpts := snpverify.DefaultOptions()
@@ -150,19 +147,20 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 		verifyOpts.CheckRevocations = true
 		verifyOpts.Getter = kdsGetter.SNPGetter()
 
-		// Generate static public IDKey based on the launch digest and guest policy.
-		_, authBlk, err := idblock.IDBlocksFromLaunchDigest([48]byte(trustedMeasurement), refVal.GuestPolicy)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate ID blocks: %w", err)
+		var allowedChipIDs [][]byte
+		for _, chipIDHex := range refVal.AllowedChipIDs {
+			chipID, err := chipIDHex.Bytes()
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert AllowedChipID from manifest to byte slices: %w", err)
+			}
+			allowedChipIDs = append(allowedChipIDs, chipID)
 		}
-		idKeyBytes, err := authBlk.IDKey.MarshalBinary()
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal IDKey: %w", err)
-		}
-		idKeyHash := sha512.Sum384(idKeyBytes)
 
 		validateOpts := &snpvalidate.Options{
-			Measurement:  trustedMeasurement,
+			// Measurement holds the 1-vCPU seed. When APEIP is set the IterativeValidator
+			// reads it as the seed and overrides it per vCPU count; when APEIP is absent it
+			// is treated as the exact expected measurement (backwards compatibility).
+			Measurement:  seed,
 			PlatformInfo: &refVal.PlatformInfo,
 			GuestPolicy:  refVal.GuestPolicy,
 			VMPL:         new(int), // VMPL0
@@ -180,25 +178,46 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 			},
 			PermitProvisionalFirmware:      true,
 			RequireIDBlock:                 true,
-			TrustedIDKeyHashes:             [][]byte{idKeyHash[:]},
 			MinimumLaunchMitigationVector:  refVal.MinimumMitigationVector,
 			MinimumCurrentMitigationVector: refVal.MinimumMitigationVector,
 		}
 
-		var allowedChipIDs [][]byte
-		for _, chipIDHex := range refVal.AllowedChipIDs {
-			chipID, err := chipIDHex.Bytes()
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert AllowedChipID from manifest to byte slices: %w", err)
-			}
-			allowedChipIDs = append(allowedChipIDs, chipID)
+		vcpuSig, err := snpmeasure.CPUSigForProduct(string(refVal.ProductName))
+		if err != nil {
+			return nil, fmt.Errorf("looking up CPU signature for product %q: %w", refVal.ProductName, err)
 		}
 
-		out = append(out, SNPValidatorOptions{
+		opt := SNPValidatorOptions{
 			VerifyOpts:     verifyOpts,
 			ValidateOpts:   validateOpts,
+			VCPUSig:        vcpuSig,
 			AllowedChipIDs: allowedChipIDs,
-		})
+		}
+
+		if refVal.APEIP != "" {
+			// APEIP present: IterativeValidator will expand the seed to vCPU counts 1–220
+			// at verify time and compute the IDKey hash per iteration.
+			apEIPBytes, err := refVal.APEIP.Bytes()
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode APEIP: %w", err)
+			}
+			opt.APEIP = apEIPBytes
+		} else {
+			// Backwards compatibility: treat TrustedMeasurement as an exact match and
+			// compute the IDKey hash for it now.
+			_, authBlk, err := idblock.IDBlocksFromLaunchDigest([48]byte(seed), refVal.GuestPolicy)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate ID blocks: %w", err)
+			}
+			idKeyBytes, err := authBlk.IDKey.MarshalBinary()
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal IDKey: %w", err)
+			}
+			idKeyHash := sha512.Sum384(idKeyBytes)
+			validateOpts.TrustedIDKeyHashes = [][]byte{idKeyHash[:]}
+		}
+
+		out = append(out, opt)
 	}
 
 	return out, nil
@@ -303,8 +322,15 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 //
 // TODO(msanft): add generic validation interface for other attestation types.
 type SNPValidatorOptions struct {
-	VerifyOpts     *snpverify.Options
-	ValidateOpts   *snpvalidate.Options
+	VerifyOpts   *snpverify.Options
+	ValidateOpts *snpvalidate.Options
+	// APEIP, when set (4 bytes), signals that ValidateOpts.Measurement is the 1-vCPU seed
+	// and that the caller should use an IterativeValidator to try vCPU counts 1–220.
+	// When nil, ValidateOpts.Measurement is an exact expected measurement.
+	APEIP []byte
+	// VCPUSig is the CPUID signature for the vCPU type (e.g. EPYC-Milan, EPYC-Genoa).
+	// Required when APEIP is set so that AP VMSA pages are built with the correct rdx value.
+	VCPUSig        uint32
 	AllowedChipIDs [][]byte
 }
 

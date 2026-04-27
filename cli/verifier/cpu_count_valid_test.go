@@ -62,7 +62,7 @@ spec:
         - name: app
           resources:
             limits:
-              cpu: "8" # invalid because of always-added CPU
+              cpu: "220" # invalid because of always-added CPU
 `
 
 func TestCPUCountValid(t *testing.T) {

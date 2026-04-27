@@ -25,29 +25,31 @@ let
         platformInfo = {
           SMTEnabled = true;
         };
-        vcpuCounts = lib.range 1 8;
         products = [
           "Milan"
           "Genoa"
         ];
 
+        # Compute the 1-vCPU launch digest once; all per-vCPU-count measurements
+        # are derived at verify time using ExtendSNPLaunchDigest + APEIP.
+        launch-digest-1vcpu = kata.calculateSnpLaunchDigest {
+          inherit os-image;
+          vcpus = 1;
+          inherit (node-installer-image) withDebug;
+        };
+
         generateRefVal =
-          vcpus: product:
+          product:
           let
-            launch-digest = kata.calculateSnpLaunchDigest {
-              inherit os-image vcpus;
-              inherit (node-installer-image) withDebug;
-            };
             filename = "${lib.toLower product}.hex";
           in
           {
             inherit guestPolicy platformInfo;
-            trustedMeasurement = builtins.readFile "${launch-digest}/${filename}";
             productName = product;
-            cpus = vcpus;
+            TrustedMeasurement = builtins.readFile "${launch-digest-1vcpu}/${filename}";
           };
       in
-      builtins.concatLists (map (vcpus: map (product: generateRefVal vcpus product) products) vcpuCounts);
+      map generateRefVal products;
   };
 
   snpRefVals = snpRefValsWith node-installer-image.os-image;
