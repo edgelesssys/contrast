@@ -15,6 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/attestation/insecure"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/constants"
@@ -94,6 +95,12 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		name := fmt.Sprintf("tdx-%d", i)
 		validators = append(validators, tdx.NewValidatorWithReportSetter(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": name}), &authInfo, name))
+	}
+
+	if state.Manifest().AllowInsecure() {
+		validators = append(validators, insecure.NewValidatorWithReportSetter(
+			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": "insecure"}),
+			&authInfo, "insecure"))
 	}
 
 	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators, c.attestationFailuresCounter)

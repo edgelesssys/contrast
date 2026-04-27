@@ -192,6 +192,37 @@ func TestResetState(t *testing.T) {
 	require.ErrorIs(err, assert.AnError)
 }
 
+func TestUpdateStateInsecure(t *testing.T) {
+	ctx := t.Context()
+
+	_, insecureManifestBytes, policies := newInsecureManifest(t)
+	se := newSeedEngine(t)
+
+	t.Run("rejected when allowInsecure is false", func(t *testing.T) {
+		require := require.New(t)
+
+		store := aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()})
+		hist := history.NewWithStore(slog.Default(), store)
+		g := New(hist, prometheus.NewRegistry(), slog.Default(), false)
+
+		state, err := g.UpdateState(ctx, nil, se, insecureManifestBytes, policies)
+		require.ErrorIs(err, ErrInsecureNotAllowed)
+		require.Nil(state)
+	})
+
+	t.Run("accepted when allowInsecure is true", func(t *testing.T) {
+		require := require.New(t)
+
+		store := aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()})
+		hist := history.NewWithStore(slog.Default(), store)
+		g := New(hist, prometheus.NewRegistry(), slog.Default(), true)
+
+		state, err := g.UpdateState(ctx, nil, se, insecureManifestBytes, policies)
+		require.NoError(err)
+		require.NotNil(state)
+	})
+}
+
 func TestConcurrentUpdateState(t *testing.T) {
 	ctx := t.Context()
 	assert := assert.New(t)
@@ -200,7 +231,7 @@ func TestConcurrentUpdateState(t *testing.T) {
 		Store: aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
 	}
 	hist := history.NewWithStore(slog.Default(), store)
-	guard := New(hist, prometheus.NewRegistry(), slog.Default())
+	guard := New(hist, prometheus.NewRegistry(), slog.Default(), false)
 
 	numWorkers := 20
 
@@ -303,7 +334,7 @@ func TestWatchHistory(t *testing.T) {
 				notifications: make(chan []byte),
 			}
 			hist := history.NewWithStore(slog.Default(), store)
-			g := New(hist, prometheus.NewRegistry(), slog.Default())
+			g := New(hist, prometheus.NewRegistry(), slog.Default(), false)
 
 			_, manifestBytes, policies := newManifest(t)
 
@@ -352,7 +383,7 @@ func TestWatchHistoryLateNotifications(t *testing.T) {
 		notifications: make(chan []byte),
 	}
 	hist := history.NewWithStore(slog.Default(), store)
-	g := New(hist, prometheus.NewRegistry(), slog.Default())
+	g := New(hist, prometheus.NewRegistry(), slog.Default(), false)
 
 	_, manifestBytes, policies := newManifest(t)
 
@@ -409,7 +440,7 @@ func TestBadStoreWatcherIsRestarted(t *testing.T) {
 	store.storeUpdates.Store(&ch)
 	hist := history.NewWithStore(slog.Default(), store)
 	reg := prometheus.NewRegistry()
-	a := New(hist, reg, slog.Default())
+	a := New(hist, reg, slog.Default(), false)
 	clock := &waitingClock{
 		FakeClock:  testingclock.NewFakeClock(time.Now()),
 		afterCalls: make(chan struct{}, 1),
@@ -502,7 +533,7 @@ func newTestGuard(t *testing.T) (*Guard, *prometheus.Registry) {
 	store := aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()})
 	hist := history.NewWithStore(slog.Default(), store)
 	reg := prometheus.NewRegistry()
-	return New(hist, reg, slog.Default()), reg
+	return New(hist, reg, slog.Default(), false), reg
 }
 
 func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
@@ -537,6 +568,28 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	workloadOwnerKey := testkeys.ECDSA(t)
 	workloadOwnerKeyHex := manifest.MarshalWorkloadOwnerPubKey(&workloadOwnerKey.PublicKey)
 	mnfst.WorkloadOwnerPubKeys = []manifest.HexString{workloadOwnerKeyHex}
+	mnfstBytes, err := json.Marshal(mnfst)
+	require.NoError(t, err)
+	return mnfst, mnfstBytes, [][]byte{policy}
+}
+
+func newInsecureManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
+	t.Helper()
+	policy := []byte("=== SOME REGO HERE ===")
+	policyHash := sha256.Sum256(policy)
+	policyHashHex := manifest.NewHexString(policyHash[:])
+
+	mnfst := &manifest.Manifest{}
+	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{
+		policyHashHex: {
+			SANs:             []string{"test"},
+			WorkloadSecretID: "test2",
+			Role:             manifest.RoleCoordinator,
+		},
+	}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{
+		{Platform: "Metal-QEMU-SNP-Insecure"},
+	}
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)
 	return mnfst, mnfstBytes, [][]byte{policy}
