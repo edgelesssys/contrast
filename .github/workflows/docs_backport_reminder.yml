@@ -34,7 +34,7 @@ jobs:
           body-includes: "Do the documentation changes need to be backported?"
       - name: Add reminder comment
         if: steps.docs-changed.outputs.changed == 'false' && steps.find-comment.outputs.comment-id == ''
-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0 # zizmor: ignore[superfluous-actions] not superfluous, since also used to update comments
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: |

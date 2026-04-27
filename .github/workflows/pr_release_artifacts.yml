@@ -103,7 +103,7 @@ jobs:
           echo "pr_number=$pr" | tee -a "$GITHUB_OUTPUT"
       - name: Create PR comment with artifact links
         if: ${{ steps.get-pr-number.outputs.pr_number != '' }}
-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0 # zizmor: ignore[superfluous-actions] not superfluous, since also used to update comments
         with:
           issue-number: ${{ steps.get-pr-number.outputs.pr_number }}
           body: |

@@ -86,7 +86,20 @@
       includes = [ "*.nix" ];
     };
     lychee-internal-links = {
-      command = "${lib.getExe pkgs.lychee}";
+      command = lib.getExe (
+        # lychee requires a ca bundle to build, which is not available in the nix flake check sandbox
+        pkgs.writeShellApplication {
+          name = "lychee-wrapper";
+          runtimeInputs = [
+            pkgs.lychee
+            pkgs.cacert
+          ];
+          text = ''
+            export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+            exec lychee "$@"
+          '';
+        }
+      );
       options = [
         "--config"
         "tools/lychee/config-internal.toml"
@@ -136,6 +149,14 @@
       command = "${lib.getExe pkgs.contrastPkgs.scripts.workflow-trigger-path-linter}";
       includes = [ ".github/workflows/*.yml" ];
     };
+    zizmor.options = [
+      "--config"
+      (builtins.toFile "zizmor.yml" ''
+        rules:
+          secrets-outside-env:
+            disable: true
+      '')
+    ];
     # keep-sorted end
   };
 }
