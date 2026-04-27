@@ -12,7 +12,9 @@ final: prev:
   #     hash = "";
   #   };
   # });
-  go_1_25 = prev.go_1_25.overrideAttrs (
+
+  # TODO(charludo): implement required changes to bump go version to 1.26
+  go_1_26 = prev.go_1_25.overrideAttrs (
     finalAttrs: _prevAttrs: {
       version = "1.25.9";
       src = final.fetchurl {

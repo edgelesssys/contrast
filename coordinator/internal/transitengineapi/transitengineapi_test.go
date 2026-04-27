@@ -104,7 +104,7 @@ func TestTransitAPICyclic(t *testing.T) {
 					jsonBody, err := json.Marshal(tc.encryptionInput)
 					require.NoError(err)
 
-					req := httptest.NewRequest(http.MethodPut, "/v1/transit/encrypt/"+tc.name, bytes.NewReader(jsonBody))
+					req := httptest.NewRequestWithContext(t.Context(), http.MethodPut, "/v1/transit/encrypt/"+tc.name, bytes.NewReader(jsonBody))
 					req.Header.Set("Content-Type", "application/json")
 
 					rec := httptest.NewRecorder()
@@ -135,7 +135,7 @@ func TestTransitAPICyclic(t *testing.T) {
 						})
 					require.NoError(err)
 
-					decryptReq := httptest.NewRequest(http.MethodPut, "/v1/transit/decrypt/"+tc.name, bytes.NewReader(decryptReqBody))
+					decryptReq := httptest.NewRequestWithContext(t.Context(), http.MethodPut, "/v1/transit/decrypt/"+tc.name, bytes.NewReader(decryptReqBody))
 					decryptReq.Header.Set("Content-Type", "application/json")
 
 					rec := httptest.NewRecorder()
