@@ -28,6 +28,15 @@ func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, err
 
 	// Consists of the default VM memory, 70MiB for the Kata shim and 100MiB for qemu overhead.
 	memoryOverhead := platforms.DefaultMemoryInMebiBytes(platform) + 170
+	if platforms.IsInsecure(platform) && platforms.IsGPU(platform) {
+		// On insecure (non-CC) GPU platforms, iommufd VFIO passthrough pins guest
+		// memory and allocates IOMMU page tables that are charged to the pod's
+		// cgroup. On CC platforms, TDX manages this memory outside the cgroup.
+		// (in the kernel / TDX module memory)
+		// Add extra headroom to avoid OOM kills. 512MB should suffice for VMs up
+		// to ~256GB of memory, which is our current limit on TDX as well.
+		memoryOverhead += 512
+	}
 
 	r := RuntimeClass(runtimeHandler).
 		WithHandler(runtimeHandler).

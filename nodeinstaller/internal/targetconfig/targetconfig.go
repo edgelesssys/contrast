@@ -35,10 +35,10 @@ func NewTargetConfig(hostMount, runtimeBase string, pl platforms.Platform) (*Tar
 		hostMount:            hostMount,
 		fs:                   &afero.Afero{Fs: afero.NewOsFs()},
 	}
-	switch {
-	case platforms.IsQEMU(pl) && platforms.IsSNP(pl):
+	switch pl {
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.MetalQEMUSNPInsecure, platforms.MetalQEMUSNPGPUInsecure:
 		conf.kataConfigPath = filepath.Join(runtimeBase, "etc", "configuration-qemu-snp.toml")
-	case platforms.IsQEMU(pl) && platforms.IsTDX(pl):
+	case platforms.MetalQEMUTDX, platforms.MetalQEMUTDXGPU, platforms.MetalQEMUTDXInsecure, platforms.MetalQEMUTDXGPUInsecure:
 		conf.kataConfigPath = filepath.Join(runtimeBase, "etc", "configuration-qemu-tdx.toml")
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", pl)

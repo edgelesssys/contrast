@@ -58,10 +58,10 @@ node-installer platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     case {{ platform }} in
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-Insecure"|"Metal-QEMU-TDX-Insecure")
             just push "node-installer-kata"
         ;;
-        "Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX-GPU")
+        "Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX-GPU"|"Metal-QEMU-SNP-GPU-Insecure"|"Metal-QEMU-TDX-GPU-Insecure")
             just push "node-installer-kata-gpu"
         ;;
         *)
@@ -169,7 +169,7 @@ runtime target=default_deploy_target platform=default_platform set=default_set:
         --namespace {{ target }}${namespace_suffix-} \
         --node-installer-target-conf-type ${node_installer_target_conf_type} \
         --platform "$platforms" \
-        runtime >> "./{{ workspace_dir }}/runtime/runtime.yml"
+        runtime > "./{{ workspace_dir }}/runtime/runtime.yml"
 
 # Populate the workspace with a Kubernetes deployment
 populate target=default_deploy_target platform=default_platform set=default_set:

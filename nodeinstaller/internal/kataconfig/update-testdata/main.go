@@ -46,6 +46,30 @@ func main() {
 			config:   "qemu-tdx",
 			testdata: "qemu-tdx-gpu",
 		},
+		// We intentionally take the CC upstream configs for the
+		// insecure platforms and then drop the CC-specific parameters
+		// ourselves in the `kataconfig` package to keep the CC and
+		// non-CC configurations as close as possible.
+		platforms.MetalQEMUSNPInsecure: {
+			upstream: "qemu-snp",
+			config:   "qemu-snp",
+			testdata: "qemu-snp-insecure",
+		},
+		platforms.MetalQEMUTDXInsecure: {
+			upstream: "qemu-tdx",
+			config:   "qemu-tdx",
+			testdata: "qemu-tdx-insecure",
+		},
+		platforms.MetalQEMUSNPGPUInsecure: {
+			upstream: "qemu-snp",
+			config:   "qemu-snp",
+			testdata: "qemu-snp-gpu-insecure",
+		},
+		platforms.MetalQEMUTDXGPUInsecure: {
+			upstream: "qemu-tdx",
+			config:   "qemu-tdx",
+			testdata: "qemu-tdx-gpu-insecure",
+		},
 	}
 
 	for platform, platformConfig := range platforms {
