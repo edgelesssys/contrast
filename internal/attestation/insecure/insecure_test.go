@@ -20,7 +20,7 @@ func TestIssueAndValidate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/hostdata", r.URL.Path)
 		_, err := w.Write(hostData)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}))
 	defer server.Close()
 
