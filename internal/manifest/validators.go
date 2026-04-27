@@ -16,6 +16,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/attestation/insecure"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/logger"
@@ -59,6 +60,14 @@ func (m *Manifest) Validator(log *slog.Logger, kdsGetter *certcache.CachedHTTPSG
 		validator := tdx.NewValidatorWithReportSetter(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs,
 			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), reportSetter, name)
 		allValidators = append(allValidators, validators.WithFixedOID(oid.RawTDXReport, validator))
+	}
+
+	if m.HasInsecurePlatforms() {
+		insecureValidator := insecure.NewValidatorWithReportSetter(
+			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": "insecure"}),
+			reportSetter, "insecure",
+		)
+		allValidators = append(allValidators, validators.WithFixedOID(oid.RawInsecureReport, insecureValidator))
 	}
 
 	return validators.Any(allValidators...), nil

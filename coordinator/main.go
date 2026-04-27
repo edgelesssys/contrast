@@ -52,6 +52,7 @@ import (
 
 const (
 	metricsEnvVar       = "CONTRAST_METRICS"
+	allowInsecureEnvVar = "CONTRAST_ALLOW_INSECURE"
 	probeAndMetricsPort = 9102
 	// transitEngineAPIPort specifies the default port to expose the transit engine API.
 	transitEngineAPIPort = "8200"
@@ -126,7 +127,12 @@ func run() (retErr error) {
 
 	userAPICredentials := atlscredentials.New(issuer, nil, atls.NoMetrics, loggerpkg.NewNamed(logger, "atlscredentials"))
 	userAPIServer := newGRPCServer(userAPICredentials, serverMetrics)
-	userapi.RegisterUserAPIServer(userAPIServer, userapiserver.New(logger, meshAuth, discovery))
+	userapiService := userapiserver.New(logger, meshAuth, discovery)
+	if os.Getenv(allowInsecureEnvVar) != "" {
+		logger.Warn("Coordinator is configured to allow insecure manifests")
+		userapiService.MakeInsecure()
+	}
+	userapi.RegisterUserAPIServer(userAPIServer, userapiService)
 	serverMetrics.InitializeMetrics(userAPIServer)
 
 	month := 30 * 24 * time.Hour
