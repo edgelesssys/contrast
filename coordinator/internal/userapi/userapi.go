@@ -60,6 +60,10 @@ type Server struct {
 	guard     guard
 	discovery discovery
 
+	// allowInsecure selects the manifest security level accepted by the Coordinator. It defaults to
+	// secure manifests and can be switched to insecure manifests via MakeInsecure.
+	allowInsecure bool
+
 	userapi.UnimplementedUserAPIServer
 }
 
@@ -70,6 +74,14 @@ func New(logger *slog.Logger, guard guard, discovery discovery) *Server {
 		guard:     guard,
 		discovery: discovery,
 	}
+}
+
+// MakeInsecure configures the Server to accept only manifests that contain insecure platforms.
+//
+// This voids the security guarantees of the deployment and must only be used for testing or
+// benchmarking. It should be called before the Server starts serving requests.
+func (s *Server) MakeInsecure() {
+	s.allowInsecure = true
 }
 
 // SetManifest registers a new manifest at the Coordinator.
@@ -146,6 +158,11 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 			Salt:       salt,
 			SeedShares: seedShares,
 		}
+	}
+
+	if err := s.checkManifestSecurity(m); err != nil {
+		s.logger.Warn("SetManifest rejected the manifest", "err", err)
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	state, err := s.guard.UpdateState(ctx, oldState, se, req.GetManifest(), req.GetPolicies())
@@ -229,18 +246,40 @@ func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*use
 		s.logger.Info("Skipping sanity checks because user recovery was forced")
 	}
 
-	_, err = s.guard.ResetState(ctx, oldState, &seedAuthorizer{req: req})
+	_, err = s.guard.ResetState(ctx, oldState, &seedAuthorizer{req: req, checkManifestSecurity: s.checkManifestSecurity})
 	if err != nil {
 		return nil, fmt.Errorf("resetting state: %w", err)
 	}
 	return &userapi.RecoverResponse{}, nil
 }
 
+// checkManifestSecurity verifies that the manifest doesn't mix secure and insecure platforms and
+// that its security level matches the Coordinator's configuration.
+func (s *Server) checkManifestSecurity(mnfst *manifest.Manifest) error {
+	hasInsecure := mnfst.HasInsecurePlatforms()
+	hasSecure := mnfst.HasSecurePlatforms()
+
+	if hasInsecure && hasSecure {
+		return ErrMixedManifestNotAllowed
+	}
+	if hasInsecure && !s.allowInsecure {
+		return ErrInsecureNotAllowed
+	}
+	if !hasInsecure && s.allowInsecure {
+		return ErrSecureNotAllowed
+	}
+	return nil
+}
+
 type seedAuthorizer struct {
-	req *userapi.RecoverRequest
+	req                   *userapi.RecoverRequest
+	checkManifestSecurity func(*manifest.Manifest) error
 }
 
 func (a *seedAuthorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+	if err := a.checkManifestSecurity(mnfst); err != nil {
+		return nil, nil, status.Error(codes.FailedPrecondition, err.Error())
+	}
 	if err := validatePeer(ctx, mnfst.SeedshareOwnerPubKeys); err != nil {
 		return nil, nil, status.Errorf(codes.PermissionDenied, "peer not authorized to recover existing state: %v", err)
 	}
@@ -337,6 +376,18 @@ var (
 	ErrAlreadyRecovered = errors.New("coordinator is already recovered")
 	// ErrNeedsRecovery is returned if state exists, but no secrets are available, e.g. after restart.
 	ErrNeedsRecovery = errors.New("coordinator is in recovery mode")
+
+	// ErrInsecureNotAllowed is returned when a manifest contains insecure platforms but the
+	// Coordinator is not configured to allow them.
+	ErrInsecureNotAllowed = errors.New("manifest contains insecure platforms, but the coordinator is not configured to allow them")
+
+	// ErrMixedManifestNotAllowed is returned when a manifest mixes secure and insecure platforms.
+	// Manifests must be either all-secure or all-insecure.
+	ErrMixedManifestNotAllowed = errors.New("manifest must not mix secure and insecure platforms")
+
+	// ErrSecureNotAllowed is returned when a secure manifest is submitted to a Coordinator that is
+	// configured to accept only insecure manifests.
+	ErrSecureNotAllowed = errors.New("secure manifest is not allowed when the coordinator is configured for insecure manifests")
 
 	errNoSignature = errors.New("manifest signature is empty")
 )

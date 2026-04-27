@@ -232,6 +232,70 @@ func TestSetManifest(t *testing.T) {
 		require.Equal(codes.InvalidArgument, status.Code(err))
 	})
 
+	t.Run("manifest security matches coordinator", func(t *testing.T) {
+		testCases := []struct {
+			name          string
+			allowInsecure bool
+			manifest      func(*testing.T) *manifest.Manifest
+			wantErr       error
+		}{
+			{
+				name:     "secure coordinator accepts secure manifest",
+				manifest: func(*testing.T) *manifest.Manifest { return manifestWithTrustedKey },
+			},
+			{
+				name:     "secure coordinator rejects insecure manifest",
+				manifest: newInsecureManifest,
+				wantErr:  ErrInsecureNotAllowed,
+			},
+			{
+				name:     "secure coordinator rejects mixed manifest",
+				manifest: newMixedManifest,
+				wantErr:  ErrMixedManifestNotAllowed,
+			},
+			{
+				name:          "insecure coordinator rejects secure manifest",
+				allowInsecure: true,
+				manifest:      func(*testing.T) *manifest.Manifest { return manifestWithTrustedKey },
+				wantErr:       ErrSecureNotAllowed,
+			},
+			{
+				name:          "insecure coordinator accepts insecure manifest",
+				allowInsecure: true,
+				manifest:      newInsecureManifest,
+			},
+			{
+				name:          "insecure coordinator rejects mixed manifest",
+				allowInsecure: true,
+				manifest:      newMixedManifest,
+				wantErr:       ErrMixedManifestNotAllowed,
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				require := require.New(t)
+				coordinator := newCoordinator()
+				if tc.allowInsecure {
+					coordinator.MakeInsecure()
+				}
+
+				manifestBytes, err := json.Marshal(tc.manifest(t))
+				require.NoError(err)
+				resp, err := coordinator.SetManifest(t.Context(), &userapi.SetManifestRequest{Manifest: manifestBytes})
+				if tc.wantErr == nil {
+					require.NoError(err)
+					require.NotNil(resp)
+					return
+				}
+
+				require.Error(err)
+				require.Equal(codes.InvalidArgument, status.Code(err))
+				require.ErrorContains(err, tc.wantErr.Error())
+			})
+		}
+	})
+
 	t.Run("atomic manifest update", func(t *testing.T) {
 		require := require.New(t)
 
@@ -517,6 +581,74 @@ func TestRecoveryFlow(t *testing.T) {
 	// Recover on a recovered Guard should fail.
 	_, err = a.Recover(ctx, recoverReq)
 	require.Error(err)
+}
+
+// TestRecoveryManifestSecurityMustMatchCoordinator verifies that recovery enforces the same
+// security-level matching as setting a manifest.
+func TestRecoveryManifestSecurityMustMatchCoordinator(t *testing.T) {
+	testCases := []struct {
+		name          string
+		insecure      bool
+		manifest      func(*testing.T) ([]byte, [][]byte)
+		mismatchError error
+	}{
+		{
+			name:          "secure manifest",
+			manifest:      newManifestWithSeedshareOwner,
+			mismatchError: ErrSecureNotAllowed,
+		},
+		{
+			name:          "insecure manifest",
+			insecure:      true,
+			manifest:      newInsecureManifestWithSeedshareOwner,
+			mismatchError: ErrInsecureNotAllowed,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
+			logger := slog.Default()
+			fs := afero.NewMemMapFs()
+			store := aferostore.New(&afero.Afero{Fs: fs})
+			hist := history.NewWithStore(slog.Default(), store)
+			coordinator := New(logger, stateguard.New(hist, prometheus.NewRegistry(), logger), &stubDiscovery{})
+			if tc.insecure {
+				coordinator.MakeInsecure()
+			}
+
+			manifestBytes, policies := tc.manifest(t)
+			resp, err := coordinator.SetManifest(t.Context(), &userapi.SetManifestRequest{
+				Manifest: manifestBytes,
+				Policies: policies,
+			})
+			require.NoError(err)
+			require.Len(resp.SeedSharesDoc.SeedShares, 1)
+			seedShareOwnerKey := testkeys.RSA(t)
+			seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, resp.SeedSharesDoc.SeedShares[0])
+			require.NoError(err)
+
+			recoverReq := &userapi.RecoverRequest{
+				Seed: seed,
+				Salt: resp.SeedSharesDoc.Salt,
+			}
+			ctx := rpcContext(t.Context(), seedShareOwnerKey)
+
+			mismatched := New(logger, stateguard.New(hist, prometheus.NewRegistry(), logger), &stubDiscovery{})
+			if !tc.insecure {
+				mismatched.MakeInsecure()
+			}
+			_, err = mismatched.Recover(ctx, recoverReq)
+			require.ErrorContains(err, tc.mismatchError.Error())
+
+			matching := New(logger, stateguard.New(hist, prometheus.NewRegistry(), logger), &stubDiscovery{})
+			if tc.insecure {
+				matching.MakeInsecure()
+			}
+			_, err = matching.Recover(ctx, recoverReq)
+			require.NoError(err)
+		})
+	}
 }
 
 // TestUserAPIConcurrent tests potential synchronization problems between the different
@@ -855,6 +987,46 @@ func newCoordinatorWithRegistry(reg *prometheus.Registry) *Server {
 	hist := history.NewWithStore(slog.Default(), store)
 	auth := stateguard.New(hist, reg, logger)
 	return New(logger, auth, &stubDiscovery{})
+}
+
+func newInsecureManifest(t *testing.T) *manifest.Manifest {
+	t.Helper()
+	mnfst := &manifest.Manifest{}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{
+		{Platform: "Metal-QEMU-Insecure"},
+	}
+	return mnfst
+}
+
+func newInsecureManifestWithSeedshareOwner(t *testing.T) ([]byte, [][]byte) {
+	t.Helper()
+	policy := []byte("=== SOME REGO HERE ===")
+	policyHash := sha256.Sum256(policy)
+	policyHashHex := manifest.NewHexString(policyHash[:])
+
+	mnfst := newInsecureManifest(t)
+	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{
+		policyHashHex: {
+			SANs:             []string{"test"},
+			WorkloadSecretID: "test2",
+			Role:             manifest.RoleCoordinator,
+		},
+	}
+	seedShareOwnerKey := testkeys.RSA(t)
+	mnfst.SeedshareOwnerPubKeys = []manifest.HexString{manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)}
+	mnfstBytes, err := json.Marshal(mnfst)
+	require.NoError(t, err)
+	return mnfstBytes, [][]byte{policy}
+}
+
+func newMixedManifest(t *testing.T) *manifest.Manifest {
+	t.Helper()
+	mnfst := &manifest.Manifest{}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{
+		{Platform: "Metal-QEMU-Insecure"},
+		{Platform: "Metal-QEMU-SNP"},
+	}
+	return mnfst
 }
 
 func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Server {
