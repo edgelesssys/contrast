@@ -37,6 +37,11 @@ type Client struct {
 
 	log *slog.Logger
 
+	// allowInsecure must be set to true to allow verification of manifests
+	// that contain insecure (non-CC) reference values. Without this, ValidateAttestation
+	// will return an error if the manifest allows insecure platforms.
+	allowInsecure bool
+
 	// validatorsFromManifestOverride is used by tests to replace the validators.
 	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]atls.Validator, error)
 }
@@ -77,6 +82,15 @@ func (c *Client) WithSlog(log *slog.Logger) *Client {
 // WithHTTPClient replaces the Client's default [http.Client].
 func (c *Client) WithHTTPClient(httpClient *http.Client) *Client {
 	c.httpClient = httpClient
+	return c
+}
+
+// WithInsecure allows the Client to verify manifests containing insecure (non-CC) reference values.
+//
+// By default, [Client.ValidateAttestation] will return an error if the manifest allows insecure
+// platforms. This method opts in to accepting such manifests.
+func (c *Client) WithInsecure() *Client {
+	c.allowInsecure = true
 	return c
 }
 
@@ -157,6 +171,10 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 	}
 	if err := latestManifest.Validate(); err != nil {
 		return nil, fmt.Errorf("validating latest manifest: %w", err)
+	}
+
+	if latestManifest.AllowInsecure() && !c.allowInsecure {
+		return nil, fmt.Errorf("manifest contains insecure platforms: use WithInsecure() to allow verification of insecure deployments")
 	}
 
 	kdsGetter := certcache.NewCachedHTTPSGetter(c.fsstore, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))

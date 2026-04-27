@@ -13,6 +13,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/attestation/insecure"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/logger"
@@ -64,6 +65,13 @@ func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.
 		name := fmt.Sprintf("tdx-%d", i)
 		opt.ValidateOpts.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
 		validators = append(validators, tdx.NewValidator(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
+	}
+
+	if m.AllowInsecure() {
+		validators = append(validators, insecure.NewValidator(
+			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": "insecure"}),
+			"insecure",
+		))
 	}
 
 	return validators, nil
