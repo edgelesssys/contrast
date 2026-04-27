@@ -19,6 +19,7 @@ on:
           - gpu
           - imagepuller-auth
           - imagestore
+          - insecure
           - kds-pcs-downtime
           - memdump
           - multi-runtime-class
