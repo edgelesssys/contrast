@@ -7,6 +7,14 @@
 _final: prev: {
   contrastPkgs = prev.contrastPkgs.overrideScope (
     contrastPkgsFinal: contrastPkgsPrev: {
+      # Build OVMF with debug output to the serial port so firmware messages
+      # are captured alongside kata/agent logs when a CVM crashes.
+      OVMF-SNP = contrastPkgsPrev.OVMF-SNP.override {
+        debug = true;
+      };
+      OVMF-TDX = contrastPkgsPrev.OVMF-TDX.override {
+        debug = true;
+      };
       kata = contrastPkgsPrev.kata.overrideScope (
         _kataFinal: kataPrev: {
           kernel-uvm = kataPrev.kernel-uvm.override {
@@ -26,6 +34,9 @@ _final: prev: {
       contrast = contrastPkgsPrev.contrast.overrideScope (
         _contrastFinal: contrastPrev: {
           node-installer-image = contrastPrev.node-installer-image.override {
+            inherit (contrastPkgsFinal) OVMF-SNP;
+            inherit (contrastPkgsFinal) OVMF-TDX;
+            withDebug = true;
             withExtraLayers = [
               (contrastPkgsFinal.ociLayerTar {
                 files = [
