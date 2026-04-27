@@ -275,7 +275,7 @@ func (c *contrast) Run(ctx context.Context, t *testing.T, timeout time.Duration,
 		defer cancel()
 
 		if c.binName == "" {
-			c.binName = "contrast"
+			c.binName = "contrast-x86_64-linux"
 		}
 		args := append([]string{"--log-level", "debug"}, args...)
 		cmd := exec.CommandContext(ctx, fmt.Sprintf("./%s", c.binName), args...)
