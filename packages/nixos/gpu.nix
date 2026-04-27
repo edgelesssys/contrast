@@ -105,8 +105,10 @@ in
       ];
     };
     systemd.services."kata-agent" = {
+      # Wait for the CDI generator to finish before the kata agent starts,
+      # but tolerate failure (e.g. no NVIDIA device in the coordinator)
+      wants = [ "nvidia-container-toolkit-cdi-generator.service" ];
       after = [ "nvidia-container-toolkit-cdi-generator.service" ];
-      requires = [ "nvidia-container-toolkit-cdi-generator.service" ];
     };
 
     hardware.nvidia-container-toolkit.enable = true;
