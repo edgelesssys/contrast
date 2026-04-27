@@ -144,7 +144,7 @@ func TestAttestationHandler(t *testing.T) {
 				bodyBytes = nonesenseBytes
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/attest", bytes.NewReader(bodyBytes))
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/attest", bytes.NewReader(bodyBytes))
 			contentType := "application/json"
 			if tc.contentType != "" {
 				contentType = tc.contentType

@@ -111,7 +111,7 @@ func TestStartupProbe(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			req := httptest.NewRequest(http.MethodGet, "/probes/startup", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/probes/startup", nil)
 			resp := httptest.NewRecorder()
 
 			mux := http.NewServeMux()
@@ -184,7 +184,7 @@ func TestReadinessProbe(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			req := httptest.NewRequest(http.MethodGet, "/probes/readiness", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/probes/readiness", nil)
 			resp := httptest.NewRecorder()
 
 			auth := mockAuth{hasState: tc.hasActiveManifest, fails: tc.getStateFails}

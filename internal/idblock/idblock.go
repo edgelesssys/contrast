@@ -265,7 +265,7 @@ func recoverPublicKey(curve elliptic.Curve, r, s, z *big.Int) ([]ecdsa.PublicKey
 		}
 
 		// Verify if the point is on the curve
-		if !curve.IsOnCurve(pointX, pointY) {
+		if !curve.IsOnCurve(pointX, pointY) { //nolint:staticcheck // SA1019: low-level arithmetic is needed for public key recovery
 			continue
 		}
 
@@ -279,11 +279,11 @@ func recoverPublicKey(curve elliptic.Curve, r, s, z *big.Int) ([]ecdsa.PublicKey
 		u2.Mod(u2, order)
 
 		// Compute the candidate public key as u1*G + u2*Q
-		x1, y1 := curve.ScalarBaseMult(u1.Bytes())
+		x1, y1 := curve.ScalarBaseMult(u1.Bytes()) //nolint:staticcheck // SA1019: low-level arithmetic is needed for public key recovery
 
-		x2, y2 := curve.ScalarMult(pointX, pointY, u2.Bytes())
+		x2, y2 := curve.ScalarMult(pointX, pointY, u2.Bytes()) //nolint:staticcheck // SA1019: low-level arithmetic is needed for public key recovery
 
-		finalX, finalY := curve.Add(x1, y1, x2, y2)
+		finalX, finalY := curve.Add(x1, y1, x2, y2) //nolint:staticcheck // SA1019: low-level arithmetic is needed for public key recovery
 
 		publicKeys = append(publicKeys, ecdsa.PublicKey{
 			Curve: curve,
