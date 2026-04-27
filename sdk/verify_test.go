@@ -107,10 +107,11 @@ func TestGetAttestation(t *testing.T) {
 func TestValidateAttestation(t *testing.T) {
 	testNonce := make([]byte, 32)
 	for name, tc := range map[string]struct {
-		nonce       []byte
-		resp        *httpapi.AttestationResponse
-		validateErr error
-		wantErr     string
+		nonce         []byte
+		resp          *httpapi.AttestationResponse
+		validateErr   error
+		allowInsecure bool
+		wantErr       string
 	}{
 		"success": {
 			nonce: testNonce,
@@ -143,6 +144,26 @@ func TestValidateAttestation(t *testing.T) {
 			validateErr: assert.AnError,
 			wantErr:     assert.AnError.Error(),
 		},
+		"insecure manifest without opt-in": {
+			nonce: testNonce,
+			resp: &httpapi.AttestationResponse{
+				RawAttestationDoc: testNonce,
+				CoordinatorState: httpapi.CoordinatorState{
+					Manifests: [][]byte{testInsecureManifest},
+				},
+			},
+			wantErr: "WithInsecure",
+		},
+		"insecure manifest with opt-in": {
+			nonce:         testNonce,
+			allowInsecure: true,
+			resp: &httpapi.AttestationResponse{
+				RawAttestationDoc: testNonce,
+				CoordinatorState: httpapi.CoordinatorState{
+					Manifests: [][]byte{testInsecureManifest},
+				},
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
@@ -152,6 +173,9 @@ func TestValidateAttestation(t *testing.T) {
 			require.NoError(err)
 
 			c := New()
+			if tc.allowInsecure {
+				c = c.WithInsecure()
+			}
 
 			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]atls.Validator, error) {
 				return []atls.Validator{&stubValidator{err: tc.validateErr}}, nil
@@ -218,6 +242,25 @@ var testManifest = []byte(`
           "AliasCheckComplete": false,
           "TIOEnabled": false
         }
+      }
+	]
+  }
+}
+`)
+
+var testInsecureManifest = []byte(`
+{
+  "Policies": {
+    "ef27c1c91a0ce044c67f0ec10d7c66ea9f178453dc96a233e97f0675578042f2": {
+      "SANs": ["coordinator"],
+      "WorkloadSecretID": "apps/v1/StatefulSet/default/coordinator",
+      "Role": "coordinator"
+    }
+  },
+  "ReferenceValues": {
+    "snp": [
+      {
+        "Platform": "metal-qemu-snp-insecure"
       }
 	]
   }
