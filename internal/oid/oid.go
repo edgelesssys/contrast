@@ -13,6 +13,10 @@ var RawSNPReport = asn1.ObjectIdentifier{1, 3, 9901, 2, 1}
 // used by the aTLS issuer and validator.
 var RawTDXReport = asn1.ObjectIdentifier{1, 3, 9901, 2, 2}
 
+// RawInsecureReport is the OID for the insecure (non-CC) attestation,
+// used on development platforms without CC hardware.
+var RawInsecureReport = asn1.ObjectIdentifier{1, 3, 9901, 2, 3}
+
 // WorkloadSecretOID is the root OID for the workloadSecretID report
 // extension, added to the mesh certificates to allow verification
 // and authorization based on the workloadSecretID.
