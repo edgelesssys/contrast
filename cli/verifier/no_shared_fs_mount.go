@@ -6,7 +6,6 @@ package verifier
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 
@@ -25,7 +24,7 @@ func (v *NoSharedFSMount) Verify(toVerify any) error {
 	// get all volume mounts that are referenced in containers
 	isNonCC := false
 	kuberesource.MapPodSpec(toVerify, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if !kuberesource.IsContrastPod(spec) {
 			// this isn't a confidential pod so we don't need to check further
 			isNonCC = true
 			return spec
