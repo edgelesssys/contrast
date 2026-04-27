@@ -25,7 +25,7 @@ func (v *NoSharedFSMount) Verify(toVerify any) error {
 	isNonCC := false
 	kuberesource.MapPodSpec(toVerify, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
 		if !kuberesource.IsContrastPod(spec) {
-			// this isn't a confidential pod so we don't need to check further
+			// this isn't a Contrast pod so we don't need to check further
 			isNonCC = true
 			return spec
 		}
