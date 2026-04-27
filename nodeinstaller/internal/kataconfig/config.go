@@ -39,8 +39,8 @@ func KataRuntimeConfig(
 ) (*Config, error) {
 	var customContrastAnnotations []string
 	var config Config
-	switch {
-	case platforms.IsTDX(platform):
+	switch platform {
+	case platforms.MetalQEMUTDX, platforms.MetalQEMUTDXGPU, platforms.MetalQEMUTDXInsecure, platforms.MetalQEMUTDXGPUInsecure:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -48,20 +48,29 @@ func KataRuntimeConfig(
 		// We set up dm_verity in the system NixOS config.
 		// Doing so again here prevents VM boots.
 		config.Hypervisor["qemu"]["kernel_verity_params"] = ""
-	case platforms.IsSNP(platform):
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.MetalQEMUSNPInsecure, platforms.MetalQEMUSNPGPUInsecure:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
 
-		for _, productLine := range []string{"_Milan", "_Genoa"} {
-			for _, annotationType := range []string{"snp_id_block", "snp_id_auth", "snp_guest_policy"} {
-				customContrastAnnotations = append(customContrastAnnotations, annotationType+productLine)
+		if !platforms.IsInsecure(platform) {
+			for _, productLine := range []string{"_Milan", "_Genoa"} {
+				for _, annotationType := range []string{"snp_id_block", "snp_id_auth", "snp_guest_policy"} {
+					customContrastAnnotations = append(customContrastAnnotations, annotationType+productLine)
+				}
 			}
 		}
 
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "snp", "share", "OVMF.fd")
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
+	}
+	// Disable confidential computing features for insecure platforms.
+	if platforms.IsInsecure(platform) {
+		config.Hypervisor["qemu"]["confidential_guest"] = false
+		if platforms.IsSNP(platform) || platform == platforms.MetalQEMUSNPInsecure || platform == platforms.MetalQEMUSNPGPUInsecure {
+			config.Hypervisor["qemu"]["sev_snp_guest"] = false
+		}
 	}
 	if debug {
 		config.Agent["kata"]["enable_debug"] = true
