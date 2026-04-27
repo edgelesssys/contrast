@@ -94,6 +94,9 @@ subcommands.`,
 	cmd.Flags().Bool("calculate-pod-memory", false, "calculate pod memory based on image layer sizes and container resource limits")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
 	cmd.Flags().StringArray("insecure-registry", []string{}, "registries to access via plain HTTP instead of HTTPS (can be passed more than once)")
+	if insecureRuntimesAllowed() {
+		cmd.Flags().Bool("INSECURE", false, "allow generation for insecure (non-CC) runtimes")
+	}
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
 	must(cmd.MarkFlagFilename("manifest", "json"))
@@ -145,6 +148,10 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		usedPlatforms.Add(flags.referenceValuesPlatform)
 	}
 
+	if err := validateInsecurePlatforms(usedPlatforms, flags.allowInsecureRuntimes); err != nil {
+		return err
+	}
+
 	// generate a manifest by checking if a manifest exists and using that,
 	// or otherwise using a default.
 	var mnf *manifest.Manifest
@@ -175,6 +182,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("validate existing manifest: %w", err)
 		}
 	}
+	if err := validateInsecureManifest(mnf, flags.allowInsecureRuntimes); err != nil {
+		return err
+	}
 
 	// Inject the APEIP (from the OVMF passed at build time) into every SNP
 	// reference value entry. This allows SNPValidateOpts to derive launch
@@ -202,7 +212,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("get runtime handler: %w", err)
 		}
 	}
-	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags, mnf); err != nil {
+	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags, mnf, usedPlatforms); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
@@ -299,7 +309,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// mapContrastWorkloads applies the given function to all workloads with a Contrast runtime class.
+// mapContrastWorkloads applies the given function to all workloads with the 'contrast-cc' or 'contrast-insecure' runtime class.
 // The callback receives an apply configuration together with the file path and index the unstructured object has in the file map.
 // Changes to the apply configuration are not applied to the original unstructured object.
 func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f func(res any, path string, idx int) (any, error)) error {
@@ -341,11 +351,29 @@ func isCoordinator(resource any) bool {
 	if ok &&
 		r.Spec != nil &&
 		r.Spec.Template != nil &&
+		r.Spec.Template.Spec != nil &&
 		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 		r.Spec.Template.Labels[kuberesource.ContrastRoleLabelKey] == string(manifest.RoleCoordinator) {
 		return true
 	}
 	return false
+}
+
+func patchCoordinatorAllowInsecure(resource any, usedPlatforms kuberesource.PlatformCollection, allowInsecure bool) {
+	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
+	if !ok || !allowInsecure || !isCoordinator(resource) {
+		return
+	}
+	platformList := usedPlatforms.Platforms()
+	if len(platformList) == 0 || slices.ContainsFunc(platformList, func(p platforms.Platform) bool { return !platforms.IsInsecure(p) }) {
+		return
+	}
+	for i := range r.Spec.Template.Spec.Containers {
+		container := &r.Spec.Template.Spec.Containers[i]
+		if container.Name != nil && *container.Name == string(manifest.RoleCoordinator) {
+			kuberesource.SetContainerEnv(container, allowInsecureEnvVar, "1")
+		}
+	}
 }
 
 func runVerifiers(fileMap map[string][]*unstructured.Unstructured, verifiers []verifier.Verifier) error {
@@ -433,7 +461,7 @@ func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (
 		}
 	}
 	if len(fileMap) == 0 {
-		return nil, "", fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
+		return nil, "", fmt.Errorf("no .yml/.yaml files with 'contrast-cc' or 'contrast-insecure' runtime found")
 	}
 
 	extraData, err := kuberesource.EncodeUnstructured(extraResources)
@@ -546,7 +574,7 @@ func calculatePodMemory(spec *applycorev1.PodSpecApplyConfiguration, podLayers *
 	return podMemory, nil
 }
 
-func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags, mnf *manifest.Manifest) error {
+func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags, mnf *manifest.Manifest, usedPlatforms kuberesource.PlatformCollection) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -590,6 +618,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 		if flags.injectImageStore {
 			kuberesource.AddImageStore([]any{res})
 		}
+		patchCoordinatorAllowInsecure(res, usedPlatforms, flags.allowInsecureRuntimes)
 
 		kuberesource.PatchImages([]any{res}, replacements)
 
@@ -631,6 +660,16 @@ func injectServiceMesh(resource any, memoryProfile kuberesource.MemoryProfile) e
 	}
 	if _, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy(memoryProfile)); err != nil {
 		return err
+	}
+	return nil
+}
+
+func validateInsecurePlatforms(usedPlatforms kuberesource.PlatformCollection, allowInsecure bool) error {
+	if !slices.ContainsFunc(usedPlatforms.Platforms(), platforms.IsInsecure) {
+		return nil
+	}
+	if !allowInsecure {
+		return fmt.Errorf("insecure runtime platforms detected but --INSECURE flag not set (the flag is only available with the %s environment variable set to true)", allowInsecureEnvVar)
 	}
 	return nil
 }
@@ -762,7 +801,17 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 		if spec == nil || spec.RuntimeClassName == nil {
 			return spec, nil
 		}
-		if *spec.RuntimeClassName == "kata-cc-isolation" || *spec.RuntimeClassName == "contrast-cc" {
+		if *spec.RuntimeClassName == "kata-cc-isolation" || kuberesource.IsBareContrastRuntimeClass(*spec.RuntimeClassName) {
+			// Only allow the bare runtime class names if the default runtime handler is compatible.
+			// For example, `contrast-cc` should only resolve when `--reference-values` is set to a CC-enabled platform,
+			// and `contrast-insecure` should only resolve when `--reference-values` is set to an insecure platform.
+			if *spec.RuntimeClassName == "contrast-insecure" && !strings.HasPrefix(defaultRuntimeHandler, "contrast-insecure-") {
+				return nil, fmt.Errorf("bare 'contrast-insecure' runtime class requires --reference-values to be set to an insecure platform")
+			}
+			if (*spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "kata-cc-isolation") &&
+				strings.HasPrefix(defaultRuntimeHandler, "contrast-insecure-") {
+				return nil, fmt.Errorf("bare %q runtime class is incompatible with insecure --reference-values platform %q", *spec.RuntimeClassName, defaultRuntimeHandler)
+			}
 			spec.RuntimeClassName = &defaultRuntimeHandler
 			if kuberesource.PodSpecRequiresGPU(spec) {
 				platform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
@@ -777,7 +826,7 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 			}
 			return spec, nil
 		}
-		if !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") {
+		if !kuberesource.IsContrastPod(spec) {
 			return spec, nil
 		}
 		overridePlatform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
@@ -966,6 +1015,7 @@ type generateFlags struct {
 	insecureEnableDebugShell bool
 	calculatePodMemory       bool
 	insecureRegistries       []string
+	allowInsecureRuntimes    bool
 	outputFile               string
 }
 
@@ -1075,6 +1125,13 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	allowInsecureRuntimes := false
+	if cmd.Flags().Lookup("INSECURE") != nil {
+		allowInsecureRuntimes, err = cmd.Flags().GetBool("INSECURE")
+		if err != nil {
+			return nil, err
+		}
+	}
 	outputFile, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return nil, err
@@ -1103,6 +1160,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		insecureEnableDebugShell: insecureEnableDebugShell,
 		calculatePodMemory:       calculatePodMemory,
 		insecureRegistries:       insecureRegistries,
+		allowInsecureRuntimes:    allowInsecureRuntimes,
 		outputFile:               outputFile,
 	}, nil
 }

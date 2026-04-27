@@ -58,6 +58,7 @@ func New(rulesPath, settingsPath, cachePath string, insecureRegistries []string,
 func (r *Runner) Run(ctx context.Context, res any, extraPath string, needLayersCache bool, logger *slog.Logger) (string, *LayersCache, error) {
 	args := []string{
 		"--runtime-class-names=contrast-cc",
+		"--runtime-class-names=contrast-insecure",
 		"--rego-rules-path=" + r.rulesPath,
 		"--json-settings-path=" + r.settingsPath,
 		"--layers-cache-file-path=" + r.cachePath,
