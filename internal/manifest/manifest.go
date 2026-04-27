@@ -119,6 +119,21 @@ func (m *Manifest) CoordinatorPolicyHash() (HexString, error) {
 	return "", errors.New("no coordinator found in manifest")
 }
 
+// AllowInsecure returns true if the manifest contains reference values for insecure platforms.
+func (m *Manifest) AllowInsecure() bool {
+	for _, v := range m.ReferenceValues.SNP {
+		if p, err := platforms.FromString(v.Platform); err == nil && platforms.IsInsecure(p) {
+			return true
+		}
+	}
+	for _, v := range m.ReferenceValues.TDX {
+		if p, err := platforms.FromString(v.Platform); err == nil && platforms.IsInsecure(p) {
+			return true
+		}
+	}
+	return false
+}
+
 // SNPValidateOpts returns validate options generators populated with the manifest's
 // SNP reference values and trusted measurement for the given runtime.
 func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SNPValidatorOptions, error) {
@@ -128,6 +143,9 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 
 	var out []SNPValidatorOptions
 	for _, refVal := range m.ReferenceValues.SNP {
+		if p, err := platforms.FromString(refVal.Platform); err == nil && platforms.IsInsecure(p) {
+			continue
+		}
 		if len(refVal.TrustedMeasurement) == 0 {
 			return nil, errors.New("trusted measurement cannot be empty")
 		}
@@ -213,6 +231,9 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 
 	var out []TDXValidatorOptions
 	for _, refVal := range m.ReferenceValues.TDX {
+		if p, err := platforms.FromString(refVal.Platform); err == nil && platforms.IsInsecure(p) {
+			continue
+		}
 		verifyOpts := tdxverify.DefaultOptions()
 
 		var err error
