@@ -1,0 +1,57 @@
+name: Build and attach aarch64-darwin CLI
+description: >
+  Builds the aarch64-darwin CLI, attaches it to the draft release, and uploads it to S3. Assumes the workspace is already checked out to the working/release ref.
+inputs:
+  effective_version:
+    description: Full release tag, e.g. v1.2.3 or v1.2.3-2024-01-01
+    required: true
+  without_v:
+    description: Base version without v prefix, e.g. 1.2.3
+    required: true
+  github_token:
+    description: GitHub token
+    required: true
+  cachix_token:
+    description: Cachix auth token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/setup_nix
+      with:
+        githubToken: ${{ inputs.github_token }}
+        cachixToken: ${{ inputs.cachix_token }}
+    - name: Bump flake version to release version
+      uses: ./.github/actions/bump_version
+      with:
+        version: ${{ inputs.without_v }}
+        commit: false
+    - uses: ./.github/actions/build_cli
+      with:
+        system: aarch64-darwin
+    - name: Upload artifact
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: contrast-cli-aarch64-darwin
+        path: workspace/contrast-aarch64-darwin
+    - name: Remove existing darwin asset from draft release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        VERSION: ${{ inputs.effective_version }}
+      run: |
+        if gh release view "${VERSION}" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | grep -Fxq 'contrast-aarch64-darwin'; then
+          gh release delete-asset "${VERSION}" contrast-aarch64-darwin --repo "${{ github.repository }}" --yes
+        fi
+    - name: Attach to draft release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        VERSION: ${{ inputs.effective_version }}
+      run: |
+        gh release upload "${VERSION}" workspace/contrast-aarch64-darwin --repo "${{ github.repository }}"
+    - uses: ./.github/actions/s3_upload
+      with:
+        files: workspace/contrast-aarch64-darwin
+        s3-bucket-path: pre-releases/${{ inputs.effective_version }}/${{ github.run_id }}/${{ github.run_attempt }}

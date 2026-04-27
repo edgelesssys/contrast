@@ -40,25 +40,27 @@ jobs:
     env:
       FULL_VERSION: ${{ inputs.version }}
     outputs:
-      WITHOUT_V: ${{ steps.version-info.outputs.WITHOUT_V }}
-      PART_MAJOR: ${{ steps.version-info.outputs.PART_MAJOR }}
-      PART_MINOR: ${{ steps.version-info.outputs.PART_MINOR }}
-      PART_PATCH: ${{ steps.version-info.outputs.PART_PATCH }}
-      MAJOR: ${{ steps.version-info.outputs.MAJOR }}
-      MAJOR_MINOR: ${{ steps.version-info.outputs.MAJOR_MINOR }}
-      MAJOR_MINOR_PATCH: ${{ steps.version-info.outputs.MAJOR_MINOR_PATCH }}
-      RELEASE_BRANCH: ${{ steps.version-info.outputs.RELEASE_BRANCH }}
-      WORKING_BRANCH: ${{ steps.version-info.outputs.WORKING_BRANCH }}
-      NEXT_MINOR: ${{ steps.version-info.outputs.NEXT_MINOR }}
-      NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
-      NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
+      EFFECTIVE_VERSION: ${{ inputs.version }}
+      WITHOUT_V: ${{ steps.version-info.outputs.without_v }}
+      MAJOR_MINOR: ${{ steps.version-info.outputs.major_minor }}
+      MAJOR_MINOR_PATCH: ${{ steps.version-info.outputs.major_minor_patch }}
+      RELEASE_BRANCH: ${{ steps.version-info.outputs.release_branch }}
+      WORKING_BRANCH: ${{ steps.branch.outputs.value }}
+      NEXT_MINOR: ${{ steps.version-info.outputs.next_minor }}
+      NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.next_minor_pre_without_v }}
+      NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.next_patch_pre_without_v }}
+      PREVIOUS_MINOR_TAG: ${{ steps.version-info.outputs.previous_minor_tag }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - name: Working branch
+          fetch-tags: true
+      - name: Get working branch
+        id: branch
         run: |
-          echo "WORKING_BRANCH=$(git branch --show-current)" | tee -a "$GITHUB_ENV"
+          WB=$(git branch --show-current)
+          echo "WORKING_BRANCH=${WB}" | tee -a "$GITHUB_ENV"
+          echo "value=${WB}" >> "$GITHUB_OUTPUT"
       - name: Verify minor version bump
         if: inputs.kind == 'minor'
         run: |
@@ -79,33 +81,11 @@ jobs:
             echo "Workflow can only be triggered from a temporary branch in the form of tmp/vX.Y.Z"
             exit 1
           fi
-      - name: Extract version info
+      - name: Parse version
         id: version-info
-        run: |
-          WITHOUT_V=${FULL_VERSION#v}
-          PART_MAJOR=${WITHOUT_V%%.*}
-          PART_MINOR=${WITHOUT_V#*.}
-          PART_MINOR=${PART_MINOR%%.*}
-          PART_PATCH=${WITHOUT_V##*.}
-          RELEASE_BRANCH=release/v${PART_MAJOR}.${PART_MINOR}
-          NEXT_MINOR=${PART_MAJOR}.$((PART_MINOR + 1)).0
-          NEXT_MINOR_PRE_WITHOUT_V=${PART_MAJOR}.$((PART_MINOR + 1)).0-pre
-          NEXT_PATCH_PRE_WITHOUT_V=${PART_MAJOR}.${PART_MINOR}.$((PART_PATCH + 1))-pre
-          {
-            echo "WITHOUT_V=${WITHOUT_V}"
-            echo "PART_MAJOR=${PART_MAJOR}"
-            echo "PART_MINOR=${PART_MINOR}"
-            echo "PART_PATCH=${PART_PATCH}"
-            echo "MAJOR=${PART_MAJOR}"
-            echo "MAJOR_MINOR=${PART_MAJOR}.${PART_MINOR}"
-            echo "MAJOR_MINOR_PATCH=${PART_MAJOR}.${PART_MINOR}.${PART_PATCH}"
-            echo "RELEASE_BRANCH=${RELEASE_BRANCH}"
-            echo "WORKING_BRANCH=${WORKING_BRANCH}"
-            echo "NEXT_MINOR=${NEXT_MINOR}"
-            echo "NEXT_MINOR_PRE_WITHOUT_V=${NEXT_MINOR_PRE_WITHOUT_V}"
-            echo "NEXT_PATCH_PRE_WITHOUT_V=${NEXT_PATCH_PRE_WITHOUT_V}"
-          } | tee -a "$GITHUB_OUTPUT"
-          echo "RELEASE_BRANCH=${RELEASE_BRANCH}" | tee -a "$GITHUB_ENV"
+        uses: ./.github/actions/parse_version
+        with:
+          version: ${{ inputs.version }}
       - name: Don't overwrite published releases
         if: (! inputs.overwrite_published_release)
         env:
@@ -118,241 +98,63 @@ jobs:
             exit 1
           fi
 
-  update-main:
-    name: Update main branch
-    runs-on: ubuntu-24.04
-    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin]
-    permissions:
-      contents: write
-    env:
-      RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
-      WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-      VERSION: ${{ inputs.version }}
-      MAJOR_MINOR: ${{ needs.process-inputs.outputs.MAJOR_MINOR }}
-      MAJOR_MINOR_PATCH: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
-      SET: base
-    steps:
-      - name: Checkout working branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-          path: contrast-working
-          persist-credentials: false
-      - name: Checkout main
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ inputs.checkout_main_ref }}
-          path: contrast-main
-          persist-credentials: false
-      - uses: ./contrast-working/.github/actions/setup_nix
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Configure git
-        run: |
-          git config --global user.name "edgelessci"
-          git config --global user.email "edgelessci@users.noreply.github.com"
-      - name: Create docs release
-        if: inputs.kind == 'minor'
-        working-directory: contrast-main/docs
-        run: |
-          nix run ".#${SET}.nixpkgs.yarn" install
-          nix run ".#${SET}.nixpkgs.yarn" docusaurus docs:version "${MAJOR_MINOR}"
-          git add .
-          git commit -am "docs: release ${MAJOR_MINOR}"
-          # Clean up auxiliary files, so next steps run on a clean tree
-          git clean -fx :/
-          git reset --hard HEAD
-      - name: Download image replacements file (from release branch)
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: image-replacements
-      - name: Update release urls in docs with tags
-        working-directory: contrast-main
-        run: nix run ".#${SET}.scripts.update-release-urls"
-      - name: Commit updated docs
-        working-directory: contrast-main
-        run: |
-          git add "docs/versioned_docs/version-${MAJOR_MINOR}"
-          git commit -m "docs: update release download urls"
-          git clean -fx :/
-          git reset --hard HEAD
-      - name: Download release artifacts (from release branch)
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: contrast-release-artifacts
-          path: ./contrast-main
-      - name: Download darwin CLI artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: contrast-cli-aarch64-darwin
-          path: ./contrast-main/workspace
-      - name: Update contrast-releases.json with new release
-        working-directory: contrast-main
-        run: nix run ".#${SET}.scripts.update-contrast-releases"
-      - name: Commit updated contrast-releases.json
-        working-directory: contrast-main
-        run: |
-          git add ./packages/contrast-releases.json
-          git commit -m "packages/contrast-releases: add ${MAJOR_MINOR_PATCH}"
-          git clean -fx :/
-          git reset --hard HEAD
-      - name: Bump flake version to post release patch pre-version
-        if: inputs.kind == 'minor'
-        id: bump
-        uses: ./contrast-working/.github/actions/bump_version # Run action from working branch!
-        with:
-          version: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
-          working-directory: contrast-main
-          commit: false
-      - name: Create PR
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
-        with:
-          title: Post ${{ needs.process-inputs.outputs.WITHOUT_V }} release updates to main
-          body: |
-            Updating main as part of the ${{ needs.process-inputs.outputs.WITHOUT_V }} release.
-            Only merge after the release is published.
-          commit-message: ${{ steps.bump.outputs.commit-msg }}
-          base: main
-          draft: false
-          labels: "no changelog"
-          branch: automated/update-main-after-${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-          committer: edgelessci <edgelessci@users.noreply.github.com>
-          author: edgelessci <edgelessci@users.noreply.github.com>
-          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-          path: ./contrast-main
-
-  release-aarch64-darwin:
-    name: Build aarch64-darwin CLI
-    runs-on: macos-latest
-    needs: [process-inputs, release-x86_64-linux]
-    permissions:
-      contents: write
-      id-token: write
-    env:
-      VERSION: ${{ inputs.version }}
-      SET: base
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-          persist-credentials: false
-      - uses: ./.github/actions/setup_nix
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Bump flake version to release version
-        uses: ./.github/actions/bump_version
-        with:
-          version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
-          commit: false
-      - uses: ./.github/actions/build_cli
-        with:
-          system: aarch64-darwin
-      - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: contrast-cli-aarch64-darwin
-          path: workspace/contrast-aarch64-darwin
-      - name: Remove existing darwin asset from draft release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh release view "${VERSION}" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | grep -Fxq 'contrast-aarch64-darwin'; then
-            gh release delete-asset "${VERSION}" contrast-aarch64-darwin --repo "${{ github.repository }}" --yes
-          fi
-      - name: Attach to release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release upload "${VERSION}" workspace/contrast-aarch64-darwin --repo "${{ github.repository }}"
-      - uses: ./.github/actions/s3_upload
-        with:
-          files: workspace/contrast-aarch64-darwin
-          s3-bucket-path: pre-releases/${{ inputs.version }}/${{ github.run_id }}/${{ github.run_attempt }}
-
   release-x86_64-linux:
-    name: Build and push artifacts, create release
+    name: "release-requirement: Build and push artifacts, create release"
     runs-on: ubuntu-24.04
     needs: process-inputs
     permissions:
       contents: write
       packages: write
       id-token: write
-    outputs:
-      LOG_COLLECTOR_IMAGE: ${{ steps.push-log-collector.outputs.image }}
-    env:
-      RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
-      WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-      VERSION: ${{ inputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: true
-      - uses: ./.github/actions/setup_nix
+      - uses: ./.github/actions/release_build_linux
         with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Configure git
-        run: |
-          git config --global user.name "edgelessci"
-          git config --global user.email "edgelessci@users.noreply.github.com"
-      - name: Bump flake version to release version
-        uses: ./.github/actions/bump_version
-        with:
-          version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
-          commit: true
-      - name: Create release artifacts
-        id: create-artifacts
-        uses: ./.github/actions/release_artifacts
-        with:
-          version: ${{ inputs.version }}
+          effective_version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
+          working_branch: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           container_registry: ${{ env.container_registry }}
-          s3-bucket-path: "pre-releases/${{ inputs.version }}"
-      - name: Upload release artifacts (for main branch PR)
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+          commit_version_bump: 'true'
+          next_patch_pre_without_v: ${{ needs.process-inputs.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
+          previous_tag: ${{ needs.process-inputs.outputs.PREVIOUS_MINOR_TAG }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  nightly:
+    name: "release-requirement: e2e nightly"
+    uses: ./.github/workflows/e2e_nightly.yml
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+      TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
+    permissions:
+      contents: read
+      packages: write
+
+  release-aarch64-darwin:
+    name: "release-requirement: Build aarch64-darwin CLI"
+    runs-on: macos-latest
+    needs: [process-inputs, release-x86_64-linux]
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          name: contrast-release-artifacts
-          # Keep the LICENSE file! It isn't used, but ensures the paths of the other artifacts aren't stripped, see
-          # https://github.com/actions/upload-artifact/blob/6027e3dd177782cd8ab9af838c04fd81a07f1d47/README.md?plain=1#L187
-          path: |
-            LICENSE
-            ${{ steps.create-artifacts.outputs.paths }}
-      # Push the (dev/test-only) k8s-log-collector image so the test matrix
-      # below picks it up via just.containerlookup. This is internal infra,
-      # not part of the release artifacts, but it shares the build job's
-      # packages:write permission.
-      - name: Push k8s-log-collector image
-        id: push-log-collector
-        run: |
-          just k8s-log-collector
-          digest=$(grep "k8s-log-collector:latest=" workspace/just.containerlookup | tail -1 | cut -d= -f2-)
-          echo "image=${digest}" >> "$GITHUB_OUTPUT"
-      - name: Create draft release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2 # zizmor: ignore[superfluous-actions]
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: false
+      - uses: ./.github/actions/release_build_darwin
         with:
-          draft: true
-          generate_release_notes: true
-          tag_name: ${{ inputs.version }}
-          target_commitish: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-          fail_on_unmatched_files: true
-          files: ${{ steps.create-artifacts.outputs.paths }}
-      - name: Reset temporary changes
-        run: |
-          git reset --hard "${WORKING_BRANCH}"
-      - name: Bump flake version to post release patch pre-version
-        uses: ./.github/actions/bump_version
-        with:
-          version: ${{ needs.process-inputs.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
-          commit: true
+          effective_version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
   test:
     strategy:
@@ -375,100 +177,53 @@ jobs:
             runner: TDX-GPU
             self-hosted: true
       fail-fast: false
-    name: "e2e release on ${{ matrix.platform.name }}"
+    name: "release-requirement: e2e release on ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     permissions:
       # Job needs content:write to see draft releases.
       contents: write
       packages: read
     needs: [process-inputs, release-x86_64-linux, nightly]
-    env:
-      VERSION: ${{ inputs.version }}
-      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
-      - uses: ./.github/actions/setup_nix
-        if: (!matrix.platform.self-hosted)
+      - uses: ./.github/actions/release_e2e_test
         with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create justfile.env
-        run: |
-          cat <<EOF > justfile.env
-          container_registry=${{ env.container_registry }}
-          default_platform=${{ matrix.platform.name }}
-          set="${SET}"
-          EOF
-      - name: Get credentials for CI cluster
-        if: (!matrix.platform.self-hosted)
-        run: |
-          just get-credentials
-      - name: Request fifo ticket
-        if: (!matrix.platform.self-hosted || matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU')
-        run: |
-          just request-fifo-ticket
-      # Pick up the k8s-log-collector digest pushed by release-x86_64-linux so
-      # get-logs deploys the freshly-built image instead of the stale SHA in
-      # packages/log-collector.yaml.
-      - name: Record k8s-log-collector digest
-        env:
-          LOG_COLLECTOR_IMAGE: ${{ needs.release-x86_64-linux.outputs.LOG_COLLECTOR_IMAGE }}
-        run: |
-          mkdir -p workspace
-          echo "ghcr.io/edgelesssys/contrast/k8s-log-collector:latest=${LOG_COLLECTOR_IMAGE}" >> workspace/just.containerlookup
-      - name: E2E Test
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p workspace
-          nix build ".#${SET}.scripts.get-logs"
-          nix run ".#${SET}.scripts.get-logs" start workspace/just.namespace &
-          nix shell -L ".#${SET}.contrast.e2e" --command release.test \
-            -test.v \
-            --tag "${VERSION}" \
-            --platform "${{ matrix.platform.name }}" \
-            --node-installer-target-conf "${{ matrix.platform.node-installer-target-conf }}" \
-            --namespace-file workspace/just.namespace
-      - name: Cleanup
-        if: always()
-        run: |
-          kubectl delete -f workspace/log-collector.yaml
-          rm -f workspace/just.namespace
-      - name: Upload logs
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: e2e_pod_logs-${{ matrix.platform.name }}-release
-          path: workspace/logs
-          if-no-files-found: error
-      - name: Release fifo ticket
-        if: always() && (!matrix.platform.self-hosted || matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU')
-        run: |
-          just release-fifo-ticket
+          version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          container_registry: ${{ env.container_registry }}
+          platform_name: ${{ matrix.platform.name }}
+          node_installer_target_conf: ${{ matrix.platform.node-installer-target-conf }}
+          self_hosted: ${{ matrix.platform.self-hosted }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-  nightly:
-    name: e2e nightly
-    needs: release-x86_64-linux
-    uses: ./.github/workflows/e2e_nightly.yml
-    secrets:
-      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
-      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-      TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
-      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
+  prepare-post-release-pr:
+    name: Prepare post-release PR to main
+    runs-on: ubuntu-24.04
+    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, nightly]
     permissions:
-      contents: read
-      packages: write
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: false
+      - uses: ./.github/actions/prepare_post_release_pr
+        with:
+          checkout_main_ref: ${{ inputs.checkout_main_ref }}
+          version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          major_minor: ${{ needs.process-inputs.outputs.MAJOR_MINOR }}
+          major_minor_patch: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
+          without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
+          next_minor_pre_without_v: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
+          pr_branch_suffix: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          create_docs_release: ${{ inputs.kind == 'minor' }}
+          bump_version: ${{ inputs.kind == 'minor' }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          nunki_ci_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
   publish:
     name: Publish release
@@ -478,45 +233,48 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Create and push release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+        run: |
+          target=$(gh release view "${VERSION}" --repo "${GH_REPO}" --json targetCommitish --jq '.targetCommitish')
+          git fetch origin "${target}"
+          git tag "${VERSION}" "${target}"
+          git push origin "${VERSION}"
+      - uses: ./.github/actions/regenerate_release_notes
+        with:
+          version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          previous_tag: ${{ needs.process-inputs.outputs.PREVIOUS_MINOR_TAG }}
+          github_token: ${{ github.token }}
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
         run: |
           gh release edit "${VERSION}" --draft=false --repo "${{ github.repository }}"
 
-  create-github-stuff:
+  prepare-github-release:
     name: Create backport label and milestone
     if: inputs.kind == 'minor'
-    needs: process-inputs
+    needs: [process-inputs, nightly]
     runs-on: ubuntu-24.04
     permissions:
       issues: write
       contents: read
-    env:
-      RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
-      NEXT_MINOR: ${{ needs.process-inputs.outputs.NEXT_MINOR }}
-      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
-      - name: Create backport label
-        run: |
-          gh label create "backport ${RELEASE_BRANCH}" --color 576F61 --force
-      - name: Create milestone
-        run: |
-          gh api \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/edgelesssys/contrast/milestones |
-            jq -r '.[] | .title' | \
-            grep -xqF "v${NEXT_MINOR}" && exit 0
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/edgelesssys/contrast/milestones \
-            -f title="v${NEXT_MINOR}" \
-            -f state='open'
+      - uses: ./.github/actions/prepare_github_release
+        with:
+          release_branch: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
+          next_minor: ${{ needs.process-inputs.outputs.NEXT_MINOR }}
+          github_token: ${{ github.token }}

@@ -1,0 +1,165 @@
+name: release nightly
+
+on:
+  schedule:
+    - cron: "15 20 * * *" # 20:15 UTC, every day
+  workflow_dispatch: {}
+
+env:
+  container_registry: ghcr.io/edgelesssys
+  DO_NOT_TRACK: 1
+
+concurrency:
+  group: release-nightly
+  cancel-in-progress: true
+
+jobs:
+  process-inputs:
+    name: Process inputs
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      EFFECTIVE_VERSION: ${{ steps.nightly-version.outputs.value }}
+      WITHOUT_V: ${{ steps.version-info.outputs.without_v }}
+      RELEASE_BRANCH: ${{ steps.version-info.outputs.release_branch }}
+      WORKING_BRANCH: ${{ steps.branch.outputs.value }}
+      PREVIOUS_MINOR_TAG: ${{ steps.version-info.outputs.previous_minor_tag }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-tags: true
+      - name: Get working branch
+        id: branch
+        run: echo "value=$(git branch --show-current)" >> "$GITHUB_OUTPUT"
+      - name: Determine nightly version
+        id: nightly-version
+        run: |
+          base=$(sed 's/-.*$//' version.txt)
+          echo "value=v${base}-$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - name: Parse version
+        id: version-info
+        uses: ./.github/actions/parse_version
+        with:
+          version: ${{ steps.nightly-version.outputs.value }}
+
+  cleanup-nightly-drafts:
+    name: Clean up old nightly draft releases
+    runs-on: ubuntu-24.04
+    needs: process-inputs
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Delete existing nightly draft releases
+        env:
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release list --repo "${GH_REPO}" --limit 10 --json tagName,isDraft \
+            | jq -r '.[] | select(.isDraft == true) | .tagName' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-[0-9]{4}-[0-9]{2}-[0-9]{2}$' \
+            | while IFS= read -r tag; do
+                echo "Deleting nightly draft release: ${tag}"
+                gh release delete "${tag}" --repo "${GH_REPO}" --yes --cleanup-tag
+              done
+
+  release-x86_64-linux:
+    name: "release-requirement: Build and push artifacts, create nightly draft release"
+    runs-on: ubuntu-24.04
+    needs: [process-inputs, cleanup-nightly-drafts]
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: false
+      - uses: ./.github/actions/release_build_linux
+        with:
+          effective_version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
+          working_branch: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          container_registry: ${{ env.container_registry }}
+          previous_tag: ${{ needs.process-inputs.outputs.PREVIOUS_MINOR_TAG }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  release-aarch64-darwin:
+    name: "release-requirement: Build aarch64-darwin CLI"
+    runs-on: macos-latest
+    needs: [process-inputs, release-x86_64-linux]
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: false
+      - uses: ./.github/actions/release_build_darwin
+        with:
+          effective_version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  nightly:
+    name: "release-requirement: e2e nightly"
+    uses: ./.github/workflows/e2e_nightly.yml
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+      TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
+    permissions:
+      contents: read
+      packages: write
+
+  test:
+    strategy:
+      matrix:
+        platform:
+          - name: Metal-QEMU-SNP
+            node-installer-target-conf: none
+            runner: SNP
+            self-hosted: true
+          - name: Metal-QEMU-SNP-GPU
+            node-installer-target-conf: k3s
+            runner: SNP-GPU
+            self-hosted: true
+          - name: Metal-QEMU-TDX
+            node-installer-target-conf: k3s
+            runner: TDX
+            self-hosted: true
+          - name: Metal-QEMU-TDX-GPU
+            node-installer-target-conf: none
+            runner: TDX-GPU
+            self-hosted: true
+      fail-fast: false
+    name: "release-requirement: e2e release on ${{ matrix.platform.name }}"
+    runs-on: ${{ matrix.platform.runner }}
+    permissions:
+      # Job needs content:write to see draft releases.
+      contents: write
+      packages: read
+    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, nightly]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: false
+      - uses: ./.github/actions/release_e2e_test
+        with:
+          version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          container_registry: ${{ env.container_registry }}
+          platform_name: ${{ matrix.platform.name }}
+          node_installer_target_conf: ${{ matrix.platform.node-installer-target-conf }}
+          self_hosted: ${{ matrix.platform.self-hosted }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}

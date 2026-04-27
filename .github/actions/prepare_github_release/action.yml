@@ -1,0 +1,45 @@
+name: Create backport label and milestone
+description: Creates a backport label for the release branch and the next minor milestone
+
+inputs:
+  release_branch:
+    description: Release branch, e.g. release/v1.2
+    required: true
+  next_minor:
+    description: Next minor version, e.g. 1.3.0
+    required: true
+  github_token:
+    description: GitHub token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create backport label
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        GH_REPO: ${{ github.repository }}
+        RELEASE_BRANCH: ${{ inputs.release_branch }}
+      run: |
+        gh label create "backport ${RELEASE_BRANCH}" --color 576F61 --force
+    - name: Create milestone
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        NEXT_MINOR: ${{ inputs.next_minor }}
+        REPO: ${{ github.repository }}
+      run: |
+        gh api \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          /repos/${REPO}/milestones |
+          jq -r '.[] | .title' | \
+          grep -xqF "v${NEXT_MINOR}" && exit 0
+        gh api \
+          --method POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          /repos/${REPO}/milestones \
+          -f title="v${NEXT_MINOR}" \
+          -f state='open'
