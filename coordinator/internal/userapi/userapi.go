@@ -139,8 +139,11 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 	state, err := s.guard.UpdateState(ctx, oldState, se, req.GetManifest(), req.GetPolicies())
 	if err != nil {
 		code := codes.Internal
-		if errors.Is(err, stateguard.ErrConcurrentUpdate) {
+		switch {
+		case errors.Is(err, stateguard.ErrConcurrentUpdate):
 			code = codes.FailedPrecondition
+		case errors.Is(err, stateguard.ErrInsecureNotAllowed):
+			code = codes.InvalidArgument
 		}
 		return nil, status.Errorf(code, "updating Coordinator state: %v", err)
 	}
