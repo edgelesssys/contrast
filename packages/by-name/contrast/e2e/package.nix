@@ -71,6 +71,7 @@ buildGoModule {
     "e2e/gpu"
     "e2e/imagepuller-auth"
     "e2e/imagestore"
+    "e2e/insecure"
     "e2e/kds-pcs-downtime"
     "e2e/memdump"
     "e2e/multi-runtime-class"
