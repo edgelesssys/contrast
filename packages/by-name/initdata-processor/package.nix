@@ -48,6 +48,9 @@ buildGoModule (finalAttrs: {
         (path.append root "go.sum")
         (path.append root "initdata-processor/go.mod")
         (path.append root "initdata-processor/go.sum")
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/attestation"))
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/atls/validators"))
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/oid"))
         (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/initdata"))
         (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "initdata-processor"))
       ];
