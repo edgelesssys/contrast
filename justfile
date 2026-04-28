@@ -454,8 +454,8 @@ lint:
     nix run -L .#base.scripts.golangci-lint -- run
 
 # Check links.
-check-links:
-    nix run .#base.nixpkgs.lychee -- --config tools/lychee/config-external.toml .
+check-links config="external":
+    nix run .#base.nixpkgs.lychee -- --config tools/lychee/config-{{ config }}.toml .
 
 demodir version="latest": undeploy
     #!/usr/bin/env bash
