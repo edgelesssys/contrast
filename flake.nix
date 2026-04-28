@@ -17,6 +17,10 @@
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -25,6 +29,7 @@
       nixpkgs,
       flake-utils,
       treefmt-nix,
+      git-hooks,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -81,7 +86,9 @@
       in
 
       {
-        devShells = pkgs.callPackages ./dev-shells { };
+        devShells = pkgs.callPackages ./dev-shells {
+          git-hooks-lib = git-hooks.lib.${system};
+        };
 
         formatter = treefmtEval.config.build.wrapper;
 

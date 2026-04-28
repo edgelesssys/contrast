@@ -5,6 +5,7 @@
   # keep-sorted start
   crane,
   delve,
+  git-hooks-lib,
   go,
   golangci-lint,
   gopls,
@@ -15,6 +16,13 @@
   # keep-sorted end
   mkShell,
 }:
+
+let
+  hooks = git-hooks-lib.run {
+    src = ../..;
+    hooks = import ../git-hooks.nix;
+  };
+in
 
 mkShell {
   packages = [
@@ -29,10 +37,12 @@ mkShell {
     kubectl
     yq-go
     # keep-sorted end
-  ];
+  ]
+  ++ hooks.enabledPackages;
   shellHook = ''
     alias make=just
     export DO_NOT_TRACK=1
     export CGO_ENABLED=0
+    ${hooks.shellHook}
   '';
 }

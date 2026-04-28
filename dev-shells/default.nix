@@ -5,6 +5,7 @@
   lib,
   callPackage,
   callPackages,
+  git-hooks-lib,
 }:
 
 let
@@ -16,6 +17,7 @@ let
     }
     // {
       default = self.development;
+      development = callPackage ./by-name/development.nix { inherit git-hooks-lib; };
     }
     // callPackages ./contrast-releases.nix { };
 in
