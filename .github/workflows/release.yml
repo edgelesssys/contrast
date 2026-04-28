@@ -24,6 +24,11 @@ on:
         type: string
         required: false
         default: main
+      nightly:
+        description: Run as a nightly dry-run — uses date-based version, skips e2e tests and release publishing. Implies version/kind/branch validation is skipped.
+        type: boolean
+        required: false
+        default: false
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -64,26 +69,26 @@ jobs:
         run: |
           echo "WORKING_BRANCH=$(git branch --show-current)" | tee -a "$GITHUB_ENV"
       - name: Set nightly version
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'schedule' || inputs.nightly
         run: |
           base=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
           echo "FULL_VERSION=${base}-$(date -u +%Y-%m-%d)" | tee -a "$GITHUB_ENV"
       - name: Verify minor version bump
-        if: github.event_name != 'schedule' && inputs.kind == 'minor'
+        if: github.event_name != 'schedule' && !inputs.nightly && inputs.kind == 'minor'
         run: |
           if [[ ! "${FULL_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Version must be in the form of vX.Y.Z"
             exit 1
           fi
       - name: Verify patch version bump
-        if: github.event_name != 'schedule' && inputs.kind == 'patch'
+        if: github.event_name != 'schedule' && !inputs.nightly && inputs.kind == 'patch'
         run: |
           if [[ ! "${FULL_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[1-9]+$ ]]; then
             echo "Version must be in the form of vX.Y.Z, where Z > 0"
             exit 1
           fi
       - name: Verify temporary branch for minor release
-        if: github.event_name != 'schedule'
+        if: github.event_name != 'schedule' && !inputs.nightly
         run: |
           if [[ ! "${WORKING_BRANCH}" =~ ^tmp/v[0-9]+\.[0-9]+\.[0-9] ]]; then
             echo "Workflow can only be triggered from a temporary branch in the form of tmp/vX.Y.Z"
@@ -118,7 +123,7 @@ jobs:
           } | tee -a "$GITHUB_OUTPUT"
           echo "RELEASE_BRANCH=${RELEASE_BRANCH}" | tee -a "$GITHUB_ENV"
       - name: Don't overwrite published releases
-        if: github.event_name != 'schedule' && (! inputs.overwrite_published_release)
+        if: github.event_name != 'schedule' && !inputs.nightly && (! inputs.overwrite_published_release)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -131,7 +136,7 @@ jobs:
 
   update-main:
     name: Update main branch
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && !inputs.nightly
     runs-on: ubuntu-24.04
     needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin]
     permissions:
@@ -254,7 +259,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Bump flake version to release version
-        if: github.event_name != 'schedule'
+        if: github.event_name != 'schedule' && !inputs.nightly
         uses: ./.github/actions/bump_version
         with:
           version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
@@ -268,7 +273,7 @@ jobs:
           name: contrast-cli-aarch64-darwin
           path: workspace/contrast-aarch64-darwin
       - name: Remove existing darwin asset from draft release
-        if: github.event_name != 'schedule'
+        if: github.event_name != 'schedule' && !inputs.nightly
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -276,7 +281,7 @@ jobs:
             gh release delete-asset "${VERSION}" contrast-aarch64-darwin --repo "${{ github.repository }}" --yes
           fi
       - name: Attach to release
-        if: github.event_name != 'schedule'
+        if: github.event_name != 'schedule' && !inputs.nightly
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -319,7 +324,7 @@ jobs:
           git config --global user.name "edgelessci"
           git config --global user.email "edgelessci@users.noreply.github.com"
       - name: Bump flake version to release version
-        if: github.event_name != 'schedule'
+        if: github.event_name != 'schedule' && !inputs.nightly
         uses: ./.github/actions/bump_version
         with:
           version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
@@ -341,7 +346,7 @@ jobs:
             LICENSE
             ${{ steps.create-artifacts.outputs.paths }}
       - name: Create draft release
-        if: github.event_name != 'schedule'
+        if: github.event_name != 'schedule' && !inputs.nightly
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           draft: true
@@ -351,11 +356,11 @@ jobs:
           fail_on_unmatched_files: true
           files: ${{ steps.create-artifacts.outputs.paths }}
       - name: Reset temporary changes
-        if: github.event_name != 'schedule'
+        if: github.event_name != 'schedule' && !inputs.nightly
         run: |
           git reset --hard "${WORKING_BRANCH}"
       - name: Bump flake version to post release patch pre-version
-        if: github.event_name != 'schedule'
+        if: github.event_name != 'schedule' && !inputs.nightly
         uses: ./.github/actions/bump_version
         with:
           version: ${{ needs.process-inputs.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
@@ -460,6 +465,7 @@ jobs:
 
   nightly:
     name: e2e nightly
+    if: github.event_name != 'schedule' && !inputs.nightly
     needs: release-x86_64-linux
     uses: ./.github/workflows/e2e_nightly.yml
     secrets:
@@ -474,7 +480,7 @@ jobs:
 
   publish:
     name: Publish release
-    if: github.event_name != 'schedule'
+    if: github.event_name != 'schedule' && !inputs.nightly
     needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, test]
     runs-on: ubuntu-24.04
     environment: release-publish
