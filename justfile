@@ -126,6 +126,61 @@ _e2e target=default_deploy_target platform=default_platform set=default_set: sof
             --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket \
             --insecure-enable-debug-shell-access=${debug:-false}
 
+# Run additional tests for a PR. Set `post` to `true` to auto-post the comment.
+e2e-ci target platforms="all" post="false" set="testcase-default" debug_shell="false" skip_undeploy="false":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    platforms="{{ platforms }}"
+    case "$platforms" in
+        "all")
+            platforms="Metal-QEMU-SNP,Metal-QEMU-TDX,Metal-QEMU-SNP-GPU,Metal-QEMU-TDX-GPU"
+            ;;
+        "snp")
+            platforms="Metal-QEMU-SNP,Metal-QEMU-SNP-GPU"
+            ;;
+        "tdx")
+            platforms="Metal-QEMU-TDX,Metal-QEMU-TDX-GPU"
+            ;;
+        "gpu")
+            platforms="Metal-QEMU-SNP-GPU,Metal-QEMU-TDX-GPU"
+            ;;
+        *)
+            ;;
+    esac
+
+    pr_number=""
+    branch=$(git branch --show-current)
+    if [[ "{{ post }}" == "true" ]]; then
+        pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null || true)
+        if [[ -z "$pr_number" ]]; then
+            echo "error: could not auto-detect PR for branch '$branch'" >&2
+            exit 1
+        fi
+    fi
+
+    results=()
+    IFS=',' read -ra platform_list <<< "$platforms"
+    for platform in "${platform_list[@]}"; do
+        run_url=$(gh workflow run e2e_manual.yml \
+            --ref "$branch" \
+            -f "test-name={{ target }}" \
+            -f "platform=$platform" \
+            -f "set={{ set }}" \
+            -f "skip-undeploy={{ skip_undeploy }}" \
+            -f "debug-shell={{ debug_shell }}" \
+            2>&1 | grep -oE 'https://[^ ]+/actions/runs/[0-9]+' || echo "")
+        line="- [ ] [$platform, {{ target }}]($run_url)"
+        results+=("$line")
+        echo "$line"
+    done
+
+    if [[ -n "$pr_number" ]]; then
+        echo ""
+        comment=$(printf '%s\n' "${results[@]}")
+        gh pr comment "$pr_number" --body "$comment"
+        echo "Posted comment to PR #$pr_number"
+    fi
+
 e2e-release version platform=default_platform set=default_set: soft-clean
     #!/usr/bin/env bash
     set -euo pipefail
