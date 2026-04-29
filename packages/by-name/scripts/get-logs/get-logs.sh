@@ -103,7 +103,7 @@ download)
 
       echo "Collecting host-level logs (since $start_time)..." >&2
       retry kubectl exec -n "$namespace" "$pod" -- \
-        collect-host-logs "$start_time" || true
+        collect-host-logs "$start_time"
 
       retry kubectl exec -n "$namespace" "$pod" -- /bin/bash -c '
         rm -f /exported-logs.tar.gz
