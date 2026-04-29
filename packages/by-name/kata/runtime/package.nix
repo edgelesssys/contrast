@@ -161,6 +161,10 @@ buildGoModule (finalAttrs: {
       # TODO: check if we can improve the situation upstream or implement a fallback in the initdata-processor.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12764.
       ./0024-runtime-rs-force-virtio-blk-with-serial-name-for-ini.patch
+
+      # An upstream bug re-encodes initdata, leading to unpredictable HOSTDATA entries.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12951.
+      ./0025-runtime-rs-don-t-modify-initdata-from-annotation.patch
     ];
   };
 
