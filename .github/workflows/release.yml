@@ -279,6 +279,8 @@ jobs:
       contents: write
       packages: write
       id-token: write
+    outputs:
+      LOG_COLLECTOR_IMAGE: ${{ steps.push-log-collector.outputs.image }}
     env:
       RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
@@ -324,6 +326,16 @@ jobs:
           path: |
             LICENSE
             ${{ steps.create-artifacts.outputs.paths }}
+      # Push the (dev/test-only) k8s-log-collector image so the test matrix
+      # below picks it up via just.containerlookup. This is internal infra,
+      # not part of the release artifacts, but it shares the build job's
+      # packages:write permission.
+      - name: Push k8s-log-collector image
+        id: push-log-collector
+        run: |
+          just k8s-log-collector
+          digest=$(grep "k8s-log-collector:latest=" workspace/just.containerlookup | tail -1 | cut -d= -f2-)
+          echo "image=${digest}" >> "$GITHUB_OUTPUT"
       - name: Create draft release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
@@ -405,6 +417,15 @@ jobs:
         if: (!matrix.platform.self-hosted || matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU')
         run: |
           just request-fifo-ticket
+      # Pick up the k8s-log-collector digest pushed by release-x86_64-linux so
+      # get-logs deploys the freshly-built image instead of the stale SHA in
+      # packages/log-collector.yaml.
+      - name: Record k8s-log-collector digest
+        env:
+          LOG_COLLECTOR_IMAGE: ${{ needs.release-x86_64-linux.outputs.LOG_COLLECTOR_IMAGE }}
+        run: |
+          mkdir -p workspace
+          echo "ghcr.io/edgelesssys/contrast/k8s-log-collector:latest=${LOG_COLLECTOR_IMAGE}" >> workspace/just.containerlookup
       - name: E2E Test
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
