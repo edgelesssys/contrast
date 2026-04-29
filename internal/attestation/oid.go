@@ -10,7 +10,7 @@ import (
 )
 
 // IsAttestationDocumentExtension checks whether the given OID corresponds to an attestation document extension
-// supported by Contrast (i.e. TDX or SNP).
+// supported by Contrast (i.e. TDX, SNP, or insecure).
 func IsAttestationDocumentExtension(oid asn1.ObjectIdentifier) bool {
-	return oid.Equal(oids.RawTDXReport) || oid.Equal(oids.RawSNPReport)
+	return oid.Equal(oids.RawTDXReport) || oid.Equal(oids.RawSNPReport) || oid.Equal(oids.RawInsecureReport)
 }
