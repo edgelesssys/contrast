@@ -28,7 +28,6 @@ func buildTemplate(algorithm, version string, data bool) Raw {
 	if version != "" {
 		fmt.Fprintf(&builder, "version = \"%s\"\n", version)
 	}
-
 	if data {
 		builder.WriteString(`
 [data]
@@ -159,6 +158,7 @@ func TestEncode(t *testing.T) {
 
 			assert.Contains(tomlString, fmt.Sprintf("version = '%s'", tc.version))
 			assert.Contains(tomlString, fmt.Sprintf("algorithm = '%s'", tc.algorithm))
+			assert.NotContains(tomlString, "insecure")
 			for key, value := range tc.data {
 				if strings.Contains(key, ".") {
 					key = fmt.Sprintf("'%s'", key)

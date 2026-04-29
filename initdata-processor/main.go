@@ -6,7 +6,7 @@ package main
 import (
 	"bytes"
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	measuredConfigPath = "/run/measured-cfg"
-	insecureConfigPath = "/run/insecure-cfg"
+	measuredConfigPath         = "/run/measured-cfg"
+	insecureConfigPath         = "/run/insecure-cfg"
+	initdataProcessorConfigKey = "contrast-initdata-processor.json"
 )
 
 var version = "0.0.0-dev"
@@ -100,19 +101,24 @@ func handleInitdata(doc initdata.Raw) (hostdata []byte, insecurePlatform bool, r
 		return nil, false, fmt.Errorf("computing initdata digest: %w", err)
 	}
 
-	v, verr := validator.New()
-	if errors.Is(verr, validator.ErrNoPlatform) {
-		log.Print("WARNING: No TEE platform detected, skipping initdata digest validation. This is expected on insecure platforms.")
-		insecurePlatform = true
-	} else if verr != nil {
-		return nil, false, fmt.Errorf("creating validator: %w", verr)
-	} else if err := v.ValidateDigest(digest); err != nil {
-		return nil, false, fmt.Errorf("validating initdata digest: %w", err)
-	}
-
 	data, err := doc.Parse()
 	if err != nil {
 		return nil, false, fmt.Errorf("parsing initdata: %w", err)
+	}
+	processorConfig, err := parseProcessorConfig(data.Data)
+	if err != nil {
+		return nil, false, err
+	}
+	if processorConfig.Insecure {
+		log.Print("WARNING: Insecure initdata requested, skipping TEE initdata digest validation.")
+	} else {
+		v, err := validator.New()
+		if err != nil {
+			return nil, false, fmt.Errorf("creating validator: %w", err)
+		}
+		if err := v.ValidateDigest(digest); err != nil {
+			return nil, false, fmt.Errorf("validating initdata digest: %w", err)
+		}
 	}
 	for name, content := range data.Data {
 		name = filepath.Clean(name)
@@ -121,7 +127,28 @@ func handleInitdata(doc initdata.Raw) (hostdata []byte, insecurePlatform bool, r
 			return nil, false, fmt.Errorf("writing file %q: %w", path, err)
 		}
 	}
-	return digest, insecurePlatform, nil
+	return digest, processorConfig.Insecure, nil
+}
+
+type processorConfig struct {
+	// Insecure allows running workloads on non-TEE development platforms.
+	// When set, the initdata-processor serves the initdata digest to the
+	// insecure attestation issuer via HTTP instead of validating it against
+	// TEE hostdata.
+	Insecure bool `json:"insecure"`
+}
+
+func parseProcessorConfig(data map[string]string) (processorConfig, error) {
+	configJSON, ok := data[initdataProcessorConfigKey]
+	if !ok {
+		return processorConfig{}, nil
+	}
+
+	var config processorConfig
+	if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
+		return processorConfig{}, fmt.Errorf("parsing %q: %w", initdataProcessorConfigKey, err)
+	}
+	return config, nil
 }
 
 // serveHostdata starts an HTTP server that serves the hostdata digest.
