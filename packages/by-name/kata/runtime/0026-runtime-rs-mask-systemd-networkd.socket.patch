@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Wed, 29 Apr 2026 17:48:48 +0200
+Subject: [PATCH] runtime-rs: mask systemd-networkd.socket
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/runtime-rs/crates/hypervisor/src/kernel_param.rs | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/runtime-rs/crates/hypervisor/src/kernel_param.rs b/src/runtime-rs/crates/hypervisor/src/kernel_param.rs
+index 6b34ea1f2f763d2a217315f06fa2957e65442fb9..a3f0d18a0ae45fe8bb6d94ca930f62a65a6e9e7b 100644
+--- a/src/runtime-rs/crates/hypervisor/src/kernel_param.rs
++++ b/src/runtime-rs/crates/hypervisor/src/kernel_param.rs
+@@ -131,6 +131,7 @@ impl KernelParams {
+             Param::new("panic", "1"),
+             Param::new("systemd.unit", "kata-containers.target"),
+             Param::new("systemd.mask", "systemd-networkd.service"),
++            Param::new("systemd.mask", "systemd-networkd.socket"),
+         ];
+ 
+         if debug {
