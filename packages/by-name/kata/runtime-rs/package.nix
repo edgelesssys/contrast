@@ -71,8 +71,19 @@ rustPlatform.buildRustPackage (finalAttrs: {
     echo "placeholder, kata-runtime doesn't exist for runtime-rs" > $out/bin/kata-runtime
   '';
 
-  passthru = {
-    inherit (runtime) cmdline;
+  # TODO(burgerdev): test debug cmdline
+  # TODO(burgerdev): this should be provided by Kata directly.
+  passthru.cmdline = {
+    prefix = _debug: [
+      "reboot=k"
+      "panic=1"
+      "systemd.unit=kata-containers.target"
+      "systemd.mask=systemd-networkd.service"
+    ];
+    suffix = _debug: [
+      "selinux=0"
+      "console=hvc0"
+    ];
   };
 
   meta = {
