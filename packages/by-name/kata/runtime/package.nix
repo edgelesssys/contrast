@@ -165,6 +165,11 @@ buildGoModule (finalAttrs: {
       # An upstream bug re-encodes initdata, leading to unpredictable HOSTDATA entries.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12951.
       ./0025-runtime-rs-don-t-modify-initdata-from-annotation.patch
+
+      # runtime-rs masks systemd-networkd.service but not systemd-networkd.socket, leading to kernel error
+      # messages. This patch masks the socket, too.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12995.
+      ./0026-runtime-rs-mask-systemd-networkd.socket.patch
     ];
   };
 

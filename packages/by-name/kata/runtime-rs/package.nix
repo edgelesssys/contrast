@@ -79,6 +79,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
       "panic=1"
       "systemd.unit=kata-containers.target"
       "systemd.mask=systemd-networkd.service"
+      "systemd.mask=systemd-networkd.socket"
     ];
     suffix = _debug: [
       "selinux=0"
