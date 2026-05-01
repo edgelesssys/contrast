@@ -456,9 +456,9 @@
 
   cleanup-namespaces = writeShellApplication {
     name = "cleanup-namespaces";
-    runtimeInputs = with pkgs; [
-      kubectl
-      curl
+    runtimeInputs = [
+      pkgs.kubectl
+      contrastPkgs.fifo
     ];
     text = builtins.readFile ./cleanup-namespaces.sh;
   };
@@ -624,42 +624,22 @@
 
   get-sync-ticket = writeShellApplication {
     name = "get-sync-ticket";
-    runtimeInputs = with pkgs; [
-      kubectl
-      jq
-      curl
-    ];
+    runtimeInputs = [ contrastPkgs.fifo ];
     text = ''
-      echo "Requesting fifo ticket from sync server" >&2
-      sync_ip=$(kubectl get svc sync -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-      sync_uuid=$(kubectl get configmap sync-server-fifo -n default -o jsonpath='{.data.uuid}')
-      path="ticket"
-      if [[ "$#" -ge 1 ]]; then
-        path="ticket?done_timeout=$1"
-      fi
-      sync_ticket=$(curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/$path" | jq -r '.ticket')
-      echo "Waiting for lock on fifo $sync_uuid with ticket $sync_ticket" >&2
-      curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/wait/$sync_ticket"
-      echo "Acquired lock on fifo $sync_uuid with ticket $sync_ticket" >&2
-      echo "$sync_ticket"
+      echo "Waiting for sync ticket" >&2
+      fifo acquire "$@"
     '';
   };
 
   release-sync-ticket = writeShellApplication {
-    name = "get-sync-ticket";
-    runtimeInputs = with pkgs; [
-      kubectl
-      curl
-    ];
+    name = "release-sync-ticket";
+    runtimeInputs = [ contrastPkgs.fifo ];
     text = ''
-      ticket=$1
-      echo "Releasing fifo ticket $ticket" >&2
-      sync_ip=$(kubectl get svc sync -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-      sync_uuid=$(kubectl get configmap sync-server-fifo -n default -o jsonpath='{.data.uuid}')
-      if ! curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/done/$ticket"; then
-        echo "Failed to release fifo $sync_uuid with ticket $ticket" >&2
+      echo "Releasing fifo ticket $1" >&2
+      if ! fifo release "$1"; then
+        echo "Warning: failed to release sync ticket $1" >&2
       else
-        echo "Successfully released fifo $sync_uuid with ticket $ticket" >&2
+        echo "Successfully released fifo with ticket $1" >&2
       fi
     '';
   };
