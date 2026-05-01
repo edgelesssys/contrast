@@ -437,14 +437,18 @@ wait-for-workload target=default_deploy_target set=default_set:
         ;;
     esac
 
-request-fifo-ticket timeout="":
+request-fifo-ticket duration="":
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ -f ./{{ workspace_dir }}/just.sync-ticket ]]; then
         echo "Sync ticket already exists, not requesting a new one."
         exit 1
     fi
-    ticket=$(nix run .#base.scripts.get-sync-ticket {{ timeout }})
+    flags=()
+    if [[ -n "{{ duration }}" ]]; then
+        flags=(--duration {{ duration }})
+    fi
+    ticket=$(nix run .#base.scripts.get-sync-ticket -- "${flags[@]}")
     mkdir -p ./{{ workspace_dir }}
     echo $ticket > ./{{ workspace_dir }}/just.sync-ticket
 
