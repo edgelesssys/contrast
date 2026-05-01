@@ -48,6 +48,8 @@ lib.makeScope pkgs.newScope (scripts: {
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.tdx-measure
       echo "Updating vendorHash of debugshell package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.debugshell
+      echo "Updating vendorHash of fifo package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.fifo
       echo "Updating vendorHash of service-mesh package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.service-mesh
       echo "Updating vendorHash of sev-snp-measure package" >&2

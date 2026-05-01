@@ -8,6 +8,7 @@ use (
 	./initdata-processor
 	./service-mesh
 	./tools/debugshell
+	./tools/fifo
 	./tools/imagepuller-benchmark
 	./tools/kernelconfig
 	./tools/sev-snp-measure-go
