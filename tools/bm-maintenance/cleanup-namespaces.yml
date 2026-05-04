@@ -48,6 +48,8 @@ spec:
     spec:
       template:
         spec:
+          nodeSelector:
+            ci.contrast.edgeless.systems/main-runner: "true"
           serviceAccountName: namespace-cleanup-sa
           containers:
             - name: namespace-cleanup

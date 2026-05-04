@@ -50,6 +50,8 @@ spec:
     metadata:
       name: cleanup-maintenance
     spec:
+      nodeSelector:
+        ci.contrast.edgeless.systems/main-runner: "true"
       serviceAccountName: cleanup-sa
       hostPID: true
       containers:
