@@ -53,7 +53,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-JmlkP+0l3xiXruFyQCQCJ3h61IQvn7aQ0rc5pJU9hrw=";
+  vendorHash = "sha256-hJudpAjPWvDnD914gj6H/KBi8yKhKJ9P9G0NWkBxlKs=";
 
   subPackages = packageOutputs;
 
