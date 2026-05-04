@@ -53,6 +53,7 @@ on:
           - debug
           - badaml-sandbox
           - badaml-vuln
+          - runtime-rs
           - testcase-default
         default: testcase-default
       skip-undeploy:
