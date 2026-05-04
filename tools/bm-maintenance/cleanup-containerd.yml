@@ -13,6 +13,8 @@ spec:
     metadata:
       name: containerd-cleanup-maintenance
     spec:
+      nodeSelector:
+        ci.contrast.edgeless.systems/main-runner: "true"
       containers:
         - name: cleanup
           image: "@@REPLACE_IMAGE@@"

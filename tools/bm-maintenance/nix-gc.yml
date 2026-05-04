@@ -13,6 +13,8 @@ spec:
     metadata:
       name: nix-garbage-collection
     spec:
+      nodeSelector:
+        ci.contrast.edgeless.systems/main-runner: "true"
       hostPID: true
       containers:
         - name: nix-garbage-collection
