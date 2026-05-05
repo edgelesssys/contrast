@@ -110,18 +110,16 @@ lib.makeScope pkgs.newScope (scripts: {
     text = ''
       exitcode=0
 
-      tags="${lib.concatStringsSep "," contrastPkgs.contrast.contrast.tags}"
+      export GOFLAGS="-tags=${lib.concatStringsSep "," contrastPkgs.contrast.contrast.tags}"
+
       while IFS= read -r dir; do
-        echo "Running go fix -tags $tags on $dir"
-        go fix -C "$dir" -tags "$tags" ./... || exitcode=$?
+        echo "Running go fix on $dir"
+        go fix -C "$dir" ./... || exitcode=$?
       done < <(go list -f '{{.Dir}}' -m)
 
-      # TODO(katexochen): modernize does not support tags?
-      # The run will fail for packages that contain only code with build tags,
-      # thus we ignore the exit code.
       while IFS= read -r dir; do
         echo "Running modernize on $dir"
-        (cd "$dir" && modernize -fix ./...) || true
+        (cd "$dir" && modernize -fix ./...) || exitcode=$?
       done < <(go list -f '{{.Dir}}' -m)
 
       exit $exitcode
