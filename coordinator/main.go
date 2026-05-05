@@ -314,9 +314,7 @@ func newGRPCServer(credentials credentials.TransportCredentials, serverMetrics *
 }
 
 func gracefulStopGRPC(ctx context.Context, wg *sync.WaitGroup, server *grpc.Server) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		cleanupDone := make(chan struct{})
 		go func() {
 			server.GracefulStop()
@@ -327,5 +325,5 @@ func gracefulStopGRPC(ctx context.Context, wg *sync.WaitGroup, server *grpc.Serv
 			server.Stop()
 		case <-cleanupDone:
 		}
-	}()
+	})
 }
