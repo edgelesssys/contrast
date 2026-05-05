@@ -111,6 +111,7 @@ lib.makeScope pkgs.newScope (scripts: {
       exitcode=0
 
       export GOFLAGS="-tags=${lib.concatStringsSep "," contrastPkgs.contrast.contrast.tags}"
+      export CGO_ENABLED=0
 
       while IFS= read -r dir; do
         echo "Running go fix on $dir"
