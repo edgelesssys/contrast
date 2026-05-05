@@ -82,6 +82,9 @@ func (c *ciphertextContainer) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("decoding ciphertext: %w", err)
 	}
+	if len(fullCiphertext) < aesGCMNonceSize {
+		return fmt.Errorf("ciphertext of length %d is too short, expected at least %d bytes", len(fullCiphertext), aesGCMNonceSize)
+	}
 	c.nonce = fullCiphertext[:aesGCMNonceSize]
 	c.ciphertext = fullCiphertext[aesGCMNonceSize:]
 	return nil

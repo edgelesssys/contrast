@@ -44,8 +44,8 @@ type (
 	}
 	// decryptionRequest holds the request-specific ciphertextContainer and currently supported, optional query parameters: associatedData.
 	decryptionRequest struct {
-		CiphertextContainer ciphertextContainer `json:"ciphertext"`
-		AssociatedData      []byte              `json:"associated_data,omitempty"`
+		CiphertextContainer *ciphertextContainer `json:"ciphertext"`
+		AssociatedData      []byte               `json:"associated_data,omitempty"`
 	}
 	// encryptionResponse holds the response-specific ciphertextContainer.
 	encryptionResponse struct {
@@ -199,6 +199,16 @@ func getDecryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 			}, logger)
 			return
 		}
+		if decReq.CiphertextContainer == nil {
+			writeHTTPError(w, httpError{
+				code:          http.StatusBadRequest,
+				Errors:        []string{"missing mandatory field: ciphertext"},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
+			}, logger)
+			return
+		}
 		key, err := deriveEncryptionKey(r.Context(), guard, fmt.Sprintf("%d_%s", decReq.CiphertextContainer.keyVersion, workloadSecretID))
 		if err != nil {
 			writeHTTPError(w, httpError{
@@ -210,10 +220,10 @@ func getDecryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 			}, logger)
 			return
 		}
-		plaintext, err := symmetricDecryptRaw(key, decReq.CiphertextContainer, decReq.AssociatedData)
+		plaintext, err := symmetricDecryptRaw(key, *decReq.CiphertextContainer, decReq.AssociatedData)
 		if err != nil {
 			writeHTTPError(w, httpError{
-				code:          http.StatusInternalServerError,
+				code:          http.StatusBadRequest,
 				Errors:        []string{fmt.Sprintf("decrypting: %v", err)},
 				reqMethod:     r.Method,
 				reqURI:        r.RequestURI,
