@@ -392,7 +392,7 @@ lib.makeScope pkgs.newScope (scripts: {
     runtimeInputs = with pkgs; [
       busybox
       kubectl
-      dasel
+      yq-go
       scripts.cleanup-images
     ];
     text = builtins.readFile ./cleanup-bare-metal.sh;

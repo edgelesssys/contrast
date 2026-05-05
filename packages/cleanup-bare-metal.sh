@@ -17,7 +17,7 @@ else
 fi
 echo "Using containerd config file: ${configFile}"
 
-configVersion=$(dasel --file "${configFile}" --read toml version)
+configVersion=$(yq -p toml -o yaml '.version' "${configFile}")
 if [[ ${configVersion} != "2" && ${configVersion} != "3" ]]; then
   echo "Unsupported containerd config version: ${configVersion}. Exiting."
   exit 1
@@ -81,14 +81,14 @@ for runtimeClass in "${unusedRuntimeClasses[@]}"; do
   echo "Removing ${runtimeClass} from ${configFile} ..."
   case "${configVersion}" in
   "2")
-    dasel delete --file "${configFile}" --indent 0 --read toml --write toml "plugins.io\.containerd\.grpc\.v1\.cri.containerd.runtimes.${runtimeClass}" || true
+    yq -i -p toml -o toml "del(.plugins[\"io.containerd.grpc.v1.cri\"].containerd.runtimes[\"${runtimeClass}\"])" "${configFile}" || true
     ;;
   "3")
-    dasel delete --file "${configFile}" --indent 0 --read toml --write toml "plugins.io\.containerd\.cri\.v1\.runtime.containerd.runtimes.${runtimeClass}" || true
+    yq -i -p toml -o toml "del(.plugins[\"io.containerd.cri.v1.runtime\"].containerd.runtimes[\"${runtimeClass}\"])" "${configFile}" || true
     ;;
   esac
 
-  dasel delete --file "${configFile}" --indent 0 --read toml --write toml "proxy_plugins.${SNAPSHOTTER}-${runtimeClass}" 2>/dev/null || true
+  yq -i -p toml -o toml "del(.proxy_plugins[\"${SNAPSHOTTER}-${runtimeClass}\"])" "${configFile}" 2>/dev/null || true
 done
 
 echo "Cleanup finished"
