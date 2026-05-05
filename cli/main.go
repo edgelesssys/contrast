@@ -42,7 +42,7 @@ func buildVersionString() (string, error) {
 
 	fmt.Fprintf(versionsWriter, "container image versions:\n")
 	imageReplacements := strings.Trim(string(cmd.ReleaseImageReplacements), "\n")
-	for _, image := range strings.Split(imageReplacements, "\n") {
+	for image := range strings.SplitSeq(imageReplacements, "\n") {
 		if !strings.HasPrefix(image, "#") {
 			image = strings.Split(image, "=")[1]
 			fmt.Fprintf(versionsWriter, "\t%s\n", image)
