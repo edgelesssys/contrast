@@ -194,7 +194,6 @@ e2e-release version platform=default_platform set=default_set: soft-clean
             --node-installer-target-conf ${node_installer_target_conf_type} \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --use-loadbalancer=true
-    nix run .#{{ set }}.scripts.get-logs download ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, apply Kubernetes manifests.
 deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (runtime target platform) (write-namespace target) (apply "runtime" platform) (generate cli platform) (apply target platform)

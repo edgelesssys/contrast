@@ -8,6 +8,7 @@
   cli,
   makeWrapper,
   openssl,
+  scripts,
 }:
 
 buildGoModule {
@@ -94,6 +95,7 @@ buildGoModule {
 
   postInstall = ''
     wrapProgram "$out/bin/coordinator.test" --prefix PATH : "${openssl}/bin"
+    wrapProgram "$out/bin/release.test" --prefix PATH : "${scripts.get-logs}/bin"
   '';
 
   # Skip fixup as binaries are already stripped and we don't
