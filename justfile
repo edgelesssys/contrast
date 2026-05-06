@@ -549,8 +549,13 @@ CONTRAST_LOG_LEVEL=""
 # A Github token with read access to the Contrast ghcr.io packages.
 # Should be set by running just get-ghcr-read-token.
 contrast_ghcr_read=""
-# A Github token with contents:write permissions for accessing draft releases.
-# Set this manually if you want to use the e2e-release target on a draft release.
+# A GitHub token with `Contents: Read and write` on edgelesssys/contrast.
+# Create a fine-grained PAT scoped to the repo.
+#
+# Used by:
+#   - e2e-release: write permission is needed to see DRAFT releases
+#   - just fmt / treefmt: zizmor calls the GitHub API; errors out
+#     without a token.
 GH_TOKEN=""
 '''
 
