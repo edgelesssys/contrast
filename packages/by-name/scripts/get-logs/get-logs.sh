@@ -82,8 +82,15 @@ download)
   fi
   mkdir -p "./workspace/logs"
   log_pods_missing=false
+  # Optional floor for host-log --since. Set by callers (e.g. e2e tests) to
+  # the test start time so we don't pull months of journals for pre-existing
+  # namespaces like `default`. Expected RFC3339 (e.g. 2026-05-06T11:33:25Z).
+  since_floor="${LOG_COLLECT_SINCE_FLOOR:-}"
   while read -r namespace; do
     start_time=$(kubectl get ns "$namespace" -o jsonpath='{.metadata.creationTimestamp}')
+    if [[ -n $since_floor && $start_time < $since_floor ]]; then
+      start_time="$since_floor"
+    fi
 
     pods="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5- || true)"
     if [[ -z $pods ]]; then
