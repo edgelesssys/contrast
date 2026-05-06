@@ -22,6 +22,10 @@ var (
 	expectedConfMetalQEMUSNPGPU []byte
 	//go:embed testdata/expected-configuration-qemu-tdx-gpu.toml
 	expectedConfMetalQEMUTDXGPU []byte
+	//go:embed testdata/expected-configuration-qemu-insecure.toml
+	expectedConfMetalQEMUInsecure []byte
+	//go:embed testdata/expected-configuration-qemu-insecure-gpu.toml
+	expectedConfMetalQEMUInsecureGPU []byte
 )
 
 func TestKataRuntimeConfig(t *testing.T) {
@@ -44,6 +48,14 @@ func TestKataRuntimeConfig(t *testing.T) {
 		platforms.MetalQEMUTDXGPU: {
 			changeSnpFields: false,
 			want:            string(expectedConfMetalQEMUTDXGPU),
+		},
+		platforms.MetalQEMUInsecure: {
+			changeSnpFields: true,
+			want:            string(expectedConfMetalQEMUInsecure),
+		},
+		platforms.MetalQEMUInsecureGPU: {
+			changeSnpFields: true,
+			want:            string(expectedConfMetalQEMUInsecureGPU),
 		},
 	}
 	for platform, tc := range testCases {
