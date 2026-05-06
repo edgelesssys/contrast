@@ -30,20 +30,27 @@ func KataRuntimeConfig(
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "tdx", "share", "OVMF.fd")
-	case platforms.IsSNP(platform):
+	case platforms.IsSNP(platform) || platforms.IsInsecure(platform):
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
 
-		for _, productLine := range []string{"_Milan", "_Genoa"} {
-			for _, annotationType := range []string{"snp_id_block", "snp_id_auth", "snp_guest_policy"} {
-				customContrastAnnotations = append(customContrastAnnotations, annotationType+productLine)
+		if !platforms.IsInsecure(platform) {
+			for _, productLine := range []string{"_Milan", "_Genoa"} {
+				for _, annotationType := range []string{"snp_id_block", "snp_id_auth", "snp_guest_policy"} {
+					customContrastAnnotations = append(customContrastAnnotations, annotationType+productLine)
+				}
 			}
 		}
 
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "snp", "share", "OVMF.fd")
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
+	}
+	// Disable confidential computing features for insecure platforms.
+	if platforms.IsInsecure(platform) {
+		config.Hypervisor["qemu"]["confidential_guest"] = false
+		config.Hypervisor["qemu"]["sev_snp_guest"] = false
 	}
 	if debug {
 		config.Agent["kata"]["enable_debug"] = true

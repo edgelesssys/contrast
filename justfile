@@ -58,10 +58,10 @@ node-installer platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     case {{ platform }} in
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-Insecure")
             just push "node-installer-kata"
         ;;
-        "Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX-GPU")
+        "Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX-GPU"|"Metal-QEMU-Insecure-GPU")
             just push "node-installer-kata-gpu"
         ;;
         *)

@@ -33,16 +33,28 @@ func RuntimeHandler(platform platforms.Platform) (string, error) {
 // PlatformFromHandler extracts the platform from the runtime handler name.
 func PlatformFromHandler(handler string) (platforms.Platform, error) {
 	rest, found := strings.CutPrefix(handler, "contrast-cc-")
+	isInsecure := false
+	if !found {
+		rest, found = strings.CutPrefix(handler, "contrast-insecure-")
+		isInsecure = true
+	}
 	if !found {
 		return platforms.Unknown, fmt.Errorf("invalid handler name: %s", handler)
 	}
 
 	parts := strings.Split(rest, "-")
-	if len(parts) != 4 && len(parts) != 5 {
+	if len(parts) < 3 || len(parts) > 5 {
 		return platforms.Unknown, fmt.Errorf("invalid handler name: %s", handler)
 	}
 
 	rawPlatform := strings.Join(parts[:len(parts)-1], "-")
+	if isInsecure {
+		if before, ok := strings.CutSuffix(rawPlatform, "-gpu"); ok {
+			rawPlatform = before + "-insecure-gpu"
+		} else {
+			rawPlatform += "-insecure"
+		}
+	}
 
 	platform, err := platforms.FromString(rawPlatform)
 	if err != nil {

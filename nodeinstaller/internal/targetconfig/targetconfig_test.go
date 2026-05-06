@@ -44,6 +44,18 @@ func TestNewTargetConfig(t *testing.T) {
 				hostMount:            "/host",
 			},
 		},
+		"valid config for metal qemu insecure": {
+			hostMount:   "/host",
+			runtimeBase: "/opt/edgeless/qemu",
+			platform:    platforms.MetalQEMUInsecure,
+			wantErr:     false,
+			wantConfig: &TargetConfig{
+				containerdConfigPath: "etc/containerd/config.toml",
+				systemdUnitNames:     []string{"containerd.service"},
+				kataConfigPath:       "/opt/edgeless/qemu/etc/configuration-qemu-snp.toml",
+				hostMount:            "/host",
+			},
+		},
 		"invalid platform": {
 			hostMount:   "/host",
 			runtimeBase: "/opt/edgeless/unknown",
