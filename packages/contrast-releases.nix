@@ -3,6 +3,7 @@
 
 {
   lib,
+  stdenv,
   unzip,
   fetchurl,
   runCommand,
@@ -12,17 +13,26 @@
 let
   json = builtins.fromJSON (builtins.readFile ./contrast-releases.json);
 
+  platformCliKeys = [
+    "contrast-x86_64-linux"
+    "contrast-aarch64-darwin"
+  ];
+  currentCliKey = "contrast-${stdenv.hostPlatform.system}";
+
+  cliInstall = path: ''
+    mkdir -p $out/bin
+    install -m 777 ${path} $out/bin/contrast
+    installShellCompletion --cmd contrast \
+      --bash <($out/bin/contrast completion bash) \
+      --fish <($out/bin/contrast completion fish) \
+      --zsh <($out/bin/contrast completion zsh)
+  '';
+
   findInstall =
     key:
     {
-      "contrast-x86_64-linux" = path: ''
-        mkdir -p $out/bin
-        install -m 777 ${path} $out/bin/contrast
-        installShellCompletion --cmd contrast \
-          --bash <($out/bin/contrast completion bash) \
-          --fish <($out/bin/contrast completion fish) \
-          --zsh <($out/bin/contrast completion zsh)
-      '';
+      "contrast-x86_64-linux" = cliInstall;
+      "contrast-aarch64-darwin" = cliInstall;
       "coordinator.yml" = path: ''
         mkdir -p $out/deployment
         install -m 644 ${path} $out/deployment/coordinator.yml
@@ -64,8 +74,16 @@ let
   buildContrastRelease =
     { version, ... }:
     let
-      files = lib.pipe json [
-        (lib.filterAttrs (_: versions: lib.any (v: v.version == version) versions))
+      versionEntries = lib.filterAttrs (_: versions: lib.any (v: v.version == version) versions) json;
+      # Pick the CLI for the current platform if it exists, otherwise fall back
+      # to the linux CLI (older releases predate per-platform CLIs).
+      preferredCliKey =
+        if versionEntries ? ${currentCliKey} then currentCliKey else "contrast-x86_64-linux";
+      # Drop CLI entries that are not for the current platform, so a single
+      # `releases.<v>` derivation only carries the host-runnable binary.
+      keepKey = key: !(builtins.elem key platformCliKeys) || key == preferredCliKey;
+      files = lib.pipe versionEntries [
+        (lib.filterAttrs (key: _: keepKey key))
         (lib.mapAttrsToList (key: versions: { inherit key; } // (findVersion versions version)))
         # Default the URL filename to the JSON key. Historical entries set
         # `filenameOverride` when the artifact name on the release page differs
