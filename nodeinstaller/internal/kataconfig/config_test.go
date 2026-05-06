@@ -34,6 +34,14 @@ func TestKataRuntimeConfig(t *testing.T) {
 			changeSnpFields: false,
 			want:            string(expectedConfMetalQEMUTDXGPU),
 		},
+		platforms.MetalQEMUInsecure: {
+			changeSnpFields: true,
+			want:            string(expectedConfMetalQEMUInsecure),
+		},
+		platforms.MetalQEMUInsecureGPU: {
+			changeSnpFields: true,
+			want:            string(expectedConfMetalQEMUInsecureGPU),
+		},
 	}
 	for platform, tc := range testCases {
 		t.Run(platform.String(), func(t *testing.T) {

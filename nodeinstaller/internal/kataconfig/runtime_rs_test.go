@@ -16,4 +16,8 @@ var (
 	expectedConfMetalQEMUSNPGPU []byte
 	//go:embed testdata/runtime-rs/expected-configuration-qemu-tdx-gpu.toml
 	expectedConfMetalQEMUTDXGPU []byte
+	//go:embed testdata/runtime-rs/expected-configuration-qemu-insecure.toml
+	expectedConfMetalQEMUInsecure []byte
+	//go:embed testdata/runtime-rs/expected-configuration-qemu-insecure-gpu.toml
+	expectedConfMetalQEMUInsecureGPU []byte
 )

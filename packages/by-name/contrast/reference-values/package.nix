@@ -10,13 +10,14 @@
 
 let
   runtimeHandler =
-    platform: hashFile:
-    "contrast-cc-${platform}-${builtins.substring 0 8 (builtins.readFile hashFile)}";
+    platform: hashFile: "contrast-${platform}-${builtins.substring 0 8 (builtins.readFile hashFile)}";
 
-  metal-qemu-tdx-handler = runtimeHandler "metal-qemu-tdx" node-installer-image.runtimeHash;
-  metal-qemu-snp-handler = runtimeHandler "metal-qemu-snp" node-installer-image.runtimeHash;
-  metal-qemu-snp-gpu-handler = runtimeHandler "metal-qemu-snp-gpu" node-installer-image.runtimeHash;
-  metal-qemu-tdx-gpu-handler = runtimeHandler "metal-qemu-tdx-gpu" node-installer-image.runtimeHash;
+  cc-metal-qemu-tdx-handler = runtimeHandler "cc-metal-qemu-tdx" node-installer-image.runtimeHash;
+  cc-metal-qemu-snp-handler = runtimeHandler "cc-metal-qemu-snp" node-installer-image.runtimeHash;
+  cc-metal-qemu-snp-gpu-handler = runtimeHandler "cc-metal-qemu-snp-gpu" node-installer-image.runtimeHash;
+  cc-metal-qemu-tdx-gpu-handler = runtimeHandler "cc-metal-qemu-tdx-gpu" node-installer-image.runtimeHash;
+  insecure-metal-qemu-handler = runtimeHandler "insecure-metal-qemu" node-installer-image.runtimeHash;
+  insecure-metal-qemu-gpu-handler = runtimeHandler "insecure-metal-qemu-gpu" node-installer-image.runtimeHash;
 
   snpRefValsWith = os-image: {
     snp =
@@ -98,13 +99,18 @@ let
     };
     withGPU = true;
   };
+  insecureRefVals = {
+    snp = [ { } ];
+  };
 in
 
 builtins.toFile "reference-values.json" (
   builtins.toJSON {
-    "${metal-qemu-tdx-handler}" = tdxRefVals;
-    "${metal-qemu-snp-handler}" = snpRefVals;
-    "${metal-qemu-snp-gpu-handler}" = snpGpuRefVals;
-    "${metal-qemu-tdx-gpu-handler}" = tdxGpuRefVals;
+    "${cc-metal-qemu-tdx-handler}" = tdxRefVals;
+    "${cc-metal-qemu-snp-handler}" = snpRefVals;
+    "${cc-metal-qemu-snp-gpu-handler}" = snpGpuRefVals;
+    "${cc-metal-qemu-tdx-gpu-handler}" = tdxGpuRefVals;
+    "${insecure-metal-qemu-handler}" = insecureRefVals;
+    "${insecure-metal-qemu-gpu-handler}" = insecureRefVals;
   }
 )
