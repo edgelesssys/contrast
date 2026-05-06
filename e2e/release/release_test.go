@@ -25,6 +25,7 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/e2e/internal/logcollect"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -51,6 +52,7 @@ var (
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
 // deployment and runs some simple smoke tests.
 func TestRelease(t *testing.T) {
+	testStart := time.Now()
 	ctx := t.Context()
 	k := kubeclient.NewForTest(t)
 
@@ -100,6 +102,18 @@ func TestRelease(t *testing.T) {
 
 	// Write namespaces to trigger log collection.
 	require.NoError(t, os.WriteFile(*namespaceFile, []byte("contrast-system\ndefault\n"), 0o644))
+
+	// Download logs synchronously before the resource-deletion cleanup above
+	// runs (t.Cleanup runs LIFO; this is registered second, so runs first).
+	// Otherwise the namespace teardown races against log collection.
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+
+		if err := logcollect.Download(ctx, *namespaceFile, testStart); err != nil {
+			t.Logf("log collection failed: %v", err)
+		}
+	})
 
 	require.True(t, t.Run("apply-runtime", func(t *testing.T) {
 		require := require.New(t)

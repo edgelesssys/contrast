@@ -439,10 +439,6 @@ jobs:
             --platform "${{ matrix.platform.name }}" \
             --node-installer-target-conf "${{ matrix.platform.node-installer-target-conf }}" \
             --namespace-file workspace/just.namespace
-      - name: Download logs
-        if: always()
-        run: |
-          nix run ".#${SET}.scripts.get-logs" download workspace/just.namespace
       - name: Cleanup
         if: always()
         run: |
