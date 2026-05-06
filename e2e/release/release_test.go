@@ -48,6 +48,7 @@ var (
 	nodeInstallerTargetConf = flag.String("node-installer-target-conf", "", "Node installer target configuration")
 	namespaceFile           = flag.String("namespace-file", "", "file to store the namespaces in")
 	useLoadBalancer         = flag.Bool("use-loadbalancer", false, "Use LoadBalancer IP instead of Cluster IP")
+	binName                 = flag.String("bin-name", "contrast-x86_64-linux", "name of the contrast CLI binary in the release archive to test")
 )
 
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
@@ -61,7 +62,7 @@ func TestRelease(t *testing.T) {
 
 	dir := fetchRelease(ctx, t)
 
-	contrast := &contrast{dir: dir}
+	contrast := &contrast{dir: dir, binName: *binName}
 
 	t.Setenv(constants.CacheDirEnvVar, dir)
 
@@ -295,9 +296,6 @@ func (c *contrast) Run(ctx context.Context, t *testing.T, timeout time.Duration,
 		ctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
-		if c.binName == "" {
-			c.binName = "contrast-x86_64-linux"
-		}
 		args := append([]string{"--log-level", "debug"}, args...)
 		cmd := exec.CommandContext(ctx, fmt.Sprintf("./%s", c.binName), args...)
 		cmd.Dir = c.dir
