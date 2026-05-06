@@ -223,7 +223,7 @@ runtime target=default_deploy_target platform=default_platform set=default_set:
         --namespace {{ target }}${namespace_suffix-} \
         --node-installer-target-conf-type ${node_installer_target_conf_type} \
         --platform "$platforms" \
-        runtime >> "./{{ workspace_dir }}/runtime/runtime.yml"
+        runtime > "./{{ workspace_dir }}/runtime/runtime.yml"
 
 # Populate the workspace with a Kubernetes deployment
 populate target=default_deploy_target platform=default_platform set=default_set:
