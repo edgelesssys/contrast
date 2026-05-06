@@ -181,7 +181,7 @@ e2e-ci target platforms="all" post="false" set="testcase-default" debug_shell="f
         echo "Posted comment to PR #$pr_number"
     fi
 
-e2e-release version platform=default_platform set=default_set: soft-clean
+e2e-release version platform=default_platform set=default_set: soft-clean k8s-log-collector
     #!/usr/bin/env bash
     set -euo pipefail
     nix build .#{{ set }}.scripts.get-logs
