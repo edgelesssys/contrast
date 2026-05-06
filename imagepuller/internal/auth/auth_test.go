@@ -97,6 +97,19 @@ func TestAuthTransportFor(t *testing.T) {
 				},
 			},
 		},
+		"parent domain matches subdomain": {
+			imageRef: "sub.ghcr.io/edgelesssys/contrast/coordinator",
+			config: Config{
+				Registries: map[string]Registry{
+					"ghcr.io": {CACerts: dummyCert1},
+				},
+			},
+			wantTransport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: getCerts(t, dummyCert1),
+				},
+			},
+		},
 		"global cert": {
 			imageRef: "ghcr.io/edgelesssys/contrast/coordinator",
 			config: Config{
@@ -241,6 +254,22 @@ func TestAuthTransportFor(t *testing.T) {
 			config: Config{
 				Registries: map[string]Registry{
 					"ghcr.io.": {Mirror: "http://registry.default", InsecureSkipVerify: true},
+				},
+			},
+		},
+		"shared suffix does not match": {
+			imageRef: "evilghcr.io/edgelesssys/contrast/coordinator",
+			config: Config{
+				Registries: map[string]Registry{
+					"ghcr.io": {AuthConfig: exampleAuthConfig},
+				},
+			},
+		},
+		"shared suffix does not match with trailing dot": {
+			imageRef: "evilghcr.io/edgelesssys/contrast/coordinator",
+			config: Config{
+				Registries: map[string]Registry{
+					"ghcr.io.": {AuthConfig: exampleAuthConfig},
 				},
 			},
 		},

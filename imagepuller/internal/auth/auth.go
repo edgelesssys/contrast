@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -127,17 +128,35 @@ func (c *Config) ApplyEnvVars() {
 }
 
 // registryFor returns the registry, if any, for the given registry name.
+//
+// Matching always respects DNS label boundaries to prevent accidental match
+// on a different domain sharing the same suffix.
 func (c *Config) registryFor(name string) Registry {
 	var registry Registry
-	maxMatchingLabels := -1 // "." has 0 matching labels.
+	specificityMax := -1 // "." has 0 matching labels.
+	nameLabels := strings.Split(strings.TrimSuffix(name, "."), ".")
+	slices.Reverse(nameLabels)
+	specificityName := len(nameLabels)
+
+OUTER:
 	for fqdn, registryCandidate := range c.Registries {
-		name = strings.TrimSuffix(name, ".")
-		fqdn = strings.TrimSuffix(fqdn, ".")
-		matchingLabels := strings.Count(fqdn, ".")
-		if matchingLabels > maxMatchingLabels && strings.HasSuffix(name, fqdn) {
-			maxMatchingLabels = matchingLabels
-			registry = registryCandidate
+		fqdnLabels := strings.Split(strings.TrimSuffix(fqdn, "."), ".")
+		slices.Reverse(fqdnLabels)
+
+		specificityFqdn := len(fqdnLabels)
+		if specificityFqdn > specificityName || specificityFqdn <= specificityMax {
+			continue
 		}
+
+		for i := range specificityFqdn {
+			// fqdnLabels[i] == "" handles a leading "." in the fqdn key
+			if fqdnLabels[i] != nameLabels[i] && fqdnLabels[i] != "" {
+				continue OUTER
+			}
+		}
+
+		registry = registryCandidate
+		specificityMax = specificityFqdn
 	}
 	return registry
 }
