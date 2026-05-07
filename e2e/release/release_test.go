@@ -26,6 +26,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/e2e/internal/logcollect"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -61,6 +62,8 @@ func TestRelease(t *testing.T) {
 	dir := fetchRelease(ctx, t)
 
 	contrast := &contrast{dir: dir}
+
+	t.Setenv(constants.CacheDirEnvVar, dir)
 
 	for _, sub := range []string{"help"} {
 		contrast.Run(ctx, t, 2*time.Second, sub)
