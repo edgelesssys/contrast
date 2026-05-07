@@ -1,6 +1,36 @@
 # How to release
 
-## Minor
+## Minor, by promoting nightly
+
+The CI should create a nightly minor draft release, called `v1.x.0-yyyy-mm-dd`, and runs the full test suite against it.
+This draft release can be promoted to actual release.
+
+1. Check that in the latest nightly, all checks and tests passed. A draft release is created even if that's not the case, but trying to promote a nightly release where linux/darwin releases, nightly e2es or the release e2e failed, will automatically fail anyway.
+
+2. Sanity-check the latest nightly draft release on GitHub. The tag should match `vX.Y.Z-yyyy-mm-dd` where
+  `X.Y.Z` is `version.txt` on main with the `-pre` suffix stripped, and the draft must have artifacts attached.
+
+3. Trigger the promote workflow (it always promotes the most recent completed `release_nightly.yml` run):
+
+    ```sh
+    gh workflow run release_promote.yml
+    ```
+
+4. Test the binary artifact. Send Privatemode a message to review the release artifacts as well and wait for their feedback.
+
+5. **Wait for PM approval before proceeding.**
+
+6. Review and merge the auto generated update PR for `main`.
+
+7. Review the release notes. If label/title/description changes are necessary, change them on the original PR itself.
+
+8. Approve the `Publish release` job in the GitHub Actions workflow run.
+
+9. Check that the publish job succeeds and confirm the release notes on GitHub were regenerated against the now-existing tag.
+
+## Minor, manually
+
+If you need to include new changes merged into main since the last successful nightly, you can instead release manually.
 
 1. Ensure all needed PRs were merged.
 
