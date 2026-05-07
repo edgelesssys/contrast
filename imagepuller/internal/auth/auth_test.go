@@ -273,6 +273,14 @@ func TestAuthTransportFor(t *testing.T) {
 				},
 			},
 		},
+		"mid-fqdn empty label does not match": {
+			imageRef: "ghcr.foo.io/edgelesssys/contrast/coordinator",
+			config: Config{
+				Registries: map[string]Registry{
+					"ghcr..io": {AuthConfig: exampleAuthConfig},
+				},
+			},
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {

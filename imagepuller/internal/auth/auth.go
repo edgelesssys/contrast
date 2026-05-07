@@ -149,8 +149,8 @@ OUTER:
 		}
 
 		for i := range specificityFqdn {
-			// fqdnLabels[i] == "" handles a leading "." in the fqdn key
-			if fqdnLabels[i] != nameLabels[i] && fqdnLabels[i] != "" {
+			// allow empty string (artifact of leading `.` in fqdn) only in last position
+			if fqdnLabels[i] != nameLabels[i] && (i != specificityFqdn-1 || fqdnLabels[i] != "") {
 				continue OUTER
 			}
 		}
