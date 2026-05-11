@@ -34,21 +34,8 @@ Consult AMD's [Using SEV with AMD EPYC Processors user guide](https://www.amd.co
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
 
-Follow Canonical's instructions in [4.3 Enable Intel TDX in the Host's BIOS](https://github.com/canonical/tdx?tab=readme-ov-file#43-enable-intel-tdx-in-the-hosts-bios) and [9.2 Setup Intel&reg; SGX Data Center Attestation Primitives (Intel&reg; SGX DCAP) on the Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#92-setup-intel-sgx-data-center-attestation-primitives-intel-sgx-dcap-on-the-host-os) except for 9.2.1.
-
-Instead of step 9.2.1, run the following:
-
-```sh
-sudo add-apt-repository ppa:kobuk-team/tdx-attestation-release
-sudo sed -i 's/questing/plucky/g' /etc/apt/sources.list.d/kobuk-team-ubuntu-tdx-attestation-release-*.sources
-apt update
-apt install sgx-dcap-pccs tdx-qgs libsgx-dcap-default-qpl sgx-ra-service sgx-pck-id-retrieval-tool
-```
-
-You can ignore all sections other than `4.3` and `9.2`.
-
-Follow Intel's guide to [Update Intel TDX Module via Binary Deployment](https://cc-enabling.trustedservices.intel.com/intel-tdx-enabling-guide/04/hardware_setup/#update-intel-tdx-module-via-binary-deployment).
-Intel recommends to install the latest TDX module version available, but make sure that the module is compatible with your CPU and host firmware.
+Follow Intel's [TDX Enabling Guide](https://cc-enabling.trustedservices.intel.com/intel-tdx-enabling-guide).
+When deciding to update the Intel TDX module, be aware that the latest module might be incompatible with your CPU or host firmware.
 Make sure to keep a backup of all files you're overwriting in this step until you're sure that the new module works correctly.
 
 </TabItem>
