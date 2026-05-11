@@ -326,53 +326,15 @@ The extended features available mask (`XFAM`) determines the set of extended fea
 These are matched against the `PIID` field from the PCK certificate, as documented in section 1.3.5 of the [SGX PCK Spec].
 If the list is empty or null, all PIIDs are accepted.
 
-In case hardware is operated by you instead of a third party, or you are able to gain physical access to the hardware to audit it,
-you can obtain the PIID with the following steps:
+You can obtain the PIIDs for your hardware using Intel's [PoE Generator](https://github.com/intel/confidential-computing.tee.dcap.poe/blob/v1.26/poe-gen-tool/README.md).
+Download the latest release, extract the binary and make it available in `PATH` (for example, place it in `/usr/local/bin`).
+We recommend using the platform manifest to extract the PIID, which should be written to a file `pckid_retrieval.csv` by the [`PCKIDRetrievalTool`] during platform registration.
+Consult the tool's documentation for other ways to extract the PIID.
+The following command will print a JSON document, containing the hex-encoded PIID under the key `platformInstanceId`.
 
-1. Install and run Intel's [`PCKIDRetrievalTool`].
-   This should place a CSV file in your working directory.
-2. Retrieve the following fields from the CSV file:
-   - `EncryptedPPID`
-   - `PCE_ID`
-   - `CPUSVN`
-   - `PCE ISVSVN`
-3. Use these values to [request a PCK certificate from Intel PCS](https://api.portal.trustedservices.intel.com/content/documentation.html#pcs-certificate-v4).
-   Note that the response contains intermediate certificates in the `SGX-PCK-Certificate-Issuer-Chain` header that are required to verify the PCK certificate's signature.
-4. Verify that the PCK certificate chains back to Intel's root, for example with `openssl verify`.
-5. Parse the PCK certificate to find the SGX extension address:
-
-   ```sh
-   openssl asn1parse -in pck.pem
-   ```
-
-   Example output, showing the extension address `624` right after its ASN.1 OID:
-
-   ```txt
-     613:d=5  hl=2 l=   9 prim: OBJECT            :1.2.840.113741.1.13.1
-     624:d=5  hl=4 l= 554 prim: OCTET STRING      [HEX DUMP]: [...]
-   ```
-
-6. Parse the SGX extension to find the PIID:
-
-   ```sh
-   openssl asn1parse -in pck.pem --strparse $ADDRESS
-   ```
-
-   Example output with `ADDRESS=624`, showing the PIID right after its ASN.1 OID:
-
-   ```txt
-     454:d=2  hl=2 l=  10 prim: OBJECT            :1.2.840.113741.1.13.1.6
-     466:d=2  hl=2 l=  16 prim: OCTET STRING      [HEX DUMP]:E90210702A2CC5AD9764F29DDC8FDE8C
-   ```
-
-   Copy the value shown after `[HEX DUMP]` into the `AllowedPIIDs` field.
-
-:::warning
-
-The EncryptedPPID must be retrieved from a machine by physically accessing it.
-If you retrieve this value via a remote channel, your traffic could already be redirected to a hostile environment that allows an attacker physical access.
-
-:::
+```bash
+cut -d, -f6 pckid_retrieval.csv | poe-gen-tool extract --type pm /dev/stdin
+```
 
 ### `ReferenceValues.tdx.*.MemoryIntegrity` {#tdx-memory-integrity}
 
