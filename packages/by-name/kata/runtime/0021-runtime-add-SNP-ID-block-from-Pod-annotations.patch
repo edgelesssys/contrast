@@ -30,10 +30,10 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  7 files changed, 227 insertions(+), 9 deletions(-)
 
 diff --git a/src/libs/kata-types/src/annotations/mod.rs b/src/libs/kata-types/src/annotations/mod.rs
-index 249742df51b1f14bba5420becd746af2ae587a44..e0737d74840f7190151edd7f0aa4459e381c3543 100644
+index 79e44712aca71e9eeb1c15c97c9eba79648a2b87..65a53f4ab1d40c52e2084773247e171fcd6e9654 100644
 --- a/src/libs/kata-types/src/annotations/mod.rs
 +++ b/src/libs/kata-types/src/annotations/mod.rs
-@@ -277,6 +277,19 @@ pub const KATA_ANNO_CFG_HYPERVISOR_MSIZE_9P: &str = "io.katacontainers.config.hy
+@@ -275,6 +275,19 @@ pub const KATA_ANNO_CFG_HYPERVISOR_VIRTIO_FS_EXTRA_ARGS: &str =
  /// The initdata annotation passed in when CVM launchs
  pub const KATA_ANNO_CFG_HYPERVISOR_INIT_DATA: &str =
      "io.katacontainers.config.hypervisor.cc_init_data";
@@ -53,7 +53,7 @@ index 249742df51b1f14bba5420becd746af2ae587a44..e0737d74840f7190151edd7f0aa4459e
  
  /// GPU specific annotations for remote hypervisor to help with instance selection
  /// It's for minimum number of GPUs required for the VM.
-@@ -925,6 +938,30 @@ impl Annotation {
+@@ -940,6 +953,30 @@ impl Annotation {
                          hv.security_info.initdata =
                              add_hypervisor_initdata_overrides(value).unwrap();
                      }
@@ -85,10 +85,10 @@ index 249742df51b1f14bba5420becd746af2ae587a44..e0737d74840f7190151edd7f0aa4459e
                          Ok(r) => {
                              hv.remote_info.default_gpus = r.unwrap_or_default();
 diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
-index 04f3bb2d77900b110f7239353ab806dfaa9d32a7..29b7aefb281358f9f7618e77e7db31e73221198b 100644
+index 62d5ed1877599d829b4cf591848a21df5d50422b..bb85e3a3659c4c9ef376e8428973061b3e15fee2 100644
 --- a/src/libs/kata-types/src/config/hypervisor/mod.rs
 +++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
-@@ -1236,6 +1236,32 @@ pub struct SecurityInfo {
+@@ -1346,6 +1346,32 @@ pub struct SecurityInfo {
      #[serde(default = "default_snp_guest_policy")]
      pub snp_guest_policy: u32,
  
@@ -122,7 +122,7 @@ index 04f3bb2d77900b110f7239353ab806dfaa9d32a7..29b7aefb281358f9f7618e77e7db31e7
      ///
      /// This setting does not affect host-side hooks, which must instead be
 diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
-index b5bad8eb64f9fb57aff62d6aaee0fe693c90be25..28837281465bba7b89d903dda11c1eae43457fe3 100644
+index ebafd353a5552e3c6da346bb99494c169b585680..1c52e69b456d76b63f09f2257260fc4157b4a758 100644
 --- a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
 +++ b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
 @@ -1881,6 +1881,8 @@ struct ObjectSevSnpGuest {
@@ -249,7 +249,7 @@ index b5bad8eb64f9fb57aff62d6aaee0fe693c90be25..28837281465bba7b89d903dda11c1eae
  
      pub fn add_tdx_protection_device(
 diff --git a/src/runtime/pkg/oci/utils.go b/src/runtime/pkg/oci/utils.go
-index b8a5285f66839c9d79d23e97156c73f4a3cff1bd..23ace5d12b0739f460630487ba092e6742ebc920 100644
+index b09a97e9943991fed90b047c218d2dcbbf85793a..bd9dc39aa2fa1202f25643ae4f78f34528123c56 100644
 --- a/src/runtime/pkg/oci/utils.go
 +++ b/src/runtime/pkg/oci/utils.go
 @@ -598,6 +598,33 @@ func addHypervisorConfigOverrides(ocispec specs.Spec, config *vc.SandboxConfig,
@@ -287,7 +287,7 @@ index b8a5285f66839c9d79d23e97156c73f4a3cff1bd..23ace5d12b0739f460630487ba092e67
  		return err
  	}
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
-index 4f3a2a6f021485d8f4ed19e1bb32dae1077fd6eb..79b633267b29d6999529f2d791ef81b92dcd5a32 100644
+index cb91c3f16aa27cdd4338a34faad80f6b8aa32d9e..7aa7945415553fd2b5537d3239e5d7d6ed70e690 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
 +++ b/src/runtime/virtcontainers/hypervisor.go
 @@ -619,13 +619,35 @@ type HypervisorConfig struct {
@@ -327,10 +327,10 @@ index 4f3a2a6f021485d8f4ed19e1bb32dae1077fd6eb..79b633267b29d6999529f2d791ef81b9
  	KernelParams []Param
  
 diff --git a/src/runtime/virtcontainers/pkg/annotations/annotations.go b/src/runtime/virtcontainers/pkg/annotations/annotations.go
-index 63caa831bc1ef95c8b68c99ed94d5c5814b24428..a1f2150f728e1b798d1e08ded8364034ef58e9f4 100644
+index 06b0aadffbe6df5912902bbad2b6797fd810a44c..78c2099a641fdd3b28b4a7def1751564bb71e49a 100644
 --- a/src/runtime/virtcontainers/pkg/annotations/annotations.go
 +++ b/src/runtime/virtcontainers/pkg/annotations/annotations.go
-@@ -256,6 +256,25 @@ const (
+@@ -271,6 +271,25 @@ const (
  
  	// Initdata is the initdata passed in when CreateVM
  	Initdata = kataConfAnnotationsPrefix + "hypervisor.cc_init_data"

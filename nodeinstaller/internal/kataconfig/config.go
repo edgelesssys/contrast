@@ -30,9 +30,6 @@ func KataRuntimeConfig(
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "tdx", "share", "OVMF.fd")
-		// We set up dm_verity in the system NixOS config.
-		// Doing so again here prevents VM boots.
-		config.Hypervisor["qemu"]["kernel_verity_params"] = ""
 	case platforms.IsSNP(platform):
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
@@ -79,6 +76,9 @@ func KataRuntimeConfig(
 	config.Hypervisor["qemu"]["enable_annotations"] = append(customContrastAnnotations, "cc_init_data")
 	// Fix and align guest memory calculation.
 	config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMebiBytes(platform)
+	// We set up dm_verity in the system NixOS config.
+	// Doing so again here prevents VM boots.
+	config.Hypervisor["qemu"]["kernel_verity_params"] = ""
 	config.Runtime["sandbox_cgroup_only"] = true
 
 	// TODO: Check again why we need this and how we can avoid it.

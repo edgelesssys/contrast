@@ -13,10 +13,10 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  5 files changed, 69 insertions(+), 10 deletions(-)
 
 diff --git a/src/runtime/pkg/katautils/config.go b/src/runtime/pkg/katautils/config.go
-index eab2d90112d5fe0fc7fc3259a6013a2d481107a0..ba3bbce38d7720ee61ac70596bdaefbae00a6183 100644
+index 061bf8b2ed76fc1ab56241f55acf35fe1a74c8ec..4244b78be1ba4b4ae87629ef32ced2bf3ac1ee31 100644
 --- a/src/runtime/pkg/katautils/config.go
 +++ b/src/runtime/pkg/katautils/config.go
-@@ -177,6 +177,7 @@ type hypervisor struct {
+@@ -179,6 +179,7 @@ type hypervisor struct {
  	DisableGuestSeLinux            bool                      `toml:"disable_guest_selinux"`
  	LegacySerial                   bool                      `toml:"use_legacy_serial"`
  	ExtraMonitorSocket             govmmQemu.MonitorProtocol `toml:"extra_monitor_socket"`
@@ -24,19 +24,19 @@ index eab2d90112d5fe0fc7fc3259a6013a2d481107a0..ba3bbce38d7720ee61ac70596bdaefba
  }
  
  type runtime struct {
-@@ -1055,6 +1056,7 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
- 		SnpIdAuth:                h.SnpIdAuth,
- 		SnpGuestPolicy:           h.SnpGuestPolicy,
- 		MeasurementAlgo:          h.GetMeasurementAlgo(),
-+		ImagepullerConfigPath:    h.ImagepullerConfigPath,
+@@ -1114,6 +1115,7 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
+ 		SnpIdAuth:                     h.SnpIdAuth,
+ 		SnpGuestPolicy:                h.SnpGuestPolicy,
+ 		MeasurementAlgo:               h.GetMeasurementAlgo(),
++		ImagepullerConfigPath:         h.ImagepullerConfigPath,
  	}, nil
  }
  
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
-index 4b0fa5f7cb3e4561bf149cc2a837d6140d902d92..4f3a2a6f021485d8f4ed19e1bb32dae1077fd6eb 100644
+index b631960f6bdf1fab21701ad809a1b708395b773e..cb91c3f16aa27cdd4338a34faad80f6b8aa32d9e 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
 +++ b/src/runtime/virtcontainers/hypervisor.go
-@@ -859,6 +859,13 @@ type HypervisorConfig struct {
+@@ -869,6 +869,13 @@ type HypervisorConfig struct {
  	// as a raw block device to guest
  	InitdataImage string
  
@@ -50,7 +50,7 @@ index 4b0fa5f7cb3e4561bf149cc2a837d6140d902d92..4f3a2a6f021485d8f4ed19e1bb32dae1
  	// GPU specific annotations (currently only applicable for Remote Hypervisor)
  	//DefaultGPUs specifies the number of GPUs required for the Kata VM
  	DefaultGPUs uint32
-@@ -1378,7 +1385,7 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
+@@ -1388,7 +1395,7 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
  		return err
  	}
  
@@ -59,7 +59,7 @@ index 4b0fa5f7cb3e4561bf149cc2a837d6140d902d92..4f3a2a6f021485d8f4ed19e1bb32dae1
  		logger.WithField("initdata", "prepare initdata image").WithError(err).Error("prepare failed")
  		return err
  	}
-@@ -1387,9 +1394,47 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
+@@ -1397,9 +1404,47 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
  	return nil
  }
  
@@ -108,7 +108,7 @@ index 4b0fa5f7cb3e4561bf149cc2a837d6140d902d92..4f3a2a6f021485d8f4ed19e1bb32dae1
  // Then a "length" field of 8 bytes follows (unsigned int64).
  // Finally the gzipped initdata toml. The image will be padded to an
  // integer multiple of the sector size for alignment.
-@@ -1398,13 +1443,17 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
+@@ -1408,13 +1453,17 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
  // 0	  'i' 'n' 'i' 't' 'd' 'a' 't' 'a'  | gzip length in le  |
  // 16	  gzip(initdata toml) ...
  // (end of the last sector)  '\0' paddings
@@ -128,7 +128,7 @@ index 4b0fa5f7cb3e4561bf149cc2a837d6140d902d92..4f3a2a6f021485d8f4ed19e1bb32dae1
  	err := gzipper.Close()
  	if err != nil {
  		return fmt.Errorf("failed to compress initdata: %v", err)
-@@ -1425,7 +1474,7 @@ func prepareInitdataImage(initdata string, imagePath string) error {
+@@ -1435,7 +1484,7 @@ func prepareInitdataImage(initdata string, imagePath string) error {
  	}
  	defer file.Close()
  
@@ -138,7 +138,7 @@ index 4b0fa5f7cb3e4561bf149cc2a837d6140d902d92..4f3a2a6f021485d8f4ed19e1bb32dae1
  		return fmt.Errorf("failed to write magic number to initdata image: %v", err)
  	}
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 62b1ff626eb0f401e13b2d4453bcae8ba9ff75e2..395b8617738855ce15d6e8ccb2729f6b7617e792 100644
+index b24f46f18314f63191c93339ba261a182928513d..50fb0d0a01f4c086bbb891627a34cb6292e3053a 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -578,6 +578,10 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi

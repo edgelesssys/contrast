@@ -126,10 +126,10 @@ index 74686abf43436d9c5c5117d061f1faed79783f74..e927668e85b61c1d242c1052bf50d7a5
 -    }
 -}
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index a138d804dacaaa36590d25c4342c4e7e88c0c32a..8a8dc129c84cf6d6d4719e7f44e9014ff01a287a 100644
+index c407c98ee8fedeebe1f79aef9e43051b611011fc..022e3e2cb1e1248bfaa38aa32360c4c3c41814e4 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
-@@ -1725,7 +1725,7 @@ func getContainerTypeforCRI(c *Container) (string, string) {
+@@ -1732,7 +1732,7 @@ func getContainerTypeforCRI(c *Container) (string, string) {
  	return "", ""
  }
  
@@ -138,7 +138,7 @@ index a138d804dacaaa36590d25c4342c4e7e88c0c32a..8a8dc129c84cf6d6d4719e7f44e9014f
  	containerAnnotations := c.GetAnnotations()
  	containerType, criContainerType := getContainerTypeforCRI(c)
  
-@@ -1758,20 +1758,9 @@ func handleImageGuestPullBlockVolume(c *Container, virtualVolumeInfo *types.Kata
+@@ -1765,20 +1765,9 @@ func handleImageGuestPullBlockVolume(c *Container, virtualVolumeInfo *types.Kata
  			return nil, fmt.Errorf("Failed to get image name from annotations")
  		}
  	}
@@ -160,7 +160,7 @@ index a138d804dacaaa36590d25c4342c4e7e88c0c32a..8a8dc129c84cf6d6d4719e7f44e9014f
  	vol.Fstype = typeOverlayFS
  	return vol, nil
  }
-@@ -1782,7 +1771,7 @@ func handleVirtualVolumeStorageObject(c *Container, blockDeviceId string, virtVo
+@@ -1789,7 +1778,7 @@ func handleVirtualVolumeStorageObject(c *Container, blockDeviceId string, virtVo
  	if virtVolume.VolumeType == types.KataVirtualVolumeImageGuestPullType {
  		var err error
  		vol = &grpc.Storage{}
@@ -170,10 +170,10 @@ index a138d804dacaaa36590d25c4342c4e7e88c0c32a..8a8dc129c84cf6d6d4719e7f44e9014f
  			return nil, err
  		}
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 3fdcf0079ec179b076d49596cb71d80fbbfceecb..b1cdb4601b0711529c82262b464976f9feae5df8 100644
+index dff95f2c93aad5cba727fd620f5a87867de5e718..82aa8b5ea62db3db121bf9edf428a7613bb4ee6d 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1192,10 +1192,9 @@ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
+@@ -1222,10 +1222,9 @@ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
  
      p_count := count(p_storages)
      i_count := count(i_storages)
@@ -186,7 +186,7 @@ index 3fdcf0079ec179b076d49596cb71d80fbbfceecb..b1cdb4601b0711529c82262b464976f9
  
      every i_storage in i_storages {
          allow_storage(p_storages, i_storage, bundle_id, sandbox_id)
-@@ -1299,6 +1298,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
+@@ -1329,6 +1328,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
  
      print("allow_storage_source 3: true")
  }
@@ -211,10 +211,10 @@ index 3fdcf0079ec179b076d49596cb71d80fbbfceecb..b1cdb4601b0711529c82262b464976f9
  allow_storage_options(p_storage, i_storage) if {
      print("allow_storage_options 1: start")
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 776ae3b9bce31e87d7073a7aadeeb2f172593993..a53a4bb9abae414fb5eb47e179aca7ad9f6f7b8f 100644
+index c71b50e08bedb8db473ef8021d032bc4455ec17f..9d013ae736d9d46165cdceadb0aeaad3982f2240 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
-@@ -321,6 +321,17 @@ pub fn get_container_mounts_and_storages(
+@@ -325,6 +325,17 @@ pub fn get_container_mounts_and_storages(
              mount_and_storage::get_image_mount_and_storage(settings, policy_mounts, volume.0);
          }
      }

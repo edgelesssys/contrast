@@ -23,7 +23,7 @@ Signed-off-by: Fabiano Fidêncio <fabiano.fidencio@intel.com>
  1 file changed, 20 insertions(+)
 
 diff --git a/src/agent/rustjail/src/mount.rs b/src/agent/rustjail/src/mount.rs
-index 9ebb3e94aa5161092062f4a6df1e22c17847bdd7..8958f9a582815ccf0cf204828fae2ff792cf5543 100644
+index fce35478500c0a0a0946b0acd96a5ffea025a3d7..72f1a620f8c950896d266bc9db312f38f5542ce4 100644
 --- a/src/agent/rustjail/src/mount.rs
 +++ b/src/agent/rustjail/src/mount.rs
 @@ -294,6 +294,26 @@ pub fn init_rootfs(

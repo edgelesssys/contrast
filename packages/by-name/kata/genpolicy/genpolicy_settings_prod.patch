@@ -1,5 +1,5 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 17832fbd883cc5d35d846c02cb4250f49b284716..3d0e22904e9e9f3c04004f7b9d31fc006c8809aa 100644
+index ea73fc37eb638cf66853e36d80ea011410e3dada..fb941075c7b85c36ba88ff478dcea1292108309f 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
 @@ -211,7 +211,9 @@
@@ -21,15 +21,15 @@ index 17832fbd883cc5d35d846c02cb4250f49b284716..3d0e22904e9e9f3c04004f7b9d31fc00
 +        "pause_container_image": "ghcr.io/edgelesssys/kubernetes/pause:3.6",
          "guest_pull": true,
          "pause_container_id_policy": "v1",
--        "encrypted_emptydir": true
-+        "encrypted_emptydir": false
-     },
-     "request_defaults": {
-         "CreateContainerRequest": {
-@@ -379,7 +381,7 @@
-             ]
+-        "encrypted_emptydir": true,
++        "encrypted_emptydir": false,
+         "cgroup_mount_extras_allowed": [
+             "nsdelegate",
+             "memory_recursiveprot"
+@@ -388,7 +390,7 @@
          },
          "CloseStdinRequest": false,
+         "GetDiagnosticDataRequest": false,
 -        "ReadStreamRequest": false,
 +        "ReadStreamRequest": true,
          "UpdateEphemeralMountsRequest": false,

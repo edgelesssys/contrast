@@ -15,7 +15,7 @@
 [hypervisor.qemu]
 path = "/opt/kata/bin/qemu-system-x86_64"
 kernel = "/opt/kata/share/kata-containers/vmlinuz.container"
-initrd = "/opt/kata/share/kata-containers/kata-containers-initrd-confidential.img"
+image = "/opt/kata/share/kata-containers/kata-containers-confidential.img"
 machine_type = "q35"
 
 # rootfs filesystem type:
@@ -90,6 +90,11 @@ snp_guest_policy = 196608
 # To see the list of default parameters, enable hypervisor debug, create a
 # container and look for 'default-kernel-parameters' log entries.
 kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
+
+# Optional dm-verity parameters (comma-separated key=value list):
+# root_hash=...,salt=...,data_blocks=...,data_block_size=...,hash_block_size=...
+# These are used by the runtime to assemble dm-verity kernel params.
+kernel_verity_params = "root_hash=f64924e6050a197b6263e48146e5256dcfafe72511965fb07d9d39f48c82033e,salt=6ace9b40ac09d5eecee7b5cd91f2eca5a8914a221998d3feeff382a16153e548,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
@@ -280,6 +285,16 @@ block_device_cache_direct = false
 # Denotes whether flush requests for the device are ignored.
 # Default false
 block_device_cache_noflush = false
+
+# Specifies the logical sector size, in bytes, reported by block devices to the guest.
+# Common values are 512 and 4096. Set to 0 to use the QEMU/hypervisor default.
+# Default 0
+block_device_logical_sector_size = 0
+
+# Specifies the physical sector size, in bytes, reported by block devices to the guest.
+# Common values are 512 and 4096. Set to 0 to use the QEMU/hypervisor default.
+# Default 0
+block_device_physical_sector_size = 0
 
 # Enable iothreads (data-plane) to be used. This causes IO to be
 # handled in a separate IO thread. This is currently implemented
@@ -587,6 +602,11 @@ debug_console_enabled = false
 # Agent connection dialing timeout value in seconds
 # (default: 90)
 dial_timeout = 90
+
+# Timeout in seconds for guest components (attestation-agent, confidential-data-hub)
+# to create their Unix sockets after being spawned by the agent.
+# (agent default when unset: 6)
+launch_process_timeout = 6
 
 [runtime]
 # If enabled, the runtime will log additional debug messages to the

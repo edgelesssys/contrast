@@ -11,7 +11,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 41 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
-index 7d663ffdecd99554524de9b242d28774680a1394..ef6617da7f102c336d0ed6b0ebd98cc074c7a30d 100644
+index a9655f80011e13dc1908a4d687dd028d4b317480..65e9eca147e09a214d367f4f0781a8725fa4dd09 100644
 --- a/src/runtime/virtcontainers/container.go
 +++ b/src/runtime/virtcontainers/container.go
 @@ -1285,6 +1285,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
@@ -45,10 +45,10 @@ index 7d663ffdecd99554524de9b242d28774680a1394..ef6617da7f102c336d0ed6b0ebd98cc0
  
  	}
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 20b7e8c0d3b3beafde0ab95fc5f5c67d5b44cfd2..c4df47208702bcedc695ae4197d29af072866410 100644
+index b25dbc2e773eb6d909999a995f5b2decac44b7fd..7091472222ab94481f84d4b70dc0c70cc5d3a754 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -1065,6 +1065,17 @@ impl Container {
+@@ -1072,6 +1072,17 @@ impl Container {
          let limits = self.resources.as_ref()?.limits.as_ref()?;
          sum_limits_by_keys(limits, pgpu_resource_keys)
      }
@@ -67,13 +67,15 @@ index 20b7e8c0d3b3beafde0ab95fc5f5c67d5b44cfd2..c4df47208702bcedc695ae4197d29af0
  
  fn compress_default_capabilities(
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 0eaa0d5a3b1828f4a92851236caf27d146a22e15..ead7e76a914bac17dce8bd0a59e8d2a5ab12be02 100644
+index 878e81dff20c35fb1abb74babebf67f7793d4ce1..22af3467c4165fbf34018077936233e3c2ada2fe 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -796,6 +796,20 @@ impl AgentPolicy {
-             }
-         }
- 
+@@ -825,6 +825,20 @@ impl AgentPolicy {
+                 "^io\\.kubernetes\\.container\\.terminationMessagePolicy$".to_string(),
+                 "^(File|FallbackToLogsOnError)$".to_string(),
+             );
++        };
++
 +        // If the container is configured with NVIDIA_VISIBLE_DEVICES=all, it will also get the annotation.
 +        if yaml_container.uses_nvidia_visible_devices() {
 +            runtime_anno_patterns.insert(
@@ -86,8 +88,6 @@ index 0eaa0d5a3b1828f4a92851236caf27d146a22e15..ead7e76a914bac17dce8bd0a59e8d2a5
 +                    .gpu_anno_value_regex
 +                    .clone(),
 +            );
-+        }
-+
-         for default_device in &c_settings.Linux.Devices {
-             linux.Devices.push(default_device.clone())
          }
+ 
+         for default_device in &c_settings.Linux.Devices {

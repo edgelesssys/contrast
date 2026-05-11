@@ -8,7 +8,7 @@ Subject: [PATCH] runtime: do not add nr_vcpus to kernel command line
  1 file changed, 3 deletions(-)
 
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 395b8617738855ce15d6e8ccb2729f6b7617e792..c839bca724d2016ac31cb887d436d3dca7acbe4f 100644
+index 50fb0d0a01f4c086bbb891627a34cb6292e3053a..5f7e38a774955c62b82f304929c9cc73197bd486 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -193,9 +193,6 @@ func (q *qemu) kernelParameters() string {

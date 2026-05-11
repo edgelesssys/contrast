@@ -5,6 +5,8 @@ block_device_cache_direct = false
 block_device_cache_noflush = false
 block_device_cache_set = false
 block_device_driver = 'virtio-scsi'
+block_device_logical_sector_size = 0
+block_device_physical_sector_size = 0
 cold_plug_vfio = 'root-port'
 confidential_guest = true
 contrast_imagepuller_config = ''
@@ -43,6 +45,7 @@ indep_iothreads = 0
 initrd = '/share/kata-initrd.zst'
 kernel = '/share/kata-kernel'
 kernel_params = ''
+kernel_verity_params = ''
 machine_accelerators = ''
 machine_type = 'q35'
 memory_offset = 0
@@ -84,6 +87,7 @@ dial_timeout = 600
 enable_debug = false
 enable_tracing = false
 kernel_modules = []
+launch_process_timeout = 6
 
 [factory]
 enable_template = false

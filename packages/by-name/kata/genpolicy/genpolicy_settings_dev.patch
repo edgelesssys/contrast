@@ -1,5 +1,5 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 17832fbd883cc5d35d846c02cb4250f49b284716..71a84526597d2e0dedf1908391218e0e90004674 100644
+index ea73fc37eb638cf66853e36d80ea011410e3dada..9b336eb71bff0011c5c39169043166b44b50245b 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
 @@ -211,7 +211,9 @@
@@ -21,12 +21,12 @@ index 17832fbd883cc5d35d846c02cb4250f49b284716..71a84526597d2e0dedf1908391218e0e
 +        "pause_container_image": "ghcr.io/edgelesssys/kubernetes/pause:3.6",
          "guest_pull": true,
          "pause_container_id_policy": "v1",
--        "encrypted_emptydir": true
-+        "encrypted_emptydir": false
-     },
-     "request_defaults": {
-         "CreateContainerRequest": {
-@@ -342,7 +344,8 @@
+-        "encrypted_emptydir": true,
++        "encrypted_emptydir": false,
+         "cgroup_mount_extras_allowed": [
+             "nsdelegate",
+             "memory_recursiveprot"
+@@ -346,7 +348,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
@@ -36,7 +36,7 @@ index 17832fbd883cc5d35d846c02cb4250f49b284716..71a84526597d2e0dedf1908391218e0e
              ]
          },
          "UpdateInterfaceRequest": {
-@@ -359,7 +362,9 @@
+@@ -363,7 +366,9 @@
          ],
          "ExecProcessRequest": {
              "allowed_commands": [],
@@ -47,10 +47,10 @@ index 17832fbd883cc5d35d846c02cb4250f49b284716..71a84526597d2e0dedf1908391218e0e
          },
          "UpdateRoutesRequest": {
              "forbidden_device_names": [
-@@ -379,8 +384,8 @@
-             ]
+@@ -388,8 +393,8 @@
          },
          "CloseStdinRequest": false,
+         "GetDiagnosticDataRequest": false,
 -        "ReadStreamRequest": false,
 +        "ReadStreamRequest": true,
          "UpdateEphemeralMountsRequest": false,
