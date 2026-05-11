@@ -5,6 +5,7 @@
   # keep-sorted start
   clang,
   cmake,
+  contrastPkgs,
   fenix,
   lib,
   lld,
@@ -18,12 +19,7 @@
 }:
 
 let
-  pinnedCommit = "b6c60d9229b210a1925f43a1a20af1882cee255b";
-  toolchainFile = builtins.fetchurl {
-    url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${pinnedCommit}/rust-toolchain.toml";
-    sha256 = "sha256:02fmrgapbfiwicxnxm51cl152bzyf9gmqzf76nn7igjlnpd0qyyr";
-  };
-
+  toolchainFile = "${contrastPkgs.kata.runtime.src}/rust-toolchain.toml";
   toolchainSpec = {
     name = (lib.importTOML toolchainFile).toolchain.channel;
     sha256 = "sha256-SDu4snEWjuZU475PERvu+iO50Mi39KVjqCeJeNvpguU=";
