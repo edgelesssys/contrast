@@ -9,10 +9,10 @@ Subject: [PATCH] genpolicy: support mount propagation and ro-mounts
  2 files changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index b1cdb4601b0711529c82262b464976f9feae5df8..77a0a6b55aa1326b67dd20ed54faaa7aa06973b2 100644
+index 82aa8b5ea62db3db121bf9edf428a7613bb4ee6d..6e383d6efa8424d7b33e7422a477135e95c263ac 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -132,7 +132,8 @@ allow_create_container_input if {
+@@ -135,7 +135,8 @@ allow_create_container_input if {
      count(i_linux.GIDMappings) == 0
      count(i_linux.MountLabel) == 0
      count(i_linux.Resources.Devices) == 0
@@ -23,10 +23,10 @@ index b1cdb4601b0711529c82262b464976f9feae5df8..77a0a6b55aa1326b67dd20ed54faaa7a
      is_null(i_linux.IntelRdt)
      is_null(i_linux.Resources.BlockIO)
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index de3ff7ecbec2fed02a0cea9b7629af125474eb1d..85370f152bedc8c28f8d2bb0703ebc361f963bda 100644
+index 992ed7bdbd4511af1fcf89ac9a1f9a550154fa83..cf7000667d8f18310bba701a1bb4cb66f736488b 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -203,13 +203,19 @@ fn get_empty_dir_mount_and_storage(
+@@ -230,13 +230,19 @@ fn get_empty_dir_mount_and_storage(
          _ => "rw",
      };
  

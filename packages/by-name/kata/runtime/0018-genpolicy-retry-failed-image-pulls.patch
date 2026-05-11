@@ -11,7 +11,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 72 insertions(+), 24 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 9347911f75d8155fc744044e7c3d870020fbd0d7..ad40fbb60618bf2335bac723b77bcacc9e76d0f3 100644
+index 1eac180a2d466d3f4f27be92b32fbf0303535a77..60c7599842c9d3b0600077c24e6e354ffc6352c5 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -21,7 +21,12 @@ use oci_client::{
@@ -163,7 +163,7 @@ index cef105a10365a3c93ad083b2519278e026e95db4..e3f5143f418ad82f85fc2c1f261ddc5b
      }
  }
 diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
-index 919b6bd99fcdb7fe86b8ff237469ae95fbccdf52..e8879d17da739dbff315f3a6ce908dd7f891593f 100644
+index 2e24fcb156383aa6ccdc7073522635985b97ec2e..3f88ecfdb238c68aa4bbd8dd3b218a99a63baef5 100644
 --- a/src/tools/genpolicy/tests/policy/main.rs
 +++ b/src/tools/genpolicy/tests/policy/main.rs
 @@ -121,6 +121,7 @@ mod tests {

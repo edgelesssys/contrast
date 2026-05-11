@@ -12,14 +12,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.28.0";
+  version = "3.30.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = finalAttrs.version;
-      hash = "sha256-gf1z2lHRN9wRFTN6l62pBE1aeUXOv1auMGhloKRY6WQ=";
+      hash = "sha256-9VitM9sHoRAEUlRe6uUSE4lw228/sJ/0qljm6X02pC4=";
     };
 
     patches = [
@@ -145,31 +145,21 @@ buildGoModule (finalAttrs: {
       # together with being specific to our use case. There are no plans to upstream it.
       ./0021-runtime-add-SNP-ID-block-from-Pod-annotations.patch
 
-      # Fixes a vulnerability in the CopyFile policy.
-      # Drop after upgrading to Kata 3.29.0.
-      # https://github.com/kata-containers/kata-containers/security/advisories/GHSA-q49m-57vm-c8cc
-      ./0022-genpolicy-restrict-symlinks-in-CopyFile.patch
-
-      # Deny unknown fields where possible to ease migration. This isn't possible where flatten is used.
-      # Upstream commit: https://github.com/kata-containers/kata-containers/commit/bacc3f4ef12f0d7ea64f5b46d2ee4442d67d7579
-      # Can be removed after upgrading to Kata 3.29.0.
-      ./0023-runtime-rs-deny-unknown-fields-in-config.patch
-
       # Use virtio-blk with serial name for initdata
       # Our initdata-processor expects the initdata device to be present at /dev/disks/by-label/initdata,
       # which requires the device to have a stable name. Using virtio-blk with a serial number achieves this.
       # TODO: check if we can improve the situation upstream or implement a fallback in the initdata-processor.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12764.
-      ./0024-runtime-rs-force-virtio-blk-with-serial-name-for-ini.patch
+      ./0022-runtime-rs-force-virtio-blk-with-serial-name-for-ini.patch
 
       # An upstream bug re-encodes initdata, leading to unpredictable HOSTDATA entries.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12951.
-      ./0025-runtime-rs-don-t-modify-initdata-from-annotation.patch
+      ./0023-runtime-rs-don-t-modify-initdata-from-annotation.patch
 
       # runtime-rs masks systemd-networkd.service but not systemd-networkd.socket, leading to kernel error
       # messages. This patch masks the socket, too.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12995.
-      ./0026-runtime-rs-mask-systemd-networkd.socket.patch
+      ./0024-runtime-rs-mask-systemd-networkd.socket.patch
     ];
   };
 
@@ -279,7 +269,8 @@ buildGoModule (finalAttrs: {
         "agent.log=debug"
         "agent.debug_console"
         "agent.debug_console_vport=1026"
-      ];
+      ]
+      ++ [ "agent.launch_process_timeout=6" ];
     suffix = _debug: [ ];
   };
 

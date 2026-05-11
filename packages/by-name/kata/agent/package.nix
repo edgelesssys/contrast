@@ -21,12 +21,22 @@ rustPlatform.buildRustPackage rec {
   pname = "kata-agent";
   inherit (runtime) version src;
 
-  sourceRoot = "${src.name}/src/agent";
+  cargoBuildFlags = [
+    "--package"
+    "kata-agent"
+  ];
+  cargoTestFlags = [
+    "--package"
+    "kata-agent"
+  ];
 
   cargoLock = {
-    lockFile = "${src}/src/agent/Cargo.lock";
+    lockFile = "${src}/Cargo.lock";
     outputHashes = {
       "cgroups-rs-0.3.5" = "sha256-BKD1ZPK5LqB/n2xD/oODArVKjbH+MQOeYn/UYbBHzn0=";
+      "api_client-0.1.0" = "sha256-RdwQg6/EI+oGkyNXnu5t1q87oTXev25XpIaE+PWDTx4=";
+      "micro_http-0.1.0" = "sha256-XemdzwS25yKWEXJcRX2l6QzD7lrtroMeJNOUEWGR7WQ=";
+      "regorus-0.9.1" = "sha256-+TCq9r8kTNM0URbcDP4D9/lKA6Bni7+KgrGRTJFbQPM=";
       "s390_pv_core-0.11.0" = "sha256-P275gUoF4JtaKvKPvzhCsBuo882kKCYebtNpCDEmTP0=";
     };
   };
@@ -50,7 +60,7 @@ rustPlatform.buildRustPackage rec {
   ];
 
   postPatch = ''
-    substitute src/version.rs.in src/version.rs \
+    substitute src/agent/src/version.rs.in src/agent/src/version.rs \
       --replace-fail @AGENT_VERSION@ ${version} \
       --replace-fail @API_VERSION@ 0.0.1 \
       --replace-fail @VERSION_COMMIT@ ${version} \
@@ -58,13 +68,13 @@ rustPlatform.buildRustPackage rec {
 
     # Disable LTO (Link Time Optimization) to reduce build time. The agent
     # binary shouldn't be that performance critical.
-    substituteInPlace Cargo.toml \
+    substituteInPlace src/agent/Cargo.toml \
       --replace-fail 'lto = true' 'lto = false'
   '';
 
   # Build.rs writes to src
   postConfigure = ''
-    chmod -R +w ../..
+    chmod -R +w .
   '';
 
   # https://crates.io/crates/sev produces libsev.so, which is not needed for

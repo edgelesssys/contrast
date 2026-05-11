@@ -19,10 +19,10 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  7 files changed, 5 insertions(+), 36 deletions(-)
 
 diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
-index 6284103102c58da41e88da7a263a77c247c2760d..04f3bb2d77900b110f7239353ab806dfaa9d32a7 100644
+index 776b781a4ca2c97dca5c29fb09393034a114f4ca..62d5ed1877599d829b4cf591848a21df5d50422b 100644
 --- a/src/libs/kata-types/src/config/hypervisor/mod.rs
 +++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
-@@ -473,11 +473,6 @@ impl BootInfo {
+@@ -507,11 +507,6 @@ impl BootInfo {
          validate_path!(self.image, "guest boot image file {} is invalid: {}")?;
          validate_path!(self.initrd, "guest initrd image file {} is invalid: {}")?;
          validate_path!(self.firmware, "firmware image file {} is invalid: {}")?;
@@ -35,10 +35,10 @@ index 6284103102c58da41e88da7a263a77c247c2760d..04f3bb2d77900b110f7239353ab806df
          let l = [
              VIRTIO_BLK_PCI,
 diff --git a/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs b/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
-index cd6998a649f0ab0838d4c78f03af01c2ffef3839..bd124e5d74defefcaab67e1cfe60bfda690e3f4e 100644
+index 02fe361dc4a9c9d1812309a21d550006e385cad6..f66b89d0495400975196eb6bc178a3fcedfb95a4 100644
 --- a/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
 +++ b/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
-@@ -130,10 +130,6 @@ impl TryFrom<NamedHypervisorConfig> for VmConfig {
+@@ -143,10 +143,6 @@ impl TryFrom<NamedHypervisorConfig> for VmConfig {
          let use_initrd = !boot_info.initrd.is_empty();
          let use_image = !boot_info.image.is_empty();
  
@@ -50,7 +50,7 @@ index cd6998a649f0ab0838d4c78f03af01c2ffef3839..bd124e5d74defefcaab67e1cfe60bfda
              return Err(VmConfigError::NoBootFile);
          }
 diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs b/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
-index 9be1e68aed0e5fa9529fd0ad8e8db53b7a6887f1..9fb0d82a91f1f32c2cea609a32e8f30d814cb977 100644
+index 406d75c08a0db0369d1243bd1d8eacf8426c593b..aad7a0b0513d5e4ea953520dbb725bdc77d11c50 100644
 --- a/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
 +++ b/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
 @@ -111,10 +111,6 @@ impl VmConfig {
@@ -65,10 +65,10 @@ index 9be1e68aed0e5fa9529fd0ad8e8db53b7a6887f1..9fb0d82a91f1f32c2cea609a32e8f30d
      }
  
 diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-index 232c0547802bfd07a0432497ea1aab2ed052e2df..dd222d191e328190ab64a469f608a7ce2a9af957 100644
+index d887de1ecee00b22965054d95a7afe25dcbc3ad5..02c32110e8e2c272fee2945b710625dd018471a3 100644
 --- a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
 +++ b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-@@ -356,11 +356,10 @@ impl VirtSandbox {
+@@ -370,11 +370,10 @@ impl VirtSandbox {
          let boot_info = self.hypervisor.hypervisor_config().await.boot_info;
          let security_info = self.hypervisor.hypervisor_config().await.security_info;
  
@@ -110,7 +110,7 @@ index 381f3c8f079fe90a0213b682b3062bc24733b841..924ee294fe60062c02d78491cf377080
  
  	if err := conf.CheckTemplateConfig(); err != nil {
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 36f96c418a86b534ed00acba5ed458fd4a21c01b..62b1ff626eb0f401e13b2d4453bcae8ba9ff75e2 100644
+index 4066c85e48d5f76c37f0eebbb5dba842c8dd81fb..b24f46f18314f63191c93339ba261a182928513d 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -426,25 +426,12 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu

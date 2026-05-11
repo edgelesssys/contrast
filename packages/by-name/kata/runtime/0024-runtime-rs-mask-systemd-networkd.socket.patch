@@ -9,7 +9,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  1 file changed, 1 insertion(+)
 
 diff --git a/src/runtime-rs/crates/hypervisor/src/kernel_param.rs b/src/runtime-rs/crates/hypervisor/src/kernel_param.rs
-index 6b34ea1f2f763d2a217315f06fa2957e65442fb9..a3f0d18a0ae45fe8bb6d94ca930f62a65a6e9e7b 100644
+index a6a4ee042efef08bf887eff7ab5fda971ee39087..efd7831b45c00f52e37aa252b41399a2e7f3902e 100644
 --- a/src/runtime-rs/crates/hypervisor/src/kernel_param.rs
 +++ b/src/runtime-rs/crates/hypervisor/src/kernel_param.rs
 @@ -131,6 +131,7 @@ impl KernelParams {

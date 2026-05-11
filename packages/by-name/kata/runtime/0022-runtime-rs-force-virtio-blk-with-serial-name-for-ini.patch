@@ -11,7 +11,7 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  3 files changed, 23 insertions(+), 9 deletions(-)
 
 diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
-index 28837281465bba7b89d903dda11c1eae43457fe3..6f310448f1ff799f1a6ee0c2468164657be333c9 100644
+index 1c52e69b456d76b63f09f2257260fc4157b4a758..383cc245cee96b8f98375bc3c02cd4778c868af2 100644
 --- a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
 +++ b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
 @@ -1042,6 +1042,7 @@ struct DeviceVirtioBlk {
@@ -64,7 +64,7 @@ index 28837281465bba7b89d903dda11c1eae43457fe3..6f310448f1ff799f1a6ee0c246816465
  
          Ok(())
 diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs b/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs
-index bfaf6380aa11bb8bb42156d6add0dd71d670b709..9c7b3e53a17eefad9ac2ef872a1ab185c0f38169 100644
+index 7a56d6a40b0c44d027feba2d454e012278770d7c..eda35bebac7b522cbfe59f2bf1d4ffbe675737be 100644
 --- a/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs
 +++ b/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs
 @@ -138,8 +138,13 @@ impl QemuInner {
@@ -95,10 +95,10 @@ index bfaf6380aa11bb8bb42156d6add0dd71d670b709..9c7b3e53a17eefad9ac2ef872a1ab185
                              info!(sl!(), "unsupported block device driver: {}", unsupported)
                          }
 diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-index dd222d191e328190ab64a469f608a7ce2a9af957..5f1f14628f4cbea1e35612107e2825b75ac3da98 100644
+index 02c32110e8e2c272fee2945b710625dd018471a3..0a8172c12f5be89aa8c52a09b6539c62017e515e 100644
 --- a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
 +++ b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-@@ -34,7 +34,7 @@ use hypervisor::{
+@@ -44,7 +44,7 @@ use hypervisor::{
      utils::{get_hvsock_path, uses_native_ccw_bus},
      HybridVsockConfig, DEFAULT_GUEST_VSOCK_CID,
  };
@@ -107,7 +107,7 @@ index dd222d191e328190ab64a469f608a7ce2a9af957..5f1f14628f4cbea1e35612107e2825b7
  use hypervisor::{BlockDeviceAio, PortDeviceConfig};
  use hypervisor::{ProtectionDeviceConfig, SevSnpConfig, TdxConfig};
  use kata_sys_util::hooks::HookStates;
-@@ -541,11 +541,10 @@ impl VirtSandbox {
+@@ -555,11 +555,10 @@ impl VirtSandbox {
              sl!(),
              "initdata push data into compressed block: {:?}", &image_path
          );

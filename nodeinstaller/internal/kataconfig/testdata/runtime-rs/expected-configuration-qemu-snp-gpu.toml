@@ -5,6 +5,8 @@ block_device_cache_direct = false
 block_device_cache_noflush = false
 block_device_cache_set = false
 block_device_driver = 'virtio-scsi'
+block_device_logical_sector_size = 0
+block_device_physical_sector_size = 0
 confidential_guest = true
 contrast_imagepuller_config = ''
 cpu_features = 'pmu=off'
@@ -30,17 +32,17 @@ enable_mem_prealloc = false
 enable_vhost_user_store = false
 enable_virtio_mem = false
 entropy_source = '/dev/urandom'
+extra_monitor_socket = ''
 file_mem_backend = ''
 firmware = '/snp/share/OVMF.fd'
-firmware_volume = ''
 guest_hook_path = ''
 guest_memory_dump_paging = false
 guest_memory_dump_path = ''
 image = '/share/kata-containers.img'
-indep_iothreads = 0
 initrd = '/share/kata-initrd.zst'
 kernel = '/share/kata-kernel'
 kernel_params = ''
+kernel_verity_params = ''
 machine_accelerators = ''
 machine_type = 'q35'
 memory_offset = 0
@@ -53,20 +55,18 @@ reclaim_guest_freed_memory = false
 rootfs_type = 'erofs'
 rootless = false
 rx_rate_limiter_max_rate = 0
-seccompsandbox = ''
+seccomp_sandbox = ''
 sev_snp_guest = true
 shared_fs = 'none'
 snp_guest_policy = 196608
 snp_id_auth = ''
 snp_id_block = ''
 tx_rate_limiter_max_rate = 0
-use_legacy_serial = false
 valid_entropy_sources = ['/dev/urandom', '/dev/random', '']
 valid_file_mem_backends = ['']
 valid_hypervisor_paths = ['/bin/qemu-system-x86_64']
 valid_vhost_user_store_paths = ['/var/run/kata-containers/vhost-user']
 valid_virtio_fs_daemon_paths = ['/opt/kata/libexec/virtiofsd']
-vhost_user_reconnect_timeout_sec = 0
 vhost_user_store_path = '/var/run/kata-containers/vhost-user'
 virtio_fs_cache = 'auto'
 virtio_fs_cache_size = 0
@@ -74,6 +74,10 @@ virtio_fs_daemon = '/opt/kata/libexec/virtiofsd'
 virtio_fs_extra_args = ['--thread-pool-size=1', '-o', 'announce_submounts']
 virtio_fs_queue_size = 1024
 vm_rootfs_driver = 'virtio-blk-pci'
+
+[hypervisor.qemu.factory]
+enable_template = false
+template_path = '/run/vc/vm/template'
 
 [agent]
 [agent.kata]
@@ -83,13 +87,8 @@ dial_timeout_ms = 1000
 enable_debug = false
 enable_tracing = false
 kernel_modules = []
+launch_process_timeout = 6
 reconnect_timeout_ms = 60000
-
-[factory]
-enable_template = false
-template_path = '/run/vc/vm/template'
-vm_cache_endpoint = '/var/run/kata-containers/cache.sock'
-vm_cache_number = 0
 
 [runtime]
 agent_name = 'kata'
@@ -102,14 +101,12 @@ enable_pprof = false
 enable_tracing = false
 enable_vcpus_pinning = false
 experimental = ['force_guest_pull']
-guest_selinux_label = ''
 hypervisor_name = 'qemu'
 internetworking_model = 'tcfilter'
 jaeger_endpoint = ''
 jaeger_password = ''
 jaeger_user = ''
 name = 'virt_container'
-pod_resource_api_sock = ''
 sandbox_bind_mounts = []
 sandbox_cgroup_only = true
 static_sandbox_resource_mgmt = true

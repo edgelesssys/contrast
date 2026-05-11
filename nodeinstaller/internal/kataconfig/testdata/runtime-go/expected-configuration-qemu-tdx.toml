@@ -5,6 +5,8 @@ block_device_cache_direct = false
 block_device_cache_noflush = false
 block_device_cache_set = false
 block_device_driver = 'virtio-scsi'
+block_device_logical_sector_size = 0
+block_device_physical_sector_size = 0
 confidential_guest = true
 contrast_imagepuller_config = ''
 cpu_features = 'pmu=off'
@@ -81,6 +83,7 @@ dial_timeout = 120
 enable_debug = false
 enable_tracing = false
 kernel_modules = []
+launch_process_timeout = 6
 
 [factory]
 enable_template = false
