@@ -22,7 +22,7 @@ let
   toolchainFile = "${contrastPkgs.kata.runtime.src}/rust-toolchain.toml";
   toolchainSpec = {
     name = (lib.importTOML toolchainFile).toolchain.channel;
-    sha256 = "sha256-SDu4snEWjuZU475PERvu+iO50Mi39KVjqCeJeNvpguU=";
+    sha256 = "sha256-SBKjxhC6zHTu0SyJwxLlQHItzMzYZ71VCWQC2hOzpRY=";
   };
   muslToolchain = fenix.targets."x86_64-unknown-linux-musl".fromToolchainName toolchainSpec;
 in
