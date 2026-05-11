@@ -3,8 +3,8 @@
 
 {
   lib,
-  runtime,
-  rustPlatform,
+  craneLib,
+  source,
   openssl,
   pkg-config,
   protobuf,
@@ -15,30 +15,18 @@
   applyPatches,
 }:
 
-rustPlatform.buildRustPackage rec {
+craneLib.buildPackage rec {
   pname = "genpolicy";
-  inherit (runtime) version src;
+  inherit (source) version cargoVendorDir src;
+  strictDeps = true;
 
-  sourceRoot = "${src.name}";
-  cargoBuildFlags = [
-    "-p"
-    pname
+  cargoExtraArgs = lib.concatStringsSep " " [
+    "--target"
+    stdenv.hostPlatform.rust.rustcTarget
+    "--offline"
+    "--package"
+    "genpolicy"
   ];
-
-  cargoLock = {
-    lockFile = "${src}/Cargo.lock";
-    outputHashes = {
-      "api_client-0.1.0" = "sha256-RdwQg6/EI+oGkyNXnu5t1q87oTXev25XpIaE+PWDTx4=";
-      "cgroups-rs-0.3.5" = "sha256-BKD1ZPK5LqB/n2xD/oODArVKjbH+MQOeYn/UYbBHzn0=";
-      "micro_http-0.1.0" = "sha256-XemdzwS25yKWEXJcRX2l6QzD7lrtroMeJNOUEWGR7WQ=";
-      "regorus-0.9.1" = "sha256-+TCq9r8kTNM0URbcDP4D9/lKA6Bni7+KgrGRTJFbQPM=";
-      "s390_pv_core-0.11.0" = "sha256-P275gUoF4JtaKvKPvzhCsBuo882kKCYebtNpCDEmTP0=";
-    };
-  };
-
-  env.OPENSSL_NO_VENDOR = 1;
-  env.OPENSSL_DIR = "${openssl.dev}";
-  env.OPENSSL_LIB_DIR = "${lib.getLib openssl}/lib";
 
   nativeBuildInputs = [
     cmake
@@ -52,12 +40,39 @@ rustPlatform.buildRustPackage rec {
     zlib
   ];
 
-  # Build.rs writes to its own src dir
-  postConfigure = ''
-    chmod -R +w src/tools/genpolicy/src
-  '';
+  env = {
+    OPENSSL_NO_VENDOR = 1;
+    OPENSSL_DIR = "${openssl.dev}";
+    OPENSSL_LIB_DIR = "${lib.getLib openssl}/lib";
+  }
+  // lib.optionalAttrs stdenv.hostPlatform.isStatic {
+    "CARGO_TARGET_${stdenv.hostPlatform.rust.cargoEnvVarTarget}_RUSTFLAGS" =
+      "-C target-feature=+crt-static -C link-arg=-static";
+  };
 
   preBuild = ''
+    chmod -R +w .
+  ''
+  + lib.optionalString stdenv.hostPlatform.isStatic ''
+    unset NIX_CFLAGS_LINK
+  '';
+
+  cargoArtifacts = craneLib.buildDepsOnly {
+    inherit
+      pname
+      version
+      cargoVendorDir
+      strictDeps
+      cargoExtraArgs
+      nativeBuildInputs
+      buildInputs
+      env
+      preBuild
+      ;
+    src = source.srcRaw;
+  };
+
+  postPatch = ''
     make -C src/tools/genpolicy src/version.rs
   '';
 
@@ -65,16 +80,13 @@ rustPlatform.buildRustPackage rec {
   doCheck = stdenv.hostPlatform.isLinux;
 
   # Only run library tests, the integration tests need internet access.
-  cargoTestFlags = [
-    "-p"
-    pname
-    "--lib"
-  ];
+  cargoTestExtraArgs = "--package genpolicy --lib";
 
   passthru = rec {
     settings-base = stdenvNoCC.mkDerivation {
-      name = "${pname}-${version}-settings";
-      inherit src sourceRoot;
+      name = "genpolicy-${version}-settings";
+      inherit src;
+      sourceRoot = "${src.name}";
 
       phases = [
         "unpackPhase"
@@ -122,8 +134,9 @@ rustPlatform.buildRustPackage rec {
     rules = rules-prod;
 
     rules-prod = stdenvNoCC.mkDerivation {
-      name = "${pname}-${version}-rules";
-      inherit src sourceRoot;
+      name = "genpolicy-${version}-rules";
+      inherit src;
+      sourceRoot = "${src.name}";
 
       phases = [
         "unpackPhase"
@@ -138,8 +151,9 @@ rustPlatform.buildRustPackage rec {
     };
 
     rules-allow-all = stdenvNoCC.mkDerivation {
-      name = "${pname}-${version}-rules-allow-all";
-      inherit src sourceRoot;
+      name = "genpolicy-${version}-rules-allow-all";
+      inherit src;
+      sourceRoot = "${src.name}";
 
       phases = [
         "unpackPhase"

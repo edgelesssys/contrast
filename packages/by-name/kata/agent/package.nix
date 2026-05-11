@@ -3,8 +3,10 @@
 
 {
   lib,
+  craneLib,
   rustPlatform,
-  runtime,
+  stdenv,
+  source,
   cmake,
   pkg-config,
   protobuf,
@@ -17,29 +19,36 @@
   withInitData ? true,
 }:
 
-rustPlatform.buildRustPackage rec {
+craneLib.buildPackage rec {
   pname = "kata-agent";
-  inherit (runtime) version src;
+  inherit (source) version cargoVendorDir src;
+  strictDeps = true;
 
-  cargoBuildFlags = [
-    "--package"
-    "kata-agent"
-  ];
-  cargoTestFlags = [
-    "--package"
-    "kata-agent"
-  ];
-
-  cargoLock = {
-    lockFile = "${src}/Cargo.lock";
-    outputHashes = {
-      "cgroups-rs-0.3.5" = "sha256-BKD1ZPK5LqB/n2xD/oODArVKjbH+MQOeYn/UYbBHzn0=";
-      "api_client-0.1.0" = "sha256-RdwQg6/EI+oGkyNXnu5t1q87oTXev25XpIaE+PWDTx4=";
-      "micro_http-0.1.0" = "sha256-XemdzwS25yKWEXJcRX2l6QzD7lrtroMeJNOUEWGR7WQ=";
-      "regorus-0.9.1" = "sha256-+TCq9r8kTNM0URbcDP4D9/lKA6Bni7+KgrGRTJFbQPM=";
-      "s390_pv_core-0.11.0" = "sha256-P275gUoF4JtaKvKPvzhCsBuo882kKCYebtNpCDEmTP0=";
-    };
-  };
+  cargoExtraArgs = lib.concatStringsSep " " (
+    [
+      "--target"
+      stdenv.hostPlatform.rust.rustcTarget
+      "--offline"
+      "--package"
+      "kata-agent"
+    ]
+    ++ lib.optionals withSeccomp [
+      "--features"
+      "seccomp"
+    ]
+    ++ lib.optionals withAgentPolicy [
+      "--features"
+      "agent-policy"
+    ]
+    ++ lib.optionals withStandardOCIRuntime [
+      "--features"
+      "standard-oci-runtime"
+    ]
+    ++ lib.optionals withInitData [
+      "--features"
+      "init-data"
+    ]
+  );
 
   nativeBuildInputs = [
     cmake
@@ -59,23 +68,45 @@ rustPlatform.buildRustPackage rec {
     libseccomp
   ];
 
+  env = {
+    LIBC = "gnu";
+    OPENSSL_NO_VENDOR = 1;
+  };
+
+  preBuild = ''
+    chmod -R +w .
+  '';
+
+  cargoArtifacts = craneLib.buildDepsOnly {
+    inherit
+      pname
+      version
+      cargoVendorDir
+      strictDeps
+      cargoExtraArgs
+      nativeBuildInputs
+      buildInputs
+      env
+      preBuild
+      ;
+    src = source.srcRaw;
+  };
+
   postPatch = ''
     substitute src/agent/src/version.rs.in src/agent/src/version.rs \
       --replace-fail @AGENT_VERSION@ ${version} \
       --replace-fail @API_VERSION@ 0.0.1 \
       --replace-fail @VERSION_COMMIT@ ${version} \
       --replace-fail @COMMIT@ ""
-
-    # Disable LTO (Link Time Optimization) to reduce build time. The agent
-    # binary shouldn't be that performance critical.
-    substituteInPlace src/agent/Cargo.toml \
-      --replace-fail 'lto = true' 'lto = false'
   '';
 
-  # Build.rs writes to src
-  postConfigure = ''
-    chmod -R +w .
-  '';
+  cargoTestExtraArgs = lib.concatStringsSep " " [
+    "--"
+    "--skip=mount::tests::test_already_baremounted"
+    "--skip=mount::tests::test_mount"
+    "--skip=netlink::tests::list_routes"
+    "--skip=config::tests::test_from_cmdline_with_args_overwrites"
+  ];
 
   # https://crates.io/crates/sev produces libsev.so, which is not needed for
   # the agent binary and pulls in a large dependency on rustc. Thus, we remove
@@ -83,22 +114,6 @@ rustPlatform.buildRustPackage rec {
   postInstall = ''
     rm -rf $out/lib
   '';
-
-  buildFeatures =
-    lib.optional withSeccomp "seccomp"
-    ++ lib.optional withAgentPolicy "agent-policy"
-    ++ lib.optional withStandardOCIRuntime "standard-oci-runtime"
-    ++ lib.optional withInitData "init-data";
-
-  env = {
-    LIBC = "gnu";
-    OPENSSL_NO_VENDOR = 1;
-  };
-
-  checkFlags = [
-    "--skip=mount::tests::test_already_baremounted"
-    "--skip=netlink::tests::list_routes stdout"
-  ];
 
   meta = {
     description = ''The Kata agent is a long running process that runs inside the Virtual Machine (VM) (also known as the "pod" or "sandbox").'';

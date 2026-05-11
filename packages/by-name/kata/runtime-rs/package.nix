@@ -3,8 +3,9 @@
 
 {
   lib,
-  rustPlatform,
-  runtime,
+  craneLib,
+  source,
+  stdenv,
   protobuf,
   pkg-config,
   openssl,
@@ -12,31 +13,24 @@
   withDragonball ? false,
 }:
 
-rustPlatform.buildRustPackage (finalAttrs: {
+craneLib.buildPackage rec {
   pname = "kata-runtime-rs";
-  inherit (runtime) version src;
+  inherit (source) version cargoVendorDir src;
+  strictDeps = true;
 
-  buildAndTestSubdir = "src/runtime-rs";
-
-  cargoLock = {
-    lockFile = "${finalAttrs.src}/Cargo.lock";
-    outputHashes = {
-      "api_client-0.1.0" = "sha256-RdwQg6/EI+oGkyNXnu5t1q87oTXev25XpIaE+PWDTx4=";
-      "cgroups-rs-0.3.5" = "sha256-BKD1ZPK5LqB/n2xD/oODArVKjbH+MQOeYn/UYbBHzn0=";
-      "micro_http-0.1.0" = "sha256-XemdzwS25yKWEXJcRX2l6QzD7lrtroMeJNOUEWGR7WQ=";
-      "regorus-0.9.1" = "sha256-+TCq9r8kTNM0URbcDP4D9/lKA6Bni7+KgrGRTJFbQPM=";
-      "s390_pv_core-0.11.0" = "sha256-P275gUoF4JtaKvKPvzhCsBuo882kKCYebtNpCDEmTP0=";
-    };
-  };
-
-  postPatch = ''
-    substitute src/runtime-rs/crates/shim/src/config.rs.in src/runtime-rs/crates/shim/src/config.rs \
-      --replace-fail @PROJECT_NAME@ "Kata Containers" \
-      --replace-fail @RUNTIME_VERSION@ ${finalAttrs.version} \
-      --replace-fail @COMMIT@ none \
-      --replace-fail @RUNTIME_NAME@ containerd-shim-kata-v2 \
-      --replace-fail @CONTAINERD_RUNTIME_NAME@ io.containerd.kata.v2
-  '';
+  cargoExtraArgs = lib.concatStringsSep " " (
+    [
+      "--target"
+      stdenv.hostPlatform.rust.rustcTarget
+      "--offline"
+      "--package"
+      "shim"
+    ]
+    ++ lib.optionals withDragonball [
+      "--features"
+      "dragonball"
+    ]
+  );
 
   nativeBuildInputs = [
     pkg-config
@@ -48,18 +42,41 @@ rustPlatform.buildRustPackage (finalAttrs: {
     openssl.dev
   ];
 
-  # Build.rs writes to src
-  postConfigure = ''
+  env = {
+    OPENSSL_NO_VENDOR = 1;
+  };
+
+  preBuild = ''
     chmod -R +w .
   '';
 
-  buildFeatures = lib.optional withDragonball "dragonball";
+  cargoArtifacts = craneLib.buildDepsOnly {
+    inherit
+      pname
+      version
+      cargoVendorDir
+      strictDeps
+      cargoExtraArgs
+      nativeBuildInputs
+      buildInputs
+      env
+      preBuild
+      ;
+    src = source.srcRaw;
+  };
 
-  env.OPENSSL_NO_VENDOR = 1;
+  postPatch = ''
+    substitute src/runtime-rs/crates/shim/src/config.rs.in src/runtime-rs/crates/shim/src/config.rs \
+      --replace-fail @PROJECT_NAME@ "Kata Containers" \
+      --replace-fail @RUNTIME_VERSION@ ${version} \
+      --replace-fail @COMMIT@ none \
+      --replace-fail @RUNTIME_NAME@ containerd-shim-kata-v2 \
+      --replace-fail @CONTAINERD_RUNTIME_NAME@ io.containerd.kata.v2
+  '';
 
-  cargoTestFlags = [ "--bins" ];
-
-  checkFlags = [
+  cargoTestExtraArgs = lib.concatStringsSep " " [
+    "--bins"
+    "--"
     # Tests need root privileges or other stuff not available in the sandbox.
     "--skip=device::device_manager::tests::test_new_block_device"
     "--skip=network::endpoint::endpoints_test::tests::test_ipvlan_construction"
@@ -92,9 +109,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
   };
 
   meta = {
-    changelog = "https://github.com/kata-containers/kata-containers/releases/tag/${finalAttrs.version}";
+    changelog = "https://github.com/kata-containers/kata-containers/releases/tag/${version}";
     homepage = "https://github.com/kata-containers/kata-containers";
     mainProgram = "containerd-shim-kata-v2";
     license = lib.licenses.asl20;
   };
-})
+}
