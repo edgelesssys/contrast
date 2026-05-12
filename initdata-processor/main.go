@@ -14,7 +14,12 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"slices"
+	"strings"
+	"syscall"
+	"time"
 
 	"github.com/edgelesssys/contrast/initdata-processor/policy"
 	"github.com/edgelesssys/contrast/initdata-processor/validator"
@@ -27,7 +32,10 @@ const (
 	insecureConfigPath = "/run/insecure-cfg"
 )
 
-var version = "0.0.0-dev"
+var (
+	version           = "0.0.0-dev"
+	kernelCmdlinePath = "/proc/cmdline"
+)
 
 // We always exit with status code 0 so that the Kata agent can start and propagate errors to
 // the runtime.
@@ -87,8 +95,11 @@ func main() {
 	// On insecure platforms, serve the hostdata digest via HTTP so that
 	// the insecure aTLS issuer (running inside containers) can fetch it.
 	if insecurePlatform {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+
 		log.Printf("Starting insecure hostdata server on %s", insecure.HostdataAddr)
-		if err := serveHostdata(hostdata); err != nil {
+		if err := serveHostdata(ctx, hostdata); err != nil {
 			log.Printf("Hostdata server error: %v", err)
 		}
 	}
@@ -100,10 +111,17 @@ func handleInitdata(doc initdata.Raw) (hostdata []byte, insecurePlatform bool, r
 		return nil, false, fmt.Errorf("computing initdata digest: %w", err)
 	}
 
+	allowInsecure, err := allowInsecureAttestation()
+	if err != nil {
+		return nil, false, err
+	}
+
 	v, verr := validator.New()
 	if errors.Is(verr, validator.ErrNoPlatform) {
+		if !allowInsecure {
+			return nil, false, fmt.Errorf("no TEE platform detected and insecure attestation is not allowed")
+		}
 		log.Print("WARNING: No TEE platform detected, skipping initdata digest validation. This is expected on insecure platforms.")
-		insecurePlatform = true
 	} else if verr != nil {
 		return nil, false, fmt.Errorf("creating validator: %w", verr)
 	} else if err := v.ValidateDigest(digest); err != nil {
@@ -121,11 +139,22 @@ func handleInitdata(doc initdata.Raw) (hostdata []byte, insecurePlatform bool, r
 			return nil, false, fmt.Errorf("writing file %q: %w", path, err)
 		}
 	}
-	return digest, insecurePlatform, nil
+	return digest, allowInsecure, nil
+}
+
+func allowInsecureAttestation() (bool, error) {
+	cmdline, err := os.ReadFile(kernelCmdlinePath)
+	if err != nil {
+		return false, fmt.Errorf("reading kernel command line: %w", err)
+	}
+	if slices.Contains(strings.Fields(string(cmdline)), "contrast.allow_insecure_attestation=1") {
+		return true, nil
+	}
+	return false, nil
 }
 
 // serveHostdata starts an HTTP server that serves the hostdata digest.
-func serveHostdata(hostdata []byte) error {
+func serveHostdata(ctx context.Context, hostdata []byte) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /hostdata", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -133,7 +162,23 @@ func serveHostdata(hostdata []byte) error {
 			log.Printf("hostdata write error: %v", err)
 		}
 	})
-	return http.ListenAndServe(insecure.HostdataAddr, mux)
+	server := &http.Server{
+		Addr:              insecure.HostdataAddr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Printf("hostdata server shutdown error: %v", err)
+		}
+	}()
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
 }
 
 // sdNotifyReady signals systemd that the service is ready.
