@@ -34,9 +34,7 @@ let
   };
 
   ovmf = OVMF-TDX.override {
-    # Only enable ACPI verification for the GPU build, until
-    # the verification is actually secure.
-    withACPIVerificationInsecure = withGPU;
+    withACPIVerificationInsecure = true;
   };
 
   node-installer = ociLayerTar {

@@ -13,6 +13,7 @@
   ovmf,
   withGPU ? false,
   withDebug ? false,
+  withACPIVerification ? false,
 }:
 
 let
@@ -36,6 +37,7 @@ let
   # the firmware measures into RTMR[0]. Tell tdx-measure so it picks the
   # matching set of hardcoded ACPI hashes.
   legacySerialFlag = lib.optionalString withDebug "--legacy-serial";
+  acpiVerificationFlag = lib.optionalString withACPIVerification "--acpi-verification";
 in
 
 stdenvNoCC.mkDerivation {
@@ -48,7 +50,7 @@ stdenvNoCC.mkDerivation {
     mkdir $out
 
     ${lib.getExe tdx-measure} mrtd -f ${ovmf-tdx} --eventlog-dir eventlogs > $out/mrtd.hex
-    ${lib.getExe tdx-measure} rtmr ${gpuFlag} ${legacySerialFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 0 > $out/rtmr0.hex
+    ${lib.getExe tdx-measure} rtmr ${gpuFlag} ${legacySerialFlag} ${acpiVerificationFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 0 > $out/rtmr0.hex
     ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 1 > $out/rtmr1.hex
     ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 2 > $out/rtmr2.hex
     ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 3 > $out/rtmr3.hex

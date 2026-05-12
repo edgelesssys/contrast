@@ -68,6 +68,7 @@ let
             launch-digests = kata.calculateTdxLaunchDigests {
               inherit os-image ovmf withGPU;
               inherit (node-installer-image) withDebug;
+              withACPIVerification = true;
             };
           in
           {
@@ -84,18 +85,17 @@ let
         )
       ];
     };
+  ovmf-tdx-multi-vcpu = OVMF-TDX.override {
+    withACPIVerificationInsecure = true;
+  };
   tdxRefVals = tdxRefValsWith {
     inherit (node-installer-image) os-image;
-    ovmf = OVMF-TDX;
+    ovmf = ovmf-tdx-multi-vcpu;
     withGPU = false;
   };
   tdxGpuRefVals = tdxRefValsWith {
     inherit (node-installer-image.gpu) os-image;
-    ovmf = OVMF-TDX.override {
-      # Only enable ACPI verification for the GPU build, until
-      # the verification is actually secure.
-      withACPIVerificationInsecure = true;
-    };
+    ovmf = ovmf-tdx-multi-vcpu;
     withGPU = true;
   };
 in

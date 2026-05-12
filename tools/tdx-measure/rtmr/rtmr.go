@@ -115,8 +115,12 @@ var (
 // CalcRtmr0 calculates RTMR[0] for the given firmware. If legacySerial is true,
 // the hardcoded ACPI hashes for a VM launched with -serial chardev:... are
 // used instead of the ones for a VM with virtio-serial-pci; the two topologies
-// produce different ACPI tables.
-func CalcRtmr0(firmware []byte, gpu GPUModel, legacySerial bool) ([48]byte, error) {
+// produce different ACPI tables. If acpiVerified is true, the firmware verifies
+// ACPI tables against a built-in digest instead of measuring them into RTMR[0],
+// so the ACPI hashes are not extended. This must match OVMF built with the
+// QemuFwCfgAcpi "verify instead of measure" patch (used to make RTMRs
+// independent of vCPU count and attached devices).
+func CalcRtmr0(firmware []byte, gpu GPUModel, legacySerial, acpiVerified bool) ([48]byte, error) {
 	var rtmr Rtmr
 
 	// We don't measure the Hobs, the firmware verifies them instead.
@@ -180,7 +184,7 @@ func CalcRtmr0(firmware []byte, gpu GPUModel, legacySerial bool) ([48]byte, erro
 		"94c46e0d8c85d3632c241f6bcfba203287259711ab9616fa1f1174cdd2e30e777f9b393ef93b8aa4ac721deef3f54a59",
 	}
 	var configHashes []string
-	if gpu == GPUModelNone {
+	if gpu == GPUModelNone && !acpiVerified {
 		if legacySerial {
 			configHashes = slices.Concat(legacySerialAcpiHashes)
 		} else {

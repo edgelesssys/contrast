@@ -129,6 +129,7 @@ func newRtMrCmd() *cobra.Command {
 	cmd.Flags().StringP("cmdline", "c", "", "kernel command line")
 	cmd.Flags().StringP("gpu-model", "g", "none", "GPU model used in the VM (none, h100, b200)")
 	cmd.Flags().Bool("legacy-serial", false, "VM uses -serial chardev:... instead of virtio-serial-pci (changes ACPI topology)")
+	cmd.Flags().Bool("acpi-verification", false, "OVMF verifies ACPI tables against a built-in digest instead of measuring them into RTMR[0]")
 	return cmd
 }
 
@@ -157,7 +158,11 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		digest, err = rtmr.CalcRtmr0(firmware, gpuModel, legacySerial)
+		acpiVerification, err := cmd.Flags().GetBool("acpi-verification")
+		if err != nil {
+			return err
+		}
+		digest, err = rtmr.CalcRtmr0(firmware, gpuModel, legacySerial, acpiVerification)
 		if err != nil {
 			return fmt.Errorf("can't calculate RTMR 0: %w", err)
 		}
