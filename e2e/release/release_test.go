@@ -97,6 +97,10 @@ func TestRelease(t *testing.T) {
 
 		// Delete resources 1-by-1 so that we don't stop on errors.
 		for _, resource := range resources {
+			if resource.GetLabels()["ci.contrast.edgeless.systems/keep"] == "true" {
+				continue
+			}
+
 			if err := k.Delete(ctx, resource); err != nil {
 				t.Logf("deleting resource %s: %v", resource.GetName(), err)
 			}
