@@ -13,6 +13,7 @@ import (
 	"crypto/rand"
 	"crypto/sha512"
 	"crypto/tls"
+	"encoding/binary"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -32,6 +33,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	snpmeasure "github.com/edgelesssys/contrast/internal/snp"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/stretchr/testify/assert"
@@ -123,10 +125,8 @@ func TestATLS(t *testing.T) {
 				if opt.ValidateOpts.GuestPolicy.Debug == true {
 					return fmt.Errorf("Debug must be disabled by default")
 				}
-				// All fields in GuestPolicy are primitive types, so this copies whole struct.
-				guestPolicy := opt.ValidateOpts.GuestPolicy
-				guestPolicy.Debug = true
-				return idKeyDigestReplace([48]byte(opt.ValidateOpts.Measurement), guestPolicy, opt)
+				opt.ValidateOpts.GuestPolicy.Debug = true
+				return idKeyDigestReplace([48]byte(opt.ValidateOpts.Measurement), opt.ValidateOpts.GuestPolicy, opt)
 			},
 			wantError: true,
 		},
@@ -157,7 +157,14 @@ func TestATLS(t *testing.T) {
 					opt.ValidateOpts.HostData = coordPolicyHashBytes
 					assert.NoError(tc.manifestModifyFunc(&opt))
 					name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
-					v := snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, logger.WithGroup("validator"), name)
+					var v atls.Validator
+					if len(opt.APEIP) == 4 {
+						seed := [snpmeasure.LaunchDigestSize]byte(opt.ValidateOpts.Measurement)
+						apEIP := binary.BigEndian.Uint32(opt.APEIP)
+						v = snp.NewIterativeValidator(opt.VerifyOpts, opt.ValidateOpts, seed, apEIP, opt.VCPUSig, opt.AllowedChipIDs, logger.WithGroup("validator"), name)
+					} else {
+						v = snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, logger.WithGroup("validator"), name)
+					}
 					validators = append(validators, v)
 				}
 
