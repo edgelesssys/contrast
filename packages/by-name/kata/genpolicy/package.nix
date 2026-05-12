@@ -8,7 +8,6 @@
   openssl,
   pkg-config,
   protobuf,
-  libiconv,
   zlib,
   cmake,
   stdenv,
@@ -50,7 +49,6 @@ rustPlatform.buildRustPackage rec {
   buildInputs = [
     openssl
     openssl.dev
-    libiconv
     zlib
   ];
 
