@@ -57,6 +57,7 @@ Edgeless
 Emojivoto
 Epyc
 etcd
+event_name
 Filebeat
 Filestash
 Filestore
