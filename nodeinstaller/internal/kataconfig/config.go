@@ -6,6 +6,7 @@ package kataconfig
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/pelletier/go-toml/v2"
@@ -74,6 +75,10 @@ func KataRuntimeConfig(
 	config.Hypervisor["qemu"]["contrast_imagepuller_config"] = imagepullerConfigPath
 	// TODO(katexochen): Remove after https://github.com/kata-containers/kata-containers/pull/12472 is merged.
 	config.Hypervisor["qemu"]["disable_image_nvdimm"] = true
+
+	if platforms.IsInsecure(platform) {
+		qemuExtraKernelParams = strings.TrimSpace(qemuExtraKernelParams + " contrast.allow_insecure_attestation=1")
+	}
 
 	// Replace the kernel params entirely (and don't append) since that's
 	// also what we do when calculating the launch measurement.
