@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">The manifest | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/next/architecture/components/manifest"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="The manifest | Contrast"><meta data-rh="true" name="description" content="The manifest is the configuration file for the Coordinator, defining your confidential deployment."><meta data-rh="true" property="og:description" content="The manifest is the configuration file for the Coordinator, defining your confidential deployment."><link data-rh="true" rel="icon" href="/contrast/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/next/architecture/components/manifest"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/components/manifest" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/components/manifest" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Manifest","item":"https://docs.edgeless.systems/contrast/next/architecture/components/manifest"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/assets/css/styles.3541c1a1.css">
-<script src="/contrast/assets/js/runtime~main.e22969b4.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.82aa503b.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.c8019ffd.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -149,45 +149,12 @@ The kernel command line contains the dm-verity hash of the root filesystem, whic
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="tdx-allowed-piids"><code>ReferenceValues.tdx.*.AllowedPIIDs</code><a href="#tdx-allowed-piids" class="hash-link" aria-label="Direct link to tdx-allowed-piids" title="Direct link to tdx-allowed-piids" translate="no">​</a></h3>
 <p>These are matched against the <code>PIID</code> field from the PCK certificate, as documented in section 1.3.5 of the <a href="https://api.trustedservices.intel.com/documents/Intel_SGX_PCK_Certificate_CRL_Spec-1.5.pdf" target="_blank" rel="noopener noreferrer" class="">SGX PCK Spec</a>.
 If the list is empty or null, all PIIDs are accepted.</p>
-<p>In case hardware is operated by you instead of a third party, or you are able to gain physical access to the hardware to audit it,
-you can obtain the PIID with the following steps:</p>
-<ol>
-<li class="">
-<p>Install and run Intel&#x27;s <a href="https://github.com/intel/confidential-computing.tee.dcap/blob/717f2a91ca732c3309b0c59d21757463133eb440/tools/PCKRetrievalTool/README.txt" target="_blank" rel="noopener noreferrer" class=""><code>PCKIDRetrievalTool</code></a>.
-This should place a CSV file in your working directory.</p>
-</li>
-<li class="">
-<p>Retrieve the following fields from the CSV file:</p>
-<ul>
-<li class=""><code>EncryptedPPID</code></li>
-<li class=""><code>PCE_ID</code></li>
-<li class=""><code>CPUSVN</code></li>
-<li class=""><code>PCE ISVSVN</code></li>
-</ul>
-</li>
-<li class="">
-<p>Use these values to <a href="https://api.portal.trustedservices.intel.com/content/documentation.html#pcs-certificate-v4" target="_blank" rel="noopener noreferrer" class="">request a PCK certificate from Intel PCS</a>.
-Note that the response contains intermediate certificates in the <code>SGX-PCK-Certificate-Issuer-Chain</code> header that are required to verify the PCK certificate&#x27;s signature.</p>
-</li>
-<li class="">
-<p>Verify that the PCK certificate chains back to Intel&#x27;s root, for example with <code>openssl verify</code>.</p>
-</li>
-<li class="">
-<p>Parse the PCK certificate to find the SGX extension address:</p>
-<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">openssl asn1parse </span><span class="token parameter variable" style="color:#36acaa">-in</span><span class="token plain"> pck.pem</span><br></span></code></pre></div></div>
-<p>Example output, showing the extension address <code>624</code> right after its ASN.1 OID:</p>
-<div class="language-txt codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-txt codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">  613:d=5  hl=2 l=   9 prim: OBJECT            :1.2.840.113741.1.13.1</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  624:d=5  hl=4 l= 554 prim: OCTET STRING      [HEX DUMP]: [...]</span><br></span></code></pre></div></div>
-</li>
-<li class="">
-<p>Parse the SGX extension to find the PIID:</p>
-<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">openssl asn1parse </span><span class="token parameter variable" style="color:#36acaa">-in</span><span class="token plain"> pck.pem </span><span class="token parameter variable" style="color:#36acaa">--strparse</span><span class="token plain"> </span><span class="token variable" style="color:#36acaa">$ADDRESS</span><br></span></code></pre></div></div>
-<p>Example output with <code>ADDRESS=624</code>, showing the PIID right after its ASN.1 OID:</p>
-<div class="language-txt codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-txt codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">  454:d=2  hl=2 l=  10 prim: OBJECT            :1.2.840.113741.1.13.1.6</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  466:d=2  hl=2 l=  16 prim: OCTET STRING      [HEX DUMP]:E90210702A2CC5AD9764F29DDC8FDE8C</span><br></span></code></pre></div></div>
-<p>Copy the value shown after <code>[HEX DUMP]</code> into the <code>AllowedPIIDs</code> field.</p>
-</li>
-</ol>
-<div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>The EncryptedPPID must be retrieved from a machine by physically accessing it.
-If you retrieve this value via a remote channel, your traffic could already be redirected to a hostile environment that allows an attacker physical access.</p></div></div>
+<p>You can obtain the PIIDs for your hardware using Intel&#x27;s <a href="https://github.com/intel/confidential-computing.tee.dcap.poe/blob/v1.26/poe-gen-tool/README.md" target="_blank" rel="noopener noreferrer" class="">PoE Generator</a>.
+Download the latest release, extract the binary and make it available in <code>PATH</code> (for example, place it in <code>/usr/local/bin</code>).
+We recommend using the platform manifest to extract the PIID, which should be written to a file <code>pckid_retrieval.csv</code> by the <a href="https://github.com/intel/confidential-computing.tee.dcap/blob/717f2a91ca732c3309b0c59d21757463133eb440/tools/PCKRetrievalTool/README.txt" target="_blank" rel="noopener noreferrer" class=""><code>PCKIDRetrievalTool</code></a> during platform registration.
+Consult the tool&#x27;s documentation for other ways to extract the PIID.
+The following command will print a JSON document, containing the hex-encoded PIID under the key <code>platformInstanceId</code>.</p>
+<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token function" style="color:#d73a49">cut</span><span class="token plain"> -d, </span><span class="token parameter variable" style="color:#36acaa">-f6</span><span class="token plain"> pckid_retrieval.csv </span><span class="token operator" style="color:#393A34">|</span><span class="token plain"> poe-gen-tool extract </span><span class="token parameter variable" style="color:#36acaa">--type</span><span class="token plain"> pm /dev/stdin</span><br></span></code></pre></div></div>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="tdx-memory-integrity"><code>ReferenceValues.tdx.*.MemoryIntegrity</code><a href="#tdx-memory-integrity" class="hash-link" aria-label="Direct link to tdx-memory-integrity" title="Direct link to tdx-memory-integrity" translate="no">​</a></h3>
 <p>The <code>MemoryIntegrity</code> field controls verification of the TDX memory integrity mode (see <a href="https://www.intel.com/content/www/us/en/content-details/867568/intel-tdx-module-base-architecture-specification.html" target="_blank" rel="noopener noreferrer" class="">TDX Module Spec</a>, chapter 16).
 Setting it to <code>true</code> enforces the <em>cryptographic integrity</em> mode.
