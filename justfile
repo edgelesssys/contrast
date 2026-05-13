@@ -354,7 +354,7 @@ set cli=default_cli set=default_set:
     nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
-    trap "kill $PID" EXIT
+    trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null || true' EXIT
     nix run -L .#{{ set }}.scripts.wait-for-port-listen -- 1313
     nix run -L .#{{ set }}.{{ cli }} -- set \
         --workspace-dir ./{{ workspace_dir }} \
@@ -370,7 +370,7 @@ verify cli=default_cli set=default_set:
     nix run -L .#{{ set }}.scripts.kubectl-wait-coordinator -- $ns
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1314:1313 &
     PID=$!
-    trap "kill $PID" EXIT
+    trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null || true' EXIT
     nix run -L .#{{ set }}.scripts.wait-for-port-listen -- 1314
     nix run -L .#{{ set }}.{{ cli }} -- verify \
         --workspace-dir ./{{ workspace_dir }} \
@@ -385,7 +385,7 @@ recover cli=default_cli set=default_set:
     nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
-    trap "kill $PID" EXIT
+    trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null || true' EXIT
     nix run -L .#{{ set }}.scripts.wait-for-port-listen -- 1313
     nix run -L .#{{ set }}.{{ cli }} -- recover \
         --workspace-dir ./{{ workspace_dir }} \
