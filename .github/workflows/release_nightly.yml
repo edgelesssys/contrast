@@ -60,9 +60,9 @@ jobs:
           gh release list --repo "${GH_REPO}" --limit 10 --json tagName,isDraft \
             | jq -r '.[] | select(.isDraft == true) | .tagName' \
             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-[0-9]{4}-[0-9]{2}-[0-9]{2}$' \
-            | while IFS= read -r tag; do
-                echo "Deleting nightly draft release: ${tag}"
-                gh release delete "${tag}" --repo "${GH_REPO}" --yes
+            | while IFS= read -r nightly_version; do
+                echo "Deleting nightly draft release: ${nightly_version}"
+                gh release delete "${nightly_version}" --repo "${GH_REPO}" --yes
               done
 
   release-x86_64-linux:
