@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Tue, 12 May 2026 17:39:12 +0200
+Subject: [PATCH] agent: don't abort in case of policy problems
+
+Calling abort() is a rather drastic measure, as it immediately
+terminates the process without cleaning up, and causes systemd to invoke
+an unnecessary core dump handler instead of terminating directly. The
+abrupt termination also leads to missing logs, which are crucial for
+debugging the situation causing the abort.
+
+This commit changes the failure handling to first wait, in order to give
+the logger time to flush, and then to panic, which does call all the
+finalizers.
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/agent/src/main.rs | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
+index aee7984212d1040632e896f6fb5fc8272a70f9d2..51acf09e234960b79583eea62b4c4cb90738d972 100644
+--- a/src/agent/src/main.rs
++++ b/src/agent/src/main.rs
+@@ -383,7 +383,8 @@ async fn start_sandbox(
+     if let Err(e) = initialize_policy().await {
+         error!(logger, "Failed to initialize agent policy: {:?}", e);
+         // Continuing execution without a security policy could be dangerous.
+-        std::process::abort();
++        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
++        panic!("Failed to initialize agent policy: {:?}", e)
+     }
+ 
+     let sandbox = Arc::new(Mutex::new(s));
