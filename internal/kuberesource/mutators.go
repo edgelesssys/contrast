@@ -32,6 +32,21 @@ const (
 	securePVAnnotationKey         = "contrast.edgeless.systems/secure-pv"
 	workloadSecretIDAnnotationKey = "contrast.edgeless.systems/workload-secret-id"
 	imageStoreSizeAnnotationKey   = "contrast.edgeless.systems/image-store-size"
+	skipKDSProxyAnnotationKey     = "contrast.edgeless.systems/skip-kds-proxy"
+)
+
+// Defaults for routing Contrast pod attestation traffic through the in-cluster kds-proxy.
+const (
+	KDSProxyDefaultService = "http://kds-proxy.default.svc:3128"
+	KDSProxyCAConfigMap    = "kds-proxy-ca"
+	KDSProxyCAKey          = "ca.crt"
+	kdsProxyCAVolumeName   = "kds-proxy-ca"
+	kdsProxyMountDir       = "/etc/ssl/kds-proxy"
+	kdsProxyCAPath         = kdsProxyMountDir + "/" + KDSProxyCAKey
+
+	// Keep in-cluster traffic out of the forward proxy.
+	kdsProxyNoProxy = "localhost,127.0.0.1,.svc,.svc.cluster.local,.cluster.local," +
+		"10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16"
 )
 
 // contrastRuntimeClassPrefixes lists runtime class prefixes that identify Contrast pods.
@@ -298,6 +313,70 @@ func ensureVolumeExists(spec *applycorev1.PodSpecApplyConfiguration, volumeName 
 		),
 	)
 	return nil
+}
+
+// AddKDSProxy mounts the proxy CA from configMapName and uses the SSL_CERT_FILE in every Contrast container.
+func AddKDSProxy(resources []any, proxyURL, configMapName string) []any {
+	out := make([]any, 0, len(resources))
+	for _, resource := range resources {
+		out = append(out, MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+			if !IsContrastPod(spec) {
+				return meta, spec
+			}
+			if meta != nil && meta.Annotations[skipKDSProxyAnnotationKey] == "true" {
+				return meta, spec
+			}
+			injectKDSProxy(spec, proxyURL, configMapName)
+			return meta, spec
+		}))
+	}
+	return out
+}
+
+func injectKDSProxy(spec *applycorev1.PodSpecApplyConfiguration, proxyURL, configMapName string) {
+	if !hasVolumeNamed(spec, kdsProxyCAVolumeName) {
+		spec.Volumes = append(spec.Volumes, *applycorev1.Volume().
+			WithName(kdsProxyCAVolumeName).
+			WithConfigMap(applycorev1.ConfigMapVolumeSource().WithName(configMapName)))
+	}
+
+	envs := []struct{ name, value string }{
+		{"https_proxy", proxyURL},
+		{"HTTPS_PROXY", proxyURL},
+		{"no_proxy", kdsProxyNoProxy},
+		{"NO_PROXY", kdsProxyNoProxy},
+		{"SSL_CERT_FILE", kdsProxyCAPath},
+	}
+	for i := range spec.Containers {
+		c := &spec.Containers[i]
+		for _, e := range envs {
+			if !hasEnvNamed(c, e.name) {
+				c.Env = append(c.Env, *applycorev1.EnvVar().WithName(e.name).WithValue(e.value))
+			}
+		}
+		addOrReplaceVolumeMount(c, *applycorev1.VolumeMount().
+			WithName(kdsProxyCAVolumeName).
+			WithMountPath(kdsProxyMountDir).
+			WithReadOnly(true))
+	}
+}
+
+func hasVolumeNamed(spec *applycorev1.PodSpecApplyConfiguration, name string) bool {
+	for _, v := range spec.Volumes {
+		if v.Name != nil && *v.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func hasEnvNamed(c *applycorev1.ContainerApplyConfiguration, name string) bool {
+	for _, e := range c.Env {
+		if e.Name != nil && *e.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // AddPortForwarders adds a port-forwarder for each Service.

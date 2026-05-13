@@ -34,6 +34,8 @@ func TestKDSPCSDowntime(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
 	ct := contrasttest.New(t)
+	// This test drives https_proxy itself via goproxy.
+	ct.SkipKDSProxy = true
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)

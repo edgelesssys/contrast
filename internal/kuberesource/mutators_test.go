@@ -783,6 +783,62 @@ spec:
 	}
 }
 
+func TestAddKDSProxy(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	contrastPod := applycorev1.Pod("worker", "default").
+		WithSpec(applycorev1.PodSpec().
+			WithRuntimeClassName("contrast-cc-foo").
+			WithContainers(applycorev1.Container().WithName("app").WithImage("nginx")))
+	skipPod := applycorev1.Pod("skipper", "default").
+		WithAnnotations(map[string]string{skipKDSProxyAnnotationKey: "true"}).
+		WithSpec(applycorev1.PodSpec().
+			WithRuntimeClassName("contrast-cc-foo").
+			WithContainers(applycorev1.Container().WithName("app").WithImage("nginx")))
+	nonContrastPod := applycorev1.Pod("plain", "default").
+		WithSpec(applycorev1.PodSpec().
+			WithContainers(applycorev1.Container().WithName("app").WithImage("nginx")))
+
+	out := AddKDSProxy([]any{contrastPod, skipPod, nonContrastPod},
+		"http://kds-proxy:3128", "kds-proxy-ca")
+	require.Len(out, 3)
+
+	mutated, ok := out[0].(*applycorev1.PodApplyConfiguration)
+	require.True(ok)
+	spec := mutated.Spec
+	assert.Empty(spec.InitContainers, "should not add an init container")
+
+	require.Len(spec.Containers, 1)
+	envs := map[string]string{}
+	for _, e := range spec.Containers[0].Env {
+		envs[*e.Name] = *e.Value
+	}
+	assert.Equal("http://kds-proxy:3128", envs["https_proxy"])
+	assert.Equal("http://kds-proxy:3128", envs["HTTPS_PROXY"])
+	assert.Equal(kdsProxyNoProxy, envs["no_proxy"])
+	assert.Equal(kdsProxyNoProxy, envs["NO_PROXY"])
+	assert.Equal(kdsProxyCAPath, envs["SSL_CERT_FILE"])
+	require.Len(spec.Volumes, 1)
+	assert.Equal(kdsProxyCAVolumeName, *spec.Volumes[0].Name)
+
+	skipped, ok := out[1].(*applycorev1.PodApplyConfiguration)
+	require.True(ok)
+	assert.Empty(skipped.Spec.Volumes)
+	assert.Empty(skipped.Spec.Containers[0].Env)
+
+	plain, ok := out[2].(*applycorev1.PodApplyConfiguration)
+	require.True(ok)
+	assert.Empty(plain.Spec.Volumes)
+	assert.Empty(plain.Spec.Containers[0].Env)
+
+	out2 := AddKDSProxy(out, "http://kds-proxy:3128", "kds-proxy-ca")
+	mutated2, ok := out2[0].(*applycorev1.PodApplyConfiguration)
+	require.True(ok)
+	assert.Len(mutated2.Spec.Volumes, 1)
+	assert.Len(mutated2.Spec.Containers[0].Env, 5)
+}
+
 func TestMapPodSpecWithErrors(t *testing.T) {
 	require := require.New(t)
 
