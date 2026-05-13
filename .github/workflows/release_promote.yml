@@ -148,7 +148,7 @@ jobs:
           NIGHTLY_TAG: ${{ needs.prepare.outputs.nightly_tag }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release delete "${NIGHTLY_TAG}" --repo "${GH_REPO}" --yes --cleanup-tag
+          gh release delete "${NIGHTLY_TAG}" --repo "${GH_REPO}" --yes
 
   prepare-github-release:
     name: Create backport label and milestone
