@@ -15,15 +15,15 @@ let
   deny-with-message = runCommand "deny-with-message" { } ''
     awk '
       # header
-      BEGIN { print "package agent_policy\n" }
+      BEGIN { print "package agent_policy\nimport future.keywords.if\n" }
 
       # default deny rule for the request
       /^message.*Request/ { print "default",$2,":= false" }
       # denying rule that calls print_message
-      /^message.*Request/ { print $2,"{ print_message }" }
+      /^message.*Request/ { print $2,"if { print_message }" }
 
       # implementation of print_message (`message := "foo"` needs to be appended by the user)
-      END { print "\nprint_message {\n  print(\"Internal error:\", message)\n  false\n}" }
+      END { print "\nprint_message if {\n  print(\"Internal error:\", message)\n  false\n}" }
       ' \
       ${kata.runtime.src}/src/libs/protocols/protos/agent.proto >$out
   '';
