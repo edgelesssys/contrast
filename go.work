@@ -6,6 +6,7 @@ use (
 	./imagepuller
 	./imagestore
 	./initdata-processor
+	./kds-proxy
 	./service-mesh
 	./tools/debugshell
 	./tools/fifo

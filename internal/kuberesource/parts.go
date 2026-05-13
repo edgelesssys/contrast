@@ -573,3 +573,58 @@ func GetPodCPUCount(spec *applycorev1.PodSpecApplyConfiguration) uint64 {
 	totalCPUs := (totalMilliCPUs+999)/1000 + 1
 	return uint64(totalCPUs)
 }
+
+// KDSProxy returns the resources for an in-cluster HTTPS forward proxy caching responses from AMD KDS, Intel PCS, and NVIDIA RIM endpoints.
+func KDSProxy(namespace, storageClassName string) []any {
+	const (
+		name     = "kds-proxy"
+		port     = int32(3128)
+		stateDir = "/var/lib/kds-proxy"
+		stateVol = "state"
+	)
+	labels := map[string]string{"app.kubernetes.io/name": name}
+
+	pvcSpec := applycorev1.PersistentVolumeClaimSpec().
+		WithAccessModes(corev1.ReadWriteOnce).
+		WithResources(applycorev1.VolumeResourceRequirements().
+			WithRequests(corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("1Gi")}))
+	if storageClassName != "" {
+		pvcSpec = pvcSpec.WithStorageClassName(storageClassName)
+	}
+	pvc := applycorev1.PersistentVolumeClaim(name+"-state", namespace).WithSpec(pvcSpec)
+
+	mem := corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("256Mi")}
+	deployment := Deployment(name, namespace).
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().WithMatchLabels(labels)).
+			WithStrategy(applyappsv1.DeploymentStrategy().
+				WithType(appsv1.RecreateDeploymentStrategyType)).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(labels).
+				WithSpec(PodSpec().
+					WithVolumes(applycorev1.Volume().
+						WithName(stateVol).
+						WithPersistentVolumeClaim(applycorev1.PersistentVolumeClaimVolumeSource().
+							WithClaimName(name + "-state"))).
+					WithContainers(applycorev1.Container().
+						WithName(name).
+						WithImage("ghcr.io/edgelesssys/contrast/kds-proxy:latest").
+						WithArgs(fmt.Sprintf("-addr=:%d", port), "-state-dir="+stateDir).
+						WithPorts(applycorev1.ContainerPort().
+							WithName("proxy").
+							WithContainerPort(port)).
+						WithVolumeMounts(applycorev1.VolumeMount().
+							WithName(stateVol).
+							WithMountPath(stateDir)).
+						WithReadinessProbe(applycorev1.Probe().
+							WithHTTPGet(applycorev1.HTTPGetAction().
+								WithPath("/healthz").
+								WithPort(intstr.FromInt32(port))).
+							WithPeriodSeconds(5)).
+						WithResources(applycorev1.ResourceRequirements().
+							WithRequests(mem).
+							WithLimits(mem))))))
+
+	return []any{deployment, ServiceForDeployment(deployment), pvc}
+}

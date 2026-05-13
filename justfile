@@ -23,6 +23,8 @@ port-forwarder: (push "port-forwarder")
 
 service-mesh-proxy: (push "service-mesh-proxy")
 
+kds-proxy: (push "kds-proxy")
+
 initializer: (push "initializer")
 
 memdump: (push "memdump")
