@@ -79,7 +79,7 @@ in
         Type = "exec"; # Not upstream.
         StandardOutput = "journal+console";
         StandardError = "inherit";
-        ExecStart = "${lib.getExe pkgs.contrastPkgs.kata.agent}";
+        ExecStart = "${lib.getExe pkgs.contrastPkgs.kata.agent} --config /run/measured-cfg/agent.toml";
         LimitNOFILE = 1073741824;
         ExecStop = "${pkgs.coreutils}/bin/sync ; ${config.systemd.package}/bin/systemctl --force poweroff";
         FailureAction = "poweroff";
@@ -87,7 +87,6 @@ in
       };
       # Not upstream
       environment = {
-        KATA_AGENT_LOG_LEVEL = "debug";
         OCICRYPT_KEYPROVIDER_CONFIG = builtins.toFile "policy.json" (
           lib.strings.toJSON { default = [ { type = "insecureAcceptAnything"; } ]; }
         );

@@ -1,0 +1,280 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: davidweisse <98460960+davidweisse@users.noreply.github.com>
+Date: Wed, 13 May 2026 16:19:54 +0200
+Subject: [PATCH] agent: use config file as override
+
+---
+ src/agent/src/config.rs | 239 +++++++++++++++++++++-------------------
+ 1 file changed, 125 insertions(+), 114 deletions(-)
+
+diff --git a/src/agent/src/config.rs b/src/agent/src/config.rs
+index a9bc041ca84b9845fdc07d4615d9fbf00084115c..44d61b69f21f29a8d36793ab090297a1f5069573 100644
+--- a/src/agent/src/config.rs
++++ b/src/agent/src/config.rs
+@@ -290,107 +290,7 @@ impl FromStr for AgentConfig {
+             toml::from_str(s).map_err(anyhow::Error::new)?;
+         let mut agent_config: AgentConfig = Default::default();
+ 
+-        // Overwrite default values with the configuration files ones.
+-        config_override!(agent_config_builder, agent_config, debug_console);
+-        config_override!(agent_config_builder, agent_config, dev_mode);
+-        config_override!(
+-            agent_config_builder,
+-            agent_config,
+-            log_level,
+-            logrus_to_slog_level
+-        );
+-        config_override!(agent_config_builder, agent_config, hotplug_timeout);
+-        config_override!(agent_config_builder, agent_config, cdh_api_timeout);
+-        config_override!(agent_config_builder, agent_config, image_pull_timeout);
+-        config_override!(agent_config_builder, agent_config, cdi_timeout);
+-        config_override!(agent_config_builder, agent_config, launch_process_timeout);
+-        config_override!(agent_config_builder, agent_config, debug_console_vport);
+-        config_override!(agent_config_builder, agent_config, log_vport);
+-        config_override!(agent_config_builder, agent_config, container_pipe_size);
+-        config_override!(agent_config_builder, agent_config, server_addr);
+-        config_override!(agent_config_builder, agent_config, passfd_listener_port);
+-        config_override!(agent_config_builder, agent_config, unified_cgroup_hierarchy);
+-        config_override!(agent_config_builder, agent_config, tracing);
+-        config_override!(agent_config_builder, agent_config, https_proxy);
+-        config_override!(agent_config_builder, agent_config, no_proxy);
+-        config_override!(
+-            agent_config_builder,
+-            agent_config,
+-            guest_components_rest_api
+-        );
+-        config_override!(agent_config_builder, agent_config, guest_components_procs);
+-        config_override!(agent_config_builder, agent_config, secure_storage_integrity);
+-
+-        #[cfg(feature = "agent-policy")]
+-        config_override!(agent_config_builder, agent_config, policy_file);
+-
+-        if agent_config_builder.mem_agent_enable.unwrap_or(false) {
+-            let mut mac = MemAgentConfig::default();
+-
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_memcg_disable,
+-                mac.memcg_config.default.disabled
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_memcg_swap,
+-                mac.memcg_config.default.swap
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_memcg_swappiness_max,
+-                mac.memcg_config.default.swappiness_max
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_memcg_period_secs,
+-                mac.memcg_config.default.period_secs
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_memcg_period_psi_percent_limit,
+-                mac.memcg_config.default.period_psi_percent_limit
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_memcg_eviction_psi_percent_limit,
+-                mac.memcg_config.default.eviction_psi_percent_limit
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_memcg_eviction_run_aging_count_min,
+-                mac.memcg_config.default.eviction_run_aging_count_min
+-            );
+-
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_compact_disable,
+-                mac.compact_config.disabled
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_compact_period_secs,
+-                mac.compact_config.period_secs
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_compact_period_psi_percent_limit,
+-                mac.compact_config.period_psi_percent_limit
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_compact_psi_percent_limit,
+-                mac.compact_config.compact_psi_percent_limit
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_compact_sec_max,
+-                mac.compact_config.compact_sec_max
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_compact_order,
+-                mac.compact_config.compact_order
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_compact_threshold,
+-                mac.compact_config.compact_threshold
+-            );
+-            mem_agent_config_override!(
+-                agent_config_builder.mem_agent_compact_force_times,
+-                mac.compact_config.compact_force_times
+-            );
+-
+-            agent_config.mem_agent = Some(mac);
+-        }
++        agent_config.override_config_from_builder(agent_config_builder)?;
+ 
+         Ok(agent_config)
+     }
+@@ -400,19 +300,6 @@ impl AgentConfig {
+     #[instrument]
+     #[allow(clippy::redundant_closure_call)]
+     pub fn from_cmdline(file: &str, args: Vec<String>) -> Result<AgentConfig> {
+-        // If config file specified in the args, generate our config from it
+-        let config_position = args.iter().position(|a| a == "--config" || a == "-c");
+-        if let Some(config_position) = config_position {
+-            if let Some(config_file) = args.get(config_position + 1) {
+-                let mut config =
+-                    AgentConfig::from_config_file(config_file).context("AgentConfig from args")?;
+-                config.override_config_from_envs();
+-                return Ok(config);
+-            } else {
+-                panic!("The config argument wasn't formed properly: {:?}", args);
+-            }
+-        }
+-
+         let mut config: AgentConfig = Default::default();
+         let cmdline = fs::read_to_string(file)?;
+         let params: Vec<&str> = cmdline.split_ascii_whitespace().collect();
+@@ -657,6 +544,23 @@ impl AgentConfig {
+             config.mem_agent = Some(mac);
+         }
+ 
++        // If config file specified in the args, use it as an override
++        let config_position = args.iter().position(|a| a == "--config" || a == "-c");
++        if let Some(config_position) = config_position {
++            if let Some(config_file) = args.get(config_position + 1) {
++                match fs::read_to_string(config_file) {
++                    Ok(s) => {
++                        let agent_config_builder: AgentConfigBuilder =
++                            toml::from_str(&s).map_err(anyhow::Error::new)?;
++                        config.override_config_from_builder(agent_config_builder)?;
++                    }
++                    Err(e) => eprintln!("WARN: failed to read config file {config_file}: {e}")
++                }
++            } else {
++                panic!("The config argument wasn't formed properly: {:?}", args);
++            }
++        }
++
+         config.override_config_from_envs();
+ 
+         Ok(config)
+@@ -692,6 +596,113 @@ impl AgentConfig {
+             self.policy_file = policy_file;
+         }
+     }
++
++    #[instrument]
++    fn override_config_from_builder(&mut self, builder: AgentConfigBuilder) -> Result<()> {
++        // Overwrite default values with the configuration files ones.
++        config_override!(builder, self, debug_console);
++        config_override!(builder, self, dev_mode);
++        config_override!(
++            builder,
++            self,
++            log_level,
++            logrus_to_slog_level
++        );
++        config_override!(builder, self, hotplug_timeout);
++        config_override!(builder, self, cdh_api_timeout);
++        config_override!(builder, self, image_pull_timeout);
++        config_override!(builder, self, cdi_timeout);
++        config_override!(builder, self, launch_process_timeout);
++        config_override!(builder, self, debug_console_vport);
++        config_override!(builder, self, log_vport);
++        config_override!(builder, self, container_pipe_size);
++        config_override!(builder, self, server_addr);
++        config_override!(builder, self, passfd_listener_port);
++        config_override!(builder, self, unified_cgroup_hierarchy);
++        config_override!(builder, self, tracing);
++        config_override!(builder, self, https_proxy);
++        config_override!(builder, self, no_proxy);
++        config_override!(
++            builder,
++            self,
++            guest_components_rest_api
++        );
++        config_override!(builder, self, guest_components_procs);
++        config_override!(builder, self, secure_storage_integrity);
++
++        #[cfg(feature = "agent-policy")]
++        config_override!(builder, self, policy_file);
++
++        if builder.mem_agent_enable.unwrap_or(false) {
++            let mut mac = MemAgentConfig::default();
++
++            mem_agent_config_override!(
++                builder.mem_agent_memcg_disable,
++                mac.memcg_config.default.disabled
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_memcg_swap,
++                mac.memcg_config.default.swap
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_memcg_swappiness_max,
++                mac.memcg_config.default.swappiness_max
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_memcg_period_secs,
++                mac.memcg_config.default.period_secs
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_memcg_period_psi_percent_limit,
++                mac.memcg_config.default.period_psi_percent_limit
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_memcg_eviction_psi_percent_limit,
++                mac.memcg_config.default.eviction_psi_percent_limit
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_memcg_eviction_run_aging_count_min,
++                mac.memcg_config.default.eviction_run_aging_count_min
++            );
++
++            mem_agent_config_override!(
++                builder.mem_agent_compact_disable,
++                mac.compact_config.disabled
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_compact_period_secs,
++                mac.compact_config.period_secs
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_compact_period_psi_percent_limit,
++                mac.compact_config.period_psi_percent_limit
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_compact_psi_percent_limit,
++                mac.compact_config.compact_psi_percent_limit
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_compact_sec_max,
++                mac.compact_config.compact_sec_max
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_compact_order,
++                mac.compact_config.compact_order
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_compact_threshold,
++                mac.compact_config.compact_threshold
++            );
++            mem_agent_config_override!(
++                builder.mem_agent_compact_force_times,
++                mac.compact_config.compact_force_times
++            );
++
++            self.mem_agent = Some(mac);
++        }
++
++        Ok(())
++    }
+ }
+ 
+ #[instrument]

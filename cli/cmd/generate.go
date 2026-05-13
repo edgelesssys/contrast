@@ -220,6 +220,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		fmt.Fprintln(cmd.OutOrStdout(), "⚠️ Insecure debug shell access enabled!")
 		initdataManipulators = append(initdataManipulators, func(id *initdata.Initdata) error {
 			id.Data["contrast.insecure-debug"] = "true"
+			id.Data["agent.toml"] = "log_level = \"debug\"\ndebug_console = true\ndebug_console_vport = 1026"
 			return nil
 		})
 	}

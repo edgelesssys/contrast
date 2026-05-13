@@ -160,6 +160,11 @@ buildGoModule (finalAttrs: {
       # messages. This patch masks the socket, too.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12995.
       ./0024-runtime-rs-mask-systemd-networkd.socket.patch
+
+      # We pass a custom config to the Kata agent via commandline argument to enable the debug console and customize logging.
+      # The provided config should only be used as an override and not as a replacement, so the kernel cmdline is still respected
+      # when we don't have any overrides.
+      ./0025-agent-use-config-file-as-override.patch
     ];
   };
 
