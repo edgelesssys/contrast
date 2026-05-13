@@ -165,6 +165,11 @@ buildGoModule (finalAttrs: {
       # The provided config should only be used as an override and not as a replacement, so the kernel cmdline is still respected
       # when we don't have any overrides.
       ./0025-agent-use-config-file-as-override.patch
+
+      # Terminate the agent gracefully when it encounters problems with the policy. This allows
+      # error messages to propagate to the runtime.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/13031.
+      ./0026-agent-don-t-abort-in-case-of-policy-problems.patch
     ];
   };
 
