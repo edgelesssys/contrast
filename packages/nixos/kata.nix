@@ -60,6 +60,8 @@ in
         Type = "oneshot";
         RemainAfterExit = "yes";
         ExecStart = lib.getExe pkgs.contrastPkgs.initdata-processor;
+        StandardOutput = "journal+console";
+        StandardError = "inherit";
       };
     };
 
