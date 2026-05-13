@@ -113,9 +113,8 @@ _e2e target=default_deploy_target platform=default_platform set=default_set: sof
         just containerd-reproducer
     fi
     get_logs=$(nix build .#{{ set }}.scripts.get-logs --no-link --print-out-paths)
+    # get-logs start waits until the namespace file is created, then spawns self-cleaning background tasks and exits.
     "$get_logs/bin/get-logs" start ./{{ workspace_dir }}/just.namespace &
-    get_logs_pid=$!
-    trap 'kill $get_logs_pid || true' EXIT
     nix shell .#{{ set }}.contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --genpolicy-cache-path ./{{ workspace_dir }}/layers-cache.json \
@@ -186,6 +185,7 @@ e2e-release version platform=default_platform set=default_set: soft-clean k8s-lo
     set -euo pipefail
     nix build .#{{ set }}.scripts.get-logs
     mkdir -p ./{{ workspace_dir }}
+    # get-logs start waits until the namespace file is created, then spawns self-cleaning background tasks and exits.
     nix run .#{{ set }}.scripts.get-logs start ./{{ workspace_dir }}/just.namespace &
     trap "kubectl delete -f ./{{ workspace_dir }}/log-collector.yaml; rm -f ./{{ workspace_dir }}/just.namespace" EXIT
     nix shell .#{{ set }}.contrast.e2e --command release.test -test.v \
