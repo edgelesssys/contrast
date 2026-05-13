@@ -162,28 +162,38 @@ jobs:
         platform:
           - name: Metal-QEMU-SNP
             node-installer-target-conf: none
-            runner: SNP
-            self-hosted: true
+            linux-runner: SNP
+            is-public: true
           - name: Metal-QEMU-SNP-GPU
             node-installer-target-conf: k3s
-            runner: SNP-GPU
-            self-hosted: true
+            linux-runner: SNP-GPU
+            is-public: false
           - name: Metal-QEMU-TDX
             node-installer-target-conf: k3s
-            runner: TDX
-            self-hosted: true
+            linux-runner: TDX
+            is-public: false
           - name: Metal-QEMU-TDX-GPU
             node-installer-target-conf: none
-            runner: TDX-GPU
-            self-hosted: true
+            linux-runner: TDX-GPU
+            is-public: true
+        cli-arch:
+          - x86_64-linux
+          - aarch64-darwin
       fail-fast: false
-    name: "release-requirement: e2e release on ${{ matrix.platform.name }}"
-    runs-on: ${{ matrix.platform.runner }}
+    name: "release-requirement: e2e release on ${{ matrix.platform.name }} (${{ matrix.cli-arch }})"
+    runs-on: ${{ matrix.cli-arch == 'aarch64-darwin' && 'macos-latest' || matrix.platform.linux-runner }}
+    # Serialize matrix entries that share a cluster (linux + darwin) to
+    # avoid clashing on coordinator state and resource cleanup.
+    concurrency:
+      group: e2e-release-${{ matrix.platform.name }}-${{ github.run_id }}
+      cancel-in-progress: false
     permissions:
       # Job needs content:write to see draft releases.
       contents: write
       packages: read
-    needs: [process-inputs, release-x86_64-linux, nightly]
+      # Needed for GH OIDC -> GCP WIF federation on the darwin entries.
+      id-token: write
+    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, nightly]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -195,9 +205,15 @@ jobs:
           container_registry: ${{ env.container_registry }}
           platform_name: ${{ matrix.platform.name }}
           node_installer_target_conf: ${{ matrix.platform.node-installer-target-conf }}
-          self_hosted: ${{ matrix.platform.self-hosted }}
+          self_hosted: ${{ matrix.cli-arch == 'x86_64-linux' }}
+          cli_arch: ${{ matrix.cli-arch }}
+          is_public: ${{ matrix.platform.is-public }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          wif_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          sa_email: ${{ vars.GCP_SA_EMAIL }}
+          tailscale_client_id: ${{ secrets.TAILSCALE_CLIENT_ID }}
+          tailscale_client_secret: ${{ secrets.TAILSCALE_CLIENT_SECRET }}
 
   prepare-post-release-pr:
     name: Prepare post-release PR to main
