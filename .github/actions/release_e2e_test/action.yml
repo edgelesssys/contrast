@@ -17,12 +17,37 @@ inputs:
   self_hosted:
     description: Whether this is a self-hosted runner ('true' or 'false')
     required: true
+  cli_arch:
+    description: CLI architecture under test, e.g. x86_64-linux or aarch64-darwin.
+    required: false
+    default: x86_64-linux
+  is_public:
+    description: >
+      Whether the target cluster's API server is reachable from the public internet ('true' or 'false'). Required to be 'false' for darwin entries on tailscale-only clusters; ignored on linux self-hosted entries that run on the cluster LAN.
+    required: false
+    default: 'true'
   github_token:
     description: GitHub token
     required: true
   cachix_token:
     description: Cachix auth token
     required: true
+  wif_provider:
+    description: GCP Workload Identity Federation provider path. Required when cli_arch is aarch64-darwin.
+    required: false
+    default: ''
+  sa_email:
+    description: GCP service account email to impersonate via WIF. Required when cli_arch is aarch64-darwin.
+    required: false
+    default: ''
+  tailscale_client_id:
+    description: Tailscale OAuth client ID. Required when cli_arch is aarch64-darwin and is_public is 'false'.
+    required: false
+    default: ''
+  tailscale_client_secret:
+    description: Tailscale OAuth client secret. Required when cli_arch is aarch64-darwin and is_public is 'false'.
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -33,7 +58,31 @@ runs:
         githubToken: ${{ inputs.github_token }}
         cachixToken: ${{ inputs.cachix_token }}
     - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+
+    # --- darwin-only setup ---
+    - name: Connect to tailscale
+      if: inputs.cli_arch == 'aarch64-darwin' && inputs.is_public != 'true'
+      # Override GOWORK so tailscale's build_dist.sh can use its own go.mod
+      # instead of contrast's repo-root go.work.
+      env:
+        GOWORK: "off"
+      uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4.1.2
+      with:
+        oauth-client-id: ${{ inputs.tailscale_client_id }}
+        oauth-secret: ${{ inputs.tailscale_client_secret }}
+        tags: tag:contrast-ci
+    - name: Authenticate to Google Cloud
+      if: inputs.cli_arch == 'aarch64-darwin'
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+      with:
+        workload_identity_provider: ${{ inputs.wif_provider }}
+        service_account: ${{ inputs.sa_email }}
+
+    # --- common steps ---
     - name: Log in to ghcr.io Container registry
+      # Docker isn't available on macos-latest and the test doesn't push from
+      # the runner anyway, only linux/self-hosted entries need this.
+      if: inputs.cli_arch != 'aarch64-darwin'
       uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
       with:
         registry: ghcr.io
@@ -55,6 +104,24 @@ runs:
       shell: bash
       run: |
         just get-credentials
+
+    # --- darwin-only step: see "Connect to tailscale" for the macOS resolver caveat ---
+    - name: Inject tailscale IP into /etc/hosts
+      if: inputs.cli_arch == 'aarch64-darwin' && inputs.is_public != 'true'
+      # macOS github-hosted runners' source-built tailscaled can't register
+      # with the macOS resolver framework the way the signed Tailscale.app does,
+      # so MagicDNS short names (e.g. `discovery`) don't resolve via the system
+      # resolver even though `tailscale ping` finds them. Look up the cluster's
+      # tailscale IP via the CLI and pin the kubeconfig hostname to it. The bare
+      # hostname is preserved so TLS still verifies against the apiserver cert's SAN.
+      shell: bash
+      run: |
+        SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+        HOST=$(echo "$SERVER" | sed -E 's|https?://([^:/]+).*|\1|')
+        IP=$(tailscale ip -4 "${HOST}")
+        echo "${IP} ${HOST}" | sudo tee -a /etc/hosts
+
+    # --- common steps ---
     - name: Request fifo ticket
       if: inputs.self_hosted != 'true' || inputs.platform_name == 'Metal-QEMU-SNP-GPU' || inputs.platform_name == 'Metal-QEMU-TDX-GPU'
       shell: bash
@@ -67,15 +134,22 @@ runs:
         VERSION: ${{ inputs.version }}
         PLATFORM_NAME: ${{ inputs.platform_name }}
         NODE_INSTALLER_TARGET_CONF: ${{ inputs.node_installer_target_conf }}
+        CLI_ARCH: ${{ inputs.cli_arch }}
       run: |
         mkdir -p workspace
         nix build ".#base.scripts.get-logs"
         nix run ".#base.scripts.get-logs" start workspace/just.namespace &
+        use_loadbalancer="false"
+        if [[ "${CLI_ARCH}" == "aarch64-darwin" ]]; then
+          use_loadbalancer="true"
+        fi
         nix shell -L ".#base.contrast.e2e" --command release.test \
           -test.v \
           --tag "${VERSION}" \
           --platform "${PLATFORM_NAME}" \
           --node-installer-target-conf "${NODE_INSTALLER_TARGET_CONF}" \
+          --bin-name "contrast-${CLI_ARCH}" \
+          --use-loadbalancer="${use_loadbalancer}" \
           --namespace-file workspace/just.namespace
     - name: Cleanup
       if: always()
@@ -87,7 +161,7 @@ runs:
       if: always()
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: e2e_pod_logs-${{ inputs.platform_name }}-release
+        name: e2e_pod_logs-${{ inputs.platform_name }}-${{ inputs.cli_arch }}-release
         path: workspace/logs
         if-no-files-found: error
     - name: Release fifo ticket
