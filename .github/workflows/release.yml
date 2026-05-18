@@ -106,6 +106,8 @@ jobs:
       contents: write
       packages: write
       id-token: write
+    outputs:
+      LOG_COLLECTOR_IMAGE: ${{ steps.build.outputs.log_collector_image }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -113,6 +115,7 @@ jobs:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: true
       - uses: ./.github/actions/release_build_linux
+        id: build
         with:
           effective_version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
           without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
@@ -214,6 +217,7 @@ jobs:
           sa_email: ${{ vars.GCP_SA_EMAIL }}
           tailscale_client_id: ${{ secrets.TAILSCALE_CLIENT_ID }}
           tailscale_client_secret: ${{ secrets.TAILSCALE_CLIENT_SECRET }}
+          log_collector_image: ${{ needs.release-x86_64-linux.outputs.LOG_COLLECTOR_IMAGE }}
 
   prepare-post-release-pr:
     name: Prepare post-release PR to main
