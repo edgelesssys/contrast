@@ -123,7 +123,7 @@ runs:
 
     # --- common steps ---
     - name: Request fifo ticket
-      if: inputs.self_hosted != 'true' || inputs.platform_name == 'Metal-QEMU-SNP-GPU' || inputs.platform_name == 'Metal-QEMU-TDX-GPU'
+      if: inputs.platform_name == 'Metal-QEMU-SNP-GPU' || inputs.platform_name == 'Metal-QEMU-TDX-GPU'
       shell: bash
       run: |
         just request-fifo-ticket
@@ -165,7 +165,7 @@ runs:
         path: workspace/logs
         if-no-files-found: error
     - name: Release fifo ticket
-      if: always() && (inputs.self_hosted != 'true' || inputs.platform_name == 'Metal-QEMU-SNP-GPU' || inputs.platform_name == 'Metal-QEMU-TDX-GPU')
+      if: always() && (inputs.platform_name == 'Metal-QEMU-SNP-GPU' || inputs.platform_name == 'Metal-QEMU-TDX-GPU')
       shell: bash
       run: |
         just release-fifo-ticket
