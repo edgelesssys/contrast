@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: davidweisse <98460960+davidweisse@users.noreply.github.com>
+Date: Mon, 18 May 2026 12:57:48 +0200
+Subject: [PATCH] genpolicy: support pod level resource limits
+
+---
+ src/tools/genpolicy/src/pod.rs | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index 7091472222ab94481f84d4b70dc0c70cc5d3a754..30faed16c24c729a7ecb7bb80dd9953dfa114b36 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -98,6 +98,9 @@ pub struct PodSpec {
+ 
+     #[serde(skip_serializing_if = "Option::is_none")]
+     priorityClassName: Option<String>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    resources: Option<ResourceRequirements>,
+ }
+ 
+ /// See Reference / Kubernetes API / Workload Resources / Pod.
