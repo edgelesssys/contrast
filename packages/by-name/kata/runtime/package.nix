@@ -170,6 +170,11 @@ buildGoModule (finalAttrs: {
       # error messages to propagate to the runtime.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/13031.
       ./0026-agent-don-t-abort-in-case-of-policy-problems.patch
+
+      # Pod-level resource limits are a beta feature since K8s 1.34, but not supported by Kata yet.
+      # We need this to automatically configure memory limits for the entire VM and not on container basis.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12816
+      ./0027-genpolicy-support-pod-level-resource-limits.patch
     ];
   };
 
