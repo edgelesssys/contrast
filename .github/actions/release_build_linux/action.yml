@@ -32,6 +32,10 @@ inputs:
   cachix_token:
     description: Cachix auth token
     required: true
+outputs:
+  log_collector_image:
+    description: Fully-qualified digest of the k8s-log-collector image pushed during the build.
+    value: ${{ steps.push-log-collector.outputs.image }}
 
 runs:
   using: composite
@@ -72,6 +76,20 @@ runs:
         path: |
           LICENSE
           ${{ steps.create-artifacts.outputs.paths }}
+    # Dev/test-only image, but pushed here so it can share this job's
+    # packages:write permission. The e2e release matrix consumes the digest
+    # to substitute the :latest placeholder when get-logs generates the
+    # log-collector DaemonSet.
+    - name: Push k8s-log-collector image
+      id: push-log-collector
+      shell: bash
+      env:
+        CONTAINER_REGISTRY: ${{ inputs.container_registry }}
+        SET: base
+      run: |
+        set -u
+        image=$(nix run -L ".#${SET}.scripts.containers.push-k8s-log-collector" -- "${CONTAINER_REGISTRY}/contrast/k8s-log-collector")
+        echo "image=${image}" >> "$GITHUB_OUTPUT"
     - name: Create draft release
       uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2  # zizmor: ignore[superfluous-actions]
       with:

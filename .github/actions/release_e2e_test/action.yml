@@ -48,6 +48,10 @@ inputs:
     description: Tailscale OAuth client secret. Required when cli_arch is aarch64-darwin and is_public is 'false'.
     required: false
     default: ''
+  log_collector_image:
+    description: >
+      Fully-qualified digest of the k8s-log-collector image pushed by the build job. Written into workspace/just.containerlookup so get-logs can substitute the ':latest' placeholder when it generates the DaemonSet. Required (matrix runners only have packages:read so they can't push themselves).
+    required: true
 
 runs:
   using: composite
@@ -127,6 +131,13 @@ runs:
       shell: bash
       run: |
         just request-fifo-ticket
+    - name: Record k8s-log-collector digest
+      shell: bash
+      env:
+        LOG_COLLECTOR_IMAGE: ${{ inputs.log_collector_image }}
+      run: |
+        mkdir -p workspace
+        echo "ghcr.io/edgelesssys/contrast/k8s-log-collector:latest=${LOG_COLLECTOR_IMAGE}" >> workspace/just.containerlookup
     - name: E2E Test
       shell: bash
       env:
