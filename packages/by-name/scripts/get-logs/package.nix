@@ -4,6 +4,7 @@
 {
   writeShellApplication,
   kubectl,
+  contrastPkgs,
 }:
 
 # Usage: get-logs [start | download] $namespaceFile
@@ -12,6 +13,7 @@ writeShellApplication {
 
   runtimeInputs = [
     kubectl
+    contrastPkgs.contrast.resourcegen
   ];
   text = builtins.readFile ./get-logs.sh;
 }

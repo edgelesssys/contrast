@@ -50,11 +50,10 @@ kill_deploy_collectors() {
 
 deploy_to_namespace() {
   local namespace="$1"
-  cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
-  replacement=$(grep "k8s-log-collector:latest=" ./workspace/just.containerlookup 2>/dev/null | tail -1 | cut -d= -f2- || true)
-  if [[ -n $replacement ]]; then
-    echo "Using pushed log-collector image: $replacement" >&2
-    sed -i "s|image: .*k8s-log-collector.*|image: \"$replacement\"|" ./workspace/log-collector.yaml
+  resourcegen --image-replacements ./workspace/just.containerlookup log-collector >./workspace/log-collector.yaml
+  if grep -q "ghcr.io/edgelesssys/contrast/k8s-log-collector:latest" ./workspace/log-collector.yaml; then
+    echo "k8s-log-collector image not substituted: ./workspace/just.containerlookup is missing a 'k8s-log-collector:latest=' entry. Run 'just k8s-log-collector' first." >&2
+    return 1
   fi
   echo "Starting log collector in namespace $namespace" >&2
   retry kubectl apply -n "$namespace" -f ./workspace/log-collector.yaml

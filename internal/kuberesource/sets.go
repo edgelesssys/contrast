@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	applyschedulingv1 "k8s.io/client-go/applyconfigurations/scheduling/v1"
 )
 
 // CoordinatorBundle returns the Coordinator and a matching Service.
@@ -55,6 +56,78 @@ func Runtime(platform platforms.Platform) ([]any, error) {
 		runtimeClassApplyConfig,
 		nodeInstaller,
 	}, nil
+}
+
+// LogCollector returns the DaemonSet and PriorityClass that deploy the
+// k8s-log-collector image. This is dev/test-only infrastructure consumed by
+// the get-logs script.
+func LogCollector() []any {
+	const (
+		name              = "log-collector"
+		priorityClassName = "high-priority-logcollector"
+	)
+
+	labels := map[string]string{"app.kubernetes.io/name": name}
+
+	tolerations := []*applycorev1.TolerationApplyConfiguration{
+		applycorev1.Toleration().
+			WithKey("node-role.kubernetes.io/control-plane").
+			WithOperator(corev1.TolerationOpExists).
+			WithEffect(corev1.TaintEffectNoSchedule),
+		applycorev1.Toleration().
+			WithKey("node-role.kubernetes.io/master").
+			WithOperator(corev1.TolerationOpExists).
+			WithEffect(corev1.TaintEffectNoSchedule),
+	}
+
+	ds := DaemonSet(name, "").
+		WithSpec(DaemonSetSpec().
+			WithSelector(LabelSelector().WithMatchLabels(labels)).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(labels).
+				WithSpec(PodSpec().
+					WithPriorityClassName(priorityClassName).
+					WithTolerations(tolerations...).
+					WithContainers(Container().
+						WithName(name).
+						WithImage("ghcr.io/edgelesssys/contrast/k8s-log-collector:latest").
+						WithVolumeMounts(
+							VolumeMount().WithName("log-volume").WithMountPath("/logs").WithReadOnly(true),
+							VolumeMount().WithName("journal-volume").WithMountPath("/journal").WithReadOnly(true),
+							VolumeMount().WithName("containerd-run").WithMountPath("/run/containerd").WithReadOnly(true),
+							VolumeMount().WithName("k3s-containerd-run").WithMountPath("/run/k3s/containerd").WithReadOnly(true),
+						).
+						WithEnv(
+							EnvVar().WithName("POD_NAMESPACE").
+								WithValueFrom(applycorev1.EnvVarSource().
+									WithFieldRef(applycorev1.ObjectFieldSelector().WithFieldPath("metadata.namespace")),
+								),
+							EnvVar().WithName("NODE_NAME").
+								WithValueFrom(applycorev1.EnvVarSource().
+									WithFieldRef(applycorev1.ObjectFieldSelector().WithFieldPath("spec.nodeName")),
+								),
+						),
+					).
+					WithVolumes(
+						Volume().WithName("log-volume").
+							WithHostPath(HostPathVolumeSource().WithPath("/var/log/pods").WithType(corev1.HostPathDirectory)),
+						Volume().WithName("journal-volume").
+							WithHostPath(HostPathVolumeSource().WithPath("/var/log/journal").WithType(corev1.HostPathDirectoryOrCreate)),
+						Volume().WithName("containerd-run").
+							WithHostPath(HostPathVolumeSource().WithPath("/run/containerd").WithType(corev1.HostPathDirectoryOrCreate)),
+						Volume().WithName("k3s-containerd-run").
+							WithHostPath(HostPathVolumeSource().WithPath("/run/k3s/containerd").WithType(corev1.HostPathDirectoryOrCreate)),
+					),
+				),
+			),
+		)
+
+	pc := applyschedulingv1.PriorityClass(priorityClassName).
+		WithValue(10000000).
+		WithGlobalDefault(false).
+		WithDescription("This priority class is used to prioritize the log collector pod creation before anything else")
+
+	return []any{ds, pc}
 }
 
 // OpenSSL returns a set of resources for testing with OpenSSL.

@@ -72,6 +72,8 @@ func main() {
 			subResources[0], err = kuberesource.NodeInstallerTargetConfig(*nodeInstallerTargetConfType)
 		case "openssl":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.OpenSSL(), "contrast-cc")
+		case "log-collector":
+			subResources = kuberesource.LogCollector()
 		case "emojivoto":
 			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshDisabled)
 			subResources = kuberesource.PatchRuntimeHandlers(subResources, "contrast-cc")
