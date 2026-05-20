@@ -166,6 +166,12 @@ buildGoModule (finalAttrs: {
       # We need this to automatically configure memory limits for the entire VM and not on container basis.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12816
       ./0025-genpolicy-support-pod-level-resource-limits.patch
+
+      # We need the layer sizes to compute the overhead of pulling the images into the VM.
+      # This caches the compressed and uncompressed layer sizes in the layers-cache.json file during genpolicy.
+      # The layers-cache.json file is no longer indexed by diffID, but by the layer digest,
+      # which is the only stable identifier for the compressed layer size.
+      ./0026-genpolicy-cache-un-compressed-layer-sizes.patch
     ];
   };
 

@@ -1,0 +1,224 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: davidweisse <98460960+davidweisse@users.noreply.github.com>
+Date: Mon, 18 May 2026 14:42:01 +0200
+Subject: [PATCH] genpolicy: cache (un-)compressed layer sizes
+
+---
+ src/tools/genpolicy/src/layers_cache.rs       |  4 +-
+ src/tools/genpolicy/src/registry.rs           | 29 +++++++------
+ .../genpolicy/src/registry_containerd.rs      | 42 +++++++++++--------
+ 3 files changed, 44 insertions(+), 31 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/layers_cache.rs b/src/tools/genpolicy/src/layers_cache.rs
+index 15db565c4caeb22b6d482ceb0d5215d572d3fc78..864f4bee788ccc689f184213b474609b2b8a54f7 100644
+--- a/src/tools/genpolicy/src/layers_cache.rs
++++ b/src/tools/genpolicy/src/layers_cache.rs
+@@ -59,11 +59,11 @@ impl ImageLayersCache {
+         }
+     }
+ 
+-    pub fn get_layer(&self, diff_id: &str) -> Option<ImageLayer> {
++    pub fn get_layer(&self, layer_digest: &str) -> Option<ImageLayer> {
+         let layers = self.inner.lock().unwrap();
+         layers
+             .iter()
+-            .find(|layer| layer.diff_id == diff_id)
++            .find(|layer| layer.layer_digest == layer_digest)
+             .cloned()
+     }
+ 
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index 60c7599842c9d3b0600077c24e6e354ffc6352c5..51a688439cb46ac92b7f3eeacd09ed9120a11969 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -69,9 +69,11 @@ pub struct DockerRootfs {
+ /// This application's image layer properties.
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+ pub struct ImageLayer {
+-    pub diff_id: String,
++    pub layer_digest: String,
+     pub passwd: String,
+     pub group: String,
++    pub compressed_size: u64,
++    pub uncompressed_size: u64,
+ }
+ 
+ /// See https://docs.docker.com/reference/dockerfile/#volume.
+@@ -535,15 +537,15 @@ async fn get_image_layers(
+             || layer.media_type.eq(manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE)
+         {
+             if layer_index < config_layer.rootfs.diff_ids.len() {
+-                let mut imageLayer = get_users_from_layer(
++                let compressed_size = u64::try_from(layer.size).map_err(|e| anyhow!(e))?;
++                let imageLayer = get_users_from_layer(
+                     layers_cache,
+                     client,
+                     reference,
+                     &layer.digest,
+-                    &config_layer.rootfs.diff_ids[layer_index].clone(),
++                    compressed_size,
+                 )
+                 .await?;
+-                imageLayer.diff_id = config_layer.rootfs.diff_ids[layer_index].clone();
+                 layers.push(imageLayer);
+             } else {
+                 return Err(anyhow!("Too many Docker gzip layers"));
+@@ -561,9 +563,9 @@ async fn get_users_from_layer(
+     client: &mut Client,
+     reference: &Reference,
+     layer_digest: &str,
+-    diff_id: &str,
++    compressed_size: u64,
+ ) -> Result<ImageLayer> {
+-    if let Some(layer) = layers_cache.get_layer(diff_id) {
++    if let Some(layer) = layers_cache.get_layer(layer_digest) {
+         info!("get_users_from_layer: using cache file");
+         return Ok(layer);
+     }
+@@ -578,7 +580,7 @@ async fn get_users_from_layer(
+     let mut compressed_path = decompressed_path.clone();
+     compressed_path.set_extension("gz");
+ 
+-    if let Err(e) = create_decompressed_layer_file(
++    let uncompressed_size = match create_decompressed_layer_file(
+         client,
+         reference,
+         layer_digest,
+@@ -587,7 +589,8 @@ async fn get_users_from_layer(
+     )
+     .await
+     {
+-        bail!(format!("Failed to decompress image layer, error {e}"));
++        Ok(size) => size,
++        Err(e) => bail!(format!("Failed to decompress image layer, error {e}")),
+     };
+ 
+     match get_users_from_decompressed_layer(&decompressed_path) {
+@@ -597,7 +600,9 @@ async fn get_users_from_layer(
+         }
+         Ok((passwd, group)) => {
+             let layer = ImageLayer {
+-                diff_id: diff_id.to_string(),
++                layer_digest: layer_digest.to_string(),
++                compressed_size,
++                uncompressed_size,
+                 passwd,
+                 group,
+             };
+@@ -613,7 +618,7 @@ async fn create_decompressed_layer_file(
+     layer_digest: &str,
+     decompressed_path: &Path,
+     compressed_path: &Path,
+-) -> Result<()> {
++) -> Result<u64> {
+     info!(
+         "create_decompressed_layer_file: pulling layer {:?}",
+         layer_digest
+@@ -636,10 +641,10 @@ async fn create_decompressed_layer_file(
+         .truncate(true)
+         .open(decompressed_path)?;
+     let mut gz_decoder = flate2::read::GzDecoder::new(compressed_file);
+-    std::io::copy(&mut gz_decoder, &mut decompressed_file).map_err(|e| anyhow!(e))?;
++    let uncompressed_size = std::io::copy(&mut gz_decoder, &mut decompressed_file).map_err(|e| anyhow!(e))?;
+ 
+     decompressed_file.flush().map_err(|e| anyhow!(e))?;
+-    Ok(())
++    Ok(uncompressed_size)
+ }
+ 
+ pub fn get_users_from_decompressed_layer(path: &Path) -> Result<(String, String)> {
+diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
+index e8c267ff0fdacbf6dd759f1d35b8e42f03d37e31..95a1975b06e46df04ece2212317aa2193f4144da 100644
+--- a/src/tools/genpolicy/src/registry_containerd.rs
++++ b/src/tools/genpolicy/src/registry_containerd.rs
+@@ -301,14 +301,13 @@ pub async fn get_image_layers(
+             || layer_media_type.eq("application/vnd.oci.image.layer.v1.tar+gzip")
+         {
+             if layer_index < config_layer.rootfs.diff_ids.len() {
+-                let mut imageLayer = get_users_from_layer(
++                let imageLayer = get_users_from_layer(
+                     layers_cache,
+                     layer["digest"].as_str().unwrap(),
+                     client,
+-                    &config_layer.rootfs.diff_ids[layer_index].clone(),
++                    layer["size"].as_u64().unwrap(),
+                 )
+                 .await?;
+-                imageLayer.diff_id = config_layer.rootfs.diff_ids[layer_index].clone();
+                 layersVec.push(imageLayer);
+             } else {
+                 return Err(anyhow!("Too many Docker gzip layers"));
+@@ -324,9 +323,9 @@ async fn get_users_from_layer(
+     layers_cache: &ImageLayersCache,
+     layer_digest: &str,
+     client: &containerd_client::Client,
+-    diff_id: &str,
++    size: u64,
+ ) -> Result<ImageLayer> {
+-    if let Some(layer) = layers_cache.get_layer(diff_id) {
++    if let Some(layer) = layers_cache.get_layer(layer_digest) {
+         info!("Using cache file");
+         return Ok(layer);
+     }
+@@ -342,15 +341,22 @@ async fn get_users_from_layer(
+     compressed_path.set_extension("gz");
+ 
+     // go find verity hash if not found in cache
+-    if let Err(e) =
+-        create_decompressed_layer_file(client, layer_digest, &decompressed_path, &compressed_path)
+-            .await
++    let uncompressed_size = match create_decompressed_layer_file(
++        client,
++        layer_digest,
++        &decompressed_path,
++        &compressed_path,
++    )
++    .await
+     {
+-        temp_dir.close()?;
+-        bail!(format!(
+-            "Failed to create verity hash for {layer_digest}, error {e}"
+-        ));
+-    }
++        Ok(size) => size,
++        Err(e) => {
++            temp_dir.close()?;
++            bail!(format!(
++                "Failed to create verity hash for {layer_digest}, error {e}"
++            ));
++        }
++    };
+ 
+     match get_users_from_decompressed_layer(&decompressed_path) {
+         Err(e) => {
+@@ -359,7 +365,9 @@ async fn get_users_from_layer(
+         }
+         Ok((passwd, group)) => {
+             let layer = ImageLayer {
+-                diff_id: diff_id.to_string(),
++                layer_digest: layer_digest.to_string(),
++                compressed_size: size,
++                uncompressed_size,
+                 passwd,
+                 group,
+             };
+@@ -374,7 +382,7 @@ async fn create_decompressed_layer_file(
+     layer_digest: &str,
+     decompressed_path: &Path,
+     compressed_path: &Path,
+-) -> Result<()> {
++) -> Result<u64> {
+     info!("Pulling layer {layer_digest}");
+     let mut file = tokio::fs::File::create(&compressed_path)
+         .await
+@@ -412,8 +420,8 @@ async fn create_decompressed_layer_file(
+         .truncate(true)
+         .open(decompressed_path)?;
+     let mut gz_decoder = flate2::read::GzDecoder::new(compressed_file);
+-    std::io::copy(&mut gz_decoder, &mut decompressed_file).map_err(|e| anyhow!(e))?;
++    let uncompressed_size = std::io::copy(&mut gz_decoder, &mut decompressed_file).map_err(|e| anyhow!(e))?;
+ 
+     decompressed_file.flush().map_err(|e| anyhow!(e))?;
+-    Ok(())
++    Ok(uncompressed_size)
+ }
