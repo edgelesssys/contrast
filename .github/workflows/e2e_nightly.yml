@@ -27,104 +27,35 @@ jobs:
       contents: read
       packages: write
 
-  test_matrix:
-    needs: "maintenance"
+  platform:
+    needs: maintenance
     strategy:
+      fail-fast: false
       matrix:
-        debug-shell: [true, false]
         platform:
           - name: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
+            debug-set-test-name: openssl
           - name: Metal-QEMU-TDX
             runner: TDX
             self-hosted: true
+            debug-set-test-name: openssl
           - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
             self-hosted: true
+            debug-set-test-name: gpu
           - name: Metal-QEMU-TDX-GPU
             runner: TDX-GPU
             self-hosted: true
-        test-name:
-          # keep-sorted start
-          - atls
-          - attestation
-          - badaml-sandbox
-          - badaml-vuln
-          - containerd-11644-reproducer
-          - coordinator
-          - genpolicy-unsupported
-          - gpu
-          - imagepuller-auth
-          - imagestore
-          - kds-pcs-downtime
-          - memdump
-          - multi-runtime-class
-          - openssl
-          - peerrecovery
-          - policy
-          - proxy
-          - regression
-          - servicemesh
-          - vault
-          - volumestatefulset
-          - workloadsecret
-          # keep-sorted end
-        set: [""]
-        exclude:
-          - platform:
-              name: Metal-QEMU-SNP
-            test-name: gpu
-          - platform:
-              name: Metal-QEMU-TDX
-            test-name: gpu
-          - debug-shell: false
-            test-name: badaml-vuln
-          - debug-shell: false
-            test-name: badaml-sandbox
-        include:
-          # Exercise the debug set on every platform with the cheapest
-          # per-platform test, to catch regressions in the debug overlay
-          # that the base-set matrix cannot surface.
-          - set: debug
-            debug-shell: false
-            test-name: openssl
-            platform:
-              name: Metal-QEMU-SNP
-              runner: SNP
-              self-hosted: true
-          - set: debug
-            debug-shell: false
-            test-name: gpu
-            platform:
-              name: Metal-QEMU-SNP-GPU
-              runner: SNP-GPU
-              self-hosted: true
-          - set: debug
-            debug-shell: false
-            test-name: openssl
-            platform:
-              name: Metal-QEMU-TDX
-              runner: TDX
-              self-hosted: true
-          - set: debug
-            debug-shell: false
-            test-name: gpu
-            platform:
-              name: Metal-QEMU-TDX-GPU
-              runner: TDX-GPU
-              self-hosted: true
-      fail-fast: false
+            debug-set-test-name: gpu
     name: "${{ matrix.platform.name }}"
-    uses: ./.github/workflows/e2e.yml
+    uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
-      skip-undeploy: false
-      test-name: ${{ matrix.test-name }}
-      platform: ${{ matrix.platform.name }}
+      platform-name: ${{ matrix.platform.name }}
       runner: ${{ matrix.platform.runner }}
       self-hosted: ${{ matrix.platform.self-hosted }}
-      debug-shell: ${{ matrix.debug-shell }}
-      set: ${{ matrix.set }}
+      debug-set-test-name: ${{ matrix.platform.debug-set-test-name }}
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
