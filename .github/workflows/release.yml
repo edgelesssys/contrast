@@ -258,6 +258,8 @@ jobs:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           fetch-depth: 0
           persist-credentials: true
+          # edgelessci's token is required to push to the protected release/* branch.
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
       - name: Create and push release tag
         env:
           GH_TOKEN: ${{ github.token }}
@@ -268,6 +270,16 @@ jobs:
           git fetch origin "${target}"
           git tag "${VERSION}" "${target}"
           git push origin "${VERSION}"
+      - name: Update release branch to release tag
+        env:
+          VERSION: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
+        # release/* requires linear history so this push must be a fast-forward.
+        run: git push origin "refs/tags/${VERSION}^{commit}:refs/heads/${RELEASE_BRANCH}"
+      - name: Delete temporary working branch
+        env:
+          WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+        run: git push origin --delete "${WORKING_BRANCH}" || true
       - uses: ./.github/actions/regenerate_release_notes
         with:
           version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}

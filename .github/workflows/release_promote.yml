@@ -32,24 +32,16 @@ jobs:
       MAJOR_MINOR: ${{ steps.version-info.outputs.major_minor }}
       MAJOR_MINOR_PATCH: ${{ steps.version-info.outputs.major_minor_patch }}
       RELEASE_BRANCH: ${{ steps.version-info.outputs.release_branch }}
-      WORKING_BRANCH: ${{ steps.branch.outputs.value }}
       NEXT_MINOR: ${{ steps.version-info.outputs.next_minor }}
       NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.next_minor_pre_without_v }}
       PREVIOUS_MINOR_TAG: ${{ steps.version-info.outputs.previous_minor_tag }}
       nightly_ref: ${{ steps.nightly-info.outputs.nightly_ref }}
-      nightly_version: ${{ steps.nightly-info.outputs.nightly_version }}
+      nightly_version: ${{ steps.effective-version.outputs.nightly_version }}
       nightly_run_id: ${{ steps.nightly-info.outputs.nightly_run_id }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - name: Determine version
-        id: effective-version
-        run: |
-          base=$(sed 's/-.*$//' version.txt)
-          FULL_VERSION="v${base}"
-          echo "FULL_VERSION=${FULL_VERSION}" | tee -a "$GITHUB_ENV"
-          echo "value=${FULL_VERSION}" >> "$GITHUB_OUTPUT"
       - name: Get nightly run info
         id: nightly-info
         env:
@@ -62,10 +54,22 @@ jobs:
           fi
           nightly_ref=$(gh run view "${nightly_run_id}" --repo "${GH_REPO}" --json headSha --jq '.headSha')
           nightly_date=$(gh run view "${nightly_run_id}" --repo "${GH_REPO}" --json createdAt --jq '.createdAt | .[0:10]')
-          nightly_version="${FULL_VERSION}-${nightly_date}"
           echo "nightly_run_id=${nightly_run_id}" | tee -a "$GITHUB_OUTPUT"
           echo "nightly_ref=${nightly_ref}" | tee -a "$GITHUB_OUTPUT"
-          echo "nightly_version=${nightly_version}" | tee -a "$GITHUB_OUTPUT"
+          echo "nightly_date=${nightly_date}" | tee -a "$GITHUB_OUTPUT"
+      - name: Determine version
+        id: effective-version
+        env:
+          GH_REPO: ${{ github.repository }}
+          NIGHTLY_REF: ${{ steps.nightly-info.outputs.nightly_ref }}
+          NIGHTLY_DATE: ${{ steps.nightly-info.outputs.nightly_date }}
+        run: |
+          version_txt=$(gh api -H "Accept: application/vnd.github.raw" "repos/${GH_REPO}/contents/version.txt?ref=${NIGHTLY_REF}")
+          base="${version_txt%%-*}"
+          FULL_VERSION="v${base}"
+          echo "FULL_VERSION=${FULL_VERSION}" | tee -a "$GITHUB_ENV"
+          echo "value=${FULL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "nightly_version=${FULL_VERSION}-${NIGHTLY_DATE}" >> "$GITHUB_OUTPUT"
       - name: Verify nightly tests passed
         env:
           NIGHTLY_RUN_ID: ${{ steps.nightly-info.outputs.nightly_run_id }}
@@ -80,7 +84,7 @@ jobs:
           fi
       - name: Verify nightly draft release has artifacts
         env:
-          NIGHTLY_VERSION: ${{ steps.nightly-info.outputs.nightly_version }}
+          NIGHTLY_VERSION: ${{ steps.effective-version.outputs.nightly_version }}
           GH_REPO: ${{ github.repository }}
         run: |
           asset_count=$(gh release view "${NIGHTLY_VERSION}" --repo "${GH_REPO}" --json assets --jq '.assets | length' 2>/dev/null || echo "0")
@@ -90,15 +94,14 @@ jobs:
           fi
           echo "Found ${asset_count} assets on ${NIGHTLY_VERSION}."
       - name: Don't overwrite published releases
+        env:
+          GH_REPO: ${{ github.repository }}
         run: |
-          is_draft=$(gh release view "${FULL_VERSION}" --json isDraft -q .isDraft 2>/dev/null || true)
+          is_draft=$(gh release view "${FULL_VERSION}" --repo "${GH_REPO}" --json isDraft -q .isDraft 2>/dev/null || true)
           if [[ "${is_draft}" == "false" ]]; then
             echo "::error::Release ${FULL_VERSION} is already published."
             exit 1
           fi
-      - name: Get working branch
-        id: branch
-        run: echo "value=$(git branch --show-current)" >> "$GITHUB_OUTPUT"
       - name: Parse version
         id: version-info
         uses: ./.github/actions/parse_version
@@ -152,7 +155,8 @@ jobs:
 
   prepare-github-release:
     name: Create backport label and milestone
-    needs: prepare
+    # Depend on promote so we don't create a milestone for a failed release.
+    needs: [prepare, promote]
     runs-on: ubuntu-24.04
     permissions:
       issues: write
@@ -195,7 +199,7 @@ jobs:
           artifacts_run_id: ${{ needs.prepare.outputs.nightly_run_id }}
 
   publish:
-    name: Prepare post-release PR to main
+    name: Publish release
     needs: [prepare, promote, prepare-github-release, prepare-post-release-pr]
     runs-on: ubuntu-24.04
     environment: release-publish
@@ -206,6 +210,8 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.nightly_ref }}
           persist-credentials: true
+          # edgelessci's token is required to push to the protected release/* branch.
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
       - name: Create and push release tag
         env:
           VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
@@ -213,6 +219,12 @@ jobs:
         run: |
           git tag "${VERSION}" "${REF}"
           git push origin "${VERSION}"
+      - name: Update release branch to nightly ref
+        env:
+          REF: ${{ needs.prepare.outputs.nightly_ref }}
+          RELEASE_BRANCH: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
+        # release/* requires linear history so this push must be a fast-forward.
+        run: git push origin "${REF}:refs/heads/${RELEASE_BRANCH}"
       - uses: ./.github/actions/regenerate_release_notes
         with:
           version: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}

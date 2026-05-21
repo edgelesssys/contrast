@@ -1,0 +1,30 @@
+name: release cleanup
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Semantic version tag of the release (vX.Y.Z)."
+        required: true
+
+jobs:
+  cleanup-bucket:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: AWS login (IAM role)
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
+        with:
+          role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
+          aws-region: eu-central-1
+      - name: Delete pre-release artifacts from S3 bucket contrast-public
+        env:
+          VERSION: ${{ github.event.release.tag_name }}${{ github.event.inputs.tag }}
+        run: |
+          aws s3 rm --recursive "s3://contrast-public/pre-releases/${VERSION}/"
+          aws s3 rm --recursive --exclude "*" --include "${VERSION}-*" "s3://contrast-public/pre-releases/"
