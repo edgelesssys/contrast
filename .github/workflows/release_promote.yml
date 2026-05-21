@@ -148,12 +148,6 @@ jobs:
           files: |
             ./release-artifacts/**
             ./darwin-artifacts/contrast-aarch64-darwin
-      - name: Delete nightly draft release
-        env:
-          NIGHTLY_VERSION: ${{ needs.prepare.outputs.nightly_version }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          gh release delete "${NIGHTLY_VERSION}" --repo "${GH_REPO}" --yes
 
   prepare-github-release:
     name: Create backport label and milestone
@@ -238,3 +232,10 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
         run: |
           gh release edit "${VERSION}" --draft=false --repo "${{ github.repository }}"
+      - name: Delete nightly draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NIGHTLY_VERSION: ${{ needs.prepare.outputs.nightly_version }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete "${NIGHTLY_VERSION}" --repo "${GH_REPO}" --yes || true
