@@ -75,14 +75,37 @@ jobs:
           NIGHTLY_RUN_ID: ${{ steps.nightly-info.outputs.nightly_run_id }}
           GH_REPO: ${{ github.repository }}
         run: |
-          failed=$(gh api --paginate \
+          required_jobs=$(gh api --paginate \
             "repos/${GH_REPO}/actions/runs/${NIGHTLY_RUN_ID}/jobs?per_page=30" \
-            --jq '.jobs[] | select(.name | startswith("release-requirement: ")) | select(.conclusion != "success") | "\(.name): \(.conclusion)"')
+            --jq '.jobs[] | select(.name | startswith("release-requirement: ")) | {name, conclusion}')
+          # Every release-requirement job must be present, so a rename can't
+          # silently drop one from the gate. Matrix and reusable-workflow jobs
+          # are matched by name prefix. Keep in sync with release_nightly.yml.
+          expected=(
+            "release-requirement: Build and push artifacts, create nightly draft release"
+            "release-requirement: Build aarch64-darwin CLI"
+            "release-requirement: e2e nightly"
+            "release-requirement: e2e release on "
+          )
+          missing=()
+          for prefix in "${expected[@]}"; do
+            if ! jq -e -s --arg p "${prefix}" 'any(.[]; .name | startswith($p))' <<<"${required_jobs}" >/dev/null; then
+              missing+=("${prefix}")
+            fi
+          done
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Expected release-requirement job(s) missing from nightly run ${NIGHTLY_RUN_ID}; renamed or removed? Update release_nightly.yml or this list:"
+            printf '%s\n' "${missing[@]}"
+            exit 1
+          fi
+          failed=$(jq -rs '.[] | select(.conclusion != "success") | "\(.name): \(.conclusion)"' <<<"${required_jobs}")
           if [[ -n "${failed}" ]]; then
             echo "::error::The following required jobs did not succeed in nightly run ${NIGHTLY_RUN_ID}:"
             echo "${failed}"
             exit 1
           fi
+          required=$(jq -rs 'length' <<<"${required_jobs}")
+          echo "All ${required} release-requirement job(s) passed in nightly run ${NIGHTLY_RUN_ID}."
       - name: Verify nightly draft release has artifacts
         env:
           NIGHTLY_VERSION: ${{ steps.effective-version.outputs.nightly_version }}
