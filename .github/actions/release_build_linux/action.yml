@@ -36,6 +36,9 @@ outputs:
   log_collector_image:
     description: Fully-qualified digest of the k8s-log-collector image pushed during the build.
     value: ${{ steps.push-log-collector.outputs.image }}
+  s3-bucket-url:
+    description: Public URL of the pre-release artifacts uploaded to S3
+    value: ${{ steps.create-artifacts.outputs.s3-bucket-url }}
 
 runs:
   using: composite
