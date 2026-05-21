@@ -75,8 +75,9 @@ jobs:
           NIGHTLY_RUN_ID: ${{ steps.nightly-info.outputs.nightly_run_id }}
           GH_REPO: ${{ github.repository }}
         run: |
-          failed=$(gh run view "${NIGHTLY_RUN_ID}" --repo "${GH_REPO}" --json jobs \
-            --jq '[.jobs[] | select(.name | startswith("release-requirement: ")) | select(.conclusion != "success")] | map("\(.name): \(.conclusion)") | .[]')
+          failed=$(gh api --paginate \
+            "repos/${GH_REPO}/actions/runs/${NIGHTLY_RUN_ID}/jobs?per_page=30" \
+            --jq '.jobs[] | select(.name | startswith("release-requirement: ")) | select(.conclusion != "success") | "\(.name): \(.conclusion)"')
           if [[ -n "${failed}" ]]; then
             echo "::error::The following required jobs did not succeed in nightly run ${NIGHTLY_RUN_ID}:"
             echo "${failed}"
