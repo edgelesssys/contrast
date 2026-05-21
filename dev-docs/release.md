@@ -16,7 +16,7 @@ This draft release can be promoted to actual release.
     gh workflow run release_promote.yml
     ```
 
-4. Test the binary artifact. Send Privatemode a message to review the release artifacts as well and wait for their feedback.
+4. Test the binary artifact. The artifacts to review come from the nightly build, not the promote run: open the most recent `release_nightly.yml` run and copy the S3 link from its `Pre-release artifacts` job summary. Send Privatemode a message to review these artifacts and wait for their feedback.
 
 5. **Wait for PM approval before proceeding.**
 
@@ -58,7 +58,7 @@ If you need to include new changes merged into main since the last successful ni
 
 6. Review the release notes. If label/title/description changes are necessary, change them on the PR itself, then regenerate. Ensure the release is based on the latest minor, not patch release. Test the binary artifact.
 
-7. Send Privatemode a message to review the release artifacts and wait for their feedback.
+7. Send Privatemode a message to review the release artifacts and wait for their feedback. The S3 link is in the `Pre-release artifacts` job summary of the `release.yml` run.
 
 8. **Wait for PM approval before proceeding.**
 
@@ -108,7 +108,7 @@ If you need to include new changes merged into main since the last successful ni
 
 6. Review the release notes. If label/title/description changes are necessary, change them on the PR itself, then regenerate. Ensure the release is based on the latest patch release. Test the binary artifact.
 
-7. Send Privatemode a message to review the release artifacts and wait for their feedback.
+7. Send Privatemode a message to review the release artifacts and wait for their feedback. The S3 link is in the `Pre-release artifacts` job summary of the `release.yml` run.
 
 8. **Wait for PM approval before proceeding.**
 
