@@ -134,6 +134,8 @@ jobs:
           path: ./darwin-artifacts
           run-id: ${{ needs.prepare.outputs.nightly_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Drop padding LICENSE file
+        run: rm ./release-artifacts/LICENSE
       - name: Create release draft
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2  # zizmor: ignore[superfluous-actions]
         with:
@@ -145,7 +147,6 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             ./release-artifacts/**
-            !./release-artifacts/LICENSE
             ./darwin-artifacts/contrast-aarch64-darwin
       - name: Delete nightly draft release
         env:
