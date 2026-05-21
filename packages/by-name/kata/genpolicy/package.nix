@@ -3,182 +3,102 @@
 
 {
   lib,
-  craneLib,
   source,
-  openssl,
-  pkg-config,
-  protobuf,
-  zlib,
-  cmake,
-  stdenv,
   stdenvNoCC,
   applyPatches,
 }:
 
-craneLib.buildPackage rec {
-  pname = "genpolicy";
-  inherit (source) version cargoVendorDir src;
-  strictDeps = true;
+(source.cargoNixPackage.workspaceMembers."genpolicy".build.override {
+  # Upstream's integration tests in tests/generate/main.rs use env!("CARGO_TARGET_TMPDIR"),
+  # which is cargo-only. Disable test runs here; the crane equivalent had --lib only.
+  runTests = false;
+}).overrideAttrs
+  (prev: {
+    pname = "genpolicy";
+    passthru = (prev.passthru or { }) // rec {
+      settings-base = stdenvNoCC.mkDerivation {
+        name = "genpolicy-${source.version}-settings";
+        inherit (source) src;
+        sourceRoot = "${source.src.name}";
+        phases = [
+          "unpackPhase"
+          "patchPhase"
+          "installPhase"
+        ];
+        installPhase = ''
+          runHook preInstall
+          install -D src/tools/genpolicy/genpolicy-settings.json $out/genpolicy-settings.json
+          runHook postInstall
+        '';
+      };
 
-  cargoExtraArgs = lib.concatStringsSep " " [
-    "--target"
-    stdenv.hostPlatform.rust.rustcTarget
-    "--offline"
-    "--package"
-    "genpolicy"
-  ];
+      # We maintain two different patches for the genpolicy settings, one for development and one for
+      # the release. We can't apply both to the Kata sources at the same time, so we have two
+      # derivations here that apply the patches only to the settings file.
+      #
+      # If you need to modify these patches, this workflow may come in handy to keep diffs small.
+      # Replace $CONTRAST with your repository worktree and adjust the patch file to _prod, if
+      # needed.
+      #
+      #   cd $CONTRAST
+      #   mkdir -p /tmp/a /tmp/b
+      #   nix build .#base.kata.genpolicy.settings-base
+      #   cp --no-preserve=mode result/genpolicy-settings.json /tmp/b
+      #   cd /tmp/b
+      #   patch -b -B ../a/ -p1 genpolicy-settings.json <$CONTRAST/packages/by-name/kata/genpolicy/genpolicy_settings_dev.patch
+      #   # Now, edit /tmp/b/genpolicy-settings.json according to your needs.
+      #   cd ..
+      #   git diff --no-ext-diff --full-index --no-prefix a/genpolicy-settings.json b/genpolicy-settings.json >$CONTRAST/packages/by-name/kata/genpolicy/genpolicy_settings_dev.patch
+      settings = applyPatches {
+        src = settings-base;
+        patches = [ ./genpolicy_settings_prod.patch ];
+      };
 
-  nativeBuildInputs = [
-    cmake
-    pkg-config
-    protobuf
-  ];
+      # Settings that allow exec into CVM pods - not safe for production use!
+      settings-dev = applyPatches {
+        src = settings-base;
+        patches = [ ./genpolicy_settings_dev.patch ];
+      };
 
-  buildInputs = [
-    openssl
-    openssl.dev
-    zlib
-  ];
+      # Switch to rules-allow-all to disable policy checks for debugging.
+      rules = rules-prod;
 
-  env = {
-    OPENSSL_NO_VENDOR = 1;
-    OPENSSL_DIR = "${openssl.dev}";
-    OPENSSL_LIB_DIR = "${lib.getLib openssl}/lib";
-  }
-  // lib.optionalAttrs stdenv.hostPlatform.isStatic {
-    "CARGO_TARGET_${stdenv.hostPlatform.rust.cargoEnvVarTarget}_RUSTFLAGS" =
-      "-C target-feature=+crt-static -C link-arg=-static";
-  };
+      rules-prod = stdenvNoCC.mkDerivation {
+        name = "genpolicy-${source.version}-rules";
+        inherit (source) src;
+        sourceRoot = "${source.src.name}";
+        phases = [
+          "unpackPhase"
+          "patchPhase"
+          "installPhase"
+        ];
+        installPhase = ''
+          runHook preInstall
+          install -D src/tools/genpolicy/rules.rego $out/genpolicy-rules.rego
+          runHook postInstall
+        '';
+      };
 
-  cargoArtifacts = source.mkCargoArtifacts {
-    inherit
-      pname
-      cargoExtraArgs
-      strictDeps
-      nativeBuildInputs
-      buildInputs
-      env
-      ;
-    stubPrefix = "src/tools/genpolicy/src";
-    stubScript = ''
-      printf 'fn main() {}\n' > $out/src/tools/genpolicy/src/main.rs
-    '';
-    preBuild = ''
-      chmod -R +w .
-    ''
-    + lib.optionalString stdenv.hostPlatform.isStatic ''
-      unset NIX_CFLAGS_LINK
-    '';
-  };
-
-  preBuild = ''
-    chmod -R +w .
-    ${source.restoreProtocolsSrc}
-  ''
-  + lib.optionalString stdenv.hostPlatform.isStatic ''
-    unset NIX_CFLAGS_LINK
-  '';
-
-  postPatch = ''
-    make -C src/tools/genpolicy src/version.rs
-  '';
-
-  # TODO(sespiros): drop once kata-agent-policy compiles on Darwin upstream.
-  doCheck = stdenv.hostPlatform.isLinux;
-
-  # Only run library tests, the integration tests need internet access.
-  cargoTestExtraArgs = "--package genpolicy --lib";
-
-  passthru = rec {
-    settings-base = stdenvNoCC.mkDerivation {
-      name = "genpolicy-${version}-settings";
-      inherit src;
-      sourceRoot = "${src.name}";
-
-      phases = [
-        "unpackPhase"
-        "patchPhase"
-        "installPhase"
-      ];
-      installPhase = ''
-        runHook preInstall
-        install -D src/tools/genpolicy/genpolicy-settings.json $out/genpolicy-settings.json
-        runHook postInstall
-      '';
+      rules-allow-all = stdenvNoCC.mkDerivation {
+        name = "genpolicy-${source.version}-rules-allow-all";
+        inherit (source) src;
+        sourceRoot = "${source.src.name}";
+        phases = [
+          "unpackPhase"
+          "patchPhase"
+          "installPhase"
+        ];
+        installPhase = ''
+          runHook preInstall
+          install -D ../../kata-opa/allow-all.rego $out/genpolicy-rules.rego
+          runHook postInstall
+        '';
+      };
     };
-
-    # We maintain two different patches for the genpolicy settings, one for development and one for
-    # the release. We can't apply both to the Kata sources at the same time, so we have two
-    # derivations here that apply the patches only to the settings file.
-    #
-    # If you need to modify these patches, this workflow may come in handy to keep diffs small.
-    # Replace $CONTRAST with your repository worktree and adjust the patch file to _prod, if
-    # needed.
-    #
-    #   cd $CONTRAST
-    #   mkdir -p /tmp/a /tmp/b
-    #   nix build .#base.kata.genpolicy.settings-base
-    #   cp --no-preserve=mode result/genpolicy-settings.json /tmp/b
-    #   cd /tmp/b
-    #   patch -b -B ../a/ -p1 genpolicy-settings.json <$CONTRAST/packages/by-name/kata/genpolicy/genpolicy_settings_dev.patch
-    #   # Now, edit /tmp/b/genpolicy-settings.json according to your needs.
-    #   cd ..
-    #   git diff --no-ext-diff --full-index --no-prefix a/genpolicy-settings.json b/genpolicy-settings.json >$CONTRAST/packages/by-name/kata/genpolicy/genpolicy_settings_dev.patch
-
-    # These get applied on top of all the patches under the "runtime" folder
-    settings = applyPatches {
-      src = settings-base;
-      patches = [ ./genpolicy_settings_prod.patch ];
+    meta = (prev.meta or { }) // {
+      changelog = "https://github.com/kata-containers/kata-containers/releases/tag/${source.version}";
+      homepage = "https://github.com/kata-containers/kata-containers";
+      mainProgram = "genpolicy";
+      license = lib.licenses.asl20;
     };
-
-    # Settings that allow exec into CVM pods - not safe for production use!
-    settings-dev = applyPatches {
-      src = settings-base;
-      patches = [ ./genpolicy_settings_dev.patch ];
-    };
-
-    # Switch to rules-allow-all to disable policy checks for debugging.
-    rules = rules-prod;
-
-    rules-prod = stdenvNoCC.mkDerivation {
-      name = "genpolicy-${version}-rules";
-      inherit src;
-      sourceRoot = "${src.name}";
-
-      phases = [
-        "unpackPhase"
-        "patchPhase"
-        "installPhase"
-      ];
-      installPhase = ''
-        runHook preInstall
-        install -D src/tools/genpolicy/rules.rego $out/genpolicy-rules.rego
-        runHook postInstall
-      '';
-    };
-
-    rules-allow-all = stdenvNoCC.mkDerivation {
-      name = "genpolicy-${version}-rules-allow-all";
-      inherit src;
-      sourceRoot = "${src.name}";
-
-      phases = [
-        "unpackPhase"
-        "patchPhase"
-        "installPhase"
-      ];
-      installPhase = ''
-        runHook preInstall
-        install -D ../../kata-opa/allow-all.rego $out/genpolicy-rules.rego
-        runHook postInstall
-      '';
-    };
-  };
-
-  meta = {
-    changelog = "https://github.com/kata-containers/kata-containers/releases/tag/${version}";
-    homepage = "https://github.com/kata-containers/kata-containers";
-    mainProgram = "genpolicy";
-    license = lib.licenses.asl20;
-  };
-}
+  })

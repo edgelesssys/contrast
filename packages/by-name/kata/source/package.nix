@@ -3,25 +3,49 @@
 
 # Shared source meta-package for the kata-containers fork.
 #
-# Owns:
-#   - the upstream version pin and `fetchFromGitHub` (`srcRaw`)
-#   - the patch set and the patched source (`src`)
-#   - the `cargoLock.outputHashes` map for all git deps in the kata
-#     workspace (`outputHashes`)
-#   - a single shared vendor dir for the workspace's `Cargo.lock`
-#     (`cargoVendorDir`), wrapped so crane's setup hook accepts it.
+# Owns the upstream version pin, patched source, and the workspace-wide
+# `cargoNixPackage` (callPackage of the committed `./Cargo.nix`, with the
+# crate2nix-style `crateOverrides` that wire native deps and source fixups
+# into the per-crate builds). Consumed by `kata.agent`, `kata.runtime-rs`,
+# and `kata.genpolicy` via the nested by-name scope.
 #
-# Consumed by `kata.runtime`, `kata.agent`, `kata.runtime-rs`, and
-# `kata.genpolicy` via the nested by-name scope (each receives this as
-# its `source` argument).
+# Regenerate `Cargo.nix` after any change to the kata `Cargo.lock` or to
+# the patch set under this directory:
+#
+#   nix build .#base.kata.source.src
+#   cp -r --no-preserve=mode,ownership result /tmp/kata-src
+#   cd /tmp/kata-src
+#   nix run nixpkgs#crate2nix -- generate -f Cargo.toml -o Cargo.nix
+#   sed -i -e 's|^{ nixpkgs ? <nixpkgs>$|{ workspaceSrc\n, nixpkgs ? <nixpkgs>|' \
+#          -e 's|src = \./|src = workspaceSrc + "/|' \
+#          -e 's|src = workspaceSrc + "/\([^;]*\);|src = workspaceSrc + "/\1";|' \
+#          Cargo.nix
+#   # Normalize the workspace path so re-generations don't churn the diff.
+#   sed -i 's|/tmp/kata-src/src/libs/safe-path|/tmp/c2n-gen/src/libs/safe-path|g' Cargo.nix
+#   # safe-path appears twice (workspace + registry); collapse to the workspace one.
+#   sed -i 's|"registry+https://github.com/rust-lang/crates.io-index#safe-path@0.1.0"|"path+file:///tmp/c2n-gen/src/libs/safe-path#0.1.0"|g' Cargo.nix
+#   # The test-runner derivation's buildPhase writes the test log directly to
+#   # `$out` via `tee`, so the default `installPhase` (which mkdir's `$out`)
+#   # fails. crate2nix doesn't emit `dontInstall = true` itself — patch it in.
+#   sed -i '/buildInputs = testInputs;/a\\\n            dontInstall = true;' Cargo.nix
+#   cp Cargo.nix $CONTRAST/packages/by-name/kata/source/Cargo.nix
+#   # then delete the leftover (now-duplicate) registry safe-path block.
 
 {
   fetchFromGitHub,
   applyPatches,
   rustPlatform,
-  runCommand,
   lib,
-  craneLib,
+  callPackage,
+  buildRustCrate,
+  defaultCrateOverrides,
+  protobuf,
+  pkg-config,
+  openssl,
+  libseccomp,
+  lvm2,
+  cmake,
+  zlib,
 }:
 
 rec {
@@ -202,98 +226,103 @@ rec {
     ];
   };
 
-  outputHashes = {
-    "api_client-0.1.0" = "sha256-RdwQg6/EI+oGkyNXnu5t1q87oTXev25XpIaE+PWDTx4=";
-    "cgroups-rs-0.3.5" = "sha256-BKD1ZPK5LqB/n2xD/oODArVKjbH+MQOeYn/UYbBHzn0=";
-    "micro_http-0.1.0" = "sha256-XemdzwS25yKWEXJcRX2l6QzD7lrtroMeJNOUEWGR7WQ=";
-    "regorus-0.9.1" = "sha256-+TCq9r8kTNM0URbcDP4D9/lKA6Bni7+KgrGRTJFbQPM=";
-    "s390_pv_core-0.11.0" = "sha256-P275gUoF4JtaKvKPvzhCsBuo882kKCYebtNpCDEmTP0=";
-  };
-
-  # Vendor dir keyed on the *unpatched* workspace Cargo.lock so that adding
-  # or removing non-Cargo patches doesn't invalidate the cache for crane
-  # consumers.
-  cargoVendorDir = runCommand "kata-cargo-vendor-${version}" { } ''
-    mkdir -p $out
-    cp -r --no-preserve=mode,ownership ${
-      rustPlatform.importCargoLock {
-        lockFile = "${srcRaw}/Cargo.lock";
-        inherit outputHashes;
-      }
-    }/. $out/
-    substituteInPlace $out/.cargo/config.toml \
-      --replace-fail 'directory = "cargo-vendor-dir"' "directory = \"$out\""
-    cp $out/.cargo/config.toml $out/config.toml
-  '';
-
-  # Builds a `cargoArtifacts` chain that pre-compiles the kata workspace with the given source dir filtered out.
-  # This allows edits in that dir to not affect the cache status of the other packages in the workspace.
-  #
-  # Captures `src/libs/protocols/src/` because the protocols build script generates code into the source tree.
-  # Consumers must restore it via `restoreProtocolsSrc` before their cargo invocation!
-  mkCargoArtifacts =
-    {
-      pname,
-      cargoExtraArgs,
-      nativeBuildInputs,
-      buildInputs,
-      env,
-      strictDeps ? true,
-      stubPrefix,
-      stubScript,
-      preBuild ? "chmod -R +w .\n",
-    }:
-    craneLib.cargoBuild {
-      inherit
-        pname
-        version
-        cargoVendorDir
-        strictDeps
-        cargoExtraArgs
-        nativeBuildInputs
-        buildInputs
-        env
-        preBuild
-        ;
-      pnameSuffix = "-workspace";
-      doCheck = false;
-
-      src = runCommand "source-patched" { } ''
-        cp -r --no-preserve=mode,ownership ${
-          lib.cleanSourceWith {
-            name = "source-patched-stubbed";
-            inherit src;
-            filter = path: _type: !(lib.hasInfix "/${stubPrefix}/" path);
-          }
-        }/. $out/
-        chmod -R +w $out
-        mkdir -p $out/${stubPrefix}
-        ${stubScript}
-      '';
-
-      postInstall = ''
-        mkdir -p $out/source-mods
-        cp -r src/libs/protocols/src $out/source-mods/protocols-src
-      '';
-
-      cargoArtifacts = craneLib.buildDepsOnly {
-        inherit
-          pname
-          version
-          cargoVendorDir
-          strictDeps
-          cargoExtraArgs
-          nativeBuildInputs
-          buildInputs
-          env
-          preBuild
-          ;
-        src = srcRaw;
+  cargoNixPackage = callPackage ./Cargo.nix {
+    workspaceSrc = src;
+    buildRustCrateForPkgs =
+      _:
+      buildRustCrate.override {
+        defaultCodegenUnits = 16;
+        defaultCrateOverrides = defaultCrateOverrides // {
+          protocols = _: {
+            nativeBuildInputs = [ protobuf ];
+          };
+          prost-build = _: {
+            nativeBuildInputs = [ protobuf ];
+          };
+          k8s-cri = _: {
+            nativeBuildInputs = [ protobuf ];
+          };
+          containerd-client = _: {
+            nativeBuildInputs = [ protobuf ];
+          };
+          openssl-sys = _: {
+            nativeBuildInputs = [ pkg-config ];
+            buildInputs = [
+              openssl
+              openssl.dev
+            ];
+            OPENSSL_NO_VENDOR = 1;
+          };
+          libseccomp-sys = _: {
+            nativeBuildInputs = [ pkg-config ];
+            buildInputs = [
+              libseccomp
+              libseccomp.dev
+              libseccomp.lib
+            ];
+          };
+          kata-agent = _: {
+            nativeBuildInputs = [
+              cmake
+              protobuf
+            ];
+            buildInputs = [
+              openssl
+              openssl.dev
+              lvm2.dev
+              libseccomp
+              libseccomp.dev
+              libseccomp.lib
+              rustPlatform.bindgenHook
+            ];
+            LIBC = "gnu";
+            preBuild = ''
+              substitute src/version.rs.in src/version.rs \
+                --replace-fail @AGENT_VERSION@ ${version} \
+                --replace-fail @API_VERSION@ 0.0.1 \
+                --replace-fail @VERSION_COMMIT@ ${version} \
+                --replace-fail @COMMIT@ ""
+            '';
+          };
+          shim = _: {
+            nativeBuildInputs = [
+              pkg-config
+              protobuf
+            ];
+            buildInputs = [
+              openssl
+              openssl.dev
+            ];
+            OPENSSL_NO_VENDOR = 1;
+            preBuild = ''
+              substitute src/config.rs.in src/config.rs \
+                --replace-fail @PROJECT_NAME@ "Kata Containers" \
+                --replace-fail @RUNTIME_VERSION@ ${version} \
+                --replace-fail @COMMIT@ none \
+                --replace-fail @RUNTIME_NAME@ containerd-shim-kata-v2 \
+                --replace-fail @CONTAINERD_RUNTIME_NAME@ io.containerd.kata.v2
+            '';
+          };
+          genpolicy = _: {
+            nativeBuildInputs = [
+              cmake
+              pkg-config
+              protobuf
+            ];
+            buildInputs = [
+              openssl
+              openssl.dev
+              zlib
+            ];
+            OPENSSL_NO_VENDOR = 1;
+            OPENSSL_DIR = "${openssl.dev}";
+            OPENSSL_LIB_DIR = "${lib.getLib openssl}/lib";
+            preBuild = ''
+              substitute src/version.rs.in src/version.rs \
+                --replace-fail @COMMIT_INFO@ ""
+            '';
+          };
+        };
       };
-    };
-
-  restoreProtocolsSrc = ''
-    cp -af "$cargoArtifacts/source-mods/protocols-src/." src/libs/protocols/src/
-    chmod -R +w src/libs/protocols/src/
-  '';
+  };
 }
