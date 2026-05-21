@@ -46,24 +46,27 @@ craneLib.buildPackage rec {
     OPENSSL_NO_VENDOR = 1;
   };
 
-  preBuild = ''
-    chmod -R +w .
-  '';
-
-  cargoArtifacts = craneLib.buildDepsOnly {
+  cargoArtifacts = source.mkCargoArtifacts {
     inherit
       pname
-      version
-      cargoVendorDir
-      strictDeps
       cargoExtraArgs
+      strictDeps
       nativeBuildInputs
       buildInputs
       env
-      preBuild
       ;
-    src = source.srcRaw;
+    stubPrefix = "src/runtime-rs/crates/shim/src";
+    stubScript = ''
+      mkdir -p $out/src/runtime-rs/crates/shim/src/bin
+      printf 'fn main() {}\n' > $out/src/runtime-rs/crates/shim/src/bin/main.rs
+      : > $out/src/runtime-rs/crates/shim/src/lib.rs
+    '';
   };
+
+  preBuild = ''
+    chmod -R +w .
+    ${source.restoreProtocolsSrc}
+  '';
 
   postPatch = ''
     substitute src/runtime-rs/crates/shim/src/config.rs.in src/runtime-rs/crates/shim/src/config.rs \

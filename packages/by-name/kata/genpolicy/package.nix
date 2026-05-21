@@ -50,27 +50,34 @@ craneLib.buildPackage rec {
       "-C target-feature=+crt-static -C link-arg=-static";
   };
 
+  cargoArtifacts = source.mkCargoArtifacts {
+    inherit
+      pname
+      cargoExtraArgs
+      strictDeps
+      nativeBuildInputs
+      buildInputs
+      env
+      ;
+    stubPrefix = "src/tools/genpolicy/src";
+    stubScript = ''
+      printf 'fn main() {}\n' > $out/src/tools/genpolicy/src/main.rs
+    '';
+    preBuild = ''
+      chmod -R +w .
+    ''
+    + lib.optionalString stdenv.hostPlatform.isStatic ''
+      unset NIX_CFLAGS_LINK
+    '';
+  };
+
   preBuild = ''
     chmod -R +w .
+    ${source.restoreProtocolsSrc}
   ''
   + lib.optionalString stdenv.hostPlatform.isStatic ''
     unset NIX_CFLAGS_LINK
   '';
-
-  cargoArtifacts = craneLib.buildDepsOnly {
-    inherit
-      pname
-      version
-      cargoVendorDir
-      strictDeps
-      cargoExtraArgs
-      nativeBuildInputs
-      buildInputs
-      env
-      preBuild
-      ;
-    src = source.srcRaw;
-  };
 
   postPatch = ''
     make -C src/tools/genpolicy src/version.rs

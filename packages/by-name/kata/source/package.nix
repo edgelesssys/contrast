@@ -20,6 +20,8 @@
   applyPatches,
   rustPlatform,
   runCommand,
+  lib,
+  craneLib,
 }:
 
 rec {
@@ -222,5 +224,76 @@ rec {
     substituteInPlace $out/.cargo/config.toml \
       --replace-fail 'directory = "cargo-vendor-dir"' "directory = \"$out\""
     cp $out/.cargo/config.toml $out/config.toml
+  '';
+
+  # Builds a `cargoArtifacts` chain that pre-compiles the kata workspace with the given source dir filtered out.
+  # This allows edits in that dir to not affect the cache status of the other packages in the workspace.
+  #
+  # Captures `src/libs/protocols/src/` because the protocols build script generates code into the source tree.
+  # Consumers must restore it via `restoreProtocolsSrc` before their cargo invocation!
+  mkCargoArtifacts =
+    {
+      pname,
+      cargoExtraArgs,
+      nativeBuildInputs,
+      buildInputs,
+      env,
+      strictDeps ? true,
+      stubPrefix,
+      stubScript,
+      preBuild ? "chmod -R +w .\n",
+    }:
+    craneLib.cargoBuild {
+      inherit
+        pname
+        version
+        cargoVendorDir
+        strictDeps
+        cargoExtraArgs
+        nativeBuildInputs
+        buildInputs
+        env
+        preBuild
+        ;
+      pnameSuffix = "-workspace";
+      doCheck = false;
+
+      src = runCommand "source-patched" { } ''
+        cp -r --no-preserve=mode,ownership ${
+          lib.cleanSourceWith {
+            name = "source-patched-stubbed";
+            inherit src;
+            filter = path: _type: !(lib.hasInfix "/${stubPrefix}/" path);
+          }
+        }/. $out/
+        chmod -R +w $out
+        mkdir -p $out/${stubPrefix}
+        ${stubScript}
+      '';
+
+      postInstall = ''
+        mkdir -p $out/source-mods
+        cp -r src/libs/protocols/src $out/source-mods/protocols-src
+      '';
+
+      cargoArtifacts = craneLib.buildDepsOnly {
+        inherit
+          pname
+          version
+          cargoVendorDir
+          strictDeps
+          cargoExtraArgs
+          nativeBuildInputs
+          buildInputs
+          env
+          preBuild
+          ;
+        src = srcRaw;
+      };
+    };
+
+  restoreProtocolsSrc = ''
+    cp -af "$cargoArtifacts/source-mods/protocols-src/." src/libs/protocols/src/
+    chmod -R +w src/libs/protocols/src/
   '';
 }

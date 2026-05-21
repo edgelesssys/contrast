@@ -73,24 +73,25 @@ craneLib.buildPackage rec {
     OPENSSL_NO_VENDOR = 1;
   };
 
-  preBuild = ''
-    chmod -R +w .
-  '';
-
-  cargoArtifacts = craneLib.buildDepsOnly {
+  cargoArtifacts = source.mkCargoArtifacts {
     inherit
       pname
-      version
-      cargoVendorDir
-      strictDeps
       cargoExtraArgs
+      strictDeps
       nativeBuildInputs
       buildInputs
       env
-      preBuild
       ;
-    src = source.srcRaw;
+    stubPrefix = "src/agent/src";
+    stubScript = ''
+      printf 'fn main() {}\n' > $out/src/agent/src/main.rs
+    '';
   };
+
+  preBuild = ''
+    chmod -R +w .
+    ${source.restoreProtocolsSrc}
+  '';
 
   postPatch = ''
     substitute src/agent/src/version.rs.in src/agent/src/version.rs \
