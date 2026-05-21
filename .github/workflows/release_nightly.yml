@@ -75,6 +75,7 @@ jobs:
       id-token: write
     outputs:
       LOG_COLLECTOR_IMAGE: ${{ steps.build.outputs.log_collector_image }}
+      ARTIFACTS_URL: ${{ steps.build.outputs.s3-bucket-url }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -110,6 +111,14 @@ jobs:
           without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  report-artifacts:
+    name: Pre-release artifacts
+    needs: [release-x86_64-linux, release-aarch64-darwin]
+    permissions: {}
+    uses: ./.github/workflows/report_artifacts.yml
+    with:
+      url: ${{ needs.release-x86_64-linux.outputs.ARTIFACTS_URL }}
 
   nightly:
     name: "release-requirement: e2e nightly"

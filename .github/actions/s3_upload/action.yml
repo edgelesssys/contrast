@@ -36,5 +36,5 @@ runs:
           done
         done <<< "$FILES"
         url="https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/"
-        echo "Artifacts available at $url" | tee -a "$GITHUB_STEP_SUMMARY"
+        echo "Artifacts available at $url"
         echo "url=$url" | tee -a "$GITHUB_OUTPUT"

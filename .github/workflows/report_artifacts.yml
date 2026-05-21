@@ -1,0 +1,28 @@
+name: report artifacts
+
+on:
+  workflow_call:
+    inputs:
+      url:
+        description: Public HTTPS URL of the uploaded artifacts
+        required: true
+        type: string
+
+jobs:
+  report-artifacts:
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: Report pre-release artifacts location
+        env:
+          ARTIFACTS_URL: ${{ inputs.url }}
+        run: |
+          # Derive the s3:// URI from the virtual-hosted-style HTTPS URL.
+          s3_uri=$(sed -E 's#^https://([^.]+)\.s3\.[a-z0-9-]+\.amazonaws\.com/#s3://\1/#' <<<"${ARTIFACTS_URL}")
+          {
+            echo "${ARTIFACTS_URL}"
+            echo
+            echo '```'
+            echo "${s3_uri}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
