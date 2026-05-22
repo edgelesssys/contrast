@@ -11,10 +11,10 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  3 files changed, 23 insertions(+), 9 deletions(-)
 
 diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
-index 1c52e69b456d76b63f09f2257260fc4157b4a758..383cc245cee96b8f98375bc3c02cd4778c868af2 100644
+index 6c24e1abb479d917fb94bc16f629185b0d7d1b20..40a768af3b2b47ceeca8cd13c4e9c9c0ad007c51 100644
 --- a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
 +++ b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
-@@ -1042,6 +1042,7 @@ struct DeviceVirtioBlk {
+@@ -1048,6 +1048,7 @@ struct DeviceVirtioBlk {
      config_wce: bool,
      share_rw: bool,
      devno: Option<String>,
@@ -22,7 +22,7 @@ index 1c52e69b456d76b63f09f2257260fc4157b4a758..383cc245cee96b8f98375bc3c02cd477
  }
  
  impl DeviceVirtioBlk {
-@@ -1052,6 +1053,7 @@ impl DeviceVirtioBlk {
+@@ -1058,6 +1059,7 @@ impl DeviceVirtioBlk {
              config_wce: false,
              share_rw: true,
              devno,
@@ -30,7 +30,7 @@ index 1c52e69b456d76b63f09f2257260fc4157b4a758..383cc245cee96b8f98375bc3c02cd477
          }
      }
  
-@@ -1084,7 +1086,11 @@ impl ToQemuParams for DeviceVirtioBlk {
+@@ -1090,7 +1092,11 @@ impl ToQemuParams for DeviceVirtioBlk {
          } else {
              params.push("share-rw=off".to_owned());
          }
@@ -43,7 +43,7 @@ index 1c52e69b456d76b63f09f2257260fc4157b4a758..383cc245cee96b8f98375bc3c02cd477
          if let Some(devno) = &self.devno {
              params.push(format!("devno={devno}"));
          }
-@@ -2506,6 +2512,7 @@ impl<'a> QemuCmdLine<'a> {
+@@ -2827,6 +2833,7 @@ impl<'a> QemuCmdLine<'a> {
          path: &str,
          is_direct: bool,
          is_scsi: bool,
@@ -51,7 +51,7 @@ index 1c52e69b456d76b63f09f2257260fc4157b4a758..383cc245cee96b8f98375bc3c02cd477
      ) -> Result<()> {
          self.devices
              .push(Box::new(BlockBackend::new(device_id, path, is_direct)));
-@@ -2514,8 +2521,9 @@ impl<'a> QemuCmdLine<'a> {
+@@ -2835,8 +2842,9 @@ impl<'a> QemuCmdLine<'a> {
              self.devices
                  .push(Box::new(DeviceScsiHd::new(device_id, "scsi0.0", devno)));
          } else {
@@ -64,10 +64,10 @@ index 1c52e69b456d76b63f09f2257260fc4157b4a758..383cc245cee96b8f98375bc3c02cd477
  
          Ok(())
 diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs b/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs
-index 7a56d6a40b0c44d027feba2d454e012278770d7c..eda35bebac7b522cbfe59f2bf1d4ffbe675737be 100644
+index 353e80dd80e983f292a23a80c9b511570160cb33..b541c7719e766e215cf7165870030711864817e4 100644
 --- a/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs
 +++ b/src/runtime-rs/crates/hypervisor/src/qemu/inner.rs
-@@ -138,8 +138,13 @@ impl QemuInner {
+@@ -141,8 +141,13 @@ impl QemuInner {
                              &block_dev.config.path_on_host,
                              block_dev.config.is_readonly,
                          )?,
@@ -83,7 +83,7 @@ index 7a56d6a40b0c44d027feba2d454e012278770d7c..eda35bebac7b522cbfe59f2bf1d4ffbe
                                  block_dev.device_id.as_str(),
                                  &block_dev.config.path_on_host,
                                  block_dev
-@@ -147,7 +152,9 @@ impl QemuInner {
+@@ -150,7 +155,9 @@ impl QemuInner {
                                      .is_direct
                                      .unwrap_or(self.config.blockdev_info.block_device_cache_direct),
                                  block_dev.config.driver_option.as_str() == KATA_SCSI_DEV_TYPE,
@@ -95,10 +95,10 @@ index 7a56d6a40b0c44d027feba2d454e012278770d7c..eda35bebac7b522cbfe59f2bf1d4ffbe
                              info!(sl!(), "unsupported block device driver: {}", unsupported)
                          }
 diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-index 02c32110e8e2c272fee2945b710625dd018471a3..0a8172c12f5be89aa8c52a09b6539c62017e515e 100644
+index 97699cd4de228f130afe846e02e8ded996aa8e4e..a860457a67e26672fc7120883723671d3906a94a 100644
 --- a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
 +++ b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-@@ -44,7 +44,7 @@ use hypervisor::{
+@@ -46,7 +46,7 @@ use hypervisor::{
      utils::{get_hvsock_path, uses_native_ccw_bus},
      HybridVsockConfig, DEFAULT_GUEST_VSOCK_CID,
  };
@@ -107,7 +107,7 @@ index 02c32110e8e2c272fee2945b710625dd018471a3..0a8172c12f5be89aa8c52a09b6539c62
  use hypervisor::{BlockDeviceAio, PortDeviceConfig};
  use hypervisor::{ProtectionDeviceConfig, SevSnpConfig, TdxConfig};
  use kata_sys_util::hooks::HookStates;
-@@ -555,11 +555,10 @@ impl VirtSandbox {
+@@ -639,11 +639,10 @@ impl VirtSandbox {
              sl!(),
              "initdata push data into compressed block: {:?}", &image_path
          );

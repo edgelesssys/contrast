@@ -15,19 +15,18 @@ finalizers.
 
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
- src/agent/src/main.rs | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ src/agent/src/main.rs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index aee7984212d1040632e896f6fb5fc8272a70f9d2..51acf09e234960b79583eea62b4c4cb90738d972 100644
+index 11d7131da504b54b1fe859aaef0ba46118145723..4b914919618e5dc51a031f1ca09d05f9b0aba805 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
-@@ -383,7 +383,8 @@ async fn start_sandbox(
-     if let Err(e) = initialize_policy().await {
-         error!(logger, "Failed to initialize agent policy: {:?}", e);
+@@ -385,7 +385,7 @@ async fn start_sandbox(
          // Continuing execution without a security policy could be dangerous.
+         // Give a brief moment for the logs to flush, then abort the process to stop the VM.
+         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 -        std::process::abort();
-+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 +        panic!("Failed to initialize agent policy: {:?}", e)
      }
  

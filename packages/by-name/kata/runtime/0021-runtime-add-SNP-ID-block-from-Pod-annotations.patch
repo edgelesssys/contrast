@@ -30,10 +30,10 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  7 files changed, 227 insertions(+), 9 deletions(-)
 
 diff --git a/src/libs/kata-types/src/annotations/mod.rs b/src/libs/kata-types/src/annotations/mod.rs
-index 79e44712aca71e9eeb1c15c97c9eba79648a2b87..65a53f4ab1d40c52e2084773247e171fcd6e9654 100644
+index 271872d78a85871314d2eda69ac91b1f63dfc014..41252d71e3c848f32bc613de3f0c931299a13ad9 100644
 --- a/src/libs/kata-types/src/annotations/mod.rs
 +++ b/src/libs/kata-types/src/annotations/mod.rs
-@@ -275,6 +275,19 @@ pub const KATA_ANNO_CFG_HYPERVISOR_VIRTIO_FS_EXTRA_ARGS: &str =
+@@ -278,6 +278,19 @@ pub const KATA_ANNO_CFG_HYPERVISOR_VIRTIO_FS_EXTRA_ARGS: &str =
  /// The initdata annotation passed in when CVM launchs
  pub const KATA_ANNO_CFG_HYPERVISOR_INIT_DATA: &str =
      "io.katacontainers.config.hypervisor.cc_init_data";
@@ -53,7 +53,7 @@ index 79e44712aca71e9eeb1c15c97c9eba79648a2b87..65a53f4ab1d40c52e2084773247e171f
  
  /// GPU specific annotations for remote hypervisor to help with instance selection
  /// It's for minimum number of GPUs required for the VM.
-@@ -940,6 +953,30 @@ impl Annotation {
+@@ -943,6 +956,30 @@ impl Annotation {
                          hv.security_info.initdata =
                              add_hypervisor_initdata_overrides(value).unwrap();
                      }
@@ -85,10 +85,10 @@ index 79e44712aca71e9eeb1c15c97c9eba79648a2b87..65a53f4ab1d40c52e2084773247e171f
                          Ok(r) => {
                              hv.remote_info.default_gpus = r.unwrap_or_default();
 diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
-index 62d5ed1877599d829b4cf591848a21df5d50422b..bb85e3a3659c4c9ef376e8428973061b3e15fee2 100644
+index f79d94cb57944cbe077eaf2aaf52997c90003dcc..a2dbd8fdf3a0cb2cfefff1bc3c75fcbc78892ec4 100644
 --- a/src/libs/kata-types/src/config/hypervisor/mod.rs
 +++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
-@@ -1346,6 +1346,32 @@ pub struct SecurityInfo {
+@@ -1354,6 +1354,32 @@ pub struct SecurityInfo {
      #[serde(default = "default_snp_guest_policy")]
      pub snp_guest_policy: u32,
  
@@ -122,10 +122,10 @@ index 62d5ed1877599d829b4cf591848a21df5d50422b..bb85e3a3659c4c9ef376e8428973061b
      ///
      /// This setting does not affect host-side hooks, which must instead be
 diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
-index ebafd353a5552e3c6da346bb99494c169b585680..1c52e69b456d76b63f09f2257260fc4157b4a758 100644
+index ef6326e030f5cc071de5b4f76d01a62147bf6801..6c24e1abb479d917fb94bc16f629185b0d7d1b20 100644
 --- a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
 +++ b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
-@@ -1881,6 +1881,8 @@ struct ObjectSevSnpGuest {
+@@ -1887,6 +1887,8 @@ struct ObjectSevSnpGuest {
      host_data: Option<String>,
      policy: u32,
      is_snp: bool,
@@ -134,7 +134,7 @@ index ebafd353a5552e3c6da346bb99494c169b585680..1c52e69b456d76b63f09f2257260fc41
  }
  
  impl ObjectSevSnpGuest {
-@@ -1893,6 +1895,8 @@ impl ObjectSevSnpGuest {
+@@ -1899,6 +1901,8 @@ impl ObjectSevSnpGuest {
              host_data,
              policy: 0x30000,
              is_snp,
@@ -143,7 +143,7 @@ index ebafd353a5552e3c6da346bb99494c169b585680..1c52e69b456d76b63f09f2257260fc41
          }
      }
  
-@@ -1900,6 +1904,16 @@ impl ObjectSevSnpGuest {
+@@ -1906,6 +1910,16 @@ impl ObjectSevSnpGuest {
          self.policy = policy;
          self
      }
@@ -160,7 +160,7 @@ index ebafd353a5552e3c6da346bb99494c169b585680..1c52e69b456d76b63f09f2257260fc41
  }
  
  #[async_trait]
-@@ -1926,6 +1940,12 @@ impl ToQemuParams for ObjectSevSnpGuest {
+@@ -1932,6 +1946,12 @@ impl ToQemuParams for ObjectSevSnpGuest {
              if let Some(host_data) = &self.host_data {
                  params.push(format!("host-data={host_data}"))
              }
@@ -173,7 +173,7 @@ index ebafd353a5552e3c6da346bb99494c169b585680..1c52e69b456d76b63f09f2257260fc41
          }
          Ok(vec!["-object".to_owned(), params.join(",")])
      }
-@@ -2185,6 +2205,29 @@ fn is_running_in_vm() -> Result<bool> {
+@@ -2502,6 +2522,29 @@ fn is_running_in_vm() -> Result<bool> {
      Ok(res)
  }
  
@@ -201,9 +201,9 @@ index ebafd353a5552e3c6da346bb99494c169b585680..1c52e69b456d76b63f09f2257260fc41
 +}
 +
  fn should_disable_modern() -> bool {
-     match is_running_in_vm() {
-         Ok(retval) => retval,
-@@ -2583,7 +2626,34 @@ impl<'a> QemuCmdLine<'a> {
+     if !bus_type().supports_disable_modern() {
+         return false;
+@@ -2904,7 +2947,34 @@ impl<'a> QemuCmdLine<'a> {
  
          let mut sev_snp_object =
              ObjectSevSnpGuest::new(true, cbitpos, phys_addr_reduction, host_data.clone());
@@ -239,7 +239,7 @@ index ebafd353a5552e3c6da346bb99494c169b585680..1c52e69b456d76b63f09f2257260fc41
  
          self.devices.push(Box::new(sev_snp_object));
  
-@@ -2594,7 +2664,7 @@ impl<'a> QemuCmdLine<'a> {
+@@ -2915,7 +2985,7 @@ impl<'a> QemuCmdLine<'a> {
              .set_confidential_guest_support("snp")
              .set_nvdimm(false);
  

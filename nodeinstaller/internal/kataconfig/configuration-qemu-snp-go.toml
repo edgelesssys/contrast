@@ -51,7 +51,7 @@ rootless = false
 # List of valid annotation names for the hypervisor
 # Each member of the list is a regular expression, which is the base name
 # of the annotation, e.g. "path" for io.katacontainers.config.hypervisor.path"
-enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "kernel_verity_params", "default_vcpus", "default_memory", "cc_init_data"]
+enable_annotations = ["enable_iommu", "kernel_params", "kernel_verity_params", "default_vcpus", "default_memory", "cc_init_data"]
 
 # List of valid annotations values for the hypervisor
 # Each member of the list is a path pattern as described by glob(3).
@@ -94,7 +94,7 @@ kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
 # Optional dm-verity parameters (comma-separated key=value list):
 # root_hash=...,salt=...,data_blocks=...,data_block_size=...,hash_block_size=...
 # These are used by the runtime to assemble dm-verity kernel params.
-kernel_verity_params = "root_hash=f64924e6050a197b6263e48146e5256dcfafe72511965fb07d9d39f48c82033e,salt=6ace9b40ac09d5eecee7b5cd91f2eca5a8914a221998d3feeff382a16153e548,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
+kernel_verity_params = "root_hash=b7b93058bf06cfe1b654f4a7dc92c1c89d3e1b9c04148a23deba3b9f0cfe4e24,salt=5b4910dc5d346f5aa3f5f02e07d5014035bb10075f4f2e92ba8a39edc1b4654c,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty

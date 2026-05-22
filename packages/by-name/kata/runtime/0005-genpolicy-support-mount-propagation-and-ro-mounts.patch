@@ -9,7 +9,7 @@ Subject: [PATCH] genpolicy: support mount propagation and ro-mounts
  2 files changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 82aa8b5ea62db3db121bf9edf428a7613bb4ee6d..6e383d6efa8424d7b33e7422a477135e95c263ac 100644
+index e75d9a5493d40810c3dcf7004bdee45982b55b71..9c1c3e441d7e87865cbe3ad4d784018a824dc556 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -135,7 +135,8 @@ allow_create_container_input if {

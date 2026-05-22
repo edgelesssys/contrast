@@ -163,7 +163,7 @@ index cef105a10365a3c93ad083b2519278e026e95db4..e3f5143f418ad82f85fc2c1f261ddc5b
      }
  }
 diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
-index 2e24fcb156383aa6ccdc7073522635985b97ec2e..3f88ecfdb238c68aa4bbd8dd3b218a99a63baef5 100644
+index d630643d8c4f8cbd1b0a598278cafd544cd385fe..791d5b34207c680c3cb2b631acaff612e32fbe8c 100644
 --- a/src/tools/genpolicy/tests/policy/main.rs
 +++ b/src/tools/genpolicy/tests/policy/main.rs
 @@ -121,6 +121,7 @@ mod tests {

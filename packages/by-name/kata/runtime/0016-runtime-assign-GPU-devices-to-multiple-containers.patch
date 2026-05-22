@@ -11,7 +11,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 41 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
-index a9655f80011e13dc1908a4d687dd028d4b317480..65e9eca147e09a214d367f4f0781a8725fa4dd09 100644
+index dc96e3cf398a3875db58750a94ae5e3312f8920a..ffeb7fdf36e93446500a63221676ff1c7f8fc7bd 100644
 --- a/src/runtime/virtcontainers/container.go
 +++ b/src/runtime/virtcontainers/container.go
 @@ -1285,6 +1285,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
@@ -45,10 +45,10 @@ index a9655f80011e13dc1908a4d687dd028d4b317480..65e9eca147e09a214d367f4f0781a872
  
  	}
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index b25dbc2e773eb6d909999a995f5b2decac44b7fd..7091472222ab94481f84d4b70dc0c70cc5d3a754 100644
+index 5ff1d70c292bf6a80680cebe8c77c0aacc213980..4964ff6eab320e5914ccde8f7ddfe3ac2909da39 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -1072,6 +1072,17 @@ impl Container {
+@@ -1203,6 +1203,17 @@ impl Container {
          let limits = self.resources.as_ref()?.limits.as_ref()?;
          sum_limits_by_keys(limits, pgpu_resource_keys)
      }
@@ -67,7 +67,7 @@ index b25dbc2e773eb6d909999a995f5b2decac44b7fd..7091472222ab94481f84d4b70dc0c70c
  
  fn compress_default_capabilities(
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 878e81dff20c35fb1abb74babebf67f7793d4ce1..22af3467c4165fbf34018077936233e3c2ada2fe 100644
+index ffb4921af60ff66f9ce360c8a704cec81b54f73b..ca62127d31c36a098c82e07128fb484f42ebd26b 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -825,6 +825,20 @@ impl AgentPolicy {

@@ -19,7 +19,7 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  7 files changed, 5 insertions(+), 36 deletions(-)
 
 diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
-index 776b781a4ca2c97dca5c29fb09393034a114f4ca..62d5ed1877599d829b4cf591848a21df5d50422b 100644
+index 8edfeaacd7f038abcad1cccbb2babf2126d5d753..f79d94cb57944cbe077eaf2aaf52997c90003dcc 100644
 --- a/src/libs/kata-types/src/config/hypervisor/mod.rs
 +++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
 @@ -507,11 +507,6 @@ impl BootInfo {
@@ -65,10 +65,10 @@ index 406d75c08a0db0369d1243bd1d8eacf8426c593b..aad7a0b0513d5e4ea953520dbb725bdc
      }
  
 diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-index d887de1ecee00b22965054d95a7afe25dcbc3ad5..02c32110e8e2c272fee2945b710625dd018471a3 100644
+index 7337d5084932d77a5e75dbfeba300d5d841eed86..97699cd4de228f130afe846e02e8ded996aa8e4e 100644
 --- a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
 +++ b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-@@ -370,11 +370,10 @@ impl VirtSandbox {
+@@ -454,11 +454,10 @@ impl VirtSandbox {
          let boot_info = self.hypervisor.hypervisor_config().await.boot_info;
          let security_info = self.hypervisor.hypervisor_config().await.security_info;
  

@@ -81,6 +81,7 @@ template_path = '/run/vc/vm/template'
 
 [agent]
 [agent.kata]
+cdh_api_timeout_ms = 50000
 create_container_timeout = 120
 debug_console_enabled = false
 dial_timeout_ms = 1000
@@ -96,6 +97,7 @@ dan_conf = '/run/kata-containers/dans'
 disable_guest_empty_dir = false
 disable_guest_seccomp = true
 disable_new_netns = false
+emptydir_mode = 'shared-fs'
 enable_debug = false
 enable_pprof = false
 enable_tracing = false

@@ -107,7 +107,7 @@ index 501e8951bae926d53015ed1b63db32876e0eb242..ddf32d5c6d9e81db9ddc9183bcbbb63e
      pub mount_source: String,
      pub driver: String,
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 9d013ae736d9d46165cdceadb0aeaad3982f2240..abb3289f7677f9abbc068e12be31b71d20d1c0ad 100644
+index 448904acd2f360dc66d9a992aee547476d760947..3687419c081f628b646f2fe40e7911b48167303e 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -27,6 +27,7 @@ use crate::utils::Config;
@@ -118,7 +118,7 @@ index 9d013ae736d9d46165cdceadb0aeaad3982f2240..abb3289f7677f9abbc068e12be31b71d
  use log::debug;
  use protocols::agent;
  use serde::{Deserialize, Serialize};
-@@ -297,6 +298,7 @@ pub fn get_container_mounts_and_storages(
+@@ -301,6 +302,7 @@ pub fn get_container_mounts_and_storages(
      settings: &settings::Settings,
      podSpec: &pod::PodSpec,
  ) {
@@ -126,7 +126,7 @@ index 9d013ae736d9d46165cdceadb0aeaad3982f2240..abb3289f7677f9abbc068e12be31b71d
      if let Some(volumes) = &podSpec.volumes {
          if let Some(volume_mounts) = &container.volumeMounts {
              for volume in volumes {
-@@ -310,19 +312,19 @@ pub fn get_container_mounts_and_storages(
+@@ -314,19 +316,19 @@ pub fn get_container_mounts_and_storages(
                              volume_mount,
                              &podSpec.securityContext,
                          );
