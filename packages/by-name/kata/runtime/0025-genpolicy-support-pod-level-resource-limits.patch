@@ -8,13 +8,13 @@ Subject: [PATCH] genpolicy: support pod level resource limits
  1 file changed, 3 insertions(+)
 
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 7091472222ab94481f84d4b70dc0c70cc5d3a754..30faed16c24c729a7ecb7bb80dd9953dfa114b36 100644
+index 4964ff6eab320e5914ccde8f7ddfe3ac2909da39..7d8548576a87946bebcce8369771014e956cd3a9 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -98,6 +98,9 @@ pub struct PodSpec {
+@@ -107,6 +107,9 @@ pub struct PodSpec {
  
      #[serde(skip_serializing_if = "Option::is_none")]
-     priorityClassName: Option<String>,
+     schedulerName: Option<String>,
 +
 +    #[serde(skip_serializing_if = "Option::is_none")]
 +    resources: Option<ResourceRequirements>,

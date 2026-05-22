@@ -25,6 +25,7 @@ var (
 )
 
 func extraRuntimeConfig(config Config, platform platforms.Platform) Config {
+	config.Runtime["emptydir_mode"] = "shared-fs"
 	config.Runtime["name"] = "virt_container"
 	config.Runtime["hypervisor_name"] = "qemu"
 	config.Runtime["agent_name"] = "kata"

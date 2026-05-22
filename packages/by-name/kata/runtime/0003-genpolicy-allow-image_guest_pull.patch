@@ -170,7 +170,7 @@ index c407c98ee8fedeebe1f79aef9e43051b611011fc..022e3e2cb1e1248bfaa38aa32360c4c3
  			return nil, err
  		}
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index dff95f2c93aad5cba727fd620f5a87867de5e718..82aa8b5ea62db3db121bf9edf428a7613bb4ee6d 100644
+index 2bc8464b391e8f410a46049f11205dd2411f3f60..e75d9a5493d40810c3dcf7004bdee45982b55b71 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -1222,10 +1222,9 @@ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
@@ -211,10 +211,10 @@ index dff95f2c93aad5cba727fd620f5a87867de5e718..82aa8b5ea62db3db121bf9edf428a761
  allow_storage_options(p_storage, i_storage) if {
      print("allow_storage_options 1: start")
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index c71b50e08bedb8db473ef8021d032bc4455ec17f..9d013ae736d9d46165cdceadb0aeaad3982f2240 100644
+index e9984f0996f86a4b1632d16693bfb1d823649a05..448904acd2f360dc66d9a992aee547476d760947 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
-@@ -325,6 +325,17 @@ pub fn get_container_mounts_and_storages(
+@@ -329,6 +329,17 @@ pub fn get_container_mounts_and_storages(
              mount_and_storage::get_image_mount_and_storage(settings, policy_mounts, volume.0);
          }
      }

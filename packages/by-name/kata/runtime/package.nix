@@ -12,14 +12,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.30.0";
+  version = "3.31.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = finalAttrs.version;
-      hash = "sha256-9VitM9sHoRAEUlRe6uUSE4lw228/sJ/0qljm6X02pC4=";
+      hash = "sha256-LSwmeNO5mEWZ2NCrC1o3JXPeZJed0eljIUak/J2fkv0=";
     };
 
     patches = [
@@ -152,35 +152,26 @@ buildGoModule (finalAttrs: {
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12764.
       ./0022-runtime-rs-force-virtio-blk-with-serial-name-for-ini.patch
 
-      # An upstream bug re-encodes initdata, leading to unpredictable HOSTDATA entries.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12951.
-      ./0023-runtime-rs-don-t-modify-initdata-from-annotation.patch
-
-      # runtime-rs masks systemd-networkd.service but not systemd-networkd.socket, leading to kernel error
-      # messages. This patch masks the socket, too.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12995.
-      ./0024-runtime-rs-mask-systemd-networkd.socket.patch
-
       # We pass a custom config to the Kata agent via commandline argument to enable the debug console and customize logging.
       # The provided config should only be used as an override and not as a replacement, so the kernel cmdline is still respected
       # when we don't have any overrides.
-      ./0025-agent-use-config-file-as-override.patch
+      ./0023-agent-use-config-file-as-override.patch
 
       # Terminate the agent gracefully when it encounters problems with the policy. This allows
       # error messages to propagate to the runtime.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/13031.
-      ./0026-agent-don-t-abort-in-case-of-policy-problems.patch
+      ./0024-agent-don-t-abort-in-case-of-policy-problems.patch
 
       # Pod-level resource limits are a beta feature since K8s 1.34, but not supported by Kata yet.
       # We need this to automatically configure memory limits for the entire VM and not on container basis.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12816
-      ./0027-genpolicy-support-pod-level-resource-limits.patch
+      ./0025-genpolicy-support-pod-level-resource-limits.patch
     ];
   };
 
   sourceRoot = "${finalAttrs.src.name}/src/runtime";
 
-  vendorHash = null;
+  vendorHash = "sha256-TVIWv+b94z3QuhAxRbRpCuMxQtE8Nq2fuQ4R9I6UqMs=";
 
   subPackages = [
     "cmd/containerd-shim-kata-v2"
