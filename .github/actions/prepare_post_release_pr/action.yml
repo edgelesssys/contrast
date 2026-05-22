@@ -87,6 +87,9 @@ runs:
     - name: Update release urls in docs with tags
       shell: bash
       working-directory: contrast-main
+      env:
+        MAJOR_MINOR: ${{ inputs.major_minor }}
+        VERSION: ${{ inputs.version }}
       run: nix run ".#base.scripts.update-release-urls"
     - name: Commit updated docs
       shell: bash
@@ -115,6 +118,8 @@ runs:
     - name: Update contrast-releases.json with new release
       shell: bash
       working-directory: contrast-main
+      env:
+        VERSION: ${{ inputs.version }}
       run: nix run ".#base.scripts.update-contrast-releases"
     - name: Commit updated contrast-releases.json
       shell: bash
