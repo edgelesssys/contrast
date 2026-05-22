@@ -55,6 +55,17 @@ runs:
         ref: ${{ inputs.checkout_main_ref }}
         path: contrast-main
         persist-credentials: false
+    - name: Verify main version matches release
+      shell: bash
+      working-directory: contrast-main
+      env:
+        EXPECTED_VERSION: ${{ inputs.without_v }}
+      run: |
+        actual=$(sed 's/-.*$//' version.txt)
+        if [[ "${actual}" != "${EXPECTED_VERSION}" ]]; then
+          echo "::error::checkout_main_ref version.txt base version is ${actual}, expected ${EXPECTED_VERSION}."
+          exit 1
+        fi
     - uses: ./.github/actions/setup_nix
       with:
         githubToken: ${{ inputs.github_token }}
