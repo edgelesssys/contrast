@@ -135,6 +135,7 @@ jobs:
     name: "Cleanup ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     needs: build-image
+    timeout-minutes: 15
     outputs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
@@ -185,6 +186,7 @@ jobs:
     name: "Cleanup Containerd ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     needs: build-image
+    timeout-minutes: 15
     outputs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
@@ -233,6 +235,7 @@ jobs:
     name: "Nix gc ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     needs: build-image
+    timeout-minutes: 15
     outputs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
