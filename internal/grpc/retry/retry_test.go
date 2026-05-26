@@ -40,6 +40,10 @@ func TestServiceIsUnavailable(t *testing.T) {
 			err:             status.Error(codes.Unavailable, `connection error: desc = "transport: authentication handshake failed: EOF"`),
 			wantUnavailable: true,
 		},
+		"handshake connection reset by peer error": {
+			err:             status.Error(codes.Unavailable, `connection error: desc = "transport: authentication handshake failed: read tcp 192.0.2.1:49240->198.51.100.1:1313: read: connection reset by peer"`),
+			wantUnavailable: true,
+		},
 		"wrapped error": {
 			err:             fmt.Errorf("some wrapping: %w", status.Error(codes.Unavailable, "error")),
 			wantUnavailable: true,
