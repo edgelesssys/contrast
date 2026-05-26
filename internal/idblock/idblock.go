@@ -4,6 +4,7 @@
 package idblock
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha512"
@@ -12,8 +13,11 @@ import (
 	"math/big"
 	"slices"
 
+	"filippo.io/nistec"
 	"github.com/google/go-sev-guest/abi"
 )
+
+const p384CoordSize = 48
 
 // IDBlock is the ID block.
 // https://github.com/microsoft/igvm-tooling/blob/main/src/igvm/structure/igvmfileformat.py#L453
@@ -264,8 +268,14 @@ func recoverPublicKey(curve elliptic.Curve, r, s, z *big.Int) ([]ecdsa.PublicKey
 			pointY = new(big.Int).Sub(params.P, pointY)
 		}
 
-		// Verify if the point is on the curve
-		if !curve.IsOnCurve(pointX, pointY) { //nolint:staticcheck // SA1019: low-level arithmetic is needed for public key recovery
+		// Construct the candidate as an uncompressed, encoded point (0x04 || X || Y) as per https://www.secg.org/sec1-v2.pdf section 2.3.3,
+		// and rely on the documented behaviour of SetBytes to reject the point if it is not on the curve.
+		qBytes := make([]byte, 1+2*p384CoordSize)
+		qBytes[0] = 0x04
+		pointX.FillBytes(qBytes[1 : 1+p384CoordSize])
+		pointY.FillBytes(qBytes[1+p384CoordSize:])
+		q, err := nistec.NewP384Point().SetBytes(qBytes)
+		if err != nil {
 			continue
 		}
 
@@ -278,28 +288,37 @@ func recoverPublicKey(curve elliptic.Curve, r, s, z *big.Int) ([]ecdsa.PublicKey
 		u2 := new(big.Int).Mul(s, rInv)
 		u2.Mod(u2, order)
 
-		// Compute the candidate public key as u1*G + u2*Q
-		x1, y1 := curve.ScalarBaseMult(u1.Bytes()) //nolint:staticcheck // SA1019: low-level arithmetic is needed for public key recovery
+		// Compute u1 = -z * r^-1 mod n and u2 = s * r^-1 mod n.
+		// TODO(burgerdev): align variable naming to the nomenclature in SEC 1 (https://www.secg.org/sec1-v2.pdf) section 4.1.6.
+		u1Bytes := make([]byte, p384CoordSize)
+		u1.FillBytes(u1Bytes)
+		u2Bytes := make([]byte, p384CoordSize)
+		u2.FillBytes(u2Bytes)
+		p1, err := nistec.NewP384Point().ScalarBaseMult(u1Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("scalar base mult: %w", err)
+		}
+		p2, err := nistec.NewP384Point().ScalarMult(q, u2Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("scalar mult: %w", err)
+		}
+		sumBytes := nistec.NewP384Point().Add(p1, p2).Bytes()
 
-		x2, y2 := curve.ScalarMult(pointX, pointY, u2.Bytes()) //nolint:staticcheck // SA1019: low-level arithmetic is needed for public key recovery
-
-		finalX, finalY := curve.Add(x1, y1, x2, y2) //nolint:staticcheck // SA1019: low-level arithmetic is needed for public key recovery
-
-		publicKeys = append(publicKeys, ecdsa.PublicKey{
-			Curve: curve,
-			X:     finalX,
-			Y:     finalY,
-		})
-
+		// sumBytes is an uncompressed, encoded point, which ParseUncompressedPublicKey turns into a public key,
+		// rejecting it if it is not a valid point on the curve.
+		pubKey, err := ecdsa.ParseUncompressedPublicKey(curve, sumBytes)
+		if err != nil {
+			return nil, fmt.Errorf("parsing recovered public key: %w", err)
+		}
+		publicKeys = append(publicKeys, *pubKey)
 	}
 
-	// sort public keys
+	// Sort the keys by their uncompressed encoding for a deterministic order.
 	slices.SortStableFunc(publicKeys, func(a, b ecdsa.PublicKey) int {
-		cmpX := a.X.Cmp(b.X)
-		if cmpX != 0 {
-			return cmpX
-		}
-		return a.Y.Cmp(b.Y)
+		// Bytes never fails for keys returned by ParseUncompressedPublicKey.
+		aBytes, _ := a.Bytes()
+		bBytes, _ := b.Bytes()
+		return bytes.Compare(aBytes, bBytes)
 	})
 
 	return publicKeys, nil
@@ -350,13 +369,18 @@ func IDBlocksFromLaunchDigest(launchDigest [48]byte, guestPolicy abi.SnpPolicy) 
 		return nil, nil, fmt.Errorf("failed to recover public key: %w", err)
 	}
 
-	// Always choose the same recovered public key
-	pubKey := pubKeys[0]
+	// Always choose the same recovered public key.
+	pubKeyBytes, err := pubKeys[0].Bytes()
+	if err != nil {
+		return nil, nil, fmt.Errorf("encoding recovered public key: %w", err)
+	}
 
-	xLittleEndian := pubKey.X.Bytes()
+	// pubKeyBytes is the uncompressed encoding 0x04 || X || Y, with X and Y each
+	// p384CoordSize bytes, big-endian. The ID block stores the coordinates little-endian.
+	xLittleEndian := pubKeyBytes[1 : 1+p384CoordSize]
 	slices.Reverse(xLittleEndian)
 
-	yLittleEndian := pubKey.Y.Bytes()
+	yLittleEndian := pubKeyBytes[1+p384CoordSize:]
 	slices.Reverse(yLittleEndian)
 
 	idAuth := &IDAuthentication{
