@@ -19,6 +19,12 @@ import (
 
 const p384CoordSize = 48
 
+func reverse(x []byte) []byte {
+	x = slices.Clone(x)
+	slices.Reverse(x)
+	return x
+}
+
 // IDBlock is the ID block.
 // https://github.com/microsoft/igvm-tooling/blob/main/src/igvm/structure/igvmfileformat.py#L453
 // https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/specifications/56860.pdf (revision 1.57)
@@ -262,6 +268,22 @@ func recoverPublicKey(curve elliptic.Curve, r, s, z *big.Int) ([]ecdsa.PublicKey
 		return nil, fmt.Errorf("no square root")
 	}
 
+	u1 := new(big.Int).Mul(z, rInv)
+	u1.Mod(u1, order)
+	u1.Neg(u1)
+	u1.Mod(u1, order)
+
+	// Compute u1 and u2
+	u2 := new(big.Int).Mul(s, rInv)
+	u2.Mod(u2, order)
+
+	// Compute u1 = -z * r^-1 mod n and u2 = s * r^-1 mod n.
+	// TODO(burgerdev): align variable naming to the nomenclature in SEC 1 (https://www.secg.org/sec1-v2.pdf) section 4.1.6.
+	u1Bytes := make([]byte, p384CoordSize)
+	u1.FillBytes(u1Bytes)
+	u2Bytes := make([]byte, p384CoordSize)
+	u2.FillBytes(u2Bytes)
+
 	// Try both y-coordinates for recovery
 	for _, ySign := range []int64{1, -1} {
 		if ySign == -1 {
@@ -279,21 +301,6 @@ func recoverPublicKey(curve elliptic.Curve, r, s, z *big.Int) ([]ecdsa.PublicKey
 			continue
 		}
 
-		u1 := new(big.Int).Mul(z, rInv)
-		u1.Mod(u1, order)
-		u1.Neg(u1)
-		u1.Mod(u1, order)
-
-		// Compute u1 and u2
-		u2 := new(big.Int).Mul(s, rInv)
-		u2.Mod(u2, order)
-
-		// Compute u1 = -z * r^-1 mod n and u2 = s * r^-1 mod n.
-		// TODO(burgerdev): align variable naming to the nomenclature in SEC 1 (https://www.secg.org/sec1-v2.pdf) section 4.1.6.
-		u1Bytes := make([]byte, p384CoordSize)
-		u1.FillBytes(u1Bytes)
-		u2Bytes := make([]byte, p384CoordSize)
-		u2.FillBytes(u2Bytes)
 		p1, err := nistec.NewP384Point().ScalarBaseMult(u1Bytes)
 		if err != nil {
 			return nil, fmt.Errorf("scalar base mult: %w", err)
@@ -377,11 +384,8 @@ func IDBlocksFromLaunchDigest(launchDigest [48]byte, guestPolicy abi.SnpPolicy) 
 
 	// pubKeyBytes is the uncompressed encoding 0x04 || X || Y, with X and Y each
 	// p384CoordSize bytes, big-endian. The ID block stores the coordinates little-endian.
-	xLittleEndian := pubKeyBytes[1 : 1+p384CoordSize]
-	slices.Reverse(xLittleEndian)
-
-	yLittleEndian := pubKeyBytes[1+p384CoordSize:]
-	slices.Reverse(yLittleEndian)
+	xLittleEndian := reverse(pubKeyBytes[1 : 1+p384CoordSize])
+	yLittleEndian := reverse(pubKeyBytes[1+p384CoordSize:])
 
 	idAuth := &IDAuthentication{
 		IDKeyAlgo:   0x1,
