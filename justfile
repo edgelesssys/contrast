@@ -519,6 +519,10 @@ lint:
 check-links config="external":
     nix run .#base.nixpkgs.lychee -- --config tools/lychee/config-{{ config }}.toml .
 
+# Serve the docs site locally. Unreleased changes from docs/docs/ live at http://localhost:3000/contrast/next/.
+docs:
+    nix develop .#docs --command bash -c 'cd docs && yarn install && yarn start'
+
 demodir version="latest": undeploy
     #!/usr/bin/env bash
     set -euo pipefail
