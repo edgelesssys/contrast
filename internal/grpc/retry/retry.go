@@ -6,14 +6,15 @@ package retry
 
 import (
 	"regexp"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 var (
-	authenticationHandshakeRE = regexp.MustCompile(`transport: authentication handshake failed: ((?:\s|\w)+)`)
-	retriableCauses           = map[string]struct{}{"EOF": {}, "context deadline exceeded": {}}
+	authenticationHandshakeRE = regexp.MustCompile(`transport: authentication handshake failed: (.+)`)
+	retriableCauses           = []string{"EOF", "context deadline exceeded", "connection reset by peer"}
 )
 
 // ServiceIsUnavailable checks if the error is a grpc status with code Unavailable.
@@ -34,6 +35,10 @@ func ServiceIsUnavailable(err error) (ret bool) {
 		return true
 	}
 
-	_, isRetriable := retriableCauses[matches[1]]
-	return isRetriable
+	for _, cause := range retriableCauses {
+		if strings.Contains(matches[1], cause) {
+			return true
+		}
+	}
+	return false
 }
