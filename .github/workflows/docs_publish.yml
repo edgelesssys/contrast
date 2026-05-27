@@ -37,9 +37,10 @@ jobs:
     # Prevent the job from running on forked PRs, for security reasons.
     if: |
       (github.event_name == 'push' && github.ref_name == 'main') ||
-      (github.repository_owner == github.event.pull_request.head.repo.owner.login)
+      (github.event_name == 'workflow_dispatch' && github.ref_name == 'main') ||
+      (github.event_name == 'pull_request' && github.repository_owner == github.event.pull_request.head.repo.owner.login)
     env:
-      PREVIEW: ${{ !(github.event_name == 'push' && github.ref_name == 'main') }}
+      PREVIEW: ${{ github.event_name == 'pull_request' }}
       SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
