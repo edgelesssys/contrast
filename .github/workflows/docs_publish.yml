@@ -26,6 +26,10 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: docs-deploy-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'production' }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     name: Publish docs to GitHub Pages
