@@ -1,0 +1,172 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: davidweisse <98460960+davidweisse@users.noreply.github.com>
+Date: Wed, 27 May 2026 13:04:23 +0200
+Subject: [PATCH] genpolicy: write processed layer information to file
+
+---
+ src/tools/genpolicy/src/layers_cache.rs        | 10 ++++++++++
+ src/tools/genpolicy/src/policy.rs              | 17 +++++++++++++++++
+ src/tools/genpolicy/src/registry.rs            |  5 +++++
+ src/tools/genpolicy/src/registry_containerd.rs | 11 +++++++++--
+ src/tools/genpolicy/src/utils.rs               |  9 +++++++++
+ 5 files changed, 50 insertions(+), 2 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/layers_cache.rs b/src/tools/genpolicy/src/layers_cache.rs
+index 864f4bee788ccc689f184213b474609b2b8a54f7..c272387c915b5c3814a35f98766a8b203ce674a8 100644
+--- a/src/tools/genpolicy/src/layers_cache.rs
++++ b/src/tools/genpolicy/src/layers_cache.rs
+@@ -8,6 +8,7 @@ use crate::registry::ImageLayer;
+ use fs2::FileExt;
+ use log::{debug, warn};
+ use std::fs::OpenOptions;
++use std::collections::BTreeSet;
+ use std::sync::{Arc, Mutex};
+ 
+ #[derive(Debug, Clone)]
+@@ -72,6 +73,15 @@ impl ImageLayersCache {
+         layers.push(layer.clone());
+     }
+ 
++    pub fn get_layers_by_digests(&self, digests: &BTreeSet<String>) -> Vec<ImageLayer> {
++        let layers = self.inner.lock().unwrap();
++        layers
++            .iter()
++            .filter(|layer| digests.contains(&layer.layer_digest))
++            .cloned()
++            .collect()
++    }
++
+     pub fn persist(&self) {
+         if let Err(e) = self.try_persist() {
+             warn!("Could not persist image layers cache: {e}");
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index ca62127d31c36a098c82e07128fb484f42ebd26b..72e31f28b42bb63c3d4ddf6aee7fa1e4840dd7f8 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -618,9 +618,13 @@ impl AgentPolicy {
+ 
+     pub fn export_policy(&mut self) {
+         let mut yaml_string = String::new();
++        let mut used_layer_digests: BTreeSet<String> = BTreeSet::new();
+         for i in 0..self.resources.len() {
+             let annotation = self.resources[i].generate_initdata_anno(self);
+             yaml_string += &self.resources[i].serialize(&annotation);
++            for container in self.resources[i].get_containers() {
++                used_layer_digests.extend(container.registry.layer_digests.iter().cloned());
++            }
+         }
+ 
+         if let Some(yaml_file) = &self.config.yaml_file {
+@@ -635,6 +639,19 @@ impl AgentPolicy {
+         } else if !self.config.base64_out && !self.config.raw_out {
+             std::io::stdout().write_all(yaml_string.as_bytes()).unwrap();
+         }
++
++        if let Some(path) = &self.config.pod_layers_file_path {
++            let layers = self
++                .config
++                .layers_cache
++                .get_layers_by_digests(&used_layer_digests);
++            let path = std::path::Path::new(path);
++            let parent = path.parent().unwrap_or(std::path::Path::new("."));
++            let mut tmp_file = tempfile::NamedTempFile::new_in(parent).unwrap();
++            serde_json::to_writer(tmp_file.as_file_mut(), &layers).unwrap();
++            tmp_file.as_file_mut().sync_all().unwrap();
++            tmp_file.persist(path).unwrap();
++        }
+     }
+ 
+     pub fn generate_initdata_anno(&self, resource: &dyn yaml::K8sResource) -> String {
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index 51a688439cb46ac92b7f3eeacd09ed9120a11969..6a282ae98c82667537593b0d555fe17352369fcf 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -37,6 +37,7 @@ pub struct Container {
+     pub config_layer: DockerConfigLayer,
+     pub passwd: String,
+     pub group: String,
++    pub layer_digests: Vec<String>,
+ }
+ 
+ /// Image config layer properties.
+@@ -237,6 +238,10 @@ impl Container {
+             config_layer,
+             passwd,
+             group,
++            layer_digests: image_layers
++                .iter()
++                .map(|layer| layer.layer_digest.clone())
++                .collect(),
+         })
+     }
+ 
+diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
+index 95a1975b06e46df04ece2212317aa2193f4144da..170346b745593449b71a8ce49aaf70fd0ab2866c 100644
+--- a/src/tools/genpolicy/src/registry_containerd.rs
++++ b/src/tools/genpolicy/src/registry_containerd.rs
+@@ -72,8 +72,9 @@ impl Container {
+         // Nydus/guest_pull doesn't make available passwd/group files from layers properly.
+         // See issue https://github.com/kata-containers/kata-containers/issues/11162
+         let v1_policy = config.settings.cluster_config.pause_container_id_policy == "v1";
+-        if config.settings.cluster_config.guest_pull && (v1_policy || !is_pause_container) {
++        let image_layers = if config.settings.cluster_config.guest_pull && (v1_policy || !is_pause_container) {
+             info!("Guest pull is enabled, skipping passwd/group file parsing");
++            Vec::new()
+         } else {
+             let image_layers =
+                 get_image_layers(&config.layers_cache, &manifest, &config_layer, &ctrd_client)
+@@ -95,13 +96,19 @@ impl Container {
+                     group = layer.group.clone();
+                 }
+             }
+-        }
++
++            image_layers
++        };
+ 
+         Ok(Container {
+             image: image_str,
+             config_layer,
+             passwd,
+             group,
++            layer_digests: image_layers
++                .iter()
++                .map(|layer| layer.layer_digest.clone())
++                .collect(),
+         })
+     }
+ }
+diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
+index e3f5143f418ad82f85fc2c1f261ddc5be8fc02e8..3fe96581632312043dcf77f85be9754db1696053 100644
+--- a/src/tools/genpolicy/src/utils.rs
++++ b/src/tools/genpolicy/src/utils.rs
+@@ -104,6 +104,13 @@ struct CommandLineOptions {
+         require_equals = true
+     )]
+     layers_cache_file_path: Option<String>,
++
++    #[clap(
++        long,
++        help = "Path to the pod layers file. This file stores a subset of the layers cache for the processed images.",
++    )]
++    pod_layers_file_path: Option<String>,
++
+     #[clap(short, long, help = "Print version information and exit")]
+     version: bool,
+ 
+@@ -138,6 +145,7 @@ pub struct Config {
+     pub base64_out: bool,
+     pub containerd_socket_path: Option<String>,
+     pub layers_cache: layers_cache::ImageLayersCache,
++    pub pod_layers_file_path: Option<String>,
+     pub version: bool,
+     pub initdata: kata_types::initdata::InitData,
+     pub max_pull_attempts: u8,
+@@ -190,6 +198,7 @@ impl Config {
+             base64_out: args.base64_out,
+             containerd_socket_path: args.containerd_socket_path,
+             layers_cache: layers_cache::ImageLayersCache::new(&layers_cache_file_path),
++            pod_layers_file_path: args.pod_layers_file_path,
+             version: args.version,
+             initdata,
+             max_pull_attempts: args.max_pull_attempts,
