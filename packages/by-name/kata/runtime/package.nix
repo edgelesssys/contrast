@@ -172,6 +172,10 @@ buildGoModule (finalAttrs: {
       # The layers-cache.json file is no longer indexed by diffID, but by the layer digest,
       # which is the only stable identifier for the compressed layer size.
       ./0026-genpolicy-cache-un-compressed-layer-sizes.patch
+
+      # This writes a subset of the layers-cache.json file into a separate file containing only the processed layers.
+      # We need the layer information to calculate the memory overhead for the VM during generate.
+      ./0027-genpolicy-write-processed-layer-information-to-file.patch
     ];
   };
 
