@@ -11,6 +11,7 @@ use (
 	./tools/fifo
 	./tools/imagepuller-benchmark
 	./tools/kernelconfig
+	./tools/sbom-generator
 	./tools/sev-snp-measure-go
 	./tools/tdx-measure
 // keep-sorted end
