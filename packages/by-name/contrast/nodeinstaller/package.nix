@@ -41,7 +41,7 @@ buildGoModule (finalAttrs: {
 
   subPackages = [ "nodeinstaller" ];
 
-  prePatch = ''
+  postConfigure = ''
     install -D ${reference-values} internal/manifest/assets/reference-values.json
   '';
 

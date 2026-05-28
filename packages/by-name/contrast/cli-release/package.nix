@@ -7,7 +7,7 @@
 }:
 
 (cli.overrideAttrs (_previousAttrs: {
-  postPatch = ''
-    install -D ${kata.genpolicy.settings}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
+  preConfigure = ''
+    install -D ${kata.genpolicy.settings}/genpolicy-settings.json "''${modRoot:-.}/cli/genpolicy/assets/genpolicy-settings-kata.json"
   '';
 }))
