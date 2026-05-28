@@ -22,8 +22,8 @@ buildGoModule {
     ;
 
   inherit (cli)
-    prePatch
-    postPatch
+    preConfigure
+    postConfigure
     ;
 
   src =

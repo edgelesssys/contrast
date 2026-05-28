@@ -53,16 +53,19 @@ buildGoModule (finalAttrs: {
 
   nativeBuildInputs = [ installShellFiles ];
 
-  prePatch = ''
+  # Normally these would go into prePatch, but then updating the vendorHash in codegen would require building these dependencies,
+  # some of which in turn transitively rely on this vendorHash.
+  postConfigure = ''
     install -D ${lib.getExe contrastPkgsStatic.kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${reference-values} internal/manifest/assets/reference-values.json
     install -D ${snp-ap-eip}/ap-eip.hex cli/cmd/assets/ap-eip.hex
   '';
 
-  # postPatch will be overwritten by the .#base.contrast.cli-release derivation, prePatch won't.
-  postPatch = ''
-    install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
+  # preConfigure will be overwritten by the .#base.contrast.cli-release derivation, postConfigure won't.
+  # Same story as with postConfigure above, by convention this should normally be postPatch, but that breaks codegen.
+  preConfigure = ''
+    install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json "''${modRoot:-.}/cli/genpolicy/assets/genpolicy-settings-kata.json"
   '';
 
   env.CGO_ENABLED = 0;

@@ -52,7 +52,7 @@ buildGoModule (_finalAttrs: {
 
   subPackages = [ "internal/kuberesource/resourcegen" ];
 
-  prePatch = ''
+  postConfigure = ''
     install -D ${reference-values} internal/manifest/assets/reference-values.json
   '';
 
