@@ -84,7 +84,10 @@ jobs:
           expected=(
             "release-requirement: Build and push artifacts, create nightly draft release"
             "release-requirement: Build aarch64-darwin CLI"
-            "release-requirement: e2e nightly"
+            "release-requirement: e2e nightly / Metal-QEMU-SNP "
+            "release-requirement: e2e nightly / Metal-QEMU-TDX "
+            "release-requirement: e2e nightly / Metal-QEMU-SNP-GPU "
+            "release-requirement: e2e nightly / Metal-QEMU-TDX-GPU "
             "release-requirement: e2e release on "
           )
           missing=()
