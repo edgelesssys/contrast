@@ -27,35 +27,72 @@ jobs:
       contents: read
       packages: write
 
-  platform:
+  snp:
+    name: Metal-QEMU-SNP
     needs: maintenance
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - name: Metal-QEMU-SNP
-            runner: SNP
-            self-hosted: true
-            debug-set-test-name: openssl
-          - name: Metal-QEMU-TDX
-            runner: TDX
-            self-hosted: true
-            debug-set-test-name: openssl
-          - name: Metal-QEMU-SNP-GPU
-            runner: SNP-GPU
-            self-hosted: true
-            debug-set-test-name: gpu
-          - name: Metal-QEMU-TDX-GPU
-            runner: TDX-GPU
-            self-hosted: true
-            debug-set-test-name: gpu
-    name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
-      platform-name: ${{ matrix.platform.name }}
-      runner: ${{ matrix.platform.runner }}
-      self-hosted: ${{ matrix.platform.self-hosted }}
-      debug-set-test-name: ${{ matrix.platform.debug-set-test-name }}
+      platform-name: Metal-QEMU-SNP
+      runner: SNP
+      self-hosted: true
+      debug-set-test-name: openssl
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+      TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
+    permissions:
+      contents: read
+      packages: write
+
+  tdx:
+    name: Metal-QEMU-TDX
+    needs: maintenance
+    uses: ./.github/workflows/e2e_nightly_platform.yml
+    with:
+      platform-name: Metal-QEMU-TDX
+      runner: TDX
+      self-hosted: true
+      debug-set-test-name: openssl
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+      TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
+    permissions:
+      contents: read
+      packages: write
+
+  snp-gpu:
+    name: Metal-QEMU-SNP-GPU
+    needs: maintenance
+    uses: ./.github/workflows/e2e_nightly_platform.yml
+    with:
+      platform-name: Metal-QEMU-SNP-GPU
+      runner: SNP-GPU
+      self-hosted: true
+      debug-set-test-name: gpu
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+      TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
+    permissions:
+      contents: read
+      packages: write
+
+  tdx-gpu:
+    name: Metal-QEMU-TDX-GPU
+    needs: maintenance
+    uses: ./.github/workflows/e2e_nightly_platform.yml
+    with:
+      platform-name: Metal-QEMU-TDX-GPU
+      runner: TDX-GPU
+      self-hosted: true
+      debug-set-test-name: gpu
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
