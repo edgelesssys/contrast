@@ -27,8 +27,8 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: docs-deploy-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'production' }}
-  cancel-in-progress: true
+  group: docs-deploy
+  cancel-in-progress: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
 jobs:
   deploy:
