@@ -16,20 +16,79 @@ on:
         required: true
 
 jobs:
-  maintenance:
-    name: maintenance
-    uses: ./.github/workflows/bm_maintenance.yml
+  build-image:
+    name: "Build cleanup-bare-metal image"
+    uses: ./.github/workflows/bm_build_image.yml
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
     permissions:
       contents: read
       packages: write
 
+  snp-maintenance:
+    name: maintenance Metal-QEMU-SNP
+    needs: build-image
+    uses: ./.github/workflows/bm_maintenance_platform.yml
+    with:
+      platform-name: Metal-QEMU-SNP
+      runner: SNP
+      image: ${{ needs.build-image.outputs.image }}
+      is-gpu: false
+    permissions:
+      contents: read
+
+  tdx-maintenance:
+    name: maintenance Metal-QEMU-TDX
+    needs: build-image
+    uses: ./.github/workflows/bm_maintenance_platform.yml
+    with:
+      platform-name: Metal-QEMU-TDX
+      runner: TDX
+      image: ${{ needs.build-image.outputs.image }}
+      is-gpu: false
+    permissions:
+      contents: read
+
+  snp-gpu-maintenance:
+    name: maintenance Metal-QEMU-SNP-GPU
+    needs: build-image
+    uses: ./.github/workflows/bm_maintenance_platform.yml
+    with:
+      platform-name: Metal-QEMU-SNP-GPU
+      runner: SNP-GPU
+      image: ${{ needs.build-image.outputs.image }}
+      is-gpu: true
+    permissions:
+      contents: read
+
+  snp-dev-maintenance:
+    name: maintenance Metal-QEMU-SNP-DEV
+    needs: build-image
+    uses: ./.github/workflows/bm_maintenance_platform.yml
+    with:
+      platform-name: Metal-QEMU-SNP-DEV
+      runner: DEV
+      image: ${{ needs.build-image.outputs.image }}
+      is-gpu: false
+    permissions:
+      contents: read
+
+  tdx-gpu-maintenance:
+    name: maintenance Metal-QEMU-TDX-GPU
+    needs: build-image
+    uses: ./.github/workflows/bm_maintenance_platform.yml
+    with:
+      platform-name: Metal-QEMU-TDX-GPU
+      runner: TDX-GPU
+      image: ${{ needs.build-image.outputs.image }}
+      is-gpu: true
+    permissions:
+      contents: read
+
   snp:
     name: Metal-QEMU-SNP
-    needs: maintenance
+    needs: snp-maintenance
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-SNP
@@ -48,7 +107,7 @@ jobs:
 
   tdx:
     name: Metal-QEMU-TDX
-    needs: maintenance
+    needs: tdx-maintenance
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-TDX
@@ -67,7 +126,7 @@ jobs:
 
   snp-gpu:
     name: Metal-QEMU-SNP-GPU
-    needs: maintenance
+    needs: snp-gpu-maintenance
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-SNP-GPU
@@ -86,7 +145,7 @@ jobs:
 
   tdx-gpu:
     name: Metal-QEMU-TDX-GPU
-    needs: maintenance
+    needs: tdx-gpu-maintenance
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-TDX-GPU
@@ -102,3 +161,119 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+  notify-teams:
+    name: "Notify teams channel of failure"
+    runs-on: ubuntu-24.04
+    needs:
+      - build-image
+      - snp-maintenance
+      - tdx-maintenance
+      - snp-gpu-maintenance
+      - snp-dev-maintenance
+      - tdx-gpu-maintenance
+      - snp
+      - tdx
+      - snp-gpu
+      - tdx-gpu
+    if: always() && github.event_name == 'schedule' && github.run_attempt == 1
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Get JSON output
+        id: get-json
+        env:
+          IMAGE_BUILD_RESULT: ${{ needs.build-image.outputs.image }}
+          UPDATE_RESOURCES_SNP: ${{ needs.snp-maintenance.outputs.update-resources }}
+          UPDATE_RESOURCES_TDX: ${{ needs.tdx-maintenance.outputs.update-resources }}
+          UPDATE_RESOURCES_SNP_GPU: ${{ needs.snp-gpu-maintenance.outputs.update-resources }}
+          UPDATE_RESOURCES_SNP_DEV: ${{ needs.snp-dev-maintenance.outputs.update-resources }}
+          UPDATE_RESOURCES_TDX_GPU: ${{ needs.tdx-gpu-maintenance.outputs.update-resources }}
+          CLEANUP_SNP: ${{ needs.snp-maintenance.outputs.cleanup }}
+          CLEANUP_TDX: ${{ needs.tdx-maintenance.outputs.cleanup }}
+          CLEANUP_SNP_GPU: ${{ needs.snp-gpu-maintenance.outputs.cleanup }}
+          CLEANUP_SNP_DEV: ${{ needs.snp-dev-maintenance.outputs.cleanup }}
+          CLEANUP_TDX_GPU: ${{ needs.tdx-gpu-maintenance.outputs.cleanup }}
+          CLEANUP_CONTAINERD_SNP: ${{ needs.snp-maintenance.outputs.cleanup-containerd }}
+          CLEANUP_CONTAINERD_TDX: ${{ needs.tdx-maintenance.outputs.cleanup-containerd }}
+          CLEANUP_CONTAINERD_SNP_GPU: ${{ needs.snp-gpu-maintenance.outputs.cleanup-containerd }}
+          CLEANUP_CONTAINERD_SNP_DEV: ${{ needs.snp-dev-maintenance.outputs.cleanup-containerd }}
+          CLEANUP_CONTAINERD_TDX_GPU: ${{ needs.tdx-gpu-maintenance.outputs.cleanup-containerd }}
+          NIX_GC_SNP: ${{ needs.snp-maintenance.outputs.nix-gc }}
+          NIX_GC_TDX: ${{ needs.tdx-maintenance.outputs.nix-gc }}
+          NIX_GC_SNP_GPU: ${{ needs.snp-gpu-maintenance.outputs.nix-gc }}
+          NIX_GC_SNP_DEV: ${{ needs.snp-dev-maintenance.outputs.nix-gc }}
+          NIX_GC_TDX_GPU: ${{ needs.tdx-gpu-maintenance.outputs.nix-gc }}
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [[ -z "${IMAGE_BUILD_RESULT}" ]]; then
+            echo 'json=[{"title": "Job ID", "value": "build-image"}]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          declare -a entries snp tdx snp_gpu snp_dev tdx_gpu
+
+          [[ "${UPDATE_RESOURCES_SNP}" != "success" ]] && snp+=("update-resources")
+          [[ "${CLEANUP_SNP}" != "success" ]] && snp+=("cleanup")
+          [[ "${NIX_GC_SNP}" != "success" ]] && snp+=("nix-gc")
+
+          [[ "${UPDATE_RESOURCES_TDX}" != "success" ]] && tdx+=("update-resources")
+          [[ "${CLEANUP_TDX}" != "success" ]] && tdx+=("cleanup")
+          [[ "${NIX_GC_TDX}" != "success" ]] && tdx+=("nix-gc")
+
+          [[ "${UPDATE_RESOURCES_SNP_GPU}" != "success" ]] && snp_gpu+=("update-resources")
+          [[ "${CLEANUP_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup")
+          [[ "${NIX_GC_SNP_GPU}" != "success" ]] && snp_gpu+=("nix-gc")
+
+          [[ "${UPDATE_RESOURCES_SNP_DEV}" != "success" ]] && snp_dev+=("update-resources")
+          [[ "${CLEANUP_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup")
+          [[ "${NIX_GC_SNP_DEV}" != "success" ]] && snp_dev+=("nix-gc")
+
+          [[ "${UPDATE_RESOURCES_TDX_GPU}" != "success" ]] && tdx_gpu+=("update-resources")
+          [[ "${CLEANUP_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup")
+          [[ "${NIX_GC_TDX_GPU}" != "success" ]] && tdx_gpu+=("nix-gc")
+
+          if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 5" ]]; then
+            [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup-containerd")
+          fi
+
+          if [[ "${#snp[@]}" -gt 0 ]]; then
+            entries+=("{\"title\": \"Metal-QEMU-SNP\", \"value\": \"$(str="${snp[*]}"; echo "${str// /, }")\"}")
+          fi
+          if [[ "${#tdx[@]}" -gt 0 ]]; then
+            entries+=("{\"title\": \"Metal-QEMU-TDX\", \"value\": \"$(str="${tdx[*]}"; echo "${str// /, }")\"}")
+          fi
+
+          if [[ "${#snp_gpu[@]}" -gt 0 ]]; then
+            entries+=("{\"title\": \"Metal-QEMU-SNP-GPU\", \"value\": \"$(str="${snp_gpu[*]}"; echo "${str// /, }")\"}")
+          fi
+
+          if [[ "${#snp_dev[@]}" -gt 0 ]]; then
+            entries+=("{\"title\": \"Metal-QEMU-SNP-DEV\", \"value\": \"$(str="${snp_dev[*]}"; echo "${str// /, }")\"}")
+          fi
+
+          if [[ "${#tdx_gpu[@]}" -gt 0 ]]; then
+            entries+=("{\"title\": \"Metal-QEMU-TDX-GPU\", \"value\": \"$(str="${tdx_gpu[*]}"; echo "${str// /, }")\"}")
+          fi
+
+          if [[ "${#entries[@]}" -eq 0 ]]; then
+            echo "No failures detected, nothing to notify."
+            exit 0
+          fi
+
+          json=$(IFS=,; echo "${entries[*]}")
+          echo "json=[${json}]" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/post_to_teams
+        if: ${{ steps.get-json.outputs.json != '' }}
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          title: "${{ github.workflow }} failed"
+          message: "workflow ${{ github.workflow }} failed"
+          additionalFields: "${{ steps.get-json.outputs.json }}"

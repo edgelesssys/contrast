@@ -1,25 +1,16 @@
 name: bare metal maintenance
 
 on:
-  workflow_call:
-    secrets:
-      GITHUB_TOKEN_IN:
-        required: true
-      CACHIX_AUTH_TOKEN:
-        required: true
-      TEAMS_CI_WEBHOOK:
-        required: true
   workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - ".github/workflows/bm_maintenance.yml"
+      - ".github/workflows/bm_maintenance_platform.yml"
+      - ".github/workflows/bm_build_image.yml"
       - "tools/bm-maintenance/**"
       - "packages/by-name/scripts/upgrade-gpu-operator/**"
-
-env:
-  container_registry: ghcr.io/edgelesssys
 
 concurrency:
   group: ${{ github.workflow }}
@@ -28,360 +19,41 @@ concurrency:
 jobs:
   build-image:
     name: "Build cleanup-bare-metal image"
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/bm_build_image.yml
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
     permissions:
       contents: read
       packages: write
-    outputs:
-      image: "${{ steps.build.outputs.image }}"
-    env:
-      SET: base
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup_nix
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
-      - name: Create justfile.env
-        run: |
-          cat <<EOF > justfile.env
-          container_registry=${{ env.container_registry }}
-          set=${SET}
-          EOF
-      - name: Build and push cleanup-bare-metal image
-        id: build
-        env:
-          ghcr: ${{ env.container_registry }}
-        run: |
-          just push cleanup-bare-metal
-          image=$(sed -n "s#${{ env.container_registry }}/contrast/cleanup-bare-metal:latest=##p" ./workspace/just.containerlookup)
-          echo "image=${image}" >> "$GITHUB_OUTPUT"
 
-  update-resources:
-    name: "Update resources ${{ matrix.platform.name }}"
-    runs-on: ${{ matrix.platform.runner }}
+  maintenance:
+    name: "${{ matrix.platform.name }}"
     needs: build-image
-    outputs:
-      snp: ${{ steps.report.outputs.Metal-QEMU-SNP }}
-      tdx: ${{ steps.report.outputs.Metal-QEMU-TDX }}
-      snp-gpu: ${{ steps.report.outputs.Metal-QEMU-SNP-GPU }}
-      snp-dev: ${{ steps.report.outputs.Metal-QEMU-SNP-DEV }}
-      tdx-gpu: ${{ steps.report.outputs.Metal-QEMU-TDX-GPU }}
-    env:
-      SET: base
-    permissions:
-      contents: read
     strategy:
       matrix:
         platform:
           - name: Metal-QEMU-SNP
             runner: SNP
+            is-gpu: false
           - name: Metal-QEMU-TDX
             runner: TDX
+            is-gpu: false
           - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
+            is-gpu: true
           - name: Metal-QEMU-SNP-DEV
             runner: DEV
+            is-gpu: false
           - name: Metal-QEMU-TDX-GPU
             runner: TDX-GPU
+            is-gpu: true
       fail-fast: false
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      - name: Update storageclass
-        run: |
-          nix build ".#${SET}.csi-driver-host-path"
-          kubectl apply -k result
-      - name: Update sync fifo for GPU platform
-        if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU' }}
-        run: |
-          kubectl apply -k tools/bm-maintenance/sync-fifo
-          kubectl rollout status statefulset/sync --timeout=5m
-          kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' --timeout=5m svc/sync
-          nix run ".#${SET}.scripts.renew-sync-fifo"
-      - name: Update namespace cleanup cronjob
-        id: update
-        env:
-          IMAGE: ${{ needs.build-image.outputs.image }}
-        run: |
-          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup-namespaces.yml
-          kubectl apply -f ./tools/bm-maintenance/cleanup-namespaces.yml
-      - name: Update gpu operator
-        if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU' }}
-        run: |
-          GPU_OPERATOR_VERSION=$(jq -r '."gpu-operator".currentValue' ./tools/bm-maintenance/versions.json)
-          OPTS=(--version "$GPU_OPERATOR_VERSION")
-          if [[ "${{ matrix.platform.name }}" == "Metal-QEMU-TDX-GPU" ]]; then
-            OPTS+=(--blackwell)
-          fi
-          nix run ".#${SET}.scripts.upgrade-gpu-operator" -- "${OPTS[@]}"
-      - name: Report success
-        id: report
-        run: |
-          echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
-
-  cleanup:
-    name: "Cleanup ${{ matrix.platform.name }}"
-    runs-on: ${{ matrix.platform.runner }}
-    needs: build-image
-    timeout-minutes: 15
-    outputs:
-      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
-      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
-      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
-    strategy:
-      matrix:
-        platform:
-          - name: Metal-QEMU-SNP
-            runner: SNP
-          - name: Metal-QEMU-TDX
-            runner: TDX
-          - name: Metal-QEMU-SNP-GPU
-            runner: SNP-GPU
-          - name: Metal-QEMU-SNP-DEV
-            runner: DEV
-          - name: Metal-QEMU-TDX-GPU
-            runner: TDX-GPU
-      fail-fast: false
+    uses: ./.github/workflows/bm_maintenance_platform.yml
+    with:
+      platform-name: ${{ matrix.platform.name }}
+      runner: ${{ matrix.platform.runner }}
+      image: ${{ needs.build-image.outputs.image }}
+      is-gpu: ${{ matrix.platform.is-gpu }}
     permissions:
       contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      - name: Apply resources
-        env:
-          IMAGE: ${{ needs.build-image.outputs.image }}
-        run: |
-          K3S_VERSION=$(jq -r '.k3s.currentValue' ./tools/bm-maintenance/versions.json)
-          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup.yml
-          sed -i "s#@@REPLACE_K3S_VERSION@@#${K3S_VERSION}#g" ./tools/bm-maintenance/cleanup.yml
-          kubectl apply -f ./tools/bm-maintenance/cleanup.yml
-      - name: Wait for cleanup job
-        id: update
-        run: |
-          kubectl wait -n maintenance-cleanup --for=condition=complete --timeout=600s job/cleanup-maintenance
-          echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
-      - name: Collect logs and cleanup
-        if: always()
-        run: |
-          kubectl logs -n maintenance-cleanup job/cleanup-maintenance || true
-          kubectl delete -f ./tools/bm-maintenance/cleanup.yml || true
-
-  cleanup-containerd:
-    name: "Cleanup Containerd ${{ matrix.platform.name }}"
-    runs-on: ${{ matrix.platform.runner }}
-    needs: build-image
-    timeout-minutes: 15
-    outputs:
-      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
-      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
-      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
-    strategy:
-      matrix:
-        platform:
-          - name: Metal-QEMU-SNP
-            runner: SNP
-          - name: Metal-QEMU-TDX
-            runner: TDX
-          - name: Metal-QEMU-SNP-GPU
-            runner: SNP-GPU
-          - name: Metal-QEMU-SNP-DEV
-            runner: DEV
-          - name: Metal-QEMU-TDX-GPU
-            runner: TDX-GPU
-      fail-fast: false
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      - name: Apply resources
-        env:
-          IMAGE: ${{ needs.build-image.outputs.image }}
-        run: |
-          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup-containerd.yml
-          kubectl apply -f ./tools/bm-maintenance/cleanup-containerd.yml
-      - name: Wait for cleanup job
-        id: update
-        run: |
-          kubectl wait -n maintenance-containerd-cleanup --for=condition=complete --timeout=600s job/containerd-cleanup-maintenance
-          echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
-      - name: Collect logs and cleanup
-        if: always()
-        run: |
-          kubectl logs -n maintenance-containerd-cleanup job/containerd-cleanup-maintenance || true
-          kubectl delete -f ./tools/bm-maintenance/cleanup-containerd.yml || true
-
-  nix-gc:
-    name: "Nix gc ${{ matrix.platform.name }}"
-    runs-on: ${{ matrix.platform.runner }}
-    needs: build-image
-    timeout-minutes: 15
-    outputs:
-      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
-      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
-      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
-    strategy:
-      matrix:
-        platform:
-          - name: Metal-QEMU-SNP
-            runner: SNP
-          - name: Metal-QEMU-TDX
-            runner: TDX
-          - name: Metal-QEMU-SNP-GPU
-            runner: SNP-GPU
-          - name: Metal-QEMU-SNP-DEV
-            runner: DEV
-          - name: Metal-QEMU-TDX-GPU
-            runner: TDX-GPU
-      fail-fast: false
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      - name: Apply resources
-        env:
-          IMAGE: ${{ needs.build-image.outputs.image }}
-        run: |
-          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/nix-gc.yml
-          kubectl apply -f ./tools/bm-maintenance/nix-gc.yml
-      - name: Wait for nix garbage collection job
-        id: update
-        run: |
-          kubectl wait -n maintenance-nix-gc --for=condition=complete --timeout=600s job/nix-garbage-collection
-          echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
-      - name: Collect logs and cleanup
-        if: always()
-        run: |
-          kubectl logs -n maintenance-nix-gc job/nix-garbage-collection || true
-          kubectl delete -f ./tools/bm-maintenance/nix-gc.yml || true
-
-  notify-teams:
-    name: "Notify teams channel of failure"
-    runs-on: ubuntu-24.04
-    needs: [build-image, update-resources, cleanup, cleanup-containerd, nix-gc]
-    if: always() && github.event_name == 'schedule' && github.run_attempt == 1
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - name: Get JSON output
-        id: get-json
-        env:
-          UPDATE_RESOURCES_SNP: ${{ needs.update-resources.outputs.snp }}
-          UPDATE_RESOURCES_TDX: ${{ needs.update-resources.outputs.tdx }}
-          UPDATE_RESOURCES_SNP_GPU: ${{ needs.update-resources.outputs.snp-gpu }}
-          UPDATE_RESOURCES_SNP_DEV: ${{ needs.update-resources.outputs.snp-dev }}
-          UPDATE_RESOURCES_TDX_GPU: ${{ needs.update-resources.outputs.tdx-gpu }}
-          CLEANUP_SNP: ${{ needs.cleanup.outputs.snp }}
-          CLEANUP_TDX: ${{ needs.cleanup.outputs.tdx }}
-          CLEANUP_SNP_GPU: ${{ needs.cleanup.outputs.snp-gpu }}
-          CLEANUP_SNP_DEV: ${{ needs.cleanup.outputs.snp-dev }}
-          CLEANUP_TDX_GPU: ${{ needs.cleanup.outputs.tdx-gpu }}
-          CLEANUP_CONTAINERD_SNP: ${{ needs.cleanup-containerd.outputs.snp }}
-          CLEANUP_CONTAINERD_TDX: ${{ needs.cleanup-containerd.outputs.tdx }}
-          CLEANUP_CONTAINERD_SNP_GPU: ${{ needs.cleanup-containerd.outputs.snp-gpu  }}
-          CLEANUP_CONTAINERD_SNP_DEV: ${{ needs.cleanup-containerd.outputs.snp-dev  }}
-          CLEANUP_CONTAINERD_TDX_GPU: ${{ needs.cleanup-containerd.outputs.tdx-gpu  }}
-          NIX_GC_SNP: ${{ needs.nix-gc.outputs.snp }}
-          NIX_GC_TDX: ${{ needs.nix-gc.outputs.tdx }}
-          NIX_GC_SNP_GPU: ${{ needs.nix-gc.outputs.snp-gpu }}
-          NIX_GC_SNP_DEV: ${{ needs.nix-gc.outputs.snp-dev }}
-          NIX_GC_TDX_GPU: ${{ needs.nix-gc.outputs.tdx-gpu }}
-          IMAGE_BUILD_RESULT: ${{ needs.build-image.outputs.image }}
-          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
-        run: |
-          if [[ -z "${IMAGE_BUILD_RESULT}" ]]; then
-            echo 'json=[{"title": "Job ID", "value": "build-image"}]' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          declare -a entries snp tdx snp_gpu snp_dev tdx_gpu
-
-          [[ "${UPDATE_RESOURCES_SNP}" != "success" ]] && snp+=("update-resources")
-          [[ "${CLEANUP_SNP}" != "success" ]] && snp+=("cleanup")
-          [[ "${NIX_GC_SNP}" != "success" ]] && snp+=("nix-gc")
-
-          [[ "${UPDATE_RESOURCES_TDX}" != "success" ]] && tdx+=("update-resources")
-          [[ "${CLEANUP_TDX}" != "success" ]] && tdx+=("cleanup")
-          [[ "${NIX_GC_TDX}" != "success" ]] && tdx+=("nix-gc")
-
-          [[ "${UPDATE_RESOURCES_SNP_GPU}" != "success" ]] && snp_gpu+=("update-resources")
-          [[ "${CLEANUP_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup")
-          [[ "${NIX_GC_SNP_GPU}" != "success" ]] && snp_gpu+=("nix-gc")
-
-          [[ "${UPDATE_RESOURCES_SNP_DEV}" != "success" ]] && snp_dev+=("update-resources")
-          [[ "${CLEANUP_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup")
-          [[ "${NIX_GC_SNP_DEV}" != "success" ]] && snp_dev+=("nix-gc")
-
-          [[ "${UPDATE_RESOURCES_TDX_GPU}" != "success" ]] && tdx_gpu+=("update-resources")
-          [[ "${CLEANUP_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup")
-          [[ "${NIX_GC_TDX_GPU}" != "success" ]] && tdx_gpu+=("nix-gc")
-
-          if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 5" ]]; then
-            [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
-            [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
-            [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
-            [[ "${CLEANUP_CONTAINERD_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup-containerd")
-            [[ "${CLEANUP_CONTAINERD_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup-containerd")
-          fi
-
-          if [[ "${#snp[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"Metal-QEMU-SNP\", \"value\": \"$(str="${snp[*]}"; echo "${str// /, }")\"}")
-          fi
-          if [[ "${#tdx[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"Metal-QEMU-TDX\", \"value\": \"$(str="${tdx[*]}"; echo "${str// /, }")\"}")
-          fi
-
-          if [[ "${#snp_gpu[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"Metal-QEMU-SNP-GPU\", \"value\": \"$(str="${snp_gpu[*]}"; echo "${str// /, }")\"}")
-          fi
-
-          if [[ "${#snp_dev[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"Metal-QEMU-SNP-DEV\", \"value\": \"$(str="${snp_dev[*]}"; echo "${str// /, }")\"}")
-          fi
-
-          if [[ "${#tdx_gpu[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"Metal-QEMU-TDX-GPU\", \"value\": \"$(str="${tdx_gpu[*]}"; echo "${str// /, }")\"}")
-          fi
-
-          if [[ "${#entries[@]}" -eq 0 ]]; then
-            echo "No failures detected, nothing to notify."
-            exit 0
-          fi
-
-          json=$(IFS=,; echo "${entries[*]}")
-          echo "json=[${json}]" >> "$GITHUB_OUTPUT"
-      - uses: ./.github/actions/post_to_teams
-        if: ${{ steps.get-json.outputs.json != '' }}
-        with:
-          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
-          title: "${{ github.workflow }} failed"
-          message: "workflow ${{ github.workflow }} failed"
-          additionalFields: "${{ steps.get-json.outputs.json }}"
