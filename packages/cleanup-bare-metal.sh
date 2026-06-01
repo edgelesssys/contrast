@@ -24,6 +24,9 @@ if [[ ${configVersion} != "2" && ${configVersion} != "3" ]]; then
 fi
 echo "Containerd config version: ${configVersion}"
 
+echo "Deleting old containernd config backups ..."
+find "$(dirname "${configFile}")" -maxdepth 1 -type f -name "$(basename "${configFile}").*.bak" -mtime +5 -delete
+
 resourcesToCheck=(
   "pods"
   "deployments"
