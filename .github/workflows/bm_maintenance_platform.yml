@@ -1,0 +1,169 @@
+name: bare metal maintenance per platform
+
+on:
+  workflow_call:
+    inputs:
+      platform-name:
+        type: string
+        required: true
+      runner:
+        type: string
+        required: true
+      image:
+        type: string
+        required: true
+      is-gpu:
+        type: boolean
+        default: false
+    outputs:
+      update-resources:
+        description: "Result of the update-resources job"
+        value: ${{ jobs.update-resources.outputs.result }}
+      cleanup:
+        description: "Result of the cleanup job"
+        value: ${{ jobs.cleanup.outputs.result }}
+      cleanup-containerd:
+        description: "Result of the cleanup-containerd job"
+        value: ${{ jobs.cleanup-containerd.outputs.result }}
+      nix-gc:
+        description: "Result of the nix-gc job"
+        value: ${{ jobs.nix-gc.outputs.result }}
+
+jobs:
+  update-resources:
+    name: "Update resources ${{ inputs.platform-name }}"
+    runs-on: ${{ inputs.runner }}
+    outputs:
+      result: ${{ steps.report.outputs.result }}
+    env:
+      SET: base
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Update storageclass
+        run: |
+          nix build ".#${SET}.csi-driver-host-path"
+          kubectl apply -k result
+      - name: Update sync fifo for GPU platform
+        if: ${{ inputs.is-gpu }}
+        run: |
+          kubectl apply -k tools/bm-maintenance/sync-fifo
+          kubectl rollout status statefulset/sync --timeout=5m
+          kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' --timeout=5m svc/sync
+          nix run ".#${SET}.scripts.renew-sync-fifo"
+      - name: Update namespace cleanup cronjob
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: |
+          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup-namespaces.yml
+          kubectl apply -f ./tools/bm-maintenance/cleanup-namespaces.yml
+      - name: Update gpu operator
+        if: ${{ inputs.is-gpu }}
+        env:
+          PLATFORM_NAME: ${{ inputs.platform-name }}
+        run: |
+          GPU_OPERATOR_VERSION=$(jq -r '."gpu-operator".currentValue' ./tools/bm-maintenance/versions.json)
+          OPTS=(--version "$GPU_OPERATOR_VERSION")
+          if [[ "${PLATFORM_NAME}" == "Metal-QEMU-TDX-GPU" ]]; then
+            OPTS+=(--blackwell)
+          fi
+          nix run ".#${SET}.scripts.upgrade-gpu-operator" -- "${OPTS[@]}"
+      - name: Report success
+        id: report
+        run: echo "result=success" >> "$GITHUB_OUTPUT"
+
+  cleanup:
+    name: "Cleanup ${{ inputs.platform-name }}"
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 15
+    outputs:
+      result: ${{ steps.update.outputs.result }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Apply resources
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: |
+          K3S_VERSION=$(jq -r '.k3s.currentValue' ./tools/bm-maintenance/versions.json)
+          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup.yml
+          sed -i "s#@@REPLACE_K3S_VERSION@@#${K3S_VERSION}#g" ./tools/bm-maintenance/cleanup.yml
+          kubectl apply -f ./tools/bm-maintenance/cleanup.yml
+      - name: Wait for cleanup job
+        id: update
+        run: |
+          kubectl wait -n maintenance-cleanup --for=condition=complete --timeout=600s job/cleanup-maintenance
+          echo "result=success" >> "$GITHUB_OUTPUT"
+      - name: Collect logs and cleanup
+        if: always()
+        run: |
+          kubectl logs -n maintenance-cleanup job/cleanup-maintenance || true
+          kubectl delete -f ./tools/bm-maintenance/cleanup.yml || true
+
+  cleanup-containerd:
+    name: "Cleanup Containerd ${{ inputs.platform-name }}"
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 15
+    outputs:
+      result: ${{ steps.update.outputs.result }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Apply resources
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: |
+          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup-containerd.yml
+          kubectl apply -f ./tools/bm-maintenance/cleanup-containerd.yml
+      - name: Wait for cleanup job
+        id: update
+        run: |
+          kubectl wait -n maintenance-containerd-cleanup --for=condition=complete --timeout=600s job/containerd-cleanup-maintenance
+          echo "result=success" >> "$GITHUB_OUTPUT"
+      - name: Collect logs and cleanup
+        if: always()
+        run: |
+          kubectl logs -n maintenance-containerd-cleanup job/containerd-cleanup-maintenance || true
+          kubectl delete -f ./tools/bm-maintenance/cleanup-containerd.yml || true
+
+  nix-gc:
+    name: "Nix gc ${{ inputs.platform-name }}"
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 15
+    outputs:
+      result: ${{ steps.update.outputs.result }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Apply resources
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: |
+          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/nix-gc.yml
+          kubectl apply -f ./tools/bm-maintenance/nix-gc.yml
+      - name: Wait for nix garbage collection job
+        id: update
+        run: |
+          kubectl wait -n maintenance-nix-gc --for=condition=complete --timeout=600s job/nix-garbage-collection
+          echo "result=success" >> "$GITHUB_OUTPUT"
+      - name: Collect logs and cleanup
+        if: always()
+        run: |
+          kubectl logs -n maintenance-nix-gc job/nix-garbage-collection || true
+          kubectl delete -f ./tools/bm-maintenance/nix-gc.yml || true
