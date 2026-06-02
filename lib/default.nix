@@ -3,4 +3,4 @@
 
 { lib }:
 
-{ }
+import ./matrix.nix { inherit lib; }
