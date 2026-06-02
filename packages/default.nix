@@ -21,7 +21,6 @@ byName.overrideScope (
       final: _: pkgs.callPackages ./scripts.nix { scripts = final; }
     );
     containers = pkgs.callPackages ./containers.nix { };
-    container-scripts = pkgs.callPackages ./container-scripts.nix { };
     contrast-releases = pkgs.callPackages ./contrast-releases.nix { };
   }
 )
