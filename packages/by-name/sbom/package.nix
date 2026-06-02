@@ -7,6 +7,7 @@
   cyclonedx-gomod,
   cyclonedx-cli,
   contrast,
+  matrix,
   reference-values,
   sbom-generator,
   go,
@@ -16,10 +17,7 @@
 
 let
   closure = closureInfo {
-    rootPaths = [
-      contrast.coordinator
-      contrast.initializer
-    ];
+    rootPaths = [ matrix ];
   };
 in
 
