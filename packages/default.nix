@@ -17,6 +17,7 @@ in
 byName.overrideScope (
   _final: prev: {
     contrastPkgsStatic = pkgs.pkgsStatic.contrastPkgs;
+    matrix = pkgs.lib.contrast.mkMatrix pkgs;
     scripts = prev.scripts.overrideScope (
       final: _: pkgs.callPackages ./scripts.nix { scripts = final; }
     );
