@@ -61,6 +61,7 @@ rec {
           "contrastPkgsStatic"
           "contrast-releases"
           "matrix"
+          "sbom"
         ] pkgs.contrastPkgs
       )
     );
