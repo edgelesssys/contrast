@@ -1,0 +1,39 @@
+name: cache matrix
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+          - runner: macos-latest
+            system: aarch64-darwin
+    concurrency:
+      group: cache-matrix-${{ matrix.system }}
+      cancel-in-progress: true
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 240
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Build base matrix
+        run: |
+          nix build --no-link ".#legacyPackages.${{ matrix.system }}.base.matrix"
+    # - name: Build debug matrix
+    #   run: |
+    #     nix build --no-link ".#legacyPackages.${{ matrix.system }}.debug.matrix"
