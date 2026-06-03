@@ -90,7 +90,7 @@
         canonicalName =
           subset: nixpkgs.lib.concatStringsSep "+" (nixpkgs.lib.sort builtins.lessThan subset);
 
-        subsets = nonEmptySubsets setNames;
+        subsets = builtins.filter (s: builtins.length s <= 3) (nonEmptySubsets setNames);
 
         canonicalSets = builtins.listToAttrs (
           map (s: {
