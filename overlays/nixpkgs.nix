@@ -15,10 +15,10 @@ final: prev:
 
   go_1_26 = prev.go_1_26.overrideAttrs (
     finalAttrs: _prevAttrs: {
-      version = "1.26.3";
+      version = "1.26.4";
       src = final.fetchurl {
         url = "https://go.dev/dl/go${finalAttrs.version}.src.tar.gz";
-        hash = "sha256-HGRoddCqh5kTMYTtV895/yS97+jIggRwYCqdPW2Rkrg=";
+        hash = "sha256-T2aKMvv8ETLmqIH7lowvHa2mMUkqM5IRc1+7JVpCYC0=";
       };
     }
   );
