@@ -3,4 +3,6 @@
 
 { lib }:
 
-(import ./matrix.nix { inherit lib; }) // (import ./meta.nix { inherit lib; })
+(import ./matrix.nix { inherit lib; })
+// (import ./meta.nix { inherit lib; })
+// (import ./sets.nix { inherit lib; })
