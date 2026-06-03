@@ -44,61 +44,13 @@
       system:
 
       let
-        # mkSet creates a set of packages based on a given set of overlays.
-        mkSet =
-          overlays:
-          import nixpkgs {
-            inherit system overlays;
-            config.allowUnfree = true;
-            config.nvidia.acceptLicense = true;
-          };
-
-        # setsFromDirectory reads overlays from a directory and creates a set of pkgs instances for each.
-        # The filename is used as attribute name in the resulting set, the .nix extension is stripped.
-        setsFromDirectory =
-          dir:
-          builtins.listToAttrs (
-            map (file: rec {
-              name = builtins.substring 0 (builtins.stringLength file - 4) (baseNameOf file);
-              value = mkSet ((defaultOverlays name) ++ [ (import (dir + "/${file}")) ]);
-            }) (builtins.attrNames (builtins.readDir dir))
-          );
-
-        # reverseContrastNesting takes a pkgs instance and reverses the nesting by moving the
-        # contrastPkgs attributes to the top level and the originally top-level nixpkgs attributes
-        # to a nested nixpkgs attribute. This allows easy access to contrastPkgs via the nix flake
-        # CLI while still exposing the overlayed packages from nixpkgs under the nixpkgs attribute.
-        reverseContrastNesting =
-          pkgs:
-          pkgs.contrastPkgs
-          // {
-            nixpkgs = removeAttrs pkgs [
-              "fenix"
-              "contrastPkgs"
-            ];
-          };
-
-        defaultOverlays = set: [
-          (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
-          (final: _prev: {
-            inherit (import self.inputs.bombon { pkgs = final; }) buildBom;
-          })
-          (final: _prev: {
-            crate2nix = self.inputs.crate2nix.packages.${final.stdenv.hostPlatform.system}.default;
-          })
-          (_final: _prev: { runtimePkgs = self.legacyPackages.x86_64-linux.${set}; })
-          (import ./overlays/nixpkgs.nix)
-          (import ./overlays/contrast.nix)
-          (import ./overlays/runtimepkgs.nix)
-        ];
-
-        sets = setsFromDirectory ./overlays/sets;
+        contrastLib = import ./lib { inherit (nixpkgs) lib; };
+        sets = contrastLib.mkSets { inherit nixpkgs self system; };
 
         pkgs = sets.base;
 
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
       in
-
       {
         devShells = pkgs.callPackages ./dev-shells {
           git-hooks-lib = git-hooks.lib.${system};
@@ -108,7 +60,7 @@
 
         checks.formatting = treefmtEval.config.build.check self;
 
-        legacyPackages = nixpkgs.lib.mapAttrs (_name: reverseContrastNesting) sets;
+        legacyPackages = nixpkgs.lib.mapAttrs (_name: contrastLib.reverseContrastNesting) sets;
       }
     );
 
