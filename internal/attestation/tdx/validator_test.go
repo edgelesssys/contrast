@@ -25,6 +25,47 @@ func TestGetPIID(t *testing.T) {
 	require.Equal(expectedPIID, piid)
 }
 
+func TestValidateXfamIgnoringCET(t *testing.T) {
+	// Reference XFAM without CET, as shipped in reference values.
+	noCET := mustHex(t, "e702060000000000")
+	// Same XFAM with CET enabled, as reported by QEMU 11 on CET-capable dgx-007.
+	withCET := mustHex(t, "e71a060000000000")
+
+	otherBits := mustHex(t, "e702000000000000")
+
+	testCases := map[string]struct {
+		quoteXfam []byte
+		refXfam   []byte
+		wantErr   bool
+	}{
+		"identical, no CET":      {quoteXfam: noCET, refXfam: noCET},
+		"quote adds CET":         {quoteXfam: withCET, refXfam: noCET},
+		"quote drops CET":        {quoteXfam: noCET, refXfam: withCET},
+		"both have CET":          {quoteXfam: withCET, refXfam: withCET},
+		"non-CET bit differs":    {quoteXfam: otherBits, refXfam: noCET, wantErr: true},
+		"quote wrong length":     {quoteXfam: []byte{0x01}, refXfam: noCET, wantErr: true},
+		"reference wrong length": {quoteXfam: noCET, refXfam: []byte{0x01}, wantErr: true},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := validateXfamIgnoringCET(tc.quoteXfam, tc.refXfam)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func mustHex(t *testing.T, s string) []byte {
+	t.Helper()
+	b, err := hex.DecodeString(s)
+	require.NoError(t, err)
+	return b
+}
+
 var quoteJSON = `
 {
   "header": {

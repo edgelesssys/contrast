@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -116,6 +117,16 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 	}
 	validateOpts.TdQuoteBodyOptions.ReportData = reportData
 
+	// XFAM carries host-CPU-dependent feature bits. QEMU 11 enables CET (XFAM bits 11/12) on hosts whose CPU supports it.
+	// go-tdx-guest only offers exact-match XFAM, so we compare it ourselves while ignoring the CET bits.
+	// Ignoring CET accepts hosts that opt into the extra hardening without rejecting those that don't.
+	if refXfam := validateOpts.TdQuoteBodyOptions.Xfam; refXfam != nil {
+		if err := validateXfamIgnoringCET(quotev4.GetTdQuoteBody().GetXfam(), refXfam); err != nil {
+			return fmt.Errorf("validating xfam: %w", err)
+		}
+		validateOpts.TdQuoteBodyOptions.Xfam = nil
+	}
+
 	// Validate the report data.
 
 	if err := validate.TdxQuote(quotev4, validateOpts); err != nil {
@@ -164,6 +175,28 @@ func (t Report) HostData() []byte {
 // ClaimsToCertExtension converts the TDX quote claims to an X.509 certificate extension.
 func (t Report) ClaimsToCertExtension() ([]pkix.Extension, error) {
 	return claimsToCertExtension(t.Quote)
+}
+
+// xfamCETMask covers the CET XFAM bits CET_U (bit 11) and CET_S (bit 12).
+// Whether they are set depends on host CPU support.
+// Source: Intel SDM Vol. 1 Sec. 13.1, https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+const xfamCETMask = uint64(1)<<11 | uint64(1)<<12
+
+// validateXfamIgnoringCET compares the quote's XFAM against the reference XFAM, but ignoring the CET bits.
+func validateXfamIgnoringCET(quoteXfam, refXfam []byte) error {
+	const xfamSize = 8
+	if len(quoteXfam) != xfamSize {
+		return fmt.Errorf("quote XFAM has length %d, want %d", len(quoteXfam), xfamSize)
+	}
+	if len(refXfam) != xfamSize {
+		return fmt.Errorf("reference XFAM has length %d, want %d", len(refXfam), xfamSize)
+	}
+	got := binary.LittleEndian.Uint64(quoteXfam) &^ xfamCETMask
+	want := binary.LittleEndian.Uint64(refXfam) &^ xfamCETMask
+	if got != want {
+		return fmt.Errorf("XFAM mismatch: got %x, want %x (ignoring CET bits)", quoteXfam, refXfam)
+	}
+	return nil
 }
 
 // getPIID extracts the PIID from the PCK certificate inside a TDX quote.

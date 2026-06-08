@@ -109,6 +109,7 @@
     runtimeInputs = with pkgs; [
       go
       gopls
+      gotools
     ];
     text = ''
       exitcode=0
