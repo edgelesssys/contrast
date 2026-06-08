@@ -191,6 +191,11 @@ For example, the `nginx:stable` image reports a compressed image size of 67MiB, 
 Although only the extracted layers are stored, and those layers are reused across containers within the same pod, the memory limit should account for both the compressed and the decompressed layer simultaneously.
 Altogether, setting the limit to 10x the compressed image size should be sufficient for small to medium images when not using the Contrast secure image store feature.
 
+This process can also be automated by the Contrast CLI's `generate` command, which can calculate the required memory limits based on the image sizes and configure the pod resources accordingly.
+This requires the `PodLevelResources` [feature gate](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/) to be enabled on the cluster and can be used with the `--calculate-pod-memory` flag.
+The pod level memory requests and limits are then determined by the sum of all compressed and uncompressed layer sizes of all images used in the pod, plus all container memory limits.
+With this option enabled, the container limits only have to account for the actual memory requirements of the application.
+
 :::
 
 :::warning
