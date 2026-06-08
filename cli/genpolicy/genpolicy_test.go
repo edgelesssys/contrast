@@ -36,7 +36,10 @@ while [ $# -gt 0 ]; do
     --config-file=*)
 	  printf "%%s" "${1#--config-file=}" >extra_path
 	;;
-    --runtime-class-names*|--layers-cache-file-path*|--yaml-file*|--base64-out*)
+	--layers-cache-file-path=*)
+	  printf "%%s" "[]" >${1#--layers-cache-file-path=}
+	;;
+    --runtime-class-names*|--yaml-file*|--base64-out*)
 	;;
 	*)
 	  printf "unknown argument: %%s" "$1" >&2
@@ -80,7 +83,7 @@ func TestRunner(t *testing.T) {
 	applyConfig, err := kuberesource.UnmarshalApplyConfigurations([]byte(podYAML))
 	require.NoError(err)
 	require.Len(applyConfig, 1)
-	_, err = r.Run(ctx, applyConfig[0], expectedExtraPath, logger)
+	_, _, err = r.Run(ctx, applyConfig[0], expectedExtraPath, logger)
 	require.NoError(err)
 
 	rulesPath, err := os.ReadFile(rulesPathFile)

@@ -43,9 +43,11 @@ const (
 	kataAnnotationPrefix          = "io.katacontainers.config.hypervisor."
 	contrastRoleAnnotationKey     = annotationPrefix + "pod-role"
 	workloadSecretIDAnnotationKey = annotationPrefix + "workload-secret-id"
+	imageStoreSizeAnnotationKey   = annotationPrefix + "image-store-size"
 	idBlockAnnotation             = kataAnnotationPrefix + "snp_id_block_"
 	idAuthAnnotationKey           = kataAnnotationPrefix + "snp_id_auth_"
 	guestPolicyAnnotationKey      = kataAnnotationPrefix + "snp_guest_policy_"
+	pauseImage                    = "ghcr.io/edgelesssys/kubernetes/pause:3.6"
 )
 
 // NewGenerateCmd creates the contrast generate subcommand.
@@ -96,6 +98,7 @@ subcommands.`,
 	cmd.Flags().Bool("skip-service-mesh", false, "skip injection of Contrast service mesh sidecar")
 	cmd.Flags().Bool("inject-image-store", false, "inject an ephemeral storage device to pull images onto instead of into memory")
 	cmd.Flags().Bool("insecure-enable-debug-shell-access", false, "enable the debug shell service in the pod CVM to get access from container to guest VM")
+	cmd.Flags().Bool("calculate-pod-memory", false, "calculate pod memory based on image layer sizes and container resource limits")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
@@ -470,7 +473,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 	}()
 
 	return mapContrastWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
-		initdataAnno, err := runner.Run(ctx, res, extraPath, logger)
+		initdataAnno, layersCache, err := runner.Run(ctx, res, extraPath, logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate policy for %q in %q: %w", fileMap[path][idx].GetName(), path, err)
 		}
@@ -485,10 +488,64 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 				meta.Annotations = make(map[string]string)
 			}
 			meta.Annotations[initdata.InitdataAnnotationKey] = initdataAnno
+
+			podMemory, err := calculatePodMemory(spec, layersCache)
+			if err != nil {
+				retError = fmt.Errorf("calculating pod memory: %w", err)
+				return meta, spec
+			}
+			imageStoreSize := meta.Annotations[imageStoreSizeAnnotationKey]
+			if flags.calculatePodMemory && !flags.injectImageStore && imageStoreSize != "0" {
+				spec.WithResources(
+					kuberesource.ResourceRequirements().
+						WithMemoryLimitAndRequest(podMemory / 1024 / 1024),
+				)
+			}
 			return meta, spec
 		})
 		return res, retError
 	})
+}
+
+func calculatePodMemory(spec *applycorev1.PodSpecApplyConfiguration, podLayers *genpolicy.LayersCache) (int64, error) {
+	images := []string{pauseImage}
+	var containerMemory, initContainerMemory int64
+	for _, c := range spec.Containers {
+		if c.Image != nil && !slices.Contains(images, *c.Image) {
+			images = append(images, *c.Image)
+		}
+		if c.Resources != nil && c.Resources.Limits != nil && c.Resources.Limits.Memory() != nil {
+			containerMemory += c.Resources.Limits.Memory().Value()
+		}
+	}
+	for _, c := range spec.InitContainers {
+		if c.Image != nil && !slices.Contains(images, *c.Image) {
+			images = append(images, *c.Image)
+		}
+		if c.Resources != nil && c.Resources.Limits != nil && c.Resources.Limits.Memory() != nil {
+			if c.RestartPolicy != nil && *c.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+				containerMemory += c.Resources.Limits.Memory().Value()
+			} else {
+				initContainerMemory += c.Resources.Limits.Memory().Value()
+			}
+		}
+	}
+	podMemory := max(containerMemory, initContainerMemory)
+	for _, image := range images {
+		index, ok := podLayers.Index[image]
+		if !ok {
+			return 0, fmt.Errorf("no layer information for image %s", image)
+		}
+		for _, layer := range index.Layers {
+			podMemory += int64(layer.CompressedSize)
+			diffLayer, ok := podLayers.Layers[layer.DiffID]
+			if !ok {
+				return 0, fmt.Errorf("no information for layer with DiffID %s", layer.DiffID)
+			}
+			podMemory += int64(diffLayer.UncompressedSize)
+		}
+	}
+	return podMemory, nil
 }
 
 func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags, mnf *manifest.Manifest) error {
@@ -899,6 +956,7 @@ type generateFlags struct {
 	skipServiceMesh          bool
 	injectImageStore         bool
 	insecureEnableDebugShell bool
+	calculatePodMemory       bool
 	outputFile               string
 }
 
@@ -996,6 +1054,10 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	calculatePodMemory, err := cmd.Flags().GetBool("calculate-pod-memory")
+	if err != nil {
+		return nil, err
+	}
 	outputFile, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return nil, err
@@ -1021,6 +1083,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		skipServiceMesh:          skipServiceMesh,
 		injectImageStore:         injectImageStore,
 		insecureEnableDebugShell: insecureEnableDebugShell,
+		calculatePodMemory:       calculatePodMemory,
 		outputFile:               outputFile,
 	}, nil
 }
