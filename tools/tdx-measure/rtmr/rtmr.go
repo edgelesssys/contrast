@@ -161,23 +161,23 @@ func CalcRtmr0(firmware []byte, gpu GPUModel, legacySerial bool) ([48]byte, erro
 	//     F=/sys/firmware/acpi/tables/data/CCEL
 	//     for off in $(grep -aob "ACPI DATA" "$F" | cut -d: -f1); do
 	//       dd if="$F" bs=1 skip=$((off-52)) count=48 status=none \
-	//         | xxd -p -c 48
+	//         | od -An -v -tx1 | tr -d ' \n'; echo
 	//     done'
 	//
 	// Prints three digests in OVMF's measurement order; paste them
 	// into the matching hash set below.
 	acpiHashes := []string{
 		// Default (virtio-serial-pci + virtconsole) topology.
-		"978413224c711ace8c588bd45f9585657572c8053410df87f94bed7254feb88b4ce82233ead3db3721198a3a215efc1b",
-		"7d49579cd2b17a399b29b8fd40f2fd66bf3d0fafcbfdfd9a3b912b7d4f81dd7dba85ee15768b36214d7507dc10fc6464",
-		"4f564889e597ba62b02a0f5ad95ad9f8883947deadc3275fe289f5096c01ed3db8323d70681d04f694c025ee8426be11",
+		"fe2b18cedec78d5c5badd19ccce1bea1c92b5fd6d0a6c54d57e7963d14e888a5e8f614eb1e947ff55468c2ba4290bce8",
+		"13532425fd25e97766f29d820a2b7a2cbe9286ce547d53e949853d90c41be8dceeaaccac3b6f6f1eff4c0e2ad6e26842",
+		"11223fd2a2149fa13b0b56c370c8dd959110c187aa43538d696334c9873481481d7d494c93d0c0152eae6c582a84b642",
 	}
 	legacySerialAcpiHashes := []string{
 		// Legacy-serial topology, used when kata sets use_legacy_serial=true
 		// (debug set) so OVMF's DEBUG_ON_SERIAL_PORT output reaches the host.
-		"8916ff48d947a6c51cdd91015d1cac0c0fdaddb4f008730fb9f275521affea17c4dac10372f7073a5bfa22e53411ab34",
-		"855f3ccb8bc8d4f66f0097d8b893a62d9e8a903c0da1663bc03a1a268b0dc3e826d82199c5e4a3721a6d83e692b4a6dc",
-		"94c46e0d8c85d3632c241f6bcfba203287259711ab9616fa1f1174cdd2e30e777f9b393ef93b8aa4ac721deef3f54a59",
+		"4d3ac24226505a1d67298ebdff26bf8b3fad7146167c95e78d27462b967ced2b83e6ce15301d59e46c4e66467123e406",
+		"ef0250494da05f5e612b4d7fcde126ab242b39094775c0cda009d1aac6376c73491b54b10b883a21ca0df173070966d9",
+		"e47cc3001ee38d2d4a2a9c1f689f220443753516300c335f9f7b82bdcd835d9ab8b2d918c20639f48f239fb4a7206490",
 	}
 	var configHashes []string
 	if gpu == GPUModelNone {

@@ -85,6 +85,8 @@
   # Additionally, dhcpcd could allow for e.g. route manipulation from the host.
   networking.dhcpcd.enable = false;
 
+  systemd.suppressedSystemUnits = [ "systemd-networkd-varlink-metrics.socket" ];
+
   system.etc.overlay.mutable = false;
   # Use sysusers instead of userborn (which is used by default by the perlless profile).
   # We don't need sophisticated user generation.

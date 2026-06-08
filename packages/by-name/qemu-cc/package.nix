@@ -49,10 +49,6 @@
       # - https://www.qemu.org/docs/master/specs/fw_cfg.html is how OVMF learns
       #   about the initrd address.
       ./0004-hw-x86-load-initrd-to-static-address.patch
-      # Backport a regression fix introduced in 10.2.0, affecting older host
-      # kernels and VFIO devices.
-      # The fix is not in 10.2.1, but should be coming with at least 10.3.
-      ./0005-hw-vfio-cpr-iommufd-Fix-wrong-usage-of-migrate_add_b.patch
     ]
     ++ lib.optionals (!gpuSupport) [
       # If we're not building with GPU support, we can omit the PCI-related ACPI tables
