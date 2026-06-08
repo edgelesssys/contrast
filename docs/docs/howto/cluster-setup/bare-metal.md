@@ -48,7 +48,7 @@ Make sure to keep a backup of all files you're overwriting in this step until yo
 Install Linux kernel 6.11 or greater.
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
-Install Ubuntu 25.10 and leave the kernel at the default version. Other distributions with a 6.16+ kernel might work as well, but we currently only provide support for Ubuntu 25.10.
+Install Ubuntu 26.04 and leave the kernel at the default version. Other distributions with a 6.16+ kernel might work as well, but we currently only provide support for Ubuntu 26.04.
 Add the `nohibernate` and `kvm_intel.tdx=1` kernel command line parameters, for example by updating `GRUB_CMDLINE_LINUX` in `/etc/default/grub`.
 </TabItem>
 </Tabs>
@@ -199,7 +199,7 @@ To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled 
    - `CONFIG_VFIO_MDEV_DEVICE`
    - `CONFIG_VFIO_PCI`
 
-[Ubuntu Server 25.10](https://releases.ubuntu.com/questing/), for example, fulfills these requirements out-of-the-box, and no further changes are necessary here.
+[Ubuntu Server 26.04](https://releases.ubuntu.com/resolute/), for example, fulfills these requirements out-of-the-box, and no further changes are necessary here.
 
 If the per-node requirements are fulfilled, deploy the [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest) to the cluster. It provisions pod-VMs with GPUs via VFIO.
 
