@@ -6,7 +6,7 @@
 
 no_progress = true
 cache = false
-include_fragments = false
+include_fragments = "none"
 retry_wait_time = 20
 fallback_extensions = ["md", "html"]
 exclude = [

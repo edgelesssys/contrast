@@ -5,7 +5,7 @@
 
 no_progress = true
 cache = false
-include_fragments = true
+include_fragments = "full"
 fallback_extensions = ["md", "html"]
 
 # We're only using absolute paths for assets from this directory (which are copied into the

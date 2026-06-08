@@ -79,6 +79,7 @@ let
               (builtins.readFile "${launch-digests}/rtmr2.hex")
               (builtins.readFile "${launch-digests}/rtmr3.hex")
             ];
+            # CET (XFAM bits 11/12) is ignored during validation because it depends on host CPU support. see validateXfamIgnoringCET.
             xfam = "e702060000000000";
             memoryIntegrity = false;
           }

@@ -581,5 +581,5 @@ onboard:
 # Just configuration.
 
 set dotenv-filename := "justfile.env"
-set dotenv-load := true
+set dotenv-load
 set shell := ["bash", "-uc"]

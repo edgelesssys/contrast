@@ -37,20 +37,6 @@ final: prev:
     '';
   });
 
-  # Tests of composefs will detect hardware capabilities to select executed tests,
-  # that's why they fail on our CI runners (Ubuntu kernel has fs-verity enabled),
-  # but succeed on NixOS/Hydra.
-  # See: https://github.com/composefs/composefs/pull/415
-  # We need to rebuild composefs anyway as it depends on the overridden erofs-utils.
-  composefs = prev.composefs.overrideAttrs (prevAttrs: {
-    patches = prevAttrs.patches or [ ] ++ [
-      (final.fetchpatch {
-        url = "https://patch-diff.githubusercontent.com/raw/composefs/composefs/pull/415.patch";
-        hash = "sha256-nzUENLM24G6NezhPywVsRzRgWmL1VZdMfZTsXNorJl8=";
-      })
-    ];
-  });
-
   # Pad with zero bytes instead of zero ascii characters.
   # https://github.com/microsoft/igvm-tooling/pull/59
   igvm-tooling = prev.igvm-tooling.overrideAttrs (prevAttrs: {
