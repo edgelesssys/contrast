@@ -31,7 +31,9 @@ const (
 	smAdminInterfaceAnnotationKey = "contrast.edgeless.systems/servicemesh-admin-interface-port"
 	securePVAnnotationKey         = "contrast.edgeless.systems/secure-pv"
 	workloadSecretIDAnnotationKey = "contrast.edgeless.systems/workload-secret-id"
-	imageStoreSizeAnnotationKey   = "contrast.edgeless.systems/image-store-size"
+
+	// ImageStoreSizeAnnotationKey is the annotation key used to configure the size of the image store volume.
+	ImageStoreSizeAnnotationKey = "contrast.edgeless.systems/image-store-size"
 
 	// TDXEnabledNodeLabel is the node-feature-discovery label that marks a node as TDX-capable.
 	TDXEnabledNodeLabel = "feature.node.kubernetes.io/tdx.enabled"
@@ -405,7 +407,7 @@ func AddImageStore(resources []any) []any {
 
 		imageStoreSize := "10Gi"
 		if meta != nil {
-			s := meta.Annotations[imageStoreSizeAnnotationKey]
+			s := meta.Annotations[ImageStoreSizeAnnotationKey]
 			if s == "0" {
 				return meta, spec
 			}
