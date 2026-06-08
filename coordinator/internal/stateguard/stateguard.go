@@ -52,6 +52,10 @@ var (
 	// ErrConcurrentUpdate is returned by state-modifying operations if the input oldState is not
 	// the current state. This usually happens when a concurrent operation succeeded.
 	ErrConcurrentUpdate = errors.New("coordinator state was updated concurrently")
+
+	// ErrInsecureNotAllowed is returned when a manifest contains insecure platforms but the
+	// coordinator was not started with the allow-insecure flag.
+	ErrInsecureNotAllowed = errors.New("manifest contains insecure platforms, but the coordinator is not configured to allow them")
 )
 
 // Guard manages the manifest state of Contrast.
@@ -65,6 +69,9 @@ type Guard struct {
 	logger  *slog.Logger
 	metrics metrics
 
+	// allowInsecure controls whether manifests with insecure platforms are accepted.
+	allowInsecure bool
+
 	clock clock.Clock
 }
 
@@ -73,7 +80,10 @@ type metrics struct {
 }
 
 // New creates a new state Guard instance.
-func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Guard {
+//
+// If allowInsecure is true, the Guard will accept manifests that contain insecure platforms.
+// Otherwise, setting such a manifest will be rejected with ErrInsecureNotAllowed.
+func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger, allowInsecure bool) *Guard {
 	manifestGeneration := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
 		Subsystem: "contrast_coordinator",
 		Name:      "manifest_generation",
@@ -82,8 +92,9 @@ func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Gua
 	manifestGeneration.Set(0)
 
 	return &Guard{
-		hist:   hist,
-		logger: log.WithGroup("stateguard"),
+		hist:          hist,
+		logger:        log.WithGroup("stateguard"),
+		allowInsecure: allowInsecure,
 		metrics: metrics{
 			manifestGeneration: manifestGeneration,
 		},
@@ -270,6 +281,9 @@ func (g *Guard) UpdateState(_ context.Context, oldState *State, se *seedengine.S
 	var mnfst manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
 		return nil, fmt.Errorf("unmarshaling manifest: %w", err)
+	}
+	if !g.allowInsecure && mnfst.AllowInsecure() {
+		return nil, ErrInsecureNotAllowed
 	}
 	policyMap := make(map[[history.HashSize]byte][]byte)
 	for _, policy := range policies {

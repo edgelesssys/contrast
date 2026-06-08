@@ -80,6 +80,9 @@ func KataRuntimeConfig(
 
 	// Replace the kernel params entirely (and don't append) since that's
 	// also what we do when calculating the launch measurement.
+	if platforms.IsInsecure(platform) {
+		qemuExtraKernelParams = strings.TrimSpace(qemuExtraKernelParams + " contrast.allow_insecure_attestation=1")
+	}
 	config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
 	// Conditionally enable debug mode.
 	config.Hypervisor["qemu"]["enable_debug"] = debug
