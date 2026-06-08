@@ -176,6 +176,18 @@ buildGoModule (finalAttrs: {
       # This writes a subset of the layers-cache.json file into a separate file containing only the processed layers.
       # We need the layer information to calculate the memory overhead for the VM during generate.
       ./0027-genpolicy-write-processed-layer-information-to-file.patch
+
+      # Make kata's Go-runtime shim exit cleanly on SIGTERM/SIGINT so it
+      # doesn't leak a task dir per pod teardown. Required because
+      # containerd's CRI tears down sandbox shims via systemd cgroup-stop
+      # rather than TaskService.Shutdown, and the resulting commonDialer
+      # busy-loop in the cleanup binary gets SIGKILL'd at containerd's 5s
+      # deadline before it can remove the bundle.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
+      # TODO(sse): retire this carry once contrast migrates to runtime-rs.
+      # runtime-rs sidesteps the bug by ignoring SIGTERM and exiting cleanly
+      # via its own teardown path (src/runtime-rs/crates/shim/src/bin/main.rs).
+      ./0028-runtime-clean-shim-exit-on-SIGTERM-SIGINT-to-prevent.patch
     ];
   };
 

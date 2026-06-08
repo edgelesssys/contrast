@@ -1,0 +1,143 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Spyros Seimenis <sse@edgeless.systems>
+Date: Mon, 8 Jun 2026 13:56:39 +0300
+Subject: [PATCH] runtime: clean shim exit on SIGTERM/SIGINT to prevent leaked
+ task dirs
+
+Containerd's CRI tears down pod sandboxes via systemd cgroup-stop
+rather than TaskService.Shutdown, sending SIGTERM to the shim. The
+vendored exit path goes through publisher.Done() which always times
+out after 5s, the shim exits abnormally, and containerd fires
+cleanupAfterDeadShim.
+
+The cleanup binary's CleanupContainer makes agent RPCs over vsock that
+busy-loop in commonDialer when the VM is gone, then get SIGKILL'd at
+containerd's 5s deadline. The task directory at
+/run/containerd/io.containerd.runtime.v2.task/<ns>/<id>/ survives.
+Accumulated leaks eventually trip a containerd restart past
+TimeoutStartUSec=90s, cascading through kubelet's Requires= chain.
+
+Install a SIGTERM/SIGINT handler that persists Stopped state to disk
+via the new Sandbox.MarkStopped helper, SIGKILLs the hypervisor, and
+os.Exit(0)s. MarkStopped covers both s.containers and s.config.Containers
+so the cleanup binary's reconstructed Container objects all see Stopped
+state and take the early returns in c.stop() and s.Stop() instead of
+dialing the agent. The cleanup binary still runs but completes in
+milliseconds and containerd removes the task dir cleanly.
+
+Refs: kata-containers/kata-containers#11328
+
+Signed-off-by: Spyros Seimenis <sse@edgeless.systems>
+---
+ src/runtime/pkg/containerd-shim-v2/service.go | 43 +++++++++++++++++++
+ src/runtime/virtcontainers/sandbox.go         | 29 +++++++++++++
+ 2 files changed, 72 insertions(+)
+
+diff --git a/src/runtime/pkg/containerd-shim-v2/service.go b/src/runtime/pkg/containerd-shim-v2/service.go
+index b07cd10c1900b485bb6ff5de36d41f43d94be2b8..8bfc8e95b28e0e28be8a7b8d2c2ccb159869078a 100644
+--- a/src/runtime/pkg/containerd-shim-v2/service.go
++++ b/src/runtime/pkg/containerd-shim-v2/service.go
+@@ -11,6 +11,7 @@ import (
+ 	"io"
+ 	"os"
+ 	sysexec "os/exec"
++	"os/signal"
+ 	goruntime "runtime"
+ 	"sync"
+ 	"syscall"
+@@ -103,6 +104,7 @@ func New(ctx context.Context, id string, publisher cdshim.Publisher, shutdown fu
+ 		namespace:  ns,
+ 	}
+ 
++	go s.handleSignalShutdown()
+ 	go s.processExits()
+ 
+ 	forwarder := s.newEventsForwarder(ctx, publisher)
+@@ -111,6 +113,47 @@ func New(ctx context.Context, id string, publisher cdshim.Publisher, shutdown fu
+ 	return s, nil
+ }
+ 
++// handleSignalShutdown handles SIGTERM/SIGINT by persisting Stopped state
++// via Sandbox.MarkStopped and then exiting.
++//
++// This is the shim's exit path when containerd's CRI tears down the pod
++// sandbox: instead of issuing TaskService.Shutdown to the shim, the CRI
++// stops the sandbox's systemd cgroup scope, which sends SIGTERM here.
++//
++// After the shim exits, containerd's task plugin reacts to the ttrpc
++// disconnect by re-running the shim binary with -action delete to clean up
++// the bundle. With Stopped already on disk, that delete invocation skips
++// the agent RPCs that would otherwise hang against the dead VM and
++// completes quickly enough to remove the bundle before containerd's 5s
++// per-shim cleanup deadline fires.
++//
++// See kata-containers/kata-containers#11328.
++func (s *service) handleSignalShutdown() {
++	sigCh := make(chan os.Signal, 1)
++	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
++	sig := <-sigCh
++
++	shimLog.WithField("signal", sig).Info("received termination signal, performing clean shutdown")
++
++	if s.cancel != nil {
++		s.cancel()
++	}
++
++	// VCSandbox does not expose MarkStopped; type-assert to the concrete
++	// type that the production implementation uses.
++	if sb, ok := s.sandbox.(*vc.Sandbox); ok {
++		if err := sb.MarkStopped(); err != nil {
++			shimLog.WithError(err).Warn("MarkStopped failed during signal-driven shutdown")
++		}
++	}
++
++	if s.hpid > 0 {
++		_ = syscall.Kill(int(s.hpid), syscall.SIGKILL)
++	}
++
++	os.Exit(0)
++}
++
+ type exit struct {
+ 	timestamp time.Time
+ 	id        string
+diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
+index 6ceae42de927cfb1dd5337b45ce2222ed0b8e42b..c813fb580c12ff5d72140294fbd3e5e8c5484d9b 100644
+--- a/src/runtime/virtcontainers/sandbox.go
++++ b/src/runtime/virtcontainers/sandbox.go
+@@ -2147,6 +2147,35 @@ func (s *Sandbox) setSandboxState(state types.StateString) error {
+ 	return nil
+ }
+ 
++// MarkStopped sets the state of the sandbox and every container it knows
++// about to Stopped and persists it to disk, without communicating with the
++// agent or the hypervisor.
++func (s *Sandbox) MarkStopped() error {
++	if err := s.setSandboxState(types.StateStopped); err != nil {
++		return err
++	}
++	for _, c := range s.containers {
++		c.state.State = types.StateStopped
++	}
++
++	// Also persist Stopped state for containers that remain in the saved
++	// config but no longer in s.containers. CRI's per-container Delete
++	// removes them from s.containers before SIGTERM arrives here, but the
++	// config entry sticks around. Without this, the later cleanup
++	// invocation rebuilds Container objects from the saved config with
++	// default state and tries to call the agent for them.
++	for _, contConfig := range s.config.Containers {
++		if _, ok := s.containers[contConfig.ID]; ok {
++			continue
++		}
++		s.containers[contConfig.ID] = &Container{
++			id:    contConfig.ID,
++			state: types.ContainerState{State: types.StateStopped},
++		}
++	}
++	return s.Save()
++}
++
+ const maxBlockIndex = 65535
+ 
+ // getAndSetSandboxBlockIndex retrieves an unused sandbox block index from
