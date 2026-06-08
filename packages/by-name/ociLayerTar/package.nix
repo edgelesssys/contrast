@@ -86,8 +86,7 @@ runCommandLocal "ociLayer"
     # Calculate the blob's sha256 hash and write the media descriptor
     echo "Calculating layer blob hash..."
     sha256=$(sha256sum $out/$outPath | cut -d' ' -f1)
-    compressed_size=$(stat -c %s $out/$outPath)
-    echo -n "{\"mediaType\": \"$mediaType\", \"size\": $compressed_size, \"digest\": \"sha256:$sha256\"}" > $out/media-descriptor.json
+    echo -n "{\"mediaType\": \"$mediaType\", \"size\": $(stat -c %s $out/$outPath), \"digest\": \"sha256:$sha256\"}" > $out/media-descriptor.json
     echo -n "sha256:$diffID" > $out/DiffID
 
     if [[ -f ./root/etc/passwd ]]; then
@@ -96,7 +95,7 @@ runCommandLocal "ociLayer"
     if [[ -f ./root/etc/group ]]; then
       group=$(cat ./root/etc/group)
     fi
-    echo -n "{\"layer_digest\": \"sha256:$sha256\", \"passwd\": \"$passwd\", \"group\": \"$group\", \"compressed_size\": $compressed_size, \"uncompressed_size\": $uncompressed_size}" > $out/layers-cache.json
+    echo -n "{\"diff_id\": \"sha256:$diffID\", \"passwd\": \"$passwd\", \"group\": \"$group\", \"uncompressed_size\": $uncompressed_size}" > $out/layers-cache.json
 
     # Move the compressed layer tarball to the blobs directory and create a symlink
     mkdir -p $out/blobs/sha256

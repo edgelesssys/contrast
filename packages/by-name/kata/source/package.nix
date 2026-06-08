@@ -164,36 +164,32 @@ rec {
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12816
       ./0024-genpolicy-support-pod-level-resource-limits.patch
 
-      # We need the layer sizes to compute the overhead of pulling the images into the VM.
-      # This caches the compressed and uncompressed layer sizes in the layers-cache.json file during genpolicy.
-      # The layers-cache.json file is no longer indexed by diffID, but by the layer digest,
-      # which is the only stable identifier for the compressed layer size.
-      ./0025-genpolicy-cache-un-compressed-layer-sizes.patch
-
-      # This writes a subset of the layers-cache.json file into a separate file containing only the processed layers.
-      # We need the layer information to calculate the memory overhead for the VM during generate.
-      ./0026-genpolicy-write-processed-layer-information-to-file.patch
-
       # Stop the kata shim's cleanup paths from hanging when the kata-agent
       # is unreachable. Without this, agent calls hang in commonDialer past
       # containerd's 5s per-shim cleanup deadline, the task dir is orphaned,
       # and accumulated leaks cascade through kubelet's Requires=containerd.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
       # TODO(sse): retire this carry once contrast migrates to runtime-rs.
-      ./0027-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
+      ./0025-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
 
       # Don't clean up the Kata cgroup when cleaning up a failed pod. It's unnecessary because it
       # will be cleaned up by containerd, and it may hide problems if the cleanup takes too long.
       # No upstream issue because this is unlikely to be accepted upstream as is, and developing a
       # full fix for all potential configurations is not a good investment of time.
       # TODO(burgerdev): drop patch after migrating to runtime-rs
-      ./0028-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
+      ./0026-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
 
       # Duplicate entry for the safe-path lib (workspace and crates.io) requires ugly hacks in the
       # update-kata-cargo-nix script. The patch fixes the mismatch.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/13242
       # TODO(charludo): drop after next kata update.
-      ./0029-runtime-rs-change-safe-path-dependency-from-crates.i.patch
+      ./0027-runtime-rs-change-safe-path-dependency-from-crates.i.patch
+
+      # Cache (un-)compressed image sizes and information to map image references to DiffIDs in the layers-cache.json.
+      # For each image reference, compressed sizes are taken from the image manifest and are stored with a reference
+      # to the corresponding DiffID. Entries with a DiffID key now also store the uncompressed size of the layer.
+      # This allows us to calculate the pod memory requirements based on the image sizes.
+      ./0028-genpolicy-cache-image-sizes-and-layer-info.patch
     ];
   };
 
