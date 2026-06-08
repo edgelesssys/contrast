@@ -6,6 +6,7 @@ package genpolicy
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -52,7 +53,7 @@ func New(rulesPath, settingsPath, cachePath string, bin []byte) (*Runner, error)
 // Run runs the tool on the given resource and returns the initdata annotation.
 //
 // Run can be called more than once.
-func (r *Runner) Run(ctx context.Context, res any, extraPath string, logger *slog.Logger) (string, error) {
+func (r *Runner) Run(ctx context.Context, res any, extraPath string, needLayersCache bool, logger *slog.Logger) (string, *LayersCache, error) {
 	args := []string{
 		"--runtime-class-names=contrast-cc",
 		"--rego-rules-path=" + r.rulesPath,
@@ -67,7 +68,7 @@ func (r *Runner) Run(ctx context.Context, res any, extraPath string, logger *slo
 	}
 	input, err := kuberesource.EncodeResources(res)
 	if err != nil {
-		return "", fmt.Errorf("encoding resources: %w", err)
+		return "", nil, fmt.Errorf("encoding resources: %w", err)
 	}
 	genpolicy.Stdin = bytes.NewReader(input)
 	genpolicy.Env = os.Environ()
@@ -88,12 +89,28 @@ func (r *Runner) Run(ctx context.Context, res any, extraPath string, logger *slo
 	logger.Debug("running genpolicy", "bin", r.genpolicy.Path(), "args", args)
 	err = genpolicy.Run()
 	if ctxErr := ctx.Err(); ctxErr != nil {
-		return "", fmt.Errorf("running genpolicy: %w", ctxErr)
+		return "", nil, fmt.Errorf("running genpolicy: %w", ctxErr)
 	} else if err != nil {
-		return "", fmt.Errorf("running genpolicy: %w", err)
+		return "", nil, fmt.Errorf("running genpolicy: %w", err)
 	}
 
-	return out.String(), err
+	var layersCache *LayersCache
+	if needLayersCache {
+		layersCacheData, err := os.ReadFile(r.cachePath)
+		if err != nil {
+			return "", nil, fmt.Errorf("reading layers cache file: %w", err)
+		}
+		var layersCacheEntries []ImageLayersCacheEntry
+		if err := json.Unmarshal(layersCacheData, &layersCacheEntries); err != nil {
+			return "", nil, fmt.Errorf("decoding layers cache file: %w", err)
+		}
+		layersCache, err = NewLayersCache(layersCacheEntries)
+		if err != nil {
+			return "", nil, fmt.Errorf("creating layers cache: %w", err)
+		}
+	}
+
+	return out.String(), layersCache, err
 }
 
 // Teardown cleans up temporary files and should be called after the last Run.

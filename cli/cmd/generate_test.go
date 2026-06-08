@@ -6,11 +6,13 @@ package cmd
 import (
 	"testing"
 
+	"github.com/edgelesssys/contrast/cli/genpolicy"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -176,4 +178,159 @@ func getHandler(t *testing.T, name string) string {
 	handler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 	return handler
+}
+
+func TestCalculatePodMemory(t *testing.T) {
+	layersCache := &genpolicy.LayersCache{
+		Index: map[string]genpolicy.ImageLayerIndex{
+			"some-image": {
+				ImageRef: "some-image",
+				Layers: []genpolicy.ImageLayerIndexEntry{
+					{
+						DiffID:         "layer1",
+						CompressedSize: 10,
+					},
+				},
+			},
+			"other-image": {
+				ImageRef: "other-image",
+				Layers: []genpolicy.ImageLayerIndexEntry{
+					{
+						DiffID:         "layer1",
+						CompressedSize: 20,
+					},
+				},
+			},
+		},
+		Layers: map[string]genpolicy.ImageLayer{
+			"layer1": {
+				DiffID:           "layer1",
+				UncompressedSize: 20,
+			},
+		},
+	}
+
+	testCases := map[string]struct {
+		pod  *applycorev1.PodApplyConfiguration
+		want int64
+	}{
+		"main container without limits": {
+			pod: kuberesource.Pod("test-pod", "default").
+				WithSpec(
+					kuberesource.PodSpec().
+						WithContainers(
+							kuberesource.Container().
+								WithImage("some-image"),
+						),
+				),
+			want: 30,
+		},
+		"main container with limits": {
+			pod: kuberesource.Pod("test-pod", "default").
+				WithSpec(
+					kuberesource.PodSpec().
+						WithContainers(
+							kuberesource.Container().
+								WithImage("some-image").
+								WithResources(
+									kuberesource.ResourceRequirements().
+										WithMemoryLimitAndRequest(100),
+								),
+						),
+				),
+			want: 30 + 100*1024*1024,
+		},
+		"two containers with different images": {
+			pod: kuberesource.Pod("test-pod", "default").
+				WithSpec(
+					kuberesource.PodSpec().
+						WithContainers(
+							kuberesource.Container().
+								WithImage("some-image"),
+							kuberesource.Container().
+								WithImage("other-image"),
+						),
+				),
+			want: 70,
+		},
+		"init container with low limits": {
+			pod: kuberesource.Pod("test-pod", "default").
+				WithSpec(
+					kuberesource.PodSpec().
+						WithContainers(
+							kuberesource.Container().
+								WithImage("some-image").
+								WithResources(
+									kuberesource.ResourceRequirements().
+										WithMemoryLimitAndRequest(100),
+								),
+						).
+						WithInitContainers(
+							kuberesource.Container().
+								WithImage("some-image").
+								WithResources(
+									kuberesource.ResourceRequirements().
+										WithMemoryLimitAndRequest(10),
+								),
+						),
+				),
+			want: 30 + 100*1024*1024,
+		},
+		"init container with high limits": {
+			pod: kuberesource.Pod("test-pod", "default").
+				WithSpec(
+					kuberesource.PodSpec().
+						WithContainers(
+							kuberesource.Container().
+								WithImage("some-image").
+								WithResources(
+									kuberesource.ResourceRequirements().
+										WithMemoryLimitAndRequest(100),
+								),
+						).
+						WithInitContainers(
+							kuberesource.Container().
+								WithImage("some-image").
+								WithResources(
+									kuberesource.ResourceRequirements().
+										WithMemoryLimitAndRequest(200),
+								),
+						),
+				),
+			want: 30 + 200*1024*1024,
+		},
+		"side car container": {
+			pod: kuberesource.Pod("test-pod", "default").
+				WithSpec(
+					kuberesource.PodSpec().
+						WithContainers(
+							kuberesource.Container().
+								WithImage("some-image").
+								WithResources(
+									kuberesource.ResourceRequirements().
+										WithMemoryLimitAndRequest(100),
+								),
+						).
+						WithInitContainers(
+							kuberesource.Container().
+								WithImage("some-image").
+								WithResources(
+									kuberesource.ResourceRequirements().
+										WithMemoryLimitAndRequest(200),
+								).
+								WithRestartPolicy(corev1.ContainerRestartPolicyAlways),
+						),
+				),
+			want: 30 + 300*1024*1024,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+			got, err := calculatePodMemory(tc.pod.Spec, layersCache)
+			require.NoError(err)
+			require.Equal(tc.want, got)
+		})
+	}
 }

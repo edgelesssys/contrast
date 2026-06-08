@@ -557,7 +557,7 @@ func TestAddImageStore(t *testing.T) {
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container())))),
-			annotations:     map[string]string{imageStoreSizeAnnotationKey: "20Gi"},
+			annotations:     map[string]string{ImageStoreSizeAnnotationKey: "20Gi"},
 			runtimeClass:    "contrast-cc",
 			expectAdded:     true,
 			expectedSize:    "20Gi",
@@ -571,7 +571,7 @@ func TestAddImageStore(t *testing.T) {
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container())))),
-			annotations:  map[string]string{imageStoreSizeAnnotationKey: "0"},
+			annotations:  map[string]string{ImageStoreSizeAnnotationKey: "0"},
 			runtimeClass: "contrast-cc",
 		},
 		{
