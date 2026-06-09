@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Tue, 9 Jun 2026 12:57:42 +0200
+Subject: [PATCH] runtime: don't attempt to clean up cgroup scope
+
+The cleanup (a systemctl stop) is asynchronous by nature, but the
+containerd cgroup code always waits for its completion without
+considering context cancellation etc. This can lead to errors not being
+visible at the Kubernetes level if the scope unit is not stopped before
+the shim is terminated. The result is just a "create container timeout"
+message.
+
+It turns out that removing the scope is optional: containerd will remove
+the parent scope when cleaning up, which results in our scope being
+cleaned up, too.
+
+Included in this commit are two error propagation fixes which should
+make problems with cgroups apparent much earlier. The cgroupv1 code path
+has a similar error, but is not checked because we can't test it.
+Furthermore, the error message mentioned above is improved such that
+it's clearer why we're returning.
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/runtime/pkg/containerd-shim-v2/service.go |  2 +-
+ src/runtime/pkg/resourcecontrol/cgroups.go    | 11 ++++++-----
+ src/runtime/virtcontainers/sandbox.go         |  4 ++++
+ 3 files changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/src/runtime/pkg/containerd-shim-v2/service.go b/src/runtime/pkg/containerd-shim-v2/service.go
+index c93ebc277d75c057a205dc8cfc4be6aaea901235..46706e72cb8c5885690be786a7aa844b4dd8bb72 100644
+--- a/src/runtime/pkg/containerd-shim-v2/service.go
++++ b/src/runtime/pkg/containerd-shim-v2/service.go
+@@ -431,7 +431,7 @@ func (s *service) Create(ctx context.Context, r *taskAPI.CreateTaskRequest) (_ *
+ 
+ 	select {
+ 	case <-ctx.Done():
+-		return nil, errors.Errorf("create container timeout: %v", r.ID)
++		return nil, errors.Errorf("create container RPC expired: %v (id: %s)", ctx.Err(), r.ID)
+ 	case res := <-ch:
+ 		if res.err != nil {
+ 			return nil, res.err
+diff --git a/src/runtime/pkg/resourcecontrol/cgroups.go b/src/runtime/pkg/resourcecontrol/cgroups.go
+index deb472904b82b663213c33e9e567b87f5b7b6363..88f3618072a78fd6f302a465c43bd5a54d817e87 100644
+--- a/src/runtime/pkg/resourcecontrol/cgroups.go
++++ b/src/runtime/pkg/resourcecontrol/cgroups.go
+@@ -213,8 +213,8 @@ func NewSandboxResourceController(path string, resources *specs.LinuxResources,
+ 	//v1 and v2 cgroups against systemd, the following interacts directly with systemd
+ 	//to create the cgroup and then load it using containerd's api.
+ 	//adding runtime process, it makes calling setupCgroups redundant
+-	if createCgroupsSystemd(slice, unit, os.Getpid()); err != nil {
+-		return nil, err
++	if err := createCgroupsSystemd(slice, unit, os.Getpid()); err != nil {
++		return nil, fmt.Errorf("creating systemd cgroup: %w", err)
+ 	}
+ 
+ 	// Create systemd cgroup
+@@ -236,9 +236,10 @@ func NewSandboxResourceController(path string, resources *specs.LinuxResources,
+ 		// load created cgroup and update with resources
+ 		cg, err := cgroupsv2.LoadSystemd(slice, unit)
+ 		if err != nil {
+-			if cg.Update(cgroupsv2.ToResources(&sandboxResources)); err != nil {
+-				return nil, err
+-			}
++			return nil, fmt.Errorf("loading systemd cgroupv2: %w", err)
++		}
++		if err := cg.Update(cgroupsv2.ToResources(&sandboxResources)); err != nil {
++			return nil, fmt.Errorf("updating systemd cgroupv2: %w", err)
+ 		}
+ 		cgroup = cg
+ 	} else {
+diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
+index 6ceae42de927cfb1dd5337b45ce2222ed0b8e42b..a4559660222d6ee202bfe7391b17886780ecce01 100644
+--- a/src/runtime/virtcontainers/sandbox.go
++++ b/src/runtime/virtcontainers/sandbox.go
+@@ -2695,6 +2695,10 @@ func (s *Sandbox) resourceControllerUpdate(ctx context.Context) error {
+ // resourceControllerDelete will move the running processes in the sandbox resource
+ // cvontroller to the parent and then delete the sandbox controller.
+ func (s *Sandbox) resourceControllerDelete() error {
++	if resCtrl.IsSystemdCgroup(s.state.SandboxCgroupPath) {
++		s.Logger().Debug("Skipping resource controller deletion on systemd platform")
++		return nil
++	}
+ 	s.Logger().Debugf("Deleting sandbox %s resource controler", s.sandboxController)
+ 	if s.state.SandboxCgroupPath == "" {
+ 		s.Logger().Warnf("sandbox %s resource controler path is empty", s.sandboxController)
