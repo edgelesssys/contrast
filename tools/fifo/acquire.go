@@ -60,7 +60,7 @@ func runAcquire(cmd *cobra.Command, namespace, lockName string, timeout, leaseDu
 	if host == "" {
 		host = "unknown-host.invalid"
 	}
-	holderID := fmt.Sprintf("%s/%d/%08x", host, os.Getpid(), rand.Uint32())
+	holderID := fmt.Sprintf("%s.%d.%08x", host, os.Getpid(), rand.Uint32())
 	lease := lease.New(lockName, holderID, leaseDuration, client, logger)
 
 	ctx, cancel := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
