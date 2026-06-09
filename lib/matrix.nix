@@ -53,6 +53,23 @@ rec {
       e: lib.meta.availableOn hostPlatform e.path && e.path.system == hostPlatform.system
     ) entries;
 
+  # Returns the `passthru.sbom` of every reachable derivation that exposes one,
+  # as a list of { name = "a/b/c"; sbom = drv; } pairs. Packages opt into the
+  # aggregate SBOM simply by setting passthru.sbom; the top-level sbom package
+  # collects them without needing to know about each one.
+  collectSboms =
+    skip: attrs:
+    lib.concatMap (
+      e:
+      let
+        has = builtins.tryEval (e.path ? sbom && e.path.sbom != null);
+      in
+      lib.optional (has.success && has.value) {
+        inherit (e) name;
+        inherit (e.path) sbom;
+      }
+    ) (collectDerivations skip attrs);
+
   mkMatrix =
     pkgs:
     pkgs.linkFarm "contrast-matrix" (

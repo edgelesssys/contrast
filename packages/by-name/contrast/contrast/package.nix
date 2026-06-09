@@ -4,6 +4,7 @@
 {
   lib,
   buildGoModule,
+  callPackage,
   reference-values,
 }:
 
@@ -69,6 +70,13 @@ buildGoModule (finalAttrs: {
   ];
 
   tags = [ "contrast_unstable_api" ];
+
+  # CycloneDX SBOM of the coordinator and initializer dependency graphs,
+  # collected by the top-level sbom package.
+  passthru.sbom = callPackage ./go-sbom.nix {
+    inherit (finalAttrs.finalPackage) src goModules;
+    inherit (finalAttrs) version tags;
+  };
 
   preCheck = ''
     export CGO_ENABLED=1

@@ -27,3 +27,4 @@ uplosi.conf*
 .tmp*
 .lycheecache
 .pre-commit-config.yaml
+*.sqlite
