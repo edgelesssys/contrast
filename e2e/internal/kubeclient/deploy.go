@@ -11,6 +11,7 @@ import (
 	"net"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -121,8 +122,10 @@ func (s StatefulSet) getPods(ctx context.Context, client *Kubeclient, namespace,
 	return client.PodsFromOwner(ctx, namespace, s.kind(), name)
 }
 
-// IsStartingBlocked checks whether the FailedCreatePodSandBox Event occurred which indicates that the SetPolicy request is rejected and the Kata Shim fails to start the Pod sandbox.
-func (c *Kubeclient) IsStartingBlocked(name string, namespace string, resource ResourceWaiter, evt watch.Event, startingPoint time.Time) (bool, error) {
+// IsBlockedByMissingInitdata checks whether a FailedCreatePodSandBox Event occurred that was caused by a missing initdata device.
+//
+// This condition is useful for checking that missing initdata leads to VM failures.
+func (c *Kubeclient) IsBlockedByMissingInitdata(name string, namespace string, resource ResourceWaiter, evt watch.Event, startingPoint time.Time) (bool, error) {
 	switch evt.Type {
 	case watch.Error:
 		return false, fmt.Errorf("watcher of %s %s/%s received an error event", resource.kind(), namespace, name)
@@ -135,13 +138,18 @@ func (c *Kubeclient) IsStartingBlocked(name string, namespace string, resource R
 			return false, fmt.Errorf("watcher received unexpected type %T", evt.Object)
 		}
 
-		// Expected event: Reason: FailedCreatePodSandBox
-		// TODO(jmxnzo): Add patch to the existing error message in Kata Shim, to specifically allow detecting start-up of containers without policy annotation.
-		if (event.LastTimestamp.After(startingPoint)) && event.Reason == "FailedCreatePodSandBox" {
-			logger.Debug("Pod did not start", "name", name, "reason", event.Reason, "timestamp of failure", event.LastTimestamp.String())
-			return true, nil
+		if !event.LastTimestamp.After(startingPoint) {
+			return false, nil
 		}
-		return false, nil
+		if event.Reason != "FailedCreatePodSandBox" {
+			return false, nil
+		}
+		// The message we check for here is written by the initdata-processor.
+		if !strings.Contains(event.Message, "no initdata device found") {
+			return false, nil
+		}
+		logger.Debug("Pod did not start", "name", name, "reason", event.Reason, "message", event.Message, "timestamp of failure", event.LastTimestamp.String())
+		return true, nil
 	default:
 		return false, fmt.Errorf("unexpected watch event while waiting for %s %s/%s: type=%s, object=%#v", resource.kind(), namespace, name, evt.Type, evt.Object)
 	}
@@ -270,7 +278,7 @@ retryLoop:
 			}
 			switch condition {
 			case StartingBlocked:
-				blocked, err := c.IsStartingBlocked(name, namespace, resource, evt, startingPoint)
+				blocked, err := c.IsBlockedByMissingInitdata(name, namespace, resource, evt, startingPoint)
 				if err != nil {
 					return err
 				}
