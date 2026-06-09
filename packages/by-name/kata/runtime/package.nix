@@ -184,6 +184,13 @@ buildGoModule (finalAttrs: {
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
       # TODO(sse): retire this carry once contrast migrates to runtime-rs.
       ./0028-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
+
+      # Don't clean up the Kata cgroup when cleaning up a failed pod. It's unnecessary because it
+      # will be cleaned up by containerd, and it may hide problems if the cleanup takes too long.
+      # No upstream issue because this is unlikely to be accepted upstream as is, and developing a
+      # full fix for all potential configurations is not a good investment of time.
+      # TODO(burgerdev): drop patch after migrating to runtime-rs
+      ./0029-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
     ];
   };
 
