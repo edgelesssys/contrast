@@ -48,13 +48,11 @@ jobs:
         run: |
           nix build ".#${SET}.csi-driver-host-path"
           kubectl apply -k result
-      - name: Update sync fifo for GPU platform
+      - name: Clean stale GPU leases
         if: ${{ inputs.is-gpu }}
         run: |
-          kubectl apply -k tools/bm-maintenance/sync-fifo
-          kubectl rollout status statefulset/sync --timeout=5m
-          kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' --timeout=5m svc/sync
-          nix run ".#${SET}.scripts.renew-sync-fifo"
+          kubectl delete leases --namespace default --selector ci.contrast.edgeless.systems/fifo-lease=gpu-sync
+          kubectl delete leases --namespace default gpu-sync || true
       - name: Update namespace cleanup cronjob
         env:
           IMAGE: ${{ inputs.image }}
