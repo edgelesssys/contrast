@@ -8,6 +8,10 @@
 - A supported CPU:
   - AMD Epyc 7003 series (Milan)
   - AMD Epyc 9004 series (Genoa)
+- A Linux distribution for the Kubernetes nodes:
+  - Kernel version must be at least 6.11.
+  - The OS must be systemd-based.
+  - The Kernel must be configured to just use cgroupsv2.
 
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
@@ -16,6 +20,10 @@
   - 5th Gen Intel Xeon Scalable Processor
   - Intel Xeon 6 Processors
 - Platform must fulfill the [DIMM requirements](https://cc-enabling.trustedservices.intel.com/intel-tdx-enabling-guide/03/hardware_selection/#dimm-ie-main-memory-requirements).
+- A Linux distribution for the Kubernetes nodes:
+  - Kernel version must be at least 6.16.
+  - The OS must be systemd-based.
+  - The Kernel must be configured to just use cgroupsv2.
 
 </TabItem>
 </Tabs>
