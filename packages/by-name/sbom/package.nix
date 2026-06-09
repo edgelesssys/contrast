@@ -25,6 +25,9 @@ let
     "contrast-releases"
     "matrix"
     "sbom"
+    # cli-release only differs from cli in an embedded genpolicy-settings asset,
+    # so its Go dependency SBOM is identical; skip it to avoid a redundant build.
+    "cli-release"
   ] contrastPkgs;
 
   # contrast.coordinator and contrast.initializer are outputs of contrast.contrast

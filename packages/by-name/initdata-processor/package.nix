@@ -4,6 +4,7 @@
 {
   lib,
   buildGoModule,
+  buildGoModuleSbom,
   runCommand,
   kata,
 }:
@@ -79,6 +80,12 @@ buildGoModule (finalAttrs: {
     go test -race ./...
     runHook postCheck
   '';
+
+  # The policy package embeds deny-with-message.rego, installed in prePatch.
+  passthru.sbom = buildGoModuleSbom {
+    package = finalAttrs.finalPackage;
+    preAnalyze = finalAttrs.prePatch;
+  };
 
   meta.mainProgram = "initdata-processor";
 })
