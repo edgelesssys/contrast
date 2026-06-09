@@ -176,6 +176,14 @@ buildGoModule (finalAttrs: {
       # This writes a subset of the layers-cache.json file into a separate file containing only the processed layers.
       # We need the layer information to calculate the memory overhead for the VM during generate.
       ./0027-genpolicy-write-processed-layer-information-to-file.patch
+
+      # Stop the kata shim's cleanup paths from hanging when the kata-agent
+      # is unreachable. Without this, agent calls hang in commonDialer past
+      # containerd's 5s per-shim cleanup deadline, the task dir is orphaned,
+      # and accumulated leaks cascade through kubelet's Requires=containerd.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
+      # TODO(sse): retire this carry once contrast migrates to runtime-rs.
+      ./0028-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
     ];
   };
 
