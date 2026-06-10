@@ -1,0 +1,163 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Spyros Seimenis <sse@edgeless.systems>
+Date: Tue, 9 Jun 2026 13:36:29 +0300
+Subject: [PATCH] runtime: stop shim cleanup from hanging on a dead kata-agent
+
+When the kata-agent becomes unreachable mid-teardown, agent-client
+calls hang in commonDialer for the full 30s dial_timeout, far beyond
+containerd's 5s per-shim cleanup deadline. Containerd SIGKILLs the
+cleanup binary, leaks the task dir, and the next containerd restart
+trips TimeoutStartUSec=90s and cascades through kubelet's
+Requires=containerd.service.
+
+The five fixes sit on one teardown chain. The shim's wait() goroutine
+must first finish sandbox.Stop/Delete against the dead guest:
+
+* agent/client commonDialer closes the cancel channel instead of
+  unbuffered send, so cancellation unblocks the caller.
+* agent.connect honors the caller's context deadline and forwards
+  it to the agent client.
+
+That lets sandbox.Delete tear down the sandbox's on-disk state.
+Containerd then drives task.Delete and the cleanup binary, which
+must fit in its 5s window:
+
+* shim.Delete honors caller's context and defaults to 30s.
+* shim.cleanupContainer defaults to 3s.
+
+Finally the cleanup binary calls CleanupContainer on the bundle and
+must not treat the already-removed sandbox state as an error:
+
+* virtcontainers.CleanupContainer with force=true treats an
+  already-gone sandbox as success.
+
+Signed-off-by: Spyros Seimenis <sse@edgeless.systems>
+---
+ src/runtime/pkg/containerd-shim-v2/service.go |  7 ++++++-
+ src/runtime/pkg/containerd-shim-v2/utils.go   | 17 +++++++++++++++--
+ src/runtime/virtcontainers/api.go             |  8 ++++++++
+ src/runtime/virtcontainers/kata_agent.go      | 19 ++++++++++++++++++-
+ .../pkg/agent/protocols/client/client.go      |  4 +++-
+ 5 files changed, 50 insertions(+), 5 deletions(-)
+
+diff --git a/src/runtime/pkg/containerd-shim-v2/service.go b/src/runtime/pkg/containerd-shim-v2/service.go
+index b07cd10c1900b485bb6ff5de36d41f43d94be2b8..c93ebc277d75c057a205dc8cfc4be6aaea901235 100644
+--- a/src/runtime/pkg/containerd-shim-v2/service.go
++++ b/src/runtime/pkg/containerd-shim-v2/service.go
+@@ -518,7 +518,12 @@ func (s *service) Start(ctx context.Context, r *taskAPI.StartRequest) (_ *taskAP
+ func (s *service) Delete(ctx context.Context, r *taskAPI.DeleteRequest) (_ *taskAPI.DeleteResponse, err error) {
+ 	shimLog.WithField("container", r.ID).Debug("Delete() start")
+ 	defer shimLog.WithField("container", r.ID).Debug("Delete() end")
+-	span, spanCtx := katatrace.Trace(s.rootCtx, shimLog, "Delete", shimTracingTags)
++	span, spanCtx := katatrace.Trace(ctx, shimLog, "Delete", shimTracingTags)
++	if _, hasDeadline := spanCtx.Deadline(); !hasDeadline {
++		var cancel context.CancelFunc
++		spanCtx, cancel = context.WithTimeout(spanCtx, deleteAgentTimeout)
++		defer cancel()
++	}
+ 	defer span.End()
+ 
+ 	start := time.Now()
+diff --git a/src/runtime/pkg/containerd-shim-v2/utils.go b/src/runtime/pkg/containerd-shim-v2/utils.go
+index a3d213a0625d52110bf8d6e64961dff65ce4b49f..3759d3283cef59aed65d54503f7961f28a139a29 100644
+--- a/src/runtime/pkg/containerd-shim-v2/utils.go
++++ b/src/runtime/pkg/containerd-shim-v2/utils.go
+@@ -31,11 +31,24 @@ func cReap(s *service, status int, id, execid string, exitat time.Time) {
+ 	}
+ }
+ 
++// cleanupBinaryTimeout fits agent work inside containerd's 5s per-shim
++// cleanup deadline.
++const cleanupBinaryTimeout = 3 * time.Second
++
++// deleteAgentTimeout caps Delete RPCs so a dead agent doesn't keep the
++// shim alive past containerd's deadline.
++const deleteAgentTimeout = 30 * time.Second
++
+ func cleanupContainer(ctx context.Context, sandboxID, cid, bundlePath string) error {
+ 	shimLog.WithField("service", "cleanup").WithField("container", cid).Info("Cleanup container")
+ 
+-	err := vci.CleanupContainer(ctx, sandboxID, cid, true)
+-	if err != nil {
++	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
++		var cancel context.CancelFunc
++		ctx, cancel = context.WithTimeout(ctx, cleanupBinaryTimeout)
++		defer cancel()
++	}
++
++	if err := vci.CleanupContainer(ctx, sandboxID, cid, true); err != nil {
+ 		shimLog.WithError(err).WithField("container", cid).Warn("failed to cleanup container")
+ 		return err
+ 	}
+diff --git a/src/runtime/virtcontainers/api.go b/src/runtime/virtcontainers/api.go
+index 6cda1db3dbdf523fef1b792ee79fd0eba2421a0e..47ec82820c47112f81ba4b7c4ea0fd204c70246d 100644
+--- a/src/runtime/virtcontainers/api.go
++++ b/src/runtime/virtcontainers/api.go
+@@ -7,6 +7,8 @@ package virtcontainers
+ 
+ import (
+ 	"context"
++	"errors"
++	"os"
+ 	"runtime"
+ 
+ 	deviceApi "github.com/kata-containers/kata-containers/src/runtime/pkg/device/api"
+@@ -137,6 +139,12 @@ func CleanupContainer(ctx context.Context, sandboxID, containerID string, force
+ 
+ 	s, err := fetchSandbox(ctx, sandboxID)
+ 	if err != nil {
++		// If the sandbox's persist data is already gone (a clean shim
++		// teardown removes it via sandbox.Delete), there is nothing more
++		// to do here. The caller still gets to run filesystem cleanup.
++		if force && errors.Is(err, os.ErrNotExist) {
++			return nil
++		}
+ 		return err
+ 	}
+ 	defer s.Release(ctx)
+diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
+index df3387274fae8627b67a15b393fca387f38dd95d..b09729d8c310d75db8fefd59b94ef43f124ac50a 100644
+--- a/src/runtime/virtcontainers/kata_agent.go
++++ b/src/runtime/virtcontainers/kata_agent.go
+@@ -2178,8 +2178,25 @@ func (k *kataAgent) connect(ctx context.Context) error {
+ 		return nil
+ 	}
+ 
++	// Bail early on a done caller context, and cap the dial timeout at the
++	// remaining deadline. Do NOT set k.dead here: an expired caller context
++	// says nothing about whether the guest agent is alive.
++	if err := ctx.Err(); err != nil {
++		return err
++	}
++	dialTimout := k.dialTimout
++	if deadline, ok := ctx.Deadline(); ok {
++		remaining := time.Until(deadline)
++		if remaining > 0 {
++			s := uint32((remaining + time.Second - 1) / time.Second)
++			if dialTimout == 0 || s < dialTimout {
++				dialTimout = s
++			}
++		}
++	}
++
+ 	k.Logger().WithField("url", k.state.URL).Info("New client")
+-	client, err := kataclient.NewAgentClient(k.ctx, k.state.URL, k.dialTimout)
++	client, err := kataclient.NewAgentClient(ctx, k.state.URL, dialTimout)
+ 	if err != nil {
+ 		k.dead = true
+ 		return err
+diff --git a/src/runtime/virtcontainers/pkg/agent/protocols/client/client.go b/src/runtime/virtcontainers/pkg/agent/protocols/client/client.go
+index 48ee035ac6e73d5713da2ea35fb2f0415b850924..80e1427e82fcc2c9f42616a64b5562c8c88379a9 100644
+--- a/src/runtime/virtcontainers/pkg/agent/protocols/client/client.go
++++ b/src/runtime/virtcontainers/pkg/agent/protocols/client/client.go
+@@ -355,7 +355,9 @@ func commonDialer(timeout time.Duration, dialFunc func() (net.Conn, error), time
+ 			return nil, timeoutErrMsg
+ 		}
+ 	case <-t.C:
+-		cancel <- true
++		// close instead of send: an unbuffered send would stall waiting for
++		// the dial goroutine, which can take up to ~10s in HybridVSockDialer.
++		close(cancel)
+ 		return nil, timeoutErrMsg
+ 	}
+ 

@@ -20,6 +20,7 @@ lib.makeScope pkgs.newScope (scripts: {
       nix-update
       scripts.go-directive-sync
       scripts.gofix
+      scripts.update-kata-cargo-nix
       scripts.update-kata-configurations
       scripts.update-kata-protos
       scripts.update-kernel-configurations
@@ -73,6 +74,9 @@ lib.makeScope pkgs.newScope (scripts: {
       nix-update --version=skip --flake \
         --override-filename=packages/by-name/contrast/docs/package.nix \
         legacyPackages.x86_64-linux.base.contrast.docs
+
+      echo "Regenerating kata Cargo.nix" >&2
+      update-kata-cargo-nix
 
       echo "Updating default kata-container configuration toml files" >&2
       update-kata-configurations
