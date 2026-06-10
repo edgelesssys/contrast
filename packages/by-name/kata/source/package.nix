@@ -1,36 +1,6 @@
 # Copyright 2026 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-# Shared source meta-package for the kata-containers fork.
-#
-# Owns the upstream version pin, patched source, and the workspace-wide
-# `cargoNixPackage` (callPackage of the committed `./Cargo.nix`, with the
-# crate2nix-style `crateOverrides` that wire native deps and source fixups
-# into the per-crate builds). Consumed by `kata.agent`, `kata.runtime-rs`,
-# and `kata.genpolicy` via the nested by-name scope.
-#
-# Regenerate `Cargo.nix` after any change to the kata `Cargo.lock` or to
-# the patch set under this directory:
-#
-#   nix build .#base.kata.source.src
-#   cp -r --no-preserve=mode,ownership result /tmp/kata-src
-#   cd /tmp/kata-src
-#   nix run nixpkgs#crate2nix -- generate -f Cargo.toml -o Cargo.nix
-#   sed -i -e 's|^{ nixpkgs ? <nixpkgs>$|{ workspaceSrc\n, nixpkgs ? <nixpkgs>|' \
-#          -e 's|src = \./|src = workspaceSrc + "/|' \
-#          -e 's|src = workspaceSrc + "/\([^;]*\);|src = workspaceSrc + "/\1";|' \
-#          Cargo.nix
-#   # Normalize the workspace path so re-generations don't churn the diff.
-#   sed -i 's|/tmp/kata-src/src/libs/safe-path|/tmp/c2n-gen/src/libs/safe-path|g' Cargo.nix
-#   # safe-path appears twice (workspace + registry); collapse to the workspace one.
-#   sed -i 's|"registry+https://github.com/rust-lang/crates.io-index#safe-path@0.1.0"|"path+file:///tmp/c2n-gen/src/libs/safe-path#0.1.0"|g' Cargo.nix
-#   # The test-runner derivation's buildPhase writes the test log directly to
-#   # `$out` via `tee`, so the default `installPhase` (which mkdir's `$out`)
-#   # fails. crate2nix doesn't emit `dontInstall = true` itself — patch it in.
-#   sed -i '/buildInputs = testInputs;/a\\\n            dontInstall = true;' Cargo.nix
-#   cp Cargo.nix $CONTRAST/packages/by-name/kata/source/Cargo.nix
-#   # then delete the leftover (now-duplicate) registry safe-path block.
-
 {
   fetchFromGitHub,
   applyPatches,

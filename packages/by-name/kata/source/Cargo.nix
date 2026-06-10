@@ -34477,7 +34477,6 @@ rec {
             inherit testCrateFlags;
 
             buildInputs = testInputs;
-
             dontInstall = true;
 
             buildPhase = ''
