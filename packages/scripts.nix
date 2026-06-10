@@ -6,9 +6,10 @@
   pkgs,
   contrastPkgs,
   writeShellApplication,
+  scripts,
 }:
 
-lib.makeScope pkgs.newScope (scripts: {
+{
   generate = writeShellApplication {
     name = "generate";
     runtimeInputs = with pkgs; [
@@ -764,4 +765,4 @@ lib.makeScope pkgs.newScope (scripts: {
       mdsh --inputs "$@"
     '';
   };
-})
+}

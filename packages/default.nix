@@ -17,7 +17,9 @@ in
 byName.overrideScope (
   _final: prev: {
     contrastPkgsStatic = pkgs.pkgsStatic.contrastPkgs;
-    scripts = prev.scripts.overrideScope (_: _: pkgs.callPackages ./scripts.nix { });
+    scripts = prev.scripts.overrideScope (
+      final: _: pkgs.callPackages ./scripts.nix { scripts = final; }
+    );
     containers = pkgs.callPackages ./containers.nix { };
     container-scripts = pkgs.callPackages ./container-scripts.nix { };
     contrast-releases = pkgs.callPackages ./contrast-releases.nix { };
