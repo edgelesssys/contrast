@@ -37,8 +37,6 @@
   rustPlatform,
   lib,
   callPackage,
-  buildRustCrate,
-  defaultCrateOverrides,
   protobuf,
   pkg-config,
   openssl,
@@ -229,10 +227,11 @@ rec {
   cargoNixPackage = callPackage ./Cargo.nix {
     workspaceSrc = src;
     buildRustCrateForPkgs =
-      _:
-      buildRustCrate.override {
+      pkgs:
+      pkgs.buildRustCrate.override {
+        inherit (pkgs.buildPackages) rustc cargo;
         defaultCodegenUnits = 16;
-        defaultCrateOverrides = defaultCrateOverrides // {
+        defaultCrateOverrides = pkgs.defaultCrateOverrides // {
           protocols = _: {
             nativeBuildInputs = [ protobuf ];
           };
