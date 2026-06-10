@@ -73,6 +73,16 @@
     ];
   };
 
+  kds-proxy = contrastPkgs.buildOciImage {
+    name = "kds-proxy";
+    tag = "v${contrastPkgs.kds-proxy.version}";
+    copyToRoot = (with pkgs; [ busybox ]) ++ (with dockerTools; [ caCertificates ]);
+    config = {
+      Entrypoint = [ "${contrastPkgs.kds-proxy}/bin/kds-proxy" ];
+      Env = [ "PATH=/bin" ];
+    };
+  };
+
   service-mesh-proxy = contrastPkgs.buildOciImage {
     name = "service-mesh-proxy";
     tag = "v${contrastPkgs.service-mesh.version}";

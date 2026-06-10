@@ -23,6 +23,8 @@ port-forwarder: (push "port-forwarder")
 
 service-mesh-proxy: (push "service-mesh-proxy")
 
+kds-proxy: (push "kds-proxy")
+
 initializer: (push "initializer")
 
 memdump: (push "memdump")
@@ -436,6 +438,38 @@ wait-for-workload target=default_deploy_target set=default_set:
             exit 1
         ;;
     esac
+
+# Provision the kds-proxy singleton in "default" and its kds-proxy-ca ConfigMap. Re-run after pushing a new image.
+kds-proxy-bootstrap set=default_set storage_class="": kds-proxy
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sc="{{ storage_class }}"
+    if [[ -z "$sc" ]]; then
+        sc=$(kubectl get sc -l ci.contrast.edgeless.systems/is-default-class=true -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+    fi
+    args=(--image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace default)
+    if [[ -n "$sc" ]]; then
+        args+=(--storage-class "$sc")
+    fi
+    nix shell .#{{ set }}.contrast.resourcegen --command resourcegen "${args[@]}" kds-proxy \
+        | kubectl apply --server-side --force-conflicts -f -
+    kubectl -n default rollout status deploy/kds-proxy --timeout=120s
+    ca=$(kubectl -n default exec deploy/kds-proxy -- cat /var/lib/kds-proxy/ca/ca.crt)
+    kubectl -n default create configmap kds-proxy-ca \
+        --from-literal=ca.crt="$ca" \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+# Wipe the existing kds-proxy (pod, service, PVC, CA configmap) and bootstrap a fresh one.
+kds-proxy-redeploy set=default_set storage_class="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    kubectl -n default delete --ignore-not-found --wait=true \
+        deploy/kds-proxy svc/kds-proxy pvc/kds-proxy-state configmap/kds-proxy-ca
+    just kds-proxy-bootstrap "{{ set }}" "{{ storage_class }}"
+
+# Print the kds-proxy /metrics endpoint.
+kds-proxy-stats:
+    kubectl -n default exec deploy/kds-proxy -- wget -qO- http://127.0.0.1:3128/metrics
 
 request-fifo-ticket timeout="":
     #!/usr/bin/env bash

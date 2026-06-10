@@ -41,6 +41,7 @@ import (
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	corev1ac "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
 // Flags contains the parsed Flags for the test.
@@ -84,6 +85,10 @@ type ContrastTest struct {
 	NodeInstallerImagePullerConfig []byte
 	GHCRToken                      string
 	Kubeclient                     *kubeclient.Kubeclient
+
+	// SkipKDSProxy disables injection of kds-proxy env vars + CA bundle into.
+	// Used by kds-pcs-downtime test.
+	SkipKDSProxy bool
 
 	// outputs of contrast subcommands
 	meshCACertPEM []byte
@@ -187,6 +192,12 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	resources = kuberesource.AddLogging(resources, "debug", "*")
 	resources = kuberesource.PatchNodeSelector(resources)
 	resources = ct.OverrideStorageClass(t, resources)
+	if !ct.SkipKDSProxy {
+		ct.copyKDSProxyCA(t)
+		resources = kuberesource.AddKDSProxy(resources,
+			kuberesource.KDSProxyDefaultService,
+			kuberesource.KDSProxyCAConfigMap)
+	}
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)
 
@@ -196,6 +207,27 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), buf, 0o644))
 
 	ct.installRuntime(t, resources)
+}
+
+// copyKDSProxyCA copies the cluster-wide kds-proxy CA ConfigMap from "default"
+// into the test's namespace, where the AddKDSProxy mutator mounts it.
+func (ct *ContrastTest) copyKDSProxyCA(t *testing.T) {
+	require := require.New(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	src, err := ct.Kubeclient.Client.CoreV1().
+		ConfigMaps("default").
+		Get(ctx, kuberesource.KDSProxyCAConfigMap, metav1.GetOptions{})
+	require.NoError(err,
+		"kds-proxy CA ConfigMap %q missing in default namespace — run the kds-proxy bootstrap step",
+		kuberesource.KDSProxyCAConfigMap)
+
+	cm := corev1ac.ConfigMap(kuberesource.KDSProxyCAConfigMap, ct.Namespace).
+		WithData(src.Data)
+	unstr, err := kuberesource.ResourcesToUnstructured([]any{cm})
+	require.NoError(err)
+	require.NoError(ct.Kubeclient.Apply(ctx, unstr...))
 }
 
 // OverrideStorageClass looks for a StorageClass with a well-known label and modifies the resources to use that class.

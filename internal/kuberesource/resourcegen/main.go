@@ -42,6 +42,8 @@ func main() {
 		switch set {
 		case "coordinator":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.CoordinatorBundle(), "contrast-cc")
+		case "kds-proxy":
+			subResources = kuberesource.KDSProxy(*namespace, *storageClass)
 		case "runtime":
 			platformCollection := kuberesource.PlatformCollection{}
 			if err := platformCollection.AddFromCommaSeparated(*rawPlatform); err != nil {
