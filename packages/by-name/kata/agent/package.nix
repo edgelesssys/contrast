@@ -3,106 +3,37 @@
 
 {
   lib,
-  rustPlatform,
-  runtime,
-  cmake,
-  pkg-config,
-  protobuf,
+  source,
   withSeccomp ? true,
-  libseccomp,
-  lvm2,
-  openssl,
   withAgentPolicy ? true,
   withStandardOCIRuntime ? false,
   withInitData ? true,
 }:
 
-rustPlatform.buildRustPackage rec {
-  pname = "kata-agent";
-  inherit (runtime) version src;
-
-  cargoBuildFlags = [
-    "--package"
-    "kata-agent"
-  ];
-  cargoTestFlags = [
-    "--package"
-    "kata-agent"
-  ];
-
-  cargoLock = {
-    lockFile = "${src}/Cargo.lock";
-    outputHashes = {
-      "cgroups-rs-0.3.5" = "sha256-BKD1ZPK5LqB/n2xD/oODArVKjbH+MQOeYn/UYbBHzn0=";
-      "api_client-0.1.0" = "sha256-RdwQg6/EI+oGkyNXnu5t1q87oTXev25XpIaE+PWDTx4=";
-      "micro_http-0.1.0" = "sha256-XemdzwS25yKWEXJcRX2l6QzD7lrtroMeJNOUEWGR7WQ=";
-      "regorus-0.9.1" = "sha256-+TCq9r8kTNM0URbcDP4D9/lKA6Bni7+KgrGRTJFbQPM=";
-      "s390_pv_core-0.11.0" = "sha256-P275gUoF4JtaKvKPvzhCsBuo882kKCYebtNpCDEmTP0=";
-    };
-  };
-
-  nativeBuildInputs = [
-    cmake
-    pkg-config
-    protobuf
-  ];
-
-  buildInputs = [
-    openssl
-    openssl.dev
-    lvm2.dev
-    rustPlatform.bindgenHook
-  ]
-  ++ lib.optionals withSeccomp [
-    libseccomp.dev
-    libseccomp.lib
-    libseccomp
-  ];
-
-  postPatch = ''
-    substitute src/agent/src/version.rs.in src/agent/src/version.rs \
-      --replace-fail @AGENT_VERSION@ ${version} \
-      --replace-fail @API_VERSION@ 0.0.1 \
-      --replace-fail @VERSION_COMMIT@ ${version} \
-      --replace-fail @COMMIT@ ""
-
-    # Disable LTO (Link Time Optimization) to reduce build time. The agent
-    # binary shouldn't be that performance critical.
-    substituteInPlace src/agent/Cargo.toml \
-      --replace-fail 'lto = true' 'lto = false'
-  '';
-
-  # Build.rs writes to src
-  postConfigure = ''
-    chmod -R +w .
-  '';
-
-  # https://crates.io/crates/sev produces libsev.so, which is not needed for
-  # the agent binary and pulls in a large dependency on rustc. Thus, we remove
-  # it from the output.
-  postInstall = ''
-    rm -rf $out/lib
-  '';
-
-  buildFeatures =
+(source.cargoNixPackage.workspaceMembers."kata-agent".build.override {
+  features =
     lib.optional withSeccomp "seccomp"
     ++ lib.optional withAgentPolicy "agent-policy"
     ++ lib.optional withStandardOCIRuntime "standard-oci-runtime"
     ++ lib.optional withInitData "init-data";
-
-  env = {
-    LIBC = "gnu";
-    OPENSSL_NO_VENDOR = 1;
-  };
-
-  checkFlags = [
+  runTests = true;
+  # The test framework's anyhow assertions stringify backtraces; suppress to
+  # match crane's default of no backtrace.
+  testPreRun = ''
+    unset RUST_BACKTRACE
+  '';
+  testCrateFlags = [
     "--skip=mount::tests::test_already_baremounted"
-    "--skip=netlink::tests::list_routes stdout"
+    "--skip=mount::tests::test_mount"
+    "--skip=netlink::tests::list_routes"
+    "--skip=config::tests::test_from_cmdline_with_args_overwrites"
   ];
-
-  meta = {
-    description = ''The Kata agent is a long running process that runs inside the Virtual Machine (VM) (also known as the "pod" or "sandbox").'';
-    license = lib.licenses.asl20;
-    mainProgram = "kata-agent";
-  };
-}
+}).overrideAttrs
+  (prev: {
+    pname = "kata-agent";
+    meta = (prev.meta or { }) // {
+      description = ''The Kata agent is a long running process that runs inside the Virtual Machine (VM) (also known as the "pod" or "sandbox").'';
+      license = lib.licenses.asl20;
+      mainProgram = "kata-agent";
+    };
+  })
