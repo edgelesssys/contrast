@@ -5,7 +5,7 @@ default_set := "${set}"
 workspace_dir := "workspace"
 
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (deploy target cli platform) set-manifest verify (wait-for-workload target)
 
 # Build and push a container image.
 push target set=default_set:
@@ -354,7 +354,7 @@ undeploy:
     just release-fifo-ticket
 
 # Set the manifest at the coordinator.
-set cli=default_cli set=default_set:
+set-manifest cli=default_cli set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
