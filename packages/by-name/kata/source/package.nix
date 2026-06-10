@@ -35,7 +35,6 @@
   fetchFromGitHub,
   applyPatches,
   rustPlatform,
-  lib,
   callPackage,
   protobuf,
   pkg-config,
@@ -49,15 +48,13 @@
 rec {
   version = "3.31.0";
 
-  srcRaw = fetchFromGitHub {
-    owner = "kata-containers";
-    repo = "kata-containers";
-    rev = version;
-    hash = "sha256-LSwmeNO5mEWZ2NCrC1o3JXPeZJed0eljIUak/J2fkv0=";
-  };
-
   src = applyPatches {
-    src = srcRaw;
+    src = fetchFromGitHub {
+      owner = "kata-containers";
+      repo = "kata-containers";
+      rev = version;
+      hash = "sha256-LSwmeNO5mEWZ2NCrC1o3JXPeZJed0eljIUak/J2fkv0=";
+    };
 
     patches = [
       ./0001-emulate-CPU-model-that-most-closely-matches-the-host.patch
@@ -227,33 +224,16 @@ rec {
   cargoNixPackage = callPackage ./Cargo.nix {
     workspaceSrc = src;
     buildRustCrateForPkgs =
-      pkgs:
-      pkgs.buildRustCrate.override {
+      pkgs: crate:
+      (pkgs.buildRustCrate.override {
         inherit (pkgs.buildPackages) rustc cargo;
         defaultCodegenUnits = 16;
         defaultCrateOverrides = pkgs.defaultCrateOverrides // {
-          protocols = _: {
-            nativeBuildInputs = [ protobuf ];
-          };
-          prost-build = _: {
-            nativeBuildInputs = [ protobuf ];
-          };
-          k8s-cri = _: {
-            nativeBuildInputs = [ protobuf ];
-          };
-          containerd-client = _: {
-            nativeBuildInputs = [ protobuf ];
-          };
           openssl-sys = _: {
-            nativeBuildInputs = [ pkg-config ];
-            buildInputs = [
-              openssl
-              openssl.dev
-            ];
             OPENSSL_NO_VENDOR = 1;
           };
+          # libseccomp and lvm2 are Linux-only, so they can't go in the shared buildInputs above
           libseccomp-sys = _: {
-            nativeBuildInputs = [ pkg-config ];
             buildInputs = [
               libseccomp
               libseccomp.dev
@@ -261,18 +241,12 @@ rec {
             ];
           };
           kata-agent = _: {
-            nativeBuildInputs = [
-              cmake
-              protobuf
-            ];
             buildInputs = [
-              openssl
-              openssl.dev
+              rustPlatform.bindgenHook
               lvm2.dev
               libseccomp
               libseccomp.dev
               libseccomp.lib
-              rustPlatform.bindgenHook
             ];
             LIBC = "gnu";
             preBuild = ''
@@ -284,15 +258,6 @@ rec {
             '';
           };
           shim = _: {
-            nativeBuildInputs = [
-              pkg-config
-              protobuf
-            ];
-            buildInputs = [
-              openssl
-              openssl.dev
-            ];
-            OPENSSL_NO_VENDOR = 1;
             preBuild = ''
               substitute src/config.rs.in src/config.rs \
                 --replace-fail @PROJECT_NAME@ "Kata Containers" \
@@ -303,25 +268,27 @@ rec {
             '';
           };
           genpolicy = _: {
-            nativeBuildInputs = [
-              cmake
-              pkg-config
-              protobuf
-            ];
-            buildInputs = [
-              openssl
-              openssl.dev
-              zlib
-            ];
-            OPENSSL_NO_VENDOR = 1;
-            OPENSSL_DIR = "${openssl.dev}";
-            OPENSSL_LIB_DIR = "${lib.getLib openssl}/lib";
             preBuild = ''
               substitute src/version.rs.in src/version.rs \
                 --replace-fail @COMMIT_INFO@ ""
             '';
           };
         };
-      };
+      })
+        (
+          crate
+          // {
+            nativeBuildInputs = (crate.nativeBuildInputs or [ ]) ++ [
+              cmake
+              pkg-config
+              protobuf
+            ];
+            buildInputs = (crate.buildInputs or [ ]) ++ [
+              openssl
+              openssl.dev
+              zlib
+            ];
+          }
+        );
   };
 }
