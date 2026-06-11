@@ -60,6 +60,8 @@ else
               agent
               image
               kernel-uvm
+              runtime
+              runtime-rs
               calculateSnpLaunchDigest
               calculateTdxLaunchDigests
               ;
@@ -99,6 +101,8 @@ else
               cleanup-images
               cleanup-containerd
               nix-gc
+              upgrade-gpu-operator
+              sev-snp-measure-consistency
               ;
           }
         );
