@@ -8,19 +8,11 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-24.04
-            system: x86_64-linux
-          - runner: macos-latest
-            system: aarch64-darwin
+  linux:
     concurrency:
-      group: cache-matrix-${{ matrix.system }}
+      group: cache-matrix-x86_64-linux
       cancel-in-progress: true
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 240
     permissions:
       contents: read
@@ -34,4 +26,26 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Build base matrix
         run: |
-          nix build --no-link ".#legacyPackages.${{ matrix.system }}.base.matrix"
+          nix build --no-link ".#legacyPackages.x86_64-linux.base.matrix"
+
+  darwin:
+    # Runs after the linux job so the x86_64-linux runtime closure can be substituted here.
+    needs: linux
+    concurrency:
+      group: cache-matrix-aarch64-darwin
+      cancel-in-progress: true
+    runs-on: macos-latest
+    timeout-minutes: 240
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Build base matrix
+        run: |
+          nix build --no-link ".#legacyPackages.aarch64-darwin.base.matrix"
