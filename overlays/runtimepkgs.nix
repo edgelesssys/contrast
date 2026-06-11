@@ -30,7 +30,7 @@ else
                   env =
                     (oldAttrs.env or { })
                     // prev.lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin {
-                      RUSTFLAGS = "-C link-arg=-Wl,-dead_strip_dylibs";
+                      NIX_RUSTFLAGS = "-C link-arg=-Wl,-dead_strip_dylibs";
                     };
 
                   # Regression guard: assert the darwin binary has no
