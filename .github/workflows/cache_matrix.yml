@@ -34,6 +34,3 @@ jobs:
       - name: Build base matrix
         run: |
           nix build --no-link ".#legacyPackages.${{ matrix.system }}.base.matrix"
-    # - name: Build debug matrix
-    #   run: |
-    #     nix build --no-link ".#legacyPackages.${{ matrix.system }}.debug.matrix"
