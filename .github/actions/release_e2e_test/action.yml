@@ -167,6 +167,11 @@ runs:
       shell: bash
       run: |
         kubectl delete -f workspace/log-collector.yaml
+        # Wait for contrast-system to be fully gone so the next same-cluster
+        # matrix entry doesn't race this job's async namespace teardown.
+        if kubectl get namespace contrast-system >/dev/null 2>&1; then
+          kubectl wait --for=delete namespace/contrast-system --timeout=3m
+        fi
         rm -f workspace/just.namespace
     - name: Upload logs
       if: always()
