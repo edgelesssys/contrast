@@ -364,6 +364,10 @@ func TestOpenSSL(t *testing.T) {
 			// (e.g. default kata commandline), MCE can't enable its logger.
 			// See https://www.firstfloor.org/~andi/mce.pdf for details on MCE.
 			"mce: Unable to init MCE device (rc: -5)",
+			// We actively mask systemd-networkd.service in the cmdline.
+			// Warning showing since systemd 260, from whereon statistics from services are reported via Varlink.
+			"systemd-networkd-varlink-metrics.socket: Socket service systemd-networkd.service not loaded, refusing.",
+			"Failed to listen on Network Management Metrics Varlink Socket.",
 		}
 		for line := range strings.SplitSeq(dmesgOutput, "\n") {
 			line = strings.TrimSpace(line)
