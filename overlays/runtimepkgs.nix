@@ -57,7 +57,6 @@ else
         kata = cPrev.kata.overrideScope (
           _: _: {
             inherit (final.runtimePkgs.kata)
-              contrast-node-installer-image
               agent
               image
               kernel-uvm
@@ -75,7 +74,7 @@ else
               node-installer-image
               nodeinstaller
               reference-values
-              snp-id-blocks
+              snp-launch-digests
               ;
           }
         );
