@@ -7,6 +7,7 @@ replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0
 
 require (
 	filippo.io/keygen v0.0.0-20260114151900-8e2790ea4c5b
+	filippo.io/nistec v0.0.4
 	github.com/containerd/ttrpc v1.2.8
 	github.com/coreos/go-iptables v0.8.0
 	github.com/coreos/go-systemd/v22 v22.7.0
@@ -46,7 +47,6 @@ require (
 
 require (
 	filippo.io/bigmod v0.1.1-0.20260103110540-f8a47775ebe5 // indirect
-	filippo.io/nistec v0.0.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect

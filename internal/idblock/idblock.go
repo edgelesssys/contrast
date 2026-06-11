@@ -4,6 +4,7 @@
 package idblock
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha512"
@@ -303,21 +304,21 @@ func recoverPublicKey(curve elliptic.Curve, r, s, z *big.Int) ([]ecdsa.PublicKey
 		}
 		sumBytes := nistec.NewP384Point().Add(p1, p2).Bytes()
 
-		publicKeys = append(publicKeys, ecdsa.PublicKey{
-			Curve: curve,
-			X:     new(big.Int).SetBytes(sumBytes[1 : 1+p384CoordSize]),
-			Y:     new(big.Int).SetBytes(sumBytes[1+p384CoordSize:]),
-		})
-
+		// sumBytes is an uncompressed, encoded point, which ParseUncompressedPublicKey turns into a public key,
+		// rejecting it if it is not a valid point on the curve.
+		pubKey, err := ecdsa.ParseUncompressedPublicKey(curve, sumBytes)
+		if err != nil {
+			return nil, fmt.Errorf("parsing recovered public key: %w", err)
+		}
+		publicKeys = append(publicKeys, *pubKey)
 	}
 
-	// sort public keys
+	// Sort the keys by their uncompressed encoding for a deterministic order.
 	slices.SortStableFunc(publicKeys, func(a, b ecdsa.PublicKey) int {
-		cmpX := a.X.Cmp(b.X)
-		if cmpX != 0 {
-			return cmpX
-		}
-		return a.Y.Cmp(b.Y)
+		// Bytes never fails for keys returned by ParseUncompressedPublicKey.
+		aBytes, _ := a.Bytes()
+		bBytes, _ := b.Bytes()
+		return bytes.Compare(aBytes, bBytes)
 	})
 
 	return publicKeys, nil
@@ -368,13 +369,18 @@ func IDBlocksFromLaunchDigest(launchDigest [48]byte, guestPolicy abi.SnpPolicy) 
 		return nil, nil, fmt.Errorf("failed to recover public key: %w", err)
 	}
 
-	// Always choose the same recovered public key
-	pubKey := pubKeys[0]
+	// Always choose the same recovered public key.
+	pubKeyBytes, err := pubKeys[0].Bytes()
+	if err != nil {
+		return nil, nil, fmt.Errorf("encoding recovered public key: %w", err)
+	}
 
-	xLittleEndian := pubKey.X.Bytes()
+	// pubKeyBytes is the uncompressed encoding 0x04 || X || Y, with X and Y each
+	// p384CoordSize bytes, big-endian. The ID block stores the coordinates little-endian.
+	xLittleEndian := pubKeyBytes[1 : 1+p384CoordSize]
 	slices.Reverse(xLittleEndian)
 
-	yLittleEndian := pubKey.Y.Bytes()
+	yLittleEndian := pubKeyBytes[1+p384CoordSize:]
 	slices.Reverse(yLittleEndian)
 
 	idAuth := &IDAuthentication{
