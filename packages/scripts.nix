@@ -165,6 +165,7 @@
         --ignore github.com/edgelesssys/contrast
         --ignore github.com/rootless-containers/proto/go-proto # Apache-2.0, but not correctly recognized https://github.com/rootless-containers/proto/issues/5
         --ignore github.com/cyphar/filepath-securejoin # MPL-2.0, which is reciprocal but only for the original source.
+        --ignore filippo.io/nistec/internal/fiat # permissive fiat-crypto (BSD-1-Clause) license, misclassified as unknown by go-licenses.
       )
 
       tags="${lib.concatStringsSep "," contrastPkgs.contrast.contrast.tags}"

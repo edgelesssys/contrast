@@ -7,6 +7,7 @@ replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0
 
 require (
 	filippo.io/keygen v0.0.0-20260114151900-8e2790ea4c5b
+	filippo.io/nistec v0.0.4
 	github.com/containerd/ttrpc v1.2.8
 	github.com/coreos/go-iptables v0.8.0
 	github.com/coreos/go-systemd/v22 v22.7.0

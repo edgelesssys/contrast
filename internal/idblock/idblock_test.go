@@ -4,6 +4,7 @@
 package idblock
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -92,8 +93,11 @@ func TestRecoverPublicKey(t *testing.T) {
 			}
 
 			if tc.pubKey != nil {
+				wantBytes, err := tc.pubKey.Bytes()
+				require.NoError(err)
 				assert.True(slices.ContainsFunc(publicKeys, func(pk ecdsa.PublicKey) bool {
-					return pk.X.Cmp(tc.pubKey.X) == 0 && pk.Y.Cmp(tc.pubKey.Y) == 0
+					gotBytes, err := pk.Bytes()
+					return err == nil && bytes.Equal(gotBytes, wantBytes)
 				}))
 			}
 		})
