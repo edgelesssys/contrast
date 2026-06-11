@@ -29,9 +29,7 @@ rec {
           eval = builtins.tryEval v;
           val = eval.value;
         in
-        if !eval.success then
-          [ ]
-        else if lib.isDerivation val then
+        if lib.isDerivation val then
           [
             {
               name = lib.concatStringsSep "/" path;
