@@ -137,7 +137,8 @@ func run() (retErr error) {
 	meshapi.RegisterMeshAPIServer(meshAPIServer, meshapiserver.New(logger))
 	serverMetrics.InitializeMetrics(meshAPIServer)
 
-	httpServer := &http.Server{}
+	metricsServer := &http.Server{}
+	httpAPIServer := &http.Server{}
 
 	var userapiStarted, meshapiStarted, recoveryStarted atomic.Bool
 
@@ -161,13 +162,12 @@ func run() (retErr error) {
 			StateGuard: meshAuth,
 		}
 
-		httpServer := &http.Server{}
 		mux := http.NewServeMux()
 		mux.Handle("/attest", &h)
 
-		httpServer.Addr = ":" + commonhttpapi.Port
-		httpServer.Handler = mux
-		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		httpAPIServer.Addr = ":" + commonhttpapi.Port
+		httpAPIServer.Handler = mux
+		if err := httpAPIServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Starting verify http server", "err", err)
 			return fmt.Errorf("starting verify http server: %w", err)
 		}
@@ -189,9 +189,9 @@ func run() (retErr error) {
 		mux.Handle("/probe/startup", &startupHandler)
 		mux.Handle("/probe/liveness", &startupHandler)
 		mux.Handle("/probe/readiness", &readinessHandler)
-		httpServer.Addr = ":" + strconv.Itoa(probeAndMetricsPort)
-		httpServer.Handler = mux
-		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		metricsServer.Addr = ":" + strconv.Itoa(probeAndMetricsPort)
+		metricsServer.Handler = mux
+		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Starting probes and metrics http server", "err", err)
 			return fmt.Errorf("starting probes and metrics http server: %w", err)
 		}
@@ -273,14 +273,17 @@ func run() (retErr error) {
 			logger.Info("Context done, shutting down", "err", ctx.Err())
 		}
 		// New context for cleanup, Kubernetes grace period is 30 seconds.
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
 		defer cancel()
 		wg := &sync.WaitGroup{}
-		gracefulStopGRPC(ctx, wg, userAPIServer) //nolint:contextcheck
-		gracefulStopGRPC(ctx, wg, meshAPIServer) //nolint:contextcheck
+		gracefulStopGRPC(ctx, wg, userAPIServer)
+		gracefulStopGRPC(ctx, wg, meshAPIServer)
 		wg.Wait()
-		_ = transitAPIServer.Shutdown(ctx) //nolint:contextcheck
-		return httpServer.Shutdown(ctx)    //nolint:contextcheck
+		return errors.Join(
+			transitAPIServer.Shutdown(ctx),
+			httpAPIServer.Shutdown(ctx),
+			metricsServer.Shutdown(ctx),
+		)
 	})
 
 	return eg.Wait()
