@@ -9,7 +9,7 @@
 
 writeShellApplication {
   name = "boot-image";
-  runtimeInputs = [ qemu ];
+  runtimeInputs = [ (qemu.override { minimal = true; }) ];
   text = ''
     tmpFile=$(mktemp)
     cp "$1" "$tmpFile"
