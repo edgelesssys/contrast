@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - ch/linkfarm # let me teeeeest
   workflow_dispatch: {}
 
 jobs:
