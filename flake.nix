@@ -45,17 +45,6 @@
             config.nvidia.acceptLicense = true;
           };
 
-        # setsFromDirectory reads overlays from a directory and creates a set of pkgs instances for each.
-        # The filename is used as attribute name in the resulting set, the .nix extension is stripped.
-        setsFromDirectory =
-          dir:
-          builtins.listToAttrs (
-            map (file: rec {
-              name = builtins.substring 0 (builtins.stringLength file - 4) (baseNameOf file);
-              value = mkSet ((defaultOverlays name) ++ [ (import (dir + "/${file}")) ]);
-            }) (builtins.attrNames (builtins.readDir dir))
-          );
-
         # reverseContrastNesting takes a pkgs instance and reverses the nesting by moving the
         # contrastPkgs attributes to the top level and the originally top-level nixpkgs attributes
         # to a nested nixpkgs attribute. This allows easy access to contrastPkgs via the nix flake
@@ -78,7 +67,47 @@
           (import ./overlays/runtimepkgs.nix)
         ];
 
-        sets = setsFromDirectory ./overlays/sets;
+        setsDir = ./overlays/sets;
+        setNames = map (nixpkgs.lib.removeSuffix ".nix") (builtins.attrNames (builtins.readDir setsDir));
+
+        nonEmptySubsets =
+          list:
+          builtins.filter (s: s != [ ]) (
+            nixpkgs.lib.foldl' (acc: x: acc ++ map (s: [ x ] ++ s) acc) [ [ ] ] list
+          );
+
+        permutations =
+          list:
+          if list == [ ] then
+            [ [ ] ]
+          else
+            nixpkgs.lib.concatLists (
+              nixpkgs.lib.imap0 (
+                i: x: map (p: [ x ] ++ p) (permutations (nixpkgs.lib.take i list ++ nixpkgs.lib.drop (i + 1) list))
+              ) list
+            );
+
+        canonicalName =
+          subset: nixpkgs.lib.concatStringsSep "+" (nixpkgs.lib.sort builtins.lessThan subset);
+
+        subsets = builtins.filter (s: builtins.length s <= 3) (nonEmptySubsets setNames);
+
+        canonicalSets = builtins.listToAttrs (
+          map (s: {
+            name = canonicalName s;
+            value = mkSet ((defaultOverlays (canonicalName s)) ++ map (n: import (setsDir + "/${n}.nix")) s);
+          }) subsets
+        );
+
+        sets = builtins.listToAttrs (
+          nixpkgs.lib.concatMap (
+            s:
+            map (p: {
+              name = nixpkgs.lib.concatStringsSep "+" p;
+              value = canonicalSets.${canonicalName s};
+            }) (permutations s)
+          ) subsets
+        );
 
         pkgs = sets.base;
 
