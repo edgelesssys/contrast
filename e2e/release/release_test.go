@@ -31,6 +31,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-github/v85/github"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -279,10 +280,18 @@ func TestRelease(t *testing.T) {
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://web", nil)
 		require.NoError(err)
-		resp, err := c.Do(req)
-		require.NoError(err)
-		defer resp.Body.Close()
-		require.Equal(http.StatusOK, resp.StatusCode)
+
+		// The darwin release tests which run on Github hosted runners reach the web
+		// via a Scaleway LoadBalancer. The LB can accept the connection before its
+		// backend is healthy, so the first request may EOF; retry until it serves.
+		require.EventuallyWithT(func(ct *assert.CollectT) {
+			resp, err := c.Do(req.Clone(ctx))
+			if !assert.NoError(ct, err) {
+				return
+			}
+			defer resp.Body.Close()
+			assert.Equal(ct, http.StatusOK, resp.StatusCode)
+		}, 90*time.Second, 3*time.Second)
 	})
 }
 
