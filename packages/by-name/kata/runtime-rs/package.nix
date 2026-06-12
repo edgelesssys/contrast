@@ -84,6 +84,8 @@ rustPlatform.buildRustPackage (finalAttrs: {
       "systemd.unit=kata-containers.target"
       "systemd.mask=systemd-networkd.service"
       "systemd.mask=systemd-networkd.socket"
+      "agent.cdh_api_timeout=50"
+      "agent.launch_process_timeout=6"
     ];
     suffix = _debug: [
       "selinux=0"
