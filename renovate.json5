@@ -58,6 +58,15 @@
       enabled: false,
     },
     {
+      // storage v1.62.0 uses APIs that filepath-securejoin removed in v0.6.x, so bumping these breaks the imagepuller build.
+      matchManagers: [ "gomod" ],
+      matchPackageNames: [
+        "cyphar.com/go-pathrs",
+        "github.com/cyphar/filepath-securejoin",
+      ],
+      enabled: false,
+    },
+    {
       // Group update of direct Go dependencies.
       groupName: "Go dependencies",
       matchManagers: [ "gomod" ],
