@@ -267,7 +267,7 @@ func (c *initContainerRunningCondition) Check(lister kubeclient.PodLister) (bool
 		if pod.Name != c.name {
 			continue
 		}
-		for _, container := range pods[0].Status.InitContainerStatuses {
+		for _, container := range pod.Status.InitContainerStatuses {
 			if container.State.Running == nil {
 				return false, nil
 			}
