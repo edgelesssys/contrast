@@ -20,13 +20,7 @@ let
   kernel = "${os-image}/bzImage";
   initrd = "${os-image}/initrd";
 
-  # Kata uses a base command line and then appends the command line from the kata config (i.e. also our node-installer config).
-  # Thus, we need to perform the same steps when calculating the digest.
-  cmdline = lib.strings.concatStringsSep " " (
-    kata.runtime.cmdline.prefix withDebug
-    ++ [ os-image.cmdline ]
-    ++ kata.runtime.cmdline.suffix withDebug
-  );
+  cmdline = kata.cmdline.make { inherit os-image withDebug; };
 
 in
 
