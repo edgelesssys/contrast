@@ -29,6 +29,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-github/v85/github"
 	"github.com/stretchr/testify/assert"
@@ -141,6 +142,10 @@ func TestRelease(t *testing.T) {
 		require.NoError(err)
 		resources, err := kuberesource.UnmarshalUnstructuredK8SResource(yaml)
 		require.NoError(err)
+
+		platform, err := platforms.FromString(*platformStr)
+		require.NoError(err)
+		require.NoError(patchNodeInstallers(resources, platform))
 
 		require.NoError(k.Apply(ctx, resources...))
 
@@ -357,6 +362,44 @@ func fetchRelease(ctx context.Context, t *testing.T) string {
 	}
 
 	return dir
+}
+
+// patchNodeInstallers restricts the node-installer DaemonSets to the intended nodes.
+func patchNodeInstallers(resources []*unstructured.Unstructured, platform platforms.Platform) error {
+	matchExpressions := []any{
+		map[string]any{
+			"key":      kuberesource.MainRunnerNodeLabel,
+			"operator": "In",
+			"values":   []any{"true"},
+		},
+	}
+	if platform == platforms.MetalQEMUTDXGPU {
+		matchExpressions = append(matchExpressions, map[string]any{
+			"key":      kuberesource.TDXEnabledNodeLabel,
+			"operator": "In",
+			"values":   []any{"true"},
+		})
+	}
+	affinity := map[string]any{
+		"nodeAffinity": map[string]any{
+			"requiredDuringSchedulingIgnoredDuringExecution": map[string]any{
+				"nodeSelectorTerms": []any{
+					map[string]any{
+						"matchExpressions": matchExpressions,
+					},
+				},
+			},
+		},
+	}
+	for _, r := range resources {
+		if r.GetKind() != "DaemonSet" {
+			continue
+		}
+		if err := unstructured.SetNestedMap(r.Object, affinity, "spec", "template", "spec", "affinity"); err != nil {
+			return fmt.Errorf("setting node affinity on DaemonSet %q: %w", r.GetName(), err)
+		}
+	}
+	return nil
 }
 
 func TestMain(m *testing.M) {
