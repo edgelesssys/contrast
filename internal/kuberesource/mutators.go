@@ -32,6 +32,12 @@ const (
 	securePVAnnotationKey         = "contrast.edgeless.systems/secure-pv"
 	workloadSecretIDAnnotationKey = "contrast.edgeless.systems/workload-secret-id"
 	imageStoreSizeAnnotationKey   = "contrast.edgeless.systems/image-store-size"
+
+	// TDXEnabledNodeLabel is the node-feature-discovery label that marks a node as TDX-capable.
+	TDXEnabledNodeLabel = "feature.node.kubernetes.io/tdx.enabled"
+
+	// MainRunnerNodeLabel restricts pods to the bare-metal nodes of our CI runner.
+	MainRunnerNodeLabel = "ci.contrast.edgeless.systems/main-runner"
 )
 
 // contrastRuntimeClassPrefixes lists runtime class prefixes that identify Contrast pods.
@@ -620,7 +626,7 @@ func PatchNodeInstallers(resources []any, platform platforms.Platform) ([]any, e
 					applycorev1.NodeSelector().WithNodeSelectorTerms(
 						applycorev1.NodeSelectorTerm().WithMatchExpressions(
 							applycorev1.NodeSelectorRequirement().
-								WithKey("feature.node.kubernetes.io/tdx.enabled").
+								WithKey(TDXEnabledNodeLabel).
 								WithOperator(corev1.NodeSelectorOpIn).
 								WithValues("true"),
 						),
@@ -750,7 +756,7 @@ func PatchNodeSelector(resources []any) []any {
 				return spec
 			}
 			spec = spec.WithNodeSelector(map[string]string{
-				"ci.contrast.edgeless.systems/main-runner": "true",
+				MainRunnerNodeLabel: "true",
 			})
 			return spec
 		}))
