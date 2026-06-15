@@ -32,6 +32,16 @@ jobs:
             runner: TDX
             self-hosted: true
         test-name: [genpolicy-unsupported, regression]
+        set: [""]
+        include:
+          # This is just a smoke test to ensure runtime-rs stays somewhat usable.
+          # TODO(burgerdev): extend test coverage
+          - platform:
+              name: Metal-QEMU-SNP
+              runner: SNP
+              self-hosted: true
+            test-name: coordinator
+            set: runtime-rs
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
@@ -41,6 +51,7 @@ jobs:
       platform: ${{ matrix.platform.name }}
       runner: ${{ matrix.platform.runner }}
       self-hosted: ${{ matrix.platform.self-hosted }}
+      set: ${{ matrix.set }}
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
