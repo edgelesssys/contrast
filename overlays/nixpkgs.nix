@@ -22,6 +22,10 @@ final: prev:
       };
     }
   );
+  # Overridden go version makes helm rebuild. Helm has a flaky (possibly network dependent?) test.
+  kubernetes-helm = prev.kubernetes-helm.overrideAttrs (_: {
+    doCheck = false;
+  });
 
   erofs-utils = prev.erofs-utils.overrideAttrs (prevAttrs: {
     # The build environment sets SOURCE_DATE_EPOCH to 1980, but as mkfs.erofs
