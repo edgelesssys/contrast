@@ -11,10 +11,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/edgelesssys/contrast/initdata-processor/policy"
 	"github.com/edgelesssys/contrast/initdata-processor/validator"
 	"github.com/edgelesssys/contrast/internal/initdata"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -35,9 +37,9 @@ func main() {
 		failf("Could not create directory %q: %v", measuredConfigPath, err)
 		return
 	}
-	device, err := checkDeviceAvailability("initdata")
+	device, err := checkDeviceAvailability("initdata", []byte("initdata"))
 	if err != nil {
-		failf("no initdata device found")
+		failf("no initdata device found: %v", err)
 		return
 	}
 	doc, err := initdata.FromDevice(device, "initdata")
@@ -56,9 +58,9 @@ func main() {
 		failf("Could not create directory %q: %v", insecureConfigPath, err)
 		return
 	}
-	device, err = checkDeviceAvailability("imagepuller")
+	device, err = checkDeviceAvailability("imagepuller", []byte("imgpullr"))
 	if err != nil {
-		log.Println("No imagepuller auth config found, only unauthenticated pulls will be available")
+		log.Printf("No imagepuller auth config found, only unauthenticated pulls will be available: %v", err)
 		return
 	}
 	doc, err = initdata.FromDevice(device, "imgpullr")
@@ -104,18 +106,75 @@ func handleImagepullerAuthConfig(doc initdata.Raw) error {
 	return os.WriteFile(configLocation, doc, 0o644)
 }
 
-func checkDeviceAvailability(id string) (string, error) {
-	device := fmt.Sprintf("/dev/disk/by-id/virtio-%s", id)
-	info, err := os.Stat(device)
+// checkDeviceAvailability tries to detect a virtio device by its id, falling back to scanning /dev.
+//
+// An initdata (or imagepuller) device must
+//   - be a block device
+//   - belong to a range of known major device numbers
+//   - start with the given magic
+//
+// This behaviour is similar to what's being implemented at
+// https://github.com/kata-containers/kata-containers/pull/11655.
+func checkDeviceAvailability(id string, magic []byte) (string, error) {
+	candidates := []string{fmt.Sprintf("/dev/disk/by-id/virtio-%s", id)}
+
+	devices, err := os.ReadDir("/dev")
 	if err != nil {
-		return "", fmt.Errorf("could not open %s: %w", device, err)
+		return "", fmt.Errorf("listing /dev: %w", err)
+	}
+	for _, device := range devices {
+		candidates = append(candidates, filepath.Join("/dev", device.Name()))
 	}
 
-	if info.Mode()&(fs.ModeDevice|fs.ModeCharDevice) != fs.ModeDevice {
-		return "", fmt.Errorf("%s is not a block device (mode: %s)", device, info.Mode())
+	for _, device := range candidates {
+		info, err := os.Stat(device)
+		if err != nil {
+			log.Printf("Could not stat device candidate %q: %v", device, err)
+			continue
+		}
+
+		if info.Mode()&(fs.ModeDevice|fs.ModeCharDevice) != fs.ModeDevice {
+			// not a block device
+			continue
+		}
+		stat, ok := info.Sys().(*syscall.Stat_t)
+		if !ok {
+			return "", fmt.Errorf("unexpected type of device stat_t for %q: %T", device, info.Sys())
+		}
+
+		// Check whether the device major number indicates a disk type.
+		// https://www.kernel.org/doc/html/latest/admin-guide/devices.html
+		major := unix.Major(stat.Rdev)
+		switch {
+		case major == 8:
+			// SCSI / SATA
+		case major == 3:
+			// IDE / PATA
+		case 240 <= major && major <= 254:
+			// Dynamic, probably virtio.
+		default:
+			log.Printf("Skipping device candidate %q, unknown major device number %d", device, major)
+			continue
+		}
+
+		head := make([]byte, len(magic))
+		f, err := os.Open(device)
+		if err != nil {
+			log.Printf("Could not open device candidate %q: %v", device, err)
+			continue
+		}
+		if _, err := io.ReadFull(f, head); err != nil {
+			f.Close()
+			log.Printf("Reading device magic of candidate %q: %v", device, err)
+			continue
+		}
+		f.Close()
+		if bytes.Equal(magic, head) {
+			return device, nil
+		}
 	}
 
-	return device, nil
+	return "", fmt.Errorf("no suitable device found")
 }
 
 func failf(format string, v ...any) {
