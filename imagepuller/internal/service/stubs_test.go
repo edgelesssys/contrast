@@ -19,6 +19,11 @@ type stubStore struct {
 	putLayerDigest digest.Digest
 	putLayerErr    error
 
+	containers    []storage.Container
+	containersErr error
+	unmounted     []string
+	deleted       []string
+
 	storage.Store
 }
 
@@ -27,6 +32,20 @@ func (s *stubStore) PutLayer(_, _ string, _ []string, _ string, _ bool, _ *stora
 		return nil, 0, s.putLayerErr
 	}
 	return &storage.Layer{CompressedDigest: s.putLayerDigest}, 0, nil
+}
+
+func (s *stubStore) Containers() ([]storage.Container, error) {
+	return s.containers, s.containersErr
+}
+
+func (s *stubStore) Unmount(id string, _ bool) (bool, error) {
+	s.unmounted = append(s.unmounted, id)
+	return true, nil
+}
+
+func (s *stubStore) DeleteContainer(id string) error {
+	s.deleted = append(s.deleted, id)
+	return nil
 }
 
 type stubRemote struct {

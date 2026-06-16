@@ -15,7 +15,10 @@ import (
 )
 
 func (s *ImagePullerService) createAndMountContainer(log *slog.Logger, imageID, bundlePath string) (string, error) {
-	container, err := s.Store.CreateContainer("", nil, imageID, "", "", nil)
+	rootfs := filepath.Join(bundlePath, "rootfs")
+
+	// Store the rootfs path as the container's metadata so that orphaned containers can be reclaimed later (see cleanupOrphanedContainers)
+	container, err := s.Store.CreateContainer("", nil, imageID, "", rootfs, nil)
 	if err != nil {
 		return "", fmt.Errorf("creating container: %w", err)
 	}
@@ -27,7 +30,6 @@ func (s *ImagePullerService) createAndMountContainer(log *slog.Logger, imageID, 
 	}
 	log.Debug("Mounted in store", "mountPoint", mountPoint)
 
-	rootfs := filepath.Join(bundlePath, "rootfs")
 	if err := os.MkdirAll(rootfs, 0o755); err != nil {
 		return "", fmt.Errorf("creating bundle path: %w", err)
 	}
