@@ -5,10 +5,37 @@ package service
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.podman.io/storage"
 )
+
+func TestCleanupOrphanedContainers(t *testing.T) {
+	require := require.New(t)
+
+	// live rootfs exists on disk, orphan and gone do not.
+	tmp := t.TempDir()
+	liveRootfs := filepath.Join(tmp, "live", "rootfs")
+	require.NoError(os.MkdirAll(liveRootfs, 0o755))
+
+	store := &stubStore{
+		containers: []storage.Container{
+			{ID: "live", Metadata: liveRootfs},
+			{ID: "orphan", Metadata: filepath.Join(tmp, "orphan", "rootfs")},
+			{ID: "no-metadata"},
+		},
+	}
+	s := &ImagePullerService{Logger: slog.New(slog.DiscardHandler)}
+
+	s.cleanupOrphanedContainers(s.Logger, store)
+
+	require.Equal([]string{"orphan"}, store.deleted)
+	require.Equal([]string{"orphan"}, store.unmounted)
+}
 
 func Test_formatBytes(t *testing.T) {
 	tests := []struct {

@@ -5,7 +5,9 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -72,6 +74,8 @@ func (s *ImagePullerService) PullImage(
 	}
 	s.Store = store
 
+	s.cleanupOrphanedContainers(log, store)
+
 	cachedID, err := s.Store.Lookup(r.ImageUrl)
 	if err == nil {
 		rootfs, err := s.createAndMountContainer(log, cachedID, r.BundlePath)
@@ -97,7 +101,8 @@ func (s *ImagePullerService) PullImage(
 		return nil, fmt.Errorf("determining available storage: %w", err)
 	}
 	if availableStorage < requiredStorage {
-		return nil, fmt.Errorf("insufficient storage: pulling %q would require at least %s, but only %s are currently available. Increase the memory limit or image store size",
+		return nil, fmt.Errorf(
+			"insufficient storage: pulling %q would require at least %s, but only %s are currently available. Increase the memory limit or image store size",
 			r.ImageUrl,
 			formatBytes(requiredStorage),
 			formatBytes(availableStorage),
@@ -130,6 +135,39 @@ func (s *ImagePullerService) PullImage(
 	log.Info("Pulled and mounted image", "mount_path", rootfs)
 
 	return &katacomponents.ImagePullResponse{}, nil
+}
+
+// cleanupOrphanedContainers removes store containers whose bundle has been torn down by the kata agent.
+// Image pulls always create new store containers with their own read-write layer. The agent only unmounts and removes the bundle rootfs on teardown.
+// We use the rootfs path recorded as the container's metadata to check if the store container is orphaned and its layer can be reclaimed.
+func (s *ImagePullerService) cleanupOrphanedContainers(log *slog.Logger, store storage.Store) {
+	containers, err := store.Containers()
+	if err != nil {
+		log.Warn("listing containers for cleanup", "err", err)
+		return
+	}
+
+	for _, c := range containers {
+		rootfs := c.Metadata
+		if rootfs == "" {
+			continue
+		}
+		if _, err := os.Stat(rootfs); err == nil {
+			continue // rootfs still present -> container is in use.
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			log.Warn("checking container rootfs", "id", c.ID, "rootfs", rootfs, "err", err)
+			continue
+		}
+
+		if _, err := store.Unmount(c.ID, true); err != nil {
+			log.Warn("unmounting orphaned container", "id", c.ID, "err", err)
+		}
+		if err := store.DeleteContainer(c.ID); err != nil {
+			log.Warn("deleting orphaned container", "id", c.ID, "err", err)
+			continue
+		}
+		log.Info("Reclaimed orphaned container rw layers", "id", c.ID, "rootfs", rootfs)
+	}
 }
 
 func (s *ImagePullerService) minimumRequiredStorage(remoteImg gcr.Image) (uint64, error) {
