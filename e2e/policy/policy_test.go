@@ -267,12 +267,15 @@ func (c *initContainerRunningCondition) Check(lister kubeclient.PodLister) (bool
 		if pod.Name != c.name {
 			continue
 		}
+		// Any running init container suffices: in debug shell mode a second
+		// init container waits behind contrast-initializer, which never
+		// completes for a pod removed from the manifest.
 		for _, container := range pod.Status.InitContainerStatuses {
-			if container.State.Running == nil {
-				return false, nil
+			if container.State.Running != nil {
+				return true, nil
 			}
 		}
-		return true, nil
+		return false, nil
 	}
 	return false, nil
 }
