@@ -5,8 +5,8 @@ on:
   pull_request:
     paths:
       - .github/workflows/check_patches.yml
-      - packages/by-name/kata/runtime/package.nix
-      - packages/by-name/kata/runtime/0*.patch
+      - packages/by-name/kata/source/package.nix
+      - packages/by-name/kata/source/0*.patch
 
 jobs:
   check-patches:
@@ -41,8 +41,8 @@ jobs:
         run: |
           git config --global user.email "actionsbot@example.invalid"
           git config --global user.name "Actions Bot"
-          git am --no-3way ../contrast/packages/by-name/kata/runtime/0*.patch
-          git format-patch -N --no-signature --zero-commit --full-index -o ../contrast/packages/by-name/kata/runtime/ "${KATA_VERSION}"
+          git am --no-3way ../contrast/packages/by-name/kata/source/0*.patch
+          git format-patch -N --no-signature --zero-commit --full-index -o ../contrast/packages/by-name/kata/source/ "${KATA_VERSION}"
       - name: Check for diff
         working-directory: contrast
         run: |

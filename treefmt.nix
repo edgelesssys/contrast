@@ -39,6 +39,10 @@
     ];
     # keep-sorted end
   };
+  settings.global.excludes = [
+    # crate2nix-generated; we don't own its style.
+    "packages/by-name/kata/source/Cargo.nix"
+  ];
   settings.formatter = {
     # keep-sorted start block=true
     # Notice! addlicense won't enforce the correct license header
