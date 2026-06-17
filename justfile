@@ -105,7 +105,7 @@ e2e target=default_deploy_target platform=default_platform set=default_set:
     echo "Using set=$RESOLVED_SET, debug=$RESOLVED_DEBUG for test '{{ target }}'"
     set="$RESOLVED_SET" debug="$RESOLVED_DEBUG" just _e2e {{ target }} {{ platform }}
 
-_e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell k8s-log-collector (node-installer platform)
+_e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell k8s-log-collector strongswan (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
