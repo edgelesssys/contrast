@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Prepare a bare-metal instance | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/pr-preview/pr-2426/next/howto/cluster-setup/bare-metal"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Prepare a bare-metal instance | Contrast"><meta data-rh="true" name="description" content="Prerequisites"><meta data-rh="true" property="og:description" content="Prerequisites"><link data-rh="true" rel="icon" href="/contrast/pr-preview/pr-2426/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/pr-preview/pr-2426/next/howto/cluster-setup/bare-metal"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-2426/next/howto/cluster-setup/bare-metal" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-2426/next/howto/cluster-setup/bare-metal" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Bare metal","item":"https://docs.edgeless.systems/contrast/pr-preview/pr-2426/next/howto/cluster-setup/bare-metal"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-2426/assets/css/styles.3541c1a1.css">
-<script src="/contrast/pr-preview/pr-2426/assets/js/runtime~main.9aaa62d7.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-2426/assets/js/runtime~main.ecc01842.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-2426/assets/js/main.2bcc02a9.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -20,6 +20,13 @@
 <li class="">AMD Epyc 9004 series (Genoa)</li>
 </ul>
 </li>
+<li class="">A Linux distribution for the Kubernetes nodes:<!-- -->
+<ul>
+<li class="">Kernel version must be at least 6.11.</li>
+<li class="">The OS must be systemd-based.</li>
+<li class="">The Kernel must be configured to just use cgroupsv2.</li>
+</ul>
+</li>
 </ul></div><div role="tabpanel" class="tabItem_Ymn6" hidden=""><ul>
 <li class="">A supported CPU:<!-- -->
 <ul>
@@ -28,6 +35,13 @@
 </ul>
 </li>
 <li class="">Platform must fulfill the <a href="https://cc-enabling.trustedservices.intel.com/intel-tdx-enabling-guide/03/hardware_selection/#dimm-ie-main-memory-requirements" target="_blank" rel="noopener noreferrer" class="">DIMM requirements</a>.</li>
+<li class="">A Linux distribution for the Kubernetes nodes:<!-- -->
+<ul>
+<li class="">Kernel version must be at least 6.16.</li>
+<li class="">The OS must be systemd-based.</li>
+<li class="">The Kernel must be configured to just use cgroupsv2.</li>
+</ul>
+</li>
 </ul></div></div></div>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="hardware-and-firmware-setup">Hardware and firmware setup<a href="#hardware-and-firmware-setup" class="hash-link" aria-label="Direct link to Hardware and firmware setup" title="Direct link to Hardware and firmware setup" translate="no">​</a></h2>
 <div class="theme-tabs-container tabs-container tabList__CuJ"><ul role="tablist" aria-orientation="horizontal" class="tabs"><li role="tab" tabindex="0" aria-selected="true" class="tabs__item tabItem_LNqP tabs__item--active">AMD SEV-SNP</li><li role="tab" tabindex="-1" aria-selected="false" class="tabs__item tabItem_LNqP">Intel TDX</li></ul><div class="margin-top--md"><div role="tabpanel" class="tabItem_Ymn6"><ol>
