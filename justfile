@@ -31,6 +31,8 @@ debugshell: (push "debugshell")
 
 k8s-log-collector: (push "k8s-log-collector")
 
+strongswan: (push "strongswan")
+
 # Download all logs (pod logs + host journal). Deploys the log-collector if not already running.
 download-logs set=default_set:
     #!/usr/bin/env bash
