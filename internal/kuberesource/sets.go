@@ -1189,6 +1189,33 @@ func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApply
 	return runc, cc
 }
 
+// IPSec returns the resources for testing IPSec tunnels with strongSwan.
+func IPSec() []any {
+	deploy := Deployment("ipsec", "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(2).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "ipsec"}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": "ipsec"}).
+				WithSpec(PodSpec().
+					WithContainers(
+						Container().
+							WithName("ipsec").
+							WithImage("ghcr.io/edgelesssys/contrast/strongswan:latest").
+							WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(800),
+							),
+					),
+				),
+			),
+		)
+
+	return []any{deploy}
+}
+
 // DeploymentWithRuntimeClass returns a example with the given runtimeClassName.
 func DeploymentWithRuntimeClass(name, runtimeClassName string) any {
 	return Deployment(name, "").
