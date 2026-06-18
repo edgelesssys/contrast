@@ -339,17 +339,34 @@ func fetchRelease(ctx context.Context, t *testing.T) string {
 	}
 
 	// Find our target release. There is GetReleaseByTag, but we may be looking for a draft release.
-	rels, resp, err := gh.Repositories.ListReleases(ctx, *owner, *repo, nil)
-	require.NoError(err)
 	var release *github.RepositoryRelease
-	for _, rel := range rels {
-		t.Logf("Checking release %q", *rel.TagName)
-		if *rel.TagName == *tag {
-			release = rel
-			break
+	var lastErr error
+	var lastInfo string
+	var lastCount int
+	for attempt := range 5 {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt) * 2 * time.Second)
 		}
+		rels, resp, err := gh.Repositories.ListReleases(ctx, *owner, *repo, nil)
+		info := ghRespInfo(resp)
+		lastErr, lastInfo, lastCount = err, info, len(rels)
+		if err != nil {
+			t.Logf("attempt %d: listing releases failed: %v (%s)", attempt, err, info)
+			continue
+		}
+		if len(rels) == 0 {
+			t.Logf("attempt %d: listing releases returned no releases (%s)", attempt, info)
+			continue
+		}
+		for _, rel := range rels {
+			if rel.TagName != nil && *rel.TagName == *tag {
+				release = rel
+				break
+			}
+		}
+		break
 	}
-	require.NotNil(release, "release %q not found among %d releases\nGithub response:\n%#v", *tag, len(rels), resp)
+	require.NotNil(release, "release %q not found among %d releases (last error: %v)\n%s", *tag, lastCount, lastErr, lastInfo)
 
 	for _, asset := range release.Assets {
 		f, err := os.OpenFile(path.Join(dir, *asset.Name), os.O_CREATE|os.O_RDWR, 0o777)
@@ -362,6 +379,21 @@ func fetchRelease(ctx context.Context, t *testing.T) string {
 	}
 
 	return dir
+}
+
+func ghRespInfo(resp *github.Response) string {
+	if resp == nil || resp.Response == nil {
+		return "no HTTP response"
+	}
+	var body string
+	if resp.Body != nil {
+		if b, err := io.ReadAll(io.LimitReader(resp.Body, 1024)); err == nil {
+			body = strings.TrimSpace(string(b))
+		}
+	}
+	return fmt.Sprintf("HTTP %d, X-GitHub-Request-Id=%q, rate remaining=%d/%d, body=%q",
+		resp.StatusCode, resp.Header.Get("X-GitHub-Request-Id"),
+		resp.Rate.Remaining, resp.Rate.Limit, body)
 }
 
 // patchNodeInstallers restricts the node-installer DaemonSets to the intended nodes.
