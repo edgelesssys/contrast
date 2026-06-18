@@ -171,4 +171,20 @@
       Volumes."/logs" = { };
     };
   };
+
+  strongswan = contrastPkgs.buildOciImage {
+    name = "strongswan";
+    tag = "0.1.0";
+    copyToRoot = with pkgs; [
+      bash
+      coreutils
+      iproute2
+      iputils
+      strongswan
+      contrastPkgs.strongswan-image
+    ];
+    config = {
+      Cmd = [ "${pkgs.strongswan}/libexec/ipsec/charon" ];
+    };
+  };
 }
