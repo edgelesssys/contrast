@@ -149,37 +149,30 @@ rec {
       # together with being specific to our use case. There are no plans to upstream it.
       ./0021-runtime-add-SNP-ID-block-from-Pod-annotations.patch
 
-      # Use virtio-blk with serial name for initdata
-      # Our initdata-processor expects the initdata device to be present at /dev/disks/by-label/initdata,
-      # which requires the device to have a stable name. Using virtio-blk with a serial number achieves this.
-      # TODO: check if we can improve the situation upstream or implement a fallback in the initdata-processor.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12764.
-      ./0022-runtime-rs-force-virtio-blk-with-serial-name-for-ini.patch
-
       # We pass a custom config to the Kata agent via commandline argument to enable the debug console and customize logging.
       # The provided config should only be used as an override and not as a replacement, so the kernel cmdline is still respected
       # when we don't have any overrides.
-      ./0023-agent-use-config-file-as-override.patch
+      ./0022-agent-use-config-file-as-override.patch
 
       # Terminate the agent gracefully when it encounters problems with the policy. This allows
       # error messages to propagate to the runtime.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/13031.
-      ./0024-agent-don-t-abort-in-case-of-policy-problems.patch
+      ./0023-agent-don-t-abort-in-case-of-policy-problems.patch
 
       # Pod-level resource limits are a beta feature since K8s 1.34, but not supported by Kata yet.
       # We need this to automatically configure memory limits for the entire VM and not on container basis.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12816
-      ./0025-genpolicy-support-pod-level-resource-limits.patch
+      ./0024-genpolicy-support-pod-level-resource-limits.patch
 
       # We need the layer sizes to compute the overhead of pulling the images into the VM.
       # This caches the compressed and uncompressed layer sizes in the layers-cache.json file during genpolicy.
       # The layers-cache.json file is no longer indexed by diffID, but by the layer digest,
       # which is the only stable identifier for the compressed layer size.
-      ./0026-genpolicy-cache-un-compressed-layer-sizes.patch
+      ./0025-genpolicy-cache-un-compressed-layer-sizes.patch
 
       # This writes a subset of the layers-cache.json file into a separate file containing only the processed layers.
       # We need the layer information to calculate the memory overhead for the VM during generate.
-      ./0027-genpolicy-write-processed-layer-information-to-file.patch
+      ./0026-genpolicy-write-processed-layer-information-to-file.patch
 
       # Stop the kata shim's cleanup paths from hanging when the kata-agent
       # is unreachable. Without this, agent calls hang in commonDialer past
@@ -187,20 +180,20 @@ rec {
       # and accumulated leaks cascade through kubelet's Requires=containerd.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
       # TODO(sse): retire this carry once contrast migrates to runtime-rs.
-      ./0028-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
+      ./0027-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
 
       # Don't clean up the Kata cgroup when cleaning up a failed pod. It's unnecessary because it
       # will be cleaned up by containerd, and it may hide problems if the cleanup takes too long.
       # No upstream issue because this is unlikely to be accepted upstream as is, and developing a
       # full fix for all potential configurations is not a good investment of time.
       # TODO(burgerdev): drop patch after migrating to runtime-rs
-      ./0029-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
+      ./0028-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
 
       # Duplicate entry for the safe-path lib (workspace and crates.io) requires ugly hacks in the
       # update-kata-cargo-nix script. The patch fixes the mismatch.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/13242
       # TODO(charludo): drop after next kata update.
-      ./0030-runtime-rs-change-safe-path-dependency-from-crates.i.patch
+      ./0029-runtime-rs-change-safe-path-dependency-from-crates.i.patch
     ];
   };
 
