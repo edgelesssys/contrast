@@ -1,69 +1,33 @@
 # Copyright 2026 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
+# Aggregate CycloneDX SBOM (v1.7) for everything contrast builds.
+#
+# bombon walks the matrix's closure — emitting a component per store path and
+# enriching it with license/source metadata from `meta` — and merges the
+# language-level SBOMs that packages expose via passthru.bombonVendoredSbom.
+# Those are produced purely from build metadata by buildCargoSbom (crate2nix
+# graph) and buildGoModuleSbom (cyclonedx-gomod), so a package joins the
+# aggregate simply by setting that passthru.
+#
+# bombon discovers bombonVendoredSbom by walking drvAttrs, but the matrix is a
+# linkFarm that references its contents as runtime paths, hiding those passthrus.
+# So the packages that carry one are passed explicitly as extraPaths.
 {
   lib,
-  runCommand,
-  closureInfo,
-  cyclonedx-cli,
-  contrast,
-  contrastPkgs,
+  buildBom,
   matrix,
-  sbom-generator,
+  contrastPkgs,
 }:
 
-let
-  closure = closureInfo {
-    rootPaths = [ matrix ];
-  };
-
-  # Deep, language-level SBOMs contributed by individual packages via
-  # passthru.sbom (e.g. contrast.contrast, kata.agent, kata.genpolicy,
-  # kata.runtime-rs). Any package gains coverage just by setting passthru.sbom.
-  collectedSboms = lib.contrast.collectSboms [
+buildBom matrix {
+  extraPaths = lib.contrast.collectVendoredSbomPackages [
     "contrastPkgsStatic"
     "contrast-releases"
     "matrix"
     "sbom"
     # cli-release only differs from cli in an embedded genpolicy-settings asset,
-    # so its Go dependency SBOM is identical; skip it to avoid a redundant build.
+    # so its vendored SBOM is identical; skip it to avoid a redundant root.
     "cli-release"
   ] contrastPkgs;
-
-  # contrast.coordinator and contrast.initializer are outputs of contrast.contrast
-  # and inherit its passthru.sbom, so dedupe by store path to merge each SBOM once.
-  componentSboms = lib.attrValues (
-    lib.listToAttrs (
-      map (e: lib.nameValuePair (builtins.unsafeDiscardStringContext "${e.sbom}") e.sbom) collectedSboms
-    )
-  );
-in
-
-runCommand "contrast-sbom.cdx.json"
-  {
-    nativeBuildInputs = [
-      cyclonedx-cli
-      sbom-generator
-    ];
-    passthru = { inherit closure componentSboms; };
-  }
-  ''
-    sbom-generator closure \
-      --store-paths ${closure}/store-paths \
-      --version ${contrast.contrast.version} \
-      --output "$TMPDIR/nix.closure.cdx.json"
-
-    # A flat merge (rather than --hierarchical) is used deliberately: hierarchical
-    # merges emit a schema-invalid dependencies graph (duplicate refs) for our
-    # inputs, and a flat merge additionally dedupes crates shared between the Rust
-    # components. Component provenance is preserved via the dependency graph.
-    cyclonedx merge \
-      --name contrast \
-      --group io.edgeless \
-      --version ${contrast.contrast.version} \
-      --input-files \
-        "$TMPDIR/nix.closure.cdx.json" \
-        ${lib.concatMapStringsSep " " (s: ''"${s}"'') componentSboms} \
-      --output-file "$out" \
-      --output-format json
-  ''
+}

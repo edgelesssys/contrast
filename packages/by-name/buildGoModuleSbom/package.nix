@@ -4,9 +4,11 @@
 # Builds a CycloneDX SBOM for a buildGoModule package by analysing its module
 # with cyclonedx-gomod against the package's own vendored dependencies. Set
 #
-#   passthru.sbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
+#   passthru.bombonVendoredSbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
 #
-# on a Go package and the top-level sbom package collects it automatically.
+# on a Go package; the top-level sbom package (bombon) collects it automatically.
+# The output is a directory of CycloneDX files (one per main), as bombon expects
+# for a bombonVendoredSbom, emitted at spec 1.5 (the version bombon parses).
 #
 # The package MUST set proxyVendor = true: cyclonedx-gomod runs `go mod graph`,
 # which needs a module proxy (the full graph), so a -mod=vendor directory is not
@@ -16,8 +18,6 @@
   lib,
   runCommand,
   cyclonedx-gomod,
-  cyclonedx-cli,
-  sbom-generator,
   go,
   git,
   cacert,
@@ -48,12 +48,10 @@ lib.throwIfNot (package.proxyVendor or false)
   "buildGoModuleSbom: ${pname} must set proxyVendor = true; cyclonedx-gomod needs a module proxy (go mod graph), so a vendor directory is not sufficient"
 
   runCommand
-  "${pname}.cdx.json"
+  "${pname}-sbom"
   {
     nativeBuildInputs = [
       cyclonedx-gomod
-      cyclonedx-cli
-      sbom-generator
       go
       git
       cacert
@@ -84,8 +82,9 @@ lib.throwIfNot (package.proxyVendor or false)
     ${lib.optionalString (tagsFlag != "") ''export GOFLAGS="${tagsFlag}"''}
     export CGO_ENABLED=0
 
-    sbomdir=$TMPDIR/sboms
-    mkdir -p "$sbomdir"
+    # One CycloneDX file per main; bombon reads the directory and dedupes
+    # components across them, so no merge or bom-ref fixup is needed here.
+    mkdir -p "$out"
     for main in ${lib.escapeShellArgs mains}; do
       out_name=$(echo "$main" | tr '/' '-')
       [ "$out_name" = "." ] && out_name=${pname}
@@ -93,20 +92,9 @@ lib.throwIfNot (package.proxyVendor or false)
         -json \
         -licenses \
         -packages \
+        -output-version 1.5 \
         -main "$main" \
-        -output "$sbomdir/$out_name.cdx.json" \
+        -output "$out/$out_name.cdx.json" \
         .
-      sbom-generator fix-bomrefs "$sbomdir/$out_name.cdx.json"
     done
-    popd >/dev/null
-
-    # Flat merge: hierarchical merges emit a schema-invalid dependencies graph
-    # for modules that share packages (and it normalises a single input too).
-    cyclonedx merge \
-      --name ${pname} \
-      --group io.edgeless \
-      --version ${package.version} \
-      --input-files "$sbomdir"/*.cdx.json \
-      --output-file "$out" \
-      --output-format json
   ''

@@ -53,21 +53,18 @@ rec {
       e: lib.meta.availableOn hostPlatform e.path && e.path.system == hostPlatform.system
     ) entries;
 
-  # Returns the `passthru.sbom` of every reachable derivation that exposes one,
-  # as a list of { name = "a/b/c"; sbom = drv; } pairs. Packages opt into the
-  # aggregate SBOM simply by setting passthru.sbom; the top-level sbom package
-  # collects them without needing to know about each one.
-  collectSboms =
+  # Every reachable derivation that exposes a passthru.bombonVendoredSbom. These
+  # are passed to bombon's buildBom as extraPaths: bombon discovers vendored
+  # SBOMs by walking drvAttrs, but the matrix is a linkFarm that references its
+  # contents as runtime paths, so the packages must be given as explicit roots.
+  collectVendoredSbomPackages =
     skip: attrs:
     lib.concatMap (
       e:
       let
-        has = builtins.tryEval (e.path ? sbom && e.path.sbom != null);
+        has = builtins.tryEval (e.path ? bombonVendoredSbom);
       in
-      lib.optional (has.success && has.value) {
-        inherit (e) name;
-        inherit (e.path) sbom;
-      }
+      lib.optional (has.success && has.value) e.path
     ) (collectDerivations skip attrs);
 
   mkMatrix =

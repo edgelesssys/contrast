@@ -1,5 +1,25 @@
 {
   "nodes": {
+    "bombon": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780578118,
+        "narHash": "sha256-gvnc4hbzm3OIXqRVx13dcjQbubzk7qJK2uFIiEpKpmY=",
+        "owner": "nikstur",
+        "repo": "bombon",
+        "rev": "be1d9bf0f956b11563cc1bd8c074fea89e5972cf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nikstur",
+        "repo": "bombon",
+        "type": "github"
+      }
+    },
     "fenix": {
       "inputs": {
         "nixpkgs": [
@@ -116,6 +136,7 @@
     },
     "root": {
       "inputs": {
+        "bombon": "bombon",
         "fenix": "fenix",
         "flake-utils": "flake-utils",
         "git-hooks": "git-hooks",

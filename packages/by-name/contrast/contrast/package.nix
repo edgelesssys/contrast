@@ -74,7 +74,7 @@ buildGoModule (finalAttrs: {
   # CycloneDX SBOM of the coordinator and initializer dependency graphs,
   # collected by the top-level sbom package. preAnalyze defaults to this
   # package's postConfigure, so the embedded reference-values.json is in place.
-  passthru.sbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
+  passthru.bombonVendoredSbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
 
   preCheck = ''
     export CGO_ENABLED=1

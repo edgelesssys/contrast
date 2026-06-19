@@ -82,7 +82,7 @@ buildGoModule (finalAttrs: {
   '';
 
   # The policy package embeds deny-with-message.rego, installed in prePatch.
-  passthru.sbom = buildGoModuleSbom {
+  passthru.bombonVendoredSbom = buildGoModuleSbom {
     package = finalAttrs.finalPackage;
     preAnalyze = finalAttrs.prePatch;
   };

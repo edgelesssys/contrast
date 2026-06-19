@@ -39,7 +39,7 @@ buildGoModule (finalAttrs: {
     "-X main.version=v${finalAttrs.version}"
   ];
 
-  passthru.sbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
+  passthru.bombonVendoredSbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
 
   meta.mainProgram = "imagepuller";
 })

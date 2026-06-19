@@ -13,7 +13,7 @@
 
 {
   lib,
-  writeText,
+  writeTextDir,
   stdenv,
 }:
 
@@ -52,7 +52,7 @@ let
     type = "library";
     "bom-ref" = id;
     name = (crateOf id).crateName;
-    version = (crateOf id).version;
+    inherit ((crateOf id)) version;
     purl = purlOf (crateOf id);
   };
 
@@ -72,6 +72,8 @@ let
     );
 
   bom = {
+    # 1.5 is what bombon's transformer parses for vendored SBOMs; bombon converts
+    # the aggregated output to 1.7.
     "$schema" = "http://cyclonedx.org/schema/bom-1.5.schema.json";
     bomFormat = "CycloneDX";
     specVersion = "1.5";
@@ -80,7 +82,7 @@ let
       type = "application";
       "bom-ref" = member;
       name = rootCrate.crateName;
-      version = rootCrate.version;
+      inherit (rootCrate) version;
       purl = purlOf rootCrate;
     };
     components = map mkComponent (lib.filter (id: id != member) ids);
@@ -90,4 +92,6 @@ let
     }) ids;
   };
 in
-writeText "${pname}.cdx.json" (builtins.toJSON bom)
+# bombon consumes bombonVendoredSbom as a directory of CycloneDX files, so emit
+# the SBOM into a directory rather than as a bare file.
+writeTextDir "${pname}.cdx.json" (builtins.toJSON bom)

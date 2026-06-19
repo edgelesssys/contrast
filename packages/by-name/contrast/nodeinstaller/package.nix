@@ -58,7 +58,7 @@ buildGoModule (finalAttrs: {
     mv "$out/bin/nodeinstaller" "$out/bin/node-installer"
   '';
 
-  passthru.sbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
+  passthru.bombonVendoredSbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
 
   meta.mainProgram = "node-installer";
 })

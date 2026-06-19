@@ -15,7 +15,7 @@
   (prev: {
     pname = "genpolicy";
     passthru = (prev.passthru or { }) // rec {
-      sbom = buildCargoSbom {
+      bombonVendoredSbom = buildCargoSbom {
         inherit (source) cargoNixPackage;
         member = "genpolicy";
       };

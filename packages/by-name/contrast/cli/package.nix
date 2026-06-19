@@ -105,7 +105,7 @@ buildGoModule (finalAttrs: {
 
   # The cli embeds assets installed in both pre- and postConfigure, so go list
   # (and thus cyclonedx-gomod) needs both run before analysis.
-  passthru.sbom = buildGoModuleSbom {
+  passthru.bombonVendoredSbom = buildGoModuleSbom {
     package = finalAttrs.finalPackage;
     preAnalyze = finalAttrs.preConfigure + finalAttrs.postConfigure;
   };

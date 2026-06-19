@@ -37,7 +37,7 @@ in
   (prev: {
     pname = "kata-agent";
     passthru = (prev.passthru or { }) // {
-      sbom = buildCargoSbom {
+      bombonVendoredSbom = buildCargoSbom {
         inherit (source) cargoNixPackage;
         member = "kata-agent";
         inherit features;

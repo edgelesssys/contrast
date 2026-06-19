@@ -55,7 +55,7 @@ buildGoModule (finalAttrs: {
     runHook postCheck
   '';
 
-  passthru.sbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
+  passthru.bombonVendoredSbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
 
   meta.mainProgram = "service-mesh";
 })

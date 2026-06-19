@@ -27,7 +27,7 @@ runCommand "kata-runtime-rs-${source.version}"
   {
     passthru.version = source.version;
     passthru.src = source.src;
-    passthru.sbom = buildCargoSbom {
+    passthru.bombonVendoredSbom = buildCargoSbom {
       inherit (source) cargoNixPackage;
       member = "shim";
       inherit features;

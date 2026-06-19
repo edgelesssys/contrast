@@ -21,6 +21,10 @@
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    bombon = {
+      url = "github:nikstur/bombon";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -72,6 +76,9 @@
 
         defaultOverlays = set: [
           (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
+          (final: _prev: {
+            inherit (self.inputs.bombon.lib.${final.stdenv.hostPlatform.system}) buildBom;
+          })
           (_final: _prev: { runtimePkgs = self.legacyPackages.x86_64-linux.${set}; })
           (import ./overlays/nixpkgs.nix)
           (import ./overlays/contrast.nix)
