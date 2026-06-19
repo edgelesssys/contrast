@@ -125,16 +125,5 @@ buildGoModule (finalAttrs: {
     suffix = _debug: [ ];
   };
 
-  # Output hashes for the git dependencies in the Kata workspace's Cargo.lock.
-  # Shared by all Rust packages built from this source (kata-agent, genpolicy,
-  # runtime-rs) and by kata.crate-sboms, so they only need to be maintained here.
-  passthru.cargoOutputHashes = {
-    "api_client-0.1.0" = "sha256-RdwQg6/EI+oGkyNXnu5t1q87oTXev25XpIaE+PWDTx4=";
-    "cgroups-rs-0.3.5" = "sha256-BKD1ZPK5LqB/n2xD/oODArVKjbH+MQOeYn/UYbBHzn0=";
-    "micro_http-0.1.0" = "sha256-XemdzwS25yKWEXJcRX2l6QzD7lrtroMeJNOUEWGR7WQ=";
-    "regorus-0.9.1" = "sha256-+TCq9r8kTNM0URbcDP4D9/lKA6Bni7+KgrGRTJFbQPM=";
-    "s390_pv_core-0.11.0" = "sha256-P275gUoF4JtaKvKPvzhCsBuo882kKCYebtNpCDEmTP0=";
-  };
-
   meta.mainProgram = "containerd-shim-kata-v2";
 })

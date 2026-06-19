@@ -4,13 +4,15 @@
 {
   lib,
   source,
+  buildCargoSbom,
   runCommand,
   withDragonball ? false,
 }:
 
 let
+  features = lib.optional withDragonball "dragonball";
   shim = source.cargoNixPackage.workspaceMembers."shim".build.override {
-    features = lib.optional withDragonball "dragonball";
+    inherit features;
     runTests = true;
     testCrateFlags = [
       "--skip=device::device_manager::tests::test_new_block_device"
@@ -25,6 +27,12 @@ runCommand "kata-runtime-rs-${source.version}"
   {
     passthru.version = source.version;
     passthru.src = source.src;
+    passthru.sbom = buildCargoSbom {
+      inherit (source) cargoNixPackage;
+      member = "shim";
+      inherit features;
+      pname = "kata-runtime-rs";
+    };
     passthru.cmdline = {
       prefix = _debug: [
         "reboot=k"
