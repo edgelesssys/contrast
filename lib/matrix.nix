@@ -61,6 +61,7 @@ rec {
           "contrastPkgsStatic"
           "contrast-releases"
           "matrix"
+          "cargoNixPackage" # crate2nix standalone outputs
         ] pkgs.contrastPkgs
       )
     );
