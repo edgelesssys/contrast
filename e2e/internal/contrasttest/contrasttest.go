@@ -484,7 +484,7 @@ func (ct *ContrastTest) commonArgs() []string {
 func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 	require := require.New(t)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
 	defer cancel()
 
 	var nodeInstallerDeps []any
