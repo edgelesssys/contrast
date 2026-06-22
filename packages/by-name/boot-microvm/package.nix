@@ -27,7 +27,7 @@ writeShellApplication {
     qemu-system-x86_64 \
       -enable-kvm \
       -m 3G \
-      -nographic \
+      -serial stdio -display none \
       -drive if=pflash,format=raw,readonly=on,file=${OVMF.firmware} \
       -drive if=pflash,format=raw,readonly=on,file=${OVMF.variables} \
       -kernel "$1" \
