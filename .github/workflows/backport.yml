@@ -22,12 +22,12 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           persist-credentials: true
       - name: Create backport PRs
-        uses: korthout/backport-action@ad30f01dbe543be4a24431001c38f3617af8c745 # v4.4.0
+        uses: korthout/backport-action@66065406958f46e82238fd59546f5a99e69e22aa # v4.5.2
         with:
           copy_milestone: true
           copy_labels_pattern: '.*'
