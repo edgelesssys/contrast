@@ -59,6 +59,7 @@ func newRootCmd() *cobra.Command {
 	root.InitDefaultVersionFlag()
 	root.AddCommand(
 		NewCryptsetupCmd(),
+		NewReportCmd(),
 	)
 	return root
 }
