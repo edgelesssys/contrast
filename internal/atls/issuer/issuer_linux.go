@@ -29,6 +29,6 @@ func New(log *slog.Logger) (atls.Issuer, error) {
 			logger.NewWithAttrs(logger.NewNamed(log, "issuer"), map[string]string{"tee-type": "tdx"}),
 		), nil
 	default:
-		return nil, fmt.Errorf("unsupported platform: %T", cpuid.CPU)
+		return nil, fmt.Errorf("unsupported platform: vendor=%q, brand=%q, family=%d, model=%d", cpuid.CPU.VendorString, cpuid.CPU.BrandName, cpuid.CPU.Family, cpuid.CPU.Model)
 	}
 }
