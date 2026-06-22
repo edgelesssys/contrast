@@ -187,4 +187,23 @@
       Cmd = [ "${pkgs.strongswan}/libexec/ipsec/charon" ];
     };
   };
+
+  qemu-demo = contrastPkgs.buildOciImage {
+    name = "qemu-demo";
+    tag = "0.1.0";
+    copyToRoot = with pkgs; [
+      bash
+      coreutils
+    ];
+    config = {
+      Cmd = [
+        "${contrastPkgs.boot-microvm}/bin/boot-microvm"
+        "${contrastPkgs.demo.kernel}/bzImage"
+        "${contrastPkgs.demo.initialRamdisk}/initrd"
+        "/dev/null"
+        "console=ttyS0"
+      ];
+      Env = [ "TMPDIR=/" ]; # TODO(burgerdev): only needed because of the boot-microvm script.
+    };
+  };
 }
