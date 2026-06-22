@@ -37,6 +37,9 @@ func runReport(cmd *cobra.Command, _ []string) error {
 	defer cancel()
 
 	issuer, err := issuer.New(log)
+	if err != nil {
+		return fmt.Errorf("creating issuer: %w", err)
+	}
 	quote, err := issuer.Issue(ctx, [64]byte{})
 	if err != nil {
 		return fmt.Errorf("creating report: %w", err)
