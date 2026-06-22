@@ -3,7 +3,7 @@
 
 {
   writeShellApplication,
-  qemu,
+  qemu-cc,
   OVMF,
 }:
 
@@ -13,11 +13,7 @@
 writeShellApplication {
   name = "boot-microvm";
   runtimeInputs = [
-    (qemu.override {
-      minimal = true;
-      hostCpuOnly = true;
-      enableBlobs = true;
-    })
+    qemu-cc
   ];
   text = ''
     if [[ $# -ne 4 ]]; then
