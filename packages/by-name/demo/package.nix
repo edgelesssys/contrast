@@ -14,5 +14,6 @@ buildVerityMicroVM (mkNixosConfig {
     # kata.enable = true;
     # kata.guestImagePull = true;
     image.microVM = true;
+    demo.enable = true;
   };
 })
