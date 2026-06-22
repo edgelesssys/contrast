@@ -1,0 +1,291 @@
+diff --git a/nix/runtime-dependencies.nix b/nix/runtime-dependencies.nix
+index 8e65af8..ba4be70 100644
+--- a/nix/runtime-dependencies.nix
++++ b/nix/runtime-dependencies.nix
+@@ -1,11 +1,21 @@
+-# This is a wrapper around nixpkgs' closureInfo. It returns a newline
+-# separated list of the store paths of drv's runtime dependencies.
++# This returns a JSON file describing drv's runtime dependency graph: an array
++# of { path, references } objects, one per store path in the closure of drv (and
++# extraPaths). `references` are the direct runtime references of `path`. This is
++# the data needed to emit a CycloneDX `dependencies` graph; `exportReferencesGraph`
++# gives us exactly the edges that `closureInfo` knows about.
+ {
+   runCommand,
+-  closureInfo,
++  jq,
+ }:
+ 
+ drv: extraPaths:
+-runCommand "${drv.name}-runtime-dependencies.txt" { } ''
+-  cat ${closureInfo { rootPaths = [ drv ] ++ extraPaths; }}/store-paths > $out
+-''
++runCommand "${drv.name}-runtime-dependencies.json"
++  {
++    __structuredAttrs = true;
++    exportReferencesGraph.closure = [ drv ] ++ extraPaths;
++    nativeBuildInputs = [ jq ];
++  }
++  ''
++    jq '[.closure[] | { path: .path, references: .references }]' \
++      "$NIX_ATTRS_JSON_FILE" > "$out"
++  ''
+diff --git a/rust/transformer/src/cyclonedx.rs b/rust/transformer/src/cyclonedx.rs
+index cb6491b..ce5fd38 100644
+--- a/rust/transformer/src/cyclonedx.rs
++++ b/rust/transformer/src/cyclonedx.rs
+@@ -15,6 +15,7 @@ use cyclonedx_bom::models::component::{Classification, Component, Components, Cp
+ use cyclonedx_bom::models::component::{
+     ComponentEvidence, ConfidenceScore, Identity, IdentityField, Method, Methods, Pedigree,
+ };
++use cyclonedx_bom::models::dependency::{Dependencies, Dependency};
+ use cyclonedx_bom::models::external_reference::{
+     self, ExternalReference, ExternalReferenceType, ExternalReferences,
+ };
+@@ -46,9 +47,15 @@ impl CycloneDXBom {
+         Ok(Self(Bom::parse_from_json(file)?))
+     }
+ 
+-    pub fn build(target: Derivation, components: CycloneDXComponents, output: &Path) -> Self {
++    pub fn build(
++        target: Derivation,
++        components: CycloneDXComponents,
++        dependencies: Dependencies,
++        output: &Path,
++    ) -> Self {
+         Self(Bom {
+             components: Some(components.into()),
++            dependencies: (!dependencies.0.is_empty()).then_some(dependencies),
+             metadata: Some(metadata_from_derivation(target)),
+             // Derive a reproducible serial number from the output path. This works because the Nix
+             // outPath of the derivation is input addressed and thus reproducible.
+@@ -56,10 +63,6 @@ impl CycloneDXBom {
+             ..Bom::default()
+         })
+     }
+-
+-    fn components(self) -> Option<Components> {
+-        self.0.components
+-    }
+ }
+ 
+ /// Derive a serial number from some arbitrary data.
+@@ -91,8 +94,13 @@ impl CycloneDXComponents {
+     }
+ 
+     /// Extend the `Components` with components read from multiple BOMs inside a directory.
+-    pub fn extend_from_directory(&mut self, path: impl AsRef<Path>) -> Result<()> {
++    ///
++    /// Returns the `dependencies` graphs declared by those BOMs, so the (language-level)
++    /// edges they carry can be preserved in the aggregate SBOM. Without this they would be
++    /// lost: only their components are merged.
++    pub fn extend_from_directory(&mut self, path: impl AsRef<Path>) -> Result<Vec<Dependency>> {
+         let mut m = BTreeMap::new();
++        let mut dependencies = Vec::new();
+ 
+         // Insert the components from the original SBOM
+         for component in self.0.0.clone() {
+@@ -109,19 +117,32 @@ impl CycloneDXComponents {
+             .flatten()
+         {
+             let bom = CycloneDXBom::from_file(entry.path())?;
+-            if let Some(components) = bom.components() {
+-                for component in components.0 {
++            if let Some(components) = &bom.0.components {
++                for component in &components.0 {
+                     let key = component
+                         .bom_ref
+                         .clone()
+                         .unwrap_or_else(|| component.name.to_string());
+-                    m.entry(key).or_insert(component);
++                    m.entry(key).or_insert_with(|| component.clone());
+                 }
+             }
++            if let Some(deps) = bom.0.dependencies {
++                dependencies.extend(deps.0);
++            }
+         }
+ 
+         self.0.0 = m.into_values().collect();
+-        Ok(())
++        Ok(dependencies)
++    }
++
++    /// The set of references (bom-ref, falling back to name) of the components currently held.
++    /// Used to keep the dependency graph valid: edges to/from absent components are dropped.
++    pub fn bom_refs(&self) -> std::collections::BTreeSet<String> {
++        self.0
++            .0
++            .iter()
++            .map(|c| c.bom_ref.clone().unwrap_or_else(|| c.name.to_string()))
++            .collect()
+     }
+ 
+     // Deduplicate components.
+diff --git a/rust/transformer/src/runtime_input.rs b/rust/transformer/src/runtime_input.rs
+index ef5b549..221dd80 100644
+--- a/rust/transformer/src/runtime_input.rs
++++ b/rust/transformer/src/runtime_input.rs
+@@ -1,17 +1,41 @@
+-use std::borrow::ToOwned;
+-use std::collections::BTreeSet;
++use std::collections::{BTreeMap, BTreeSet};
+ use std::fs;
+ use std::path::Path;
+ 
+ use anyhow::{Context, Result};
++use serde::Deserialize;
+ 
+-pub struct RuntimeInput(pub BTreeSet<String>);
++#[derive(Deserialize)]
++struct ClosureEntry {
++    path: String,
++    references: Vec<String>,
++}
++
++pub struct RuntimeInput {
++    /// The set of store paths in the runtime closure.
++    pub paths: BTreeSet<String>,
++    /// For each store path, its direct runtime references (self-references removed).
++    pub references: BTreeMap<String, Vec<String>>,
++}
+ 
+ impl RuntimeInput {
+     pub fn from_file(path: &Path) -> Result<Self> {
+-        let file_content = fs::read_to_string(path)
+-            .with_context(|| format!("Failed to read {}", path.display()))?;
+-        let set: BTreeSet<String> = file_content.lines().map(ToOwned::to_owned).collect();
+-        Ok(Self(set))
++        let entries: Vec<ClosureEntry> = serde_json::from_reader(
++            fs::File::open(path).with_context(|| format!("Failed to open {}", path.display()))?,
++        )
++        .with_context(|| format!("Failed to parse runtime input at {}", path.display()))?;
++
++        let mut paths = BTreeSet::new();
++        let mut references = BTreeMap::new();
++        for entry in entries {
++            let refs: Vec<String> = entry
++                .references
++                .into_iter()
++                .filter(|r| r != &entry.path)
++                .collect();
++            paths.insert(entry.path.clone());
++            references.insert(entry.path, refs);
++        }
++        Ok(Self { paths, references })
+     }
+ }
+diff --git a/rust/transformer/src/transform.rs b/rust/transformer/src/transform.rs
+index 88d0f93..10ff454 100644
+--- a/rust/transformer/src/transform.rs
++++ b/rust/transformer/src/transform.rs
+@@ -1,8 +1,10 @@
++use std::collections::{BTreeMap, BTreeSet};
+ use std::fs::File;
+ use std::io::Write;
+ use std::path::Path;
+ 
+ use anyhow::{Context, Result};
++use cyclonedx_bom::models::dependency::{Dependencies, Dependency};
+ use itertools::Itertools;
+ use regex::RegexSet;
+ 
+@@ -11,6 +13,14 @@ use crate::cyclonedx::{CycloneDXBom, CycloneDXComponents};
+ use crate::derivation::Derivation;
+ use crate::runtime_input::RuntimeInput;
+ 
++/// Strip the `/nix/store/` prefix to match how component bom-refs are derived from store paths.
++fn bom_ref(store_path: &str) -> String {
++    store_path
++        .strip_prefix("/nix/store/")
++        .unwrap_or(store_path)
++        .to_string()
++}
++
+ pub fn transform(
+     include_buildtime_dependencies: bool,
+     exclude: &[String],
+@@ -33,7 +43,7 @@ pub fn transform(
+     // Augment the runtime input with information from the buildtime input. The buildtime input,
+     // however, is not a strict superset of the runtime input. This has to do with how we query the
+     // buildinputs from Nix and how dependencies can "hide" in String Contexts.
+-    let runtime_derivations = runtime_input.0.iter().map(|store_path| {
++    let runtime_derivations = runtime_input.paths.iter().map(|store_path| {
+         buildtime_input
+             .0
+             .get(store_path)
+@@ -45,7 +55,7 @@ pub fn transform(
+         .0
+         .clone()
+         .into_values()
+-        .filter(|derivation| !runtime_input.0.contains(&derivation.path))
++        .filter(|derivation| !runtime_input.paths.contains(&derivation.path))
+         .unique_by(|d| d.name.clone().unwrap_or(d.path.clone()));
+ 
+     let all_derivations: Box<dyn Iterator<Item = Derivation>> = if include_buildtime_dependencies {
+@@ -75,16 +85,62 @@ pub fn transform(
+     let mut components = CycloneDXComponents::from_derivations(all_derivations);
+ 
+     // Augment the components with those retrieved from the `sbom` passthru attribute of the
+-    // derivations.
++    // derivations, preserving the (language-level) dependency edges those SBOMs declare.
++    let mut vendored_dependencies = Vec::new();
+     for derivation in buildtime_input.0.values() {
+         if let Some(sbom_path) = &derivation.vendored_sbom {
+-            components.extend_from_directory(sbom_path)?;
++            vendored_dependencies.extend(components.extend_from_directory(sbom_path)?);
+         }
+     }
+ 
+     components.deduplicate();
+ 
+-    let bom = CycloneDXBom::build(target_derivation, components, output);
++    // Assemble the CycloneDX dependency graph. Two sources of edges are combined:
++    //   - the Nix runtime reference graph (from exportReferencesGraph), keyed by store path;
++    //   - the language-level graphs carried by the vendored SBOMs, keyed by purl.
++    // Edges are restricted to refs that actually exist in the final BOM (the components, plus
++    // the target which is the metadata component) so the graph stays valid after filtering and
++    // deduplication. Entries are merged by ref so no dependency_ref appears twice.
++    let mut present = components.bom_refs();
++    present.insert(bom_ref(&target_derivation.path));
++
++    let mut graph: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
++    for (path, references) in &runtime_input.references {
++        let dependent = bom_ref(path);
++        if !present.contains(&dependent) {
++            continue;
++        }
++        let entry = graph.entry(dependent).or_default();
++        for reference in references {
++            let dependency = bom_ref(reference);
++            if present.contains(&dependency) {
++                entry.insert(dependency);
++            }
++        }
++    }
++    for dependency in vendored_dependencies {
++        if !present.contains(&dependency.dependency_ref) {
++            continue;
++        }
++        let entry = graph.entry(dependency.dependency_ref).or_default();
++        for sub in dependency.dependencies {
++            if present.contains(&sub) {
++                entry.insert(sub);
++            }
++        }
++    }
++
++    let dependencies = Dependencies(
++        graph
++            .into_iter()
++            .map(|(dependency_ref, dependencies)| Dependency {
++                dependency_ref,
++                dependencies: dependencies.into_iter().collect(),
++            })
++            .collect(),
++    );
++
++    let bom = CycloneDXBom::build(target_derivation, components, dependencies, output);
+     let mut file = File::create(output)
+         .with_context(|| format!("Failed to create file {}", output.display()))?;
+     file.write_all(&bom.serialize()?)?;

@@ -77,7 +77,15 @@
         defaultOverlays = set: [
           (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
           (final: _prev: {
-            inherit (self.inputs.bombon.lib.${final.stdenv.hostPlatform.system}) buildBom;
+            # bombon doesn't emit a CycloneDX dependency graph (nikstur/bombon#155).
+            # We build buildBom from a patched source that derives `dependencies`
+            # from the runtime reference graph and preserves the vendored SBOMs'
+            # own dependency edges.
+            inherit ((import (final.applyPatches {
+                name = "bombon-dependency-graph";
+                src = self.inputs.bombon;
+                patches = [ ./overlays/patches/bombon-dependency-graph.patch ];
+              }) { pkgs = final; })) buildBom;
           })
           (_final: _prev: { runtimePkgs = self.legacyPackages.x86_64-linux.${set}; })
           (import ./overlays/nixpkgs.nix)
