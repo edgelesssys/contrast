@@ -471,24 +471,19 @@ get-credentials platform=default_platform:
     set -euo pipefail
     case {{ platform }} in
         "Metal-QEMU-TDX"|"olimar")
-            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest"
-            sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-TDX"/' justfile.env
-            sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest" Metal-QEMU-TDX k3s
         ;;
         "Metal-QEMU-TDX-GPU"|"dgx-007")
-            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/dgx-007-kubeconfig/versions/latest"
-            sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-TDX-GPU"/' justfile.env
-            sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="none"/' justfile.env
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/dgx-007-kubeconfig/versions/latest" Metal-QEMU-TDX-GPU none
         ;;
         "Metal-QEMU-SNP"|"palutena")
-            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/palutena-kubeconfig/versions/latest"
-            sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP"/' justfile.env
-            sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="none"/' justfile.env
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/palutena-kubeconfig/versions/latest" Metal-QEMU-SNP none
         ;;
         "Metal-QEMU-SNP-GPU"|"discovery")
-            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/latest"
-            sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP-GPU"/' justfile.env
-            sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/latest" Metal-QEMU-SNP-GPU k3s
+        ;;
+        "dev"|"hetzner-ax162-snp")
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest" Metal-QEMU-SNP k3s
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
@@ -498,9 +493,7 @@ get-credentials platform=default_platform:
 
 # Load the kubeconfig from the dev cluster.
 get-credentials-dev:
-    nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest"
-    sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP"/' justfile.env
-    sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
+    just get-credentials dev
 
 # Get the Github token with read access to Contrast's ghcr.io packages.
 get-ghcr-read-token:
