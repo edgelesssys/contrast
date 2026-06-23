@@ -392,6 +392,8 @@ const (
 	RoleNone Role = ""
 	// RoleCoordinator is the coordinator role.
 	RoleCoordinator Role = "coordinator"
+	// RoleNodeInstaller is the node installer DaemonSet.
+	RoleNodeInstaller Role = "contrast-node-installer"
 )
 
 // Validate checks the validity of the role.
