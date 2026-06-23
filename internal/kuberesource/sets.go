@@ -892,15 +892,6 @@ seal "transit" {
 									WithPeriodSeconds(1).
 									WithFailureThreshold(10),
 								).
-								WithLivenessProbe(applycorev1.Probe().
-									WithHTTPGet(applycorev1.HTTPGetAction().
-										WithPort(intstr.FromInt(8200)).
-										WithScheme(corev1.URISchemeHTTPS).
-										WithPath("/v1/sys/seal-status"),
-									).
-									WithPeriodSeconds(5).
-									WithFailureThreshold(3),
-								).
 								WithReadinessProbe(applycorev1.Probe().
 									WithHTTPGet(applycorev1.HTTPGetAction().
 										WithPort(intstr.FromInt(8200)).
