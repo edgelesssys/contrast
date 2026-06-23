@@ -513,6 +513,7 @@ func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 	require.NoError(err)
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
+	resources = kuberesource.PatchDockerSecrets(resources, ct.Namespace, ct.GHCRToken)
 
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)
