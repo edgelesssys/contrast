@@ -80,75 +80,85 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 
 	d := DaemonSet(name, namespace).
 		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-		WithSpec(DaemonSetSpec().
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-				WithAnnotations(map[string]string{
-					"contrast.edgeless.systems/pod-role": "contrast-node-installer",
-					"contrast.edgeless.systems/platform": platform.String(),
-				}).
-				WithSpec(PodSpec().
-					WithHostPID(true).
-					WithInitContainers(Container().
-						WithName("installer").
-						WithImage(nodeInstallerImageURL).
-						WithResources(ResourceRequirements().
-							// node-installer doesn't run in as VM, no need to set a limit here.
-							WithMemoryRequest(700),
-						).
-						WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
-						WithVolumeMounts(
-							VolumeMount().
-								WithName("host-mount").
-								WithMountPath("/host"),
-							VolumeMount().
-								WithName("var-run-dbus-socket").
-								WithMountPath("/var/run/dbus/system_bus_socket"),
-							VolumeMount().
-								WithName("target-config").
-								WithMountPath("/target-config"),
-							VolumeMount().
-								WithName("imagepuller-config").
-								WithMountPath("/imagepuller-config"),
-						).
-						WithCommand("/bin/node-installer", platform.String()),
-					).
-					WithContainers(
-						Container().
-							WithName("pause").
-							WithImage("registry.k8s.io/pause:3.6@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db"),
-					).
-					WithVolumes(
-						Volume().
-							WithName("host-mount").
-							WithHostPath(HostPathVolumeSource().
-								WithPath("/").
-								WithType(corev1.HostPathDirectory),
-							),
-						Volume().
-							WithName("var-run-dbus-socket").
-							WithHostPath(HostPathVolumeSource().
-								WithPath("/var/run/dbus/system_bus_socket").
-								WithType(corev1.HostPathSocket),
-							),
-						Volume().
-							WithName("target-config").
-							WithConfigMap(ConfigMapVolumeSource().
-								WithName("contrast-node-installer-target-config").
-								WithOptional(true),
-							),
-						Volume().
-							WithName("imagepuller-config").
-							WithSecret(SecretVolumeSource().
-								WithSecretName("contrast-node-installer-imagepuller-config").
-								WithOptional(true),
-							),
-					),
+		WithSpec(
+			DaemonSetSpec().
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+						WithAnnotations(map[string]string{
+							"contrast.edgeless.systems/pod-role": "contrast-node-installer",
+							"contrast.edgeless.systems/platform": platform.String(),
+						}).
+						WithSpec(
+							PodSpec().
+								WithHostPID(true).
+								WithInitContainers(
+									Container().
+										WithName("installer").
+										WithImage(nodeInstallerImageURL).
+										WithResources(
+											ResourceRequirements().
+												// node-installer doesn't run in as VM, no need to set a limit here.
+												WithMemoryRequest(700),
+										).
+										WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
+										WithVolumeMounts(
+											VolumeMount().
+												WithName("host-mount").
+												WithMountPath("/host"),
+											VolumeMount().
+												WithName("var-run-dbus-socket").
+												WithMountPath("/var/run/dbus/system_bus_socket"),
+											VolumeMount().
+												WithName("target-config").
+												WithMountPath("/target-config"),
+											VolumeMount().
+												WithName("imagepuller-config").
+												WithMountPath("/imagepuller-config"),
+										).
+										WithCommand("/bin/node-installer", platform.String()),
+								).
+								WithContainers(
+									Container().
+										WithName("pause").
+										WithImage("registry.k8s.io/pause:3.6@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db"),
+								).
+								WithVolumes(
+									Volume().
+										WithName("host-mount").
+										WithHostPath(
+											HostPathVolumeSource().
+												WithPath("/").
+												WithType(corev1.HostPathDirectory),
+										),
+									Volume().
+										WithName("var-run-dbus-socket").
+										WithHostPath(
+											HostPathVolumeSource().
+												WithPath("/var/run/dbus/system_bus_socket").
+												WithType(corev1.HostPathSocket),
+										),
+									Volume().
+										WithName("target-config").
+										WithConfigMap(
+											ConfigMapVolumeSource().
+												WithName("contrast-node-installer-target-config").
+												WithOptional(true),
+										),
+									Volume().
+										WithName("imagepuller-config").
+										WithSecret(
+											SecretVolumeSource().
+												WithSecretName("contrast-node-installer-imagepuller-config").
+												WithOptional(true),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	return d, nil
@@ -214,16 +224,18 @@ func PortForwarder(name, namespace string) *PortForwarderConfig {
 
 	p := Pod(name, namespace).
 		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-		WithSpec(PodSpec().
-			WithContainers(
-				Container().
-					WithName("port-forwarder").
-					WithImage("ghcr.io/edgelesssys/contrast/port-forwarder:latest").
-					WithCommand("/bin/bash", "-c", portForwarderScript).
-					WithResources(ResourceRequirements().
-						WithMemoryLimitAndRequest(50),
-					),
-			),
+		WithSpec(
+			PodSpec().
+				WithContainers(
+					Container().
+						WithName("port-forwarder").
+						WithImage("ghcr.io/edgelesssys/contrast/port-forwarder:latest").
+						WithCommand("/bin/bash", "-c", portForwarderScript).
+						WithResources(
+							ResourceRequirements().
+								WithMemoryLimitAndRequest(50),
+						),
+				),
 		)
 
 	return &PortForwarderConfig{p}
@@ -254,93 +266,103 @@ type CoordinatorConfig struct {
 // Coordinator constructs a new CoordinatorConfig.
 func Coordinator(namespace string) *CoordinatorConfig {
 	c := StatefulSet("coordinator", namespace).
-		WithSpec(StatefulSetSpec().
-			WithReplicas(1).
-			WithServiceName("coordinator").
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}),
-			).
-			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
-				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
-				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)). // TODO(burgerdev): this should be RETAIN for released coordinators.
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
-				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
-				WithSpec(PodSpec().
-					WithServiceAccountName("coordinator").
-					WithContainers(
-						Container().
-							WithName("coordinator").
-							WithImage("ghcr.io/edgelesssys/contrast/coordinator:latest").
-							WithSecurityContext(SecurityContext().
-								WithCapabilities(applycorev1.Capabilities().
-									WithAdd(
-										"NET_ADMIN", // Needed for removing the default deny iptables rule.
-									),
+		WithSpec(
+			StatefulSetSpec().
+				WithReplicas(1).
+				WithServiceName("coordinator").
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}),
+				).
+				WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)). // TODO(burgerdev): this should be RETAIN for released coordinators.
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
+						WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
+						WithSpec(
+							PodSpec().
+								WithServiceAccountName("coordinator").
+								WithContainers(
+									Container().
+										WithName("coordinator").
+										WithImage("ghcr.io/edgelesssys/contrast/coordinator:latest").
+										WithSecurityContext(
+											SecurityContext().
+												WithCapabilities(
+													applycorev1.Capabilities().
+														WithAdd(
+															"NET_ADMIN", // Needed for removing the default deny iptables rule.
+														),
+												),
+										).
+										WithPorts(
+											ContainerPort().
+												WithName("userapi").
+												WithContainerPort(1313),
+											ContainerPort().
+												WithName("httpapi").
+												WithContainerPort(1314),
+											ContainerPort().
+												WithName("meshapi").
+												WithContainerPort(7777),
+											ContainerPort().
+												WithName("transitapi").
+												WithContainerPort(8200),
+										).
+										WithStartupProbe(
+											Probe().
+												WithInitialDelaySeconds(1).
+												WithPeriodSeconds(1).
+												WithFailureThreshold(60).
+												WithHTTPGet(applycorev1.HTTPGetAction().
+													WithPort(intstr.FromInt(9102)).
+													WithPath("/probe/startup")),
+										).
+										WithLivenessProbe(
+											Probe().
+												WithPeriodSeconds(10).
+												WithFailureThreshold(3).
+												WithHTTPGet(applycorev1.HTTPGetAction().
+													WithPort(intstr.FromInt(9102)).
+													WithPath("/probe/liveness")),
+										).
+										WithReadinessProbe(
+											Probe().
+												WithPeriodSeconds(5).
+												WithHTTPGet(applycorev1.HTTPGetAction().
+													WithPort(intstr.FromInt(9102)).
+													WithPath("/probe/readiness")),
+										).
+										WithResources(
+											ResourceRequirements().
+												// As of v1.18.0, the Coordinator is roughly 200MiB unpacked.
+												// Double that to account for only 50% of VM memory being available
+												// for /run.
+												WithMemoryLimitAndRequest(400),
+										),
+								).
+								WithAffinity(
+									applycorev1.Affinity().
+										WithPodAntiAffinity(
+											applycorev1.PodAntiAffinity().
+												WithPreferredDuringSchedulingIgnoredDuringExecution(
+													applycorev1.WeightedPodAffinityTerm().
+														WithWeight(100).
+														WithPodAffinityTerm(
+															applycorev1.PodAffinityTerm().
+																WithLabelSelector(
+																	LabelSelector().
+																		WithMatchLabels(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}),
+																).
+																WithTopologyKey("kubernetes.io/hostname"),
+														),
+												),
+										),
 								),
-							).
-							WithPorts(
-								ContainerPort().
-									WithName("userapi").
-									WithContainerPort(1313),
-								ContainerPort().
-									WithName("httpapi").
-									WithContainerPort(1314),
-								ContainerPort().
-									WithName("meshapi").
-									WithContainerPort(7777),
-								ContainerPort().
-									WithName("transitapi").
-									WithContainerPort(8200),
-							).
-							WithStartupProbe(Probe().
-								WithInitialDelaySeconds(1).
-								WithPeriodSeconds(1).
-								WithFailureThreshold(60).
-								WithHTTPGet(applycorev1.HTTPGetAction().
-									WithPort(intstr.FromInt(9102)).
-									WithPath("/probe/startup")),
-							).
-							WithLivenessProbe(Probe().
-								WithPeriodSeconds(10).
-								WithFailureThreshold(3).
-								WithHTTPGet(applycorev1.HTTPGetAction().
-									WithPort(intstr.FromInt(9102)).
-									WithPath("/probe/liveness")),
-							).
-							WithReadinessProbe(Probe().
-								WithPeriodSeconds(5).
-								WithHTTPGet(applycorev1.HTTPGetAction().
-									WithPort(intstr.FromInt(9102)).
-									WithPath("/probe/readiness")),
-							).
-							WithResources(ResourceRequirements().
-								// As of v1.18.0, the Coordinator is roughly 200MiB unpacked.
-								// Double that to account for only 50% of VM memory being available
-								// for /run.
-								WithMemoryLimitAndRequest(400),
-							),
-					).
-					WithAffinity(
-						applycorev1.Affinity().
-							WithPodAntiAffinity(
-								applycorev1.PodAntiAffinity().
-									WithPreferredDuringSchedulingIgnoredDuringExecution(
-										applycorev1.WeightedPodAffinityTerm().
-											WithWeight(100).
-											WithPodAffinityTerm(
-												applycorev1.PodAffinityTerm().
-													WithLabelSelector(
-														LabelSelector().
-															WithMatchLabels(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}),
-													).
-													WithTopologyKey("kubernetes.io/hostname"),
-											),
-									),
-							),
-					),
+						),
 				),
-			),
 		)
 
 	sa := ServiceAccount("coordinator", namespace).ServiceAccountApplyConfiguration
@@ -396,8 +418,9 @@ func ServiceForDeployment(d *applyappsv1.DeploymentApplyConfiguration) *applycor
 		ns = *d.Namespace
 	}
 	s := Service(*d.Name, ns).
-		WithSpec(ServiceSpec().
-			WithSelector(selector),
+		WithSpec(
+			ServiceSpec().
+				WithSelector(selector),
 		)
 
 	for _, p := range ports {
@@ -423,8 +446,9 @@ func ServiceForStatefulSet(s *applyappsv1.StatefulSetApplyConfiguration) *applyc
 		ns = *s.Namespace
 	}
 	svc := Service(*s.Name, ns).
-		WithSpec(ServiceSpec().
-			WithSelector(selector),
+		WithSpec(
+			ServiceSpec().
+				WithSelector(selector),
 		)
 
 	for _, p := range ports {
@@ -470,15 +494,17 @@ func Initializer(coordinatorHost string) *applycorev1.ContainerApplyConfiguratio
 	return applycorev1.Container().
 		WithName("contrast-initializer").
 		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
-		WithResources(ResourceRequirements().
-			// In v1.18.0, the initializer image was 50MiB compressed, 160MiB uncompressed.
-			// Double that because only 50% of the VM memory are available for /run.
-			WithMemoryLimitAndRequest(420),
+		WithResources(
+			ResourceRequirements().
+				// In v1.18.0, the initializer image was 50MiB compressed, 160MiB uncompressed.
+				// Double that because only 50% of the VM memory are available for /run.
+				WithMemoryLimitAndRequest(420),
 		).
 		WithEnv(NewEnvVar("COORDINATOR_HOST", coordinatorHost)).
-		WithVolumeMounts(VolumeMount().
-			WithName("contrast-secrets").
-			WithMountPath("/contrast"),
+		WithVolumeMounts(
+			VolumeMount().
+				WithName("contrast-secrets").
+				WithMountPath("/contrast"),
 		).
 		WithSecurityContext(
 			SecurityContext().
@@ -497,27 +523,31 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 		WithName("contrast-service-mesh").
 		WithImage("ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest").
 		WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
-		WithVolumeMounts(VolumeMount().
-			WithName("contrast-secrets").
-			WithMountPath("/contrast"),
+		WithVolumeMounts(
+			VolumeMount().
+				WithName("contrast-secrets").
+				WithMountPath("/contrast"),
 		).
-		WithSecurityContext(SecurityContext().
-			WithPrivileged(true).
-			AddCapabilities("NET_ADMIN").
-			SecurityContextApplyConfiguration,
+		WithSecurityContext(
+			SecurityContext().
+				WithPrivileged(true).
+				AddCapabilities("NET_ADMIN").
+				SecurityContextApplyConfiguration,
 		).
-		WithStartupProbe(Probe().
-			WithInitialDelaySeconds(1).
-			WithPeriodSeconds(5).
-			WithFailureThreshold(5).
-			WithExec(ExecAction().
-				WithCommand("test", "-f", "/ready")),
+		WithStartupProbe(
+			Probe().
+				WithInitialDelaySeconds(1).
+				WithPeriodSeconds(5).
+				WithFailureThreshold(5).
+				WithExec(ExecAction().
+					WithCommand("test", "-f", "/ready")),
 		).
 		WithArgs(
 			"-l", "debug",
 		).
-		WithResources(ResourceRequirements().
-			WithMemoryLimitAndRequest(400),
+		WithResources(
+			ResourceRequirements().
+				WithMemoryLimitAndRequest(400),
 		)
 }
 
@@ -527,8 +557,9 @@ func DebugShell() *applycorev1.ContainerApplyConfiguration {
 		WithName("contrast-debug-shell").
 		WithImage("ghcr.io/edgelesssys/contrast/debugshell:latest").
 		WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
-		WithResources(ResourceRequirements().
-			WithMemoryLimitAndRequest(1000),
+		WithResources(
+			ResourceRequirements().
+				WithMemoryLimitAndRequest(1000),
 		)
 }
 
@@ -572,4 +603,55 @@ func GetPodCPUCount(spec *applycorev1.PodSpecApplyConfiguration) uint64 {
 	totalMilliCPUs := max(regularContainersCPU, maxInitContainerCPU) + podLevelCPU
 	totalCPUs := (totalMilliCPUs+999)/1000 + 1
 	return uint64(totalCPUs)
+}
+
+// CollateralProxy returns the resources for an in-cluster read-through caching forward proxy for responses from AMD KDS, Intel PCS, and NVIDIA RIM endpoints.
+func CollateralProxy(namespace, storageClassName string) []any {
+	const (
+		name     = "collateral-proxy"
+		port     = int32(80)
+		stateDir = "/var/lib/collateral-proxy"
+		stateVol = "state"
+	)
+	labels := map[string]string{"app.kubernetes.io/name": name}
+
+	pvcSpec := applycorev1.PersistentVolumeClaimSpec().
+		WithAccessModes(corev1.ReadWriteOnce).
+		WithResources(applycorev1.VolumeResourceRequirements().
+			WithRequests(corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("1Gi")}))
+	if storageClassName != "" {
+		pvcSpec = pvcSpec.WithStorageClassName(storageClassName)
+	}
+
+	mem := corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("256Mi")}
+	statefulSet := StatefulSet(name, namespace).
+		WithSpec(StatefulSetSpec().
+			WithReplicas(1).
+			WithServiceName(name).
+			WithSelector(LabelSelector().WithMatchLabels(labels)).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(labels).
+				WithSpec(PodSpec().
+					WithContainers(applycorev1.Container().
+						WithName(name).
+						WithImage("ghcr.io/edgelesssys/contrast/collateral-proxy:latest").
+						WithArgs(fmt.Sprintf("-addr=:%d", port), "-state-dir="+stateDir).
+						WithPorts(applycorev1.ContainerPort().
+							WithName("proxy").
+							WithContainerPort(port)).
+						WithVolumeMounts(applycorev1.VolumeMount().
+							WithName(stateVol).
+							WithMountPath(stateDir)).
+						WithReadinessProbe(applycorev1.Probe().
+							WithHTTPGet(applycorev1.HTTPGetAction().
+								WithPath("/healthz").
+								WithPort(intstr.FromInt32(port))).
+							WithPeriodSeconds(5)).
+						WithResources(applycorev1.ResourceRequirements().
+							WithRequests(mem).
+							WithLimits(mem))))).
+			WithVolumeClaimTemplates(applycorev1.PersistentVolumeClaim(stateVol, "").
+				WithSpec(pvcSpec)))
+
+	return []any{statefulSet, ServiceForStatefulSet(statefulSet)}
 }

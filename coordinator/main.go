@@ -83,6 +83,11 @@ func run() (retErr error) {
 
 	logger.Info("Coordinator started")
 
+	if proxy := os.Getenv(constants.CollateralProxyEnvVar); proxy != "" {
+		logger.Info("routing attestation collateral through proxy", "proxy", proxy)
+		certcache.SetCollateralProxy(proxy)
+	}
+
 	// The coordinator doesn't have an initcontainer to remove the default deny rule.
 	// Since we control the code of the coordinator, we never need the service-mesh sidecar
 	// and therefore can just remove the default deny rule.

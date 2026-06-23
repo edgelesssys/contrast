@@ -8,19 +8,62 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	neturl "net/url"
 	"regexp"
+	"strings"
 	"time"
 
+	"github.com/google/go-sev-guest/kds"
+	"github.com/google/go-tdx-guest/pcs"
 	"github.com/google/go-tdx-guest/verify/trust"
 	"k8s.io/utils/clock"
 	testingclock "k8s.io/utils/clock/testing"
 )
 
 var (
-	snpCrlURL     = regexp.MustCompile(`^https://kdsintf\.amd\.com/vcek/v1/[A-Za-z]*/crl$`)
-	tdxRootCrlURL = regexp.MustCompile(`^https://certificates.trustedservices.intel.com/IntelSGXRootCA.der$`)
-	tdxBaseURL    = regexp.MustCompile(`^https://api\.trustedservices\.intel\.com/(sgx|tdx)/certification/v4`)
+	snpCrlPath     = regexp.MustCompile(`^/vcek/v1/[A-Za-z]*/crl$`)
+	tdxRootCrlPath = regexp.MustCompile(`^/IntelSGXRootCA\.der$`)
+	tdxBasePath    = regexp.MustCompile(`^/(sgx|tdx)/certification/v4`)
 )
+
+func alwaysRevalidate(rawURL string) bool {
+	u, err := neturl.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	return snpCrlPath.MatchString(u.Path) || tdxRootCrlPath.MatchString(u.Path) || tdxBasePath.MatchString(u.Path)
+}
+
+var collateralProxyBase string
+
+const intelCertificatesHost = "certificates.trustedservices.intel.com"
+
+// SetCollateralProxy routes attestation-collateral fetches through the in-cluster collateral-proxy at proxyURL.
+func SetCollateralProxy(proxyURL string) {
+	proxyURL = strings.TrimRight(proxyURL, "/")
+	if proxyURL == "" {
+		return
+	}
+	kds.KDSBaseURL = proxyURL
+	pcs.SgxBaseURL = proxyURL + "/sgx/certification/v4"
+	pcs.TdxBaseURL = proxyURL + "/tdx/certification/v4"
+	collateralProxyBase = proxyURL
+}
+
+func redirectToProxy(rawURL string) string {
+	if collateralProxyBase == "" {
+		return rawURL
+	}
+	u, err := neturl.Parse(rawURL)
+	if err != nil || u.Host != intelCertificatesHost {
+		return rawURL
+	}
+	redirected := collateralProxyBase + u.Path
+	if u.RawQuery != "" {
+		redirected += "?" + u.RawQuery
+	}
+	return redirected
+}
 
 // CachedHTTPSGetter is a HTTPS client that caches responses in memory.
 type CachedHTTPSGetter struct {
@@ -56,9 +99,10 @@ func (c *CachedHTTPSGetter) GetContext(ctx context.Context, url string) (map[str
 	default:
 	}
 
+	url = redirectToProxy(url)
 	log := c.logger.With("url", url)
 
-	if snpCrlURL.MatchString(url) || tdxRootCrlURL.MatchString(url) || tdxBaseURL.MatchString(url) {
+	if alwaysRevalidate(url) {
 		// For CRLs or TDX TCB/QeIdentity always query. When request failure, fallback to cache.
 		log.Debug("Requesting URL")
 		header, body, err := c.ContextHTTPSGetter.GetContext(ctx, url)

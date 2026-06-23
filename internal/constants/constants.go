@@ -65,4 +65,9 @@ const (
 	// CacheDirEnvVar is the environment variable for overriding the directory used for
 	// Contrast's various caches.
 	CacheDirEnvVar = "CONTRAST_CACHE_DIR"
+
+	// CollateralProxyEnvVar is the environment variable that, when set to a base URL, routes
+	// AMD KDS and Intel PCS attestation-collateral fetches through that in-cluster caching
+	// proxy. It is read by the coordinator and the initializer. empty means fetch directly.
+	CollateralProxyEnvVar = "CONTRAST_COLLATERAL_PROXY"
 )

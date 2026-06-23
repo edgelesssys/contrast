@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -781,6 +782,49 @@ spec:
 			require.Equal(tc.wantInitNames, initNames)
 		})
 	}
+}
+
+func TestSetCollateralProxyEnv(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	coordinatorPod := applycorev1.Pod("coordinator", "default").
+		WithAnnotations(map[string]string{contrastRoleAnnotationKey: "coordinator"}).
+		WithSpec(applycorev1.PodSpec().
+			WithRuntimeClassName("contrast-cc-foo").
+			WithContainers(applycorev1.Container().WithName("coordinator").WithImage("coordinator")))
+	workloadPod := applycorev1.Pod("worker", "default").
+		WithSpec(applycorev1.PodSpec().
+			WithRuntimeClassName("contrast-cc-foo").
+			WithContainers(applycorev1.Container().WithName("app").WithImage("nginx")))
+
+	const proxyURL = "http://collateral-proxy.default.svc"
+	out := SetCollateralProxyEnv([]any{coordinatorPod, workloadPod}, proxyURL)
+	require.Len(out, 2)
+
+	// The coordinator gets the env var and no CA volume.
+	coord, ok := out[0].(*applycorev1.PodApplyConfiguration)
+	require.True(ok)
+	require.Len(coord.Spec.Containers, 1)
+	envs := map[string]string{}
+	for _, e := range coord.Spec.Containers[0].Env {
+		envs[*e.Name] = *e.Value
+	}
+	assert.Equal(proxyURL, envs[constants.CollateralProxyEnvVar])
+	assert.Empty(coord.Spec.Volumes, "no CA volume should be mounted")
+
+	// Non-coordinator pods are untouched.
+	workload, ok := out[1].(*applycorev1.PodApplyConfiguration)
+	require.True(ok)
+	assert.Empty(workload.Spec.Containers[0].Env)
+
+	// Idempotent, and a different URL replaces the existing value.
+	const otherURL = "http://collateral-proxy.example.svc"
+	out2 := SetCollateralProxyEnv(out, otherURL)
+	coord2, ok := out2[0].(*applycorev1.PodApplyConfiguration)
+	require.True(ok)
+	require.Len(coord2.Spec.Containers[0].Env, 1)
+	assert.Equal(otherURL, *coord2.Spec.Containers[0].Env[0].Value)
 }
 
 func TestMapPodSpecWithErrors(t *testing.T) {

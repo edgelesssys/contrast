@@ -23,7 +23,7 @@ func TestStatefulSetInjections(t *testing.T) {
 	resources := []any{statefulSet()}
 
 	t.Run("injectInitializer", func(t *testing.T) {
-		require.NoError(t, injectInitializer(resources, "coordinator-namespace"))
+		require.NoError(t, injectInitializer(resources, "coordinator-namespace", ""))
 	})
 
 	t.Run("injectServiceMesh", func(t *testing.T) {

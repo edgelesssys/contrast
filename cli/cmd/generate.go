@@ -22,6 +22,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
 	"github.com/edgelesssys/contrast/cli/verifier"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/idblock"
 	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
@@ -75,8 +76,10 @@ subcommands.`,
 	cmd.Flags().StringP("settings", "s", settingsFilename, "path to settings (.json) file")
 	cmd.Flags().StringP("genpolicy-cache-path", "c", layersCacheFilename, "path to cache for the cache (.json) file containing the image layers")
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
-	cmd.Flags().String("reference-values", "",
-		fmt.Sprintf("set the default reference values used for attestation (one of: %s)",
+	cmd.Flags().String(
+		"reference-values", "",
+		fmt.Sprintf(
+			"set the default reference values used for attestation (one of: %s)",
 			strings.Join(platforms.AllStrings(), ", "),
 		),
 	)
@@ -94,6 +97,7 @@ subcommands.`,
 	must(cmd.Flags().MarkHidden("image-replacements"))
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
 	cmd.Flags().Bool("skip-service-mesh", false, "skip injection of Contrast service mesh sidecar")
+	cmd.Flags().String("collateral-proxy", "", "route attestation-collateral fetches through the caching proxy at this base URL")
 	cmd.Flags().Bool("inject-image-store", false, "inject an ephemeral storage device to pull images onto instead of into memory")
 	cmd.Flags().Bool("insecure-enable-debug-shell-access", false, "enable the debug shell service in the pod CVM to get access from container to guest VM")
 	cmd.Flags().Bool("calculate-pod-memory", false, "calculate pod memory based on image layer sizes and container resource limits")
@@ -567,14 +571,18 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 			return fmt.Errorf("parsing release image definitions %s: %w", ReleaseImageReplacements, err)
 		}
 	}
+
 	return mapContrastWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
+		if flags.collateralProxyURL != "" && isCoordinator(res) {
+			res = kuberesource.SetCollateralProxyEnv([]any{res}, flags.collateralProxyURL)[0]
+		}
 		if flags.insecureEnableDebugShell {
 			if _, err := kuberesource.AddDebugShell(res, kuberesource.DebugShell()); err != nil {
 				return nil, fmt.Errorf("injecting debug shell container: %w", err)
 			}
 		}
 		if !flags.skipInitializer {
-			if err := injectInitializer(res, coordinatorNamespace); err != nil {
+			if err := injectInitializer(res, coordinatorNamespace, flags.collateralProxyURL); err != nil {
 				return nil, fmt.Errorf("injecting Initializer: %w", err)
 			}
 		}
@@ -603,7 +611,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 	})
 }
 
-func injectInitializer(resource any, coordinatorNamespace string) error {
+func injectInitializer(resource any, coordinatorNamespace, collateralProxyURL string) error {
 	if isCoordinator(resource) {
 		return nil
 	}
@@ -611,7 +619,11 @@ func injectInitializer(resource any, coordinatorNamespace string) error {
 		coordinatorNamespace = "default"
 	}
 	coordinatorHost := fmt.Sprintf("coordinator-ready.%s", coordinatorNamespace)
-	if _, err := kuberesource.AddInitializer(resource, kuberesource.Initializer(coordinatorHost)); err != nil {
+	initializer := kuberesource.Initializer(coordinatorHost)
+	if collateralProxyURL != "" {
+		initializer.WithEnv(kuberesource.NewEnvVar(constants.CollateralProxyEnvVar, collateralProxyURL))
+	}
+	if _, err := kuberesource.AddInitializer(resource, initializer); err != nil {
 		return err
 	}
 	return nil
@@ -953,6 +965,7 @@ type generateFlags struct {
 	imageReplacementsFile    string
 	skipInitializer          bool
 	skipServiceMesh          bool
+	collateralProxyURL       string
 	injectImageStore         bool
 	insecureEnableDebugShell bool
 	calculatePodMemory       bool
@@ -1045,6 +1058,10 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	collateralProxyURL, err := cmd.Flags().GetString("collateral-proxy")
+	if err != nil {
+		return nil, err
+	}
 	injectImageStore, err := cmd.Flags().GetBool("inject-image-store")
 	if err != nil {
 		return nil, err
@@ -1080,6 +1097,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		imageReplacementsFile:    imageReplacementsFile,
 		skipInitializer:          skipInitializer,
 		skipServiceMesh:          skipServiceMesh,
+		collateralProxyURL:       collateralProxyURL,
 		injectImageStore:         injectImageStore,
 		insecureEnableDebugShell: insecureEnableDebugShell,
 		calculatePodMemory:       calculatePodMemory,

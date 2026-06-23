@@ -29,6 +29,17 @@ func TestCoordinator(t *testing.T) {
 	t.Log("\n" + string(b))
 }
 
+func TestCollateralProxy(t *testing.T) {
+	require := require.New(t)
+
+	resources := CollateralProxy("default", "")
+	require.Len(resources, 2)
+
+	b, err := EncodeResources(resources...)
+	require.NoError(err)
+	t.Log("\n" + string(b))
+}
+
 func TestNoNamespaces(t *testing.T) {
 	coordinator := CoordinatorBundle()
 	openssl := OpenSSL()
