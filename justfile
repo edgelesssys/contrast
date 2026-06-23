@@ -3,6 +3,7 @@ default_deploy_target := "openssl"
 default_platform := "${default_platform}"
 default_set := "${set}"
 workspace_dir := "workspace"
+default_collateral_proxy := "http://collateral-proxy.default.svc"
 
 # Undeploy, rebuild, deploy.
 default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (deploy target cli platform) set-manifest verify (wait-for-workload target)
@@ -22,6 +23,8 @@ openssl: (push "openssl")
 port-forwarder: (push "port-forwarder")
 
 service-mesh-proxy: (push "service-mesh-proxy")
+
+collateral-proxy: (push "collateral-proxy")
 
 initializer: (push "initializer")
 
@@ -283,7 +286,7 @@ write-namespace target=default_deploy_target:
     echo "{{ target }}${namespace_suffix-}" >> ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, update manifest.
-generate cli=default_cli platform=default_platform set=default_set:
+generate cli=default_cli platform=default_platform set=default_set collateral_proxy=default_collateral_proxy:
     #!/usr/bin/env bash
     set -euo pipefail
     debugFlag=""
@@ -298,6 +301,7 @@ generate cli=default_cli platform=default_platform set=default_set:
         --reference-values {{ platform }} \
         --reference-value-patches "$patch" \
         --purge-empty-reference-values \
+        --collateral-proxy "{{ collateral_proxy }}" \
         ${debugFlag} \
         ./{{ workspace_dir }}/deployment/
 
@@ -438,6 +442,34 @@ wait-for-workload target=default_deploy_target set=default_set:
             exit 1
         ;;
     esac
+
+# Provision the collateral-proxy singleton in "default".
+collateral-proxy-bootstrap set=default_set storage_class="": collateral-proxy
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sc="{{ storage_class }}"
+    if [[ -z "$sc" ]]; then
+        sc=$(kubectl get sc -l ci.contrast.edgeless.systems/is-default-class=true -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+    fi
+    args=(--image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace default)
+    if [[ -n "$sc" ]]; then
+        args+=(--storage-class "$sc")
+    fi
+    nix shell .#{{ set }}.contrast.resourcegen --command resourcegen "${args[@]}" collateral-proxy \
+        | kubectl apply --server-side --force-conflicts -f -
+    kubectl -n default rollout status statefulset/collateral-proxy --timeout=120s
+
+# Wipe the existing collateral-proxy and bootstrap a fresh one.
+collateral-proxy-redeploy set=default_set storage_class="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    kubectl -n default delete --ignore-not-found --wait=true \
+        statefulset/collateral-proxy svc/collateral-proxy pvc/state-collateral-proxy-0
+    just collateral-proxy-bootstrap "{{ set }}" "{{ storage_class }}"
+
+# Print the collateral-proxy /metrics endpoint.
+collateral-proxy-stats:
+    kubectl -n default exec statefulset/collateral-proxy -- wget -qO- http://127.0.0.1/metrics
 
 request-fifo-ticket duration="":
     #!/usr/bin/env bash
