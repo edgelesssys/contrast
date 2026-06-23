@@ -62,6 +62,8 @@
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.imagestore
       echo "Updating vendorHash of initdata-processor package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.initdata-processor
+      echo "Updating vendorHash of collateral-proxy package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.collateral-proxy
       echo "Updating vendorHash of contrast package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.contrast.contrast
       echo "Updating vendorHash of imagepuller-benchmark package" >&2

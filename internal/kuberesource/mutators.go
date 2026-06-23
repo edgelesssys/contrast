@@ -42,6 +42,9 @@ const (
 	MainRunnerNodeLabel = "ci.contrast.edgeless.systems/main-runner"
 )
 
+// CollateralProxyDefaultService is the default in-cluster URL of the collateral-proxy.
+const CollateralProxyDefaultService = "http://collateral-proxy.default.svc"
+
 // contrastRuntimeClassPrefixes lists runtime class prefixes that identify Contrast pods.
 var contrastRuntimeClassPrefixes = []string{"contrast-cc"}
 
@@ -149,15 +152,17 @@ func addCryptsetupConfig(initializer *applycorev1.ContainerApplyConfiguration, d
 				WithPrivileged(true).
 				SecurityContextApplyConfiguration,
 		).
-		WithResources(ResourceRequirements().
-			WithMemoryLimitAndRequest(100),
+		WithResources(
+			ResourceRequirements().
+				WithMemoryLimitAndRequest(100),
 		).
 		WithStartupProbe(
 			Probe().
 				WithFailureThreshold(20).
 				WithPeriodSeconds(5).
-				WithExec(applycorev1.ExecAction().
-					WithCommand("/bin/test", "-f", "/done"),
+				WithExec(
+					applycorev1.ExecAction().
+						WithCommand("/bin/test", "-f", "/done"),
 				),
 		).
 		WithRestartPolicy(
@@ -299,13 +304,43 @@ func ensureVolumeExists(spec *applycorev1.PodSpecApplyConfiguration, volumeName 
 		}
 	}
 	// Create the volume written if it not already exists.
-	spec.WithVolumes(Volume().
-		WithName(volumeName).
-		WithEmptyDir(EmptyDirVolumeSource().
-			WithMedium(corev1.StorageMediumMemory),
-		),
+	spec.WithVolumes(
+		Volume().
+			WithName(volumeName).
+			WithEmptyDir(
+				EmptyDirVolumeSource().
+					WithMedium(corev1.StorageMediumMemory),
+			),
 	)
 	return nil
+}
+
+// SetCollateralProxyEnv points the coordinator at the in-cluster collateral-proxy by setting the CONTRAST_COLLATERAL_PROXY env var.
+func SetCollateralProxyEnv(resources []any, proxyURL string) []any {
+	out := make([]any, 0, len(resources))
+	for _, resource := range resources {
+		out = append(out, MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+			if meta == nil || meta.Annotations[contrastRoleAnnotationKey] != "coordinator" {
+				return meta, spec
+			}
+			for i := range spec.Containers {
+				setEnv(&spec.Containers[i], constants.CollateralProxyEnvVar, proxyURL)
+			}
+			return meta, spec
+		}))
+	}
+	return out
+}
+
+// setEnv sets the environment variable name to value on c, replacing any existing value.
+func setEnv(c *applycorev1.ContainerApplyConfiguration, name, value string) {
+	for i := range c.Env {
+		if c.Env[i].Name != nil && *c.Env[i].Name == name {
+			c.Env[i].Value = &value
+			return
+		}
+	}
+	c.Env = append(c.Env, *applycorev1.EnvVar().WithName(name).WithValue(value))
 }
 
 // AddPortForwarders adds a port-forwarder for each Service.
@@ -332,9 +367,10 @@ func AddDmesg(resources []any) []any {
 	dmesgContainer := Container().
 		WithName("dmesg").
 		WithImage("ghcr.io/edgelesssys/contrast/dmesg:v0.0.1@sha256:6ad6bbb5735b84b10af42d2441e8d686b1d9a6cbf096b53842711ef5ddabd28d").
-		WithResources(ResourceRequirements().
-			// The dmesg image v0.0.1 is 35MiB compressed, 86MiB uncompressed.
-			WithMemoryLimitAndRequest(130),
+		WithResources(
+			ResourceRequirements().
+				// The dmesg image v0.0.1 is 35MiB compressed, 86MiB uncompressed.
+				WithMemoryLimitAndRequest(130),
 		).
 		WithSecurityContext(SecurityContext().
 			WithPrivileged(true).SecurityContextApplyConfiguration)
@@ -369,12 +405,13 @@ func AddImageStore(resources []any) []any {
 			WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
 			WithSecurityContext(SecurityContext().
 				WithPrivileged(true).SecurityContextApplyConfiguration).
-			WithResources(ResourceRequirements().
-				// If the pod does not have an initializer, or the main container has a memory
-				// limit larger than the initializer, the VM might receive too little memory to fit
-				// the initializer as sidecar. Thus, we're conservatively reserving the full size
-				// here.
-				WithMemoryLimitAndRequest(420),
+			WithResources(
+				ResourceRequirements().
+					// If the pod does not have an initializer, or the main container has a memory
+					// limit larger than the initializer, the VM might receive too little memory to fit
+					// the initializer as sidecar. Thus, we're conservatively reserving the full size
+					// here.
+					WithMemoryLimitAndRequest(420),
 			).
 			WithVolumeDevices(
 				applycorev1.VolumeDevice().
@@ -384,16 +421,20 @@ func AddImageStore(resources []any) []any {
 
 		ephemeralVolume := Volume().
 			WithName("image-store").
-			WithEphemeral(applycorev1.EphemeralVolumeSource().
-				WithVolumeClaimTemplate(applycorev1.PersistentVolumeClaimTemplate().
-					WithSpec(applycorev1.PersistentVolumeClaimSpec().
-						WithVolumeMode(corev1.PersistentVolumeBlock).
-						WithAccessModes(corev1.ReadWriteOnce).
-						WithResources(VolumeResourceRequirements().
-							WithStorageRequest(storeSize),
-						),
+			WithEphemeral(
+				applycorev1.EphemeralVolumeSource().
+					WithVolumeClaimTemplate(
+						applycorev1.PersistentVolumeClaimTemplate().
+							WithSpec(
+								applycorev1.PersistentVolumeClaimSpec().
+									WithVolumeMode(corev1.PersistentVolumeBlock).
+									WithAccessModes(corev1.ReadWriteOnce).
+									WithResources(
+										VolumeResourceRequirements().
+											WithStorageRequest(storeSize),
+									),
+							),
 					),
-				),
 			)
 
 		return holderContainer, ephemeralVolume
@@ -790,7 +831,8 @@ func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration
 			*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration,
 		) {
 			return meta, f(spec)
-		})
+		},
+	)
 }
 
 // MapPodSpecWithMetaAndErrors applies a function to a PodSpec in a Kubernetes resource,
@@ -847,7 +889,8 @@ func MapPodSpecWithErrors(resource any, f func(spec *applycorev1.PodSpecApplyCon
 		) {
 			newSpec, err := f(spec)
 			return meta, newSpec, err
-		})
+		},
+	)
 }
 
 func needsServiceMesh(meta *applymetav1.ObjectMetaApplyConfiguration) bool {

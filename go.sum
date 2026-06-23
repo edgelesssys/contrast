@@ -28,10 +28,10 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/edgelesssys/go-sev-guest v0.0.0-20260625075350-5c9638ef2416 h1:iCCw9rksqF4SrQWJrkKvfJzmZe88wqbssz9SgY+3cQE=
-github.com/edgelesssys/go-sev-guest v0.0.0-20260625075350-5c9638ef2416/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
-github.com/edgelesssys/go-tdx-guest v0.0.0-20260625101654-86bb3d849c88 h1:L+kxXOzbtb8xTqIScjnd19HI3etugk60gvhn4/Qw55o=
-github.com/edgelesssys/go-tdx-guest v0.0.0-20260625101654-86bb3d849c88/go.mod h1:uHy3VaNXNXhl0fiPxKqTxieeouqQmW6A0EfLcaeCYBk=
+github.com/edgelesssys/go-sev-guest v0.0.0-20260625102846-50db367a5686 h1:otyw8ZDXu+rjayooly5LrgDru6PXjJQ8xzXe3x8reWA=
+github.com/edgelesssys/go-sev-guest v0.0.0-20260625102846-50db367a5686/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
+github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249 h1:Tx0olMH9+rqQgXfX8dIzIDN8UadjSJeTev6t4Qcx+J8=
+github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249/go.mod h1:uHy3VaNXNXhl0fiPxKqTxieeouqQmW6A0EfLcaeCYBk=
 github.com/elazarl/goproxy v1.8.2 h1:keGt9KHFAnrXFEctQuOF9NRxKFCXtd5cQg5PrBdeVW4=
 github.com/elazarl/goproxy v1.8.2/go.mod h1:b5xm6W48AUHNpRTCvlnd0YVh+JafCCtsLsJZvvNTz+E=
 github.com/emicklei/go-restful/v3 v3.13.0 h1:C4Bl2xDndpU6nJ4bc1jXd+uTmYPVUwkD6bFY/oTyCes=

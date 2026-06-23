@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 {
+  lib,
   pkgs,
   contrastPkgs,
   dockerTools,
@@ -71,6 +72,16 @@
       bash
       socat
     ];
+  };
+
+  collateral-proxy = contrastPkgs.buildOciImage {
+    name = "collateral-proxy";
+    tag = "v${contrastPkgs.collateral-proxy.version}";
+    copyToRoot = (with pkgs; [ busybox ]) ++ (with dockerTools; [ caCertificates ]);
+    config = {
+      Entrypoint = [ (lib.getExe contrastPkgs.collateral-proxy) ];
+      Env = [ "PATH=/bin" ];
+    };
   };
 
   service-mesh-proxy = contrastPkgs.buildOciImage {

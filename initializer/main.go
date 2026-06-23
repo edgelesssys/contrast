@@ -21,6 +21,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/logger"
@@ -76,6 +77,11 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}()
 
 	log.Info("Initializer started")
+
+	if proxy := os.Getenv(constants.CollateralProxyEnvVar); proxy != "" {
+		log.Info("routing attestation collateral through proxy", "proxy", proxy)
+		certcache.SetCollateralProxy(proxy)
+	}
 
 	// If the service mesh is disabled, we don't have a service mesh sidecar
 	// container that installs its iptables rules. Therefore, we remove the

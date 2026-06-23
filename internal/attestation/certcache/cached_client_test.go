@@ -26,6 +26,48 @@ func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m)
 }
 
+func TestAlwaysRevalidate(t *testing.T) {
+	const proxy = "http://collateral-proxy.default.svc"
+	for _, tc := range []struct {
+		name string
+		url  string
+		want bool
+	}{
+		// CRLs and TCB / QE-identity must always revalidate.
+		{"snp crl vendor", "https://kdsintf.amd.com/vcek/v1/Milan/crl", true},
+		{"snp crl proxy", proxy + "/vcek/v1/Milan/crl", true},
+		{"tdx pckcrl vendor", "https://api.trustedservices.intel.com/sgx/certification/v4/pckcrl?ca=platform&encoding=der", true},
+		{"tdx pckcrl proxy", proxy + "/sgx/certification/v4/pckcrl?ca=platform&encoding=der", true},
+		{"tdx tcb proxy", proxy + "/tdx/certification/v4/tcb?fmspc=abc", true},
+		{"tdx root crl", "https://certificates.trustedservices.intel.com/IntelSGXRootCA.der", true},
+		// VCEK certificates are immutable and served cache-first.
+		{"vcek cert vendor", "https://kdsintf.amd.com/vcek/v1/Milan/abc123", false},
+		{"vcek cert proxy", proxy + "/vcek/v1/Milan/abc123", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, alwaysRevalidate(tc.url))
+		})
+	}
+}
+
+func TestRedirectToProxy(t *testing.T) {
+	const proxy = "http://collateral-proxy.default.svc"
+	t.Cleanup(func() { collateralProxyBase = "" })
+
+	collateralProxyBase = proxy
+	assert.Equal(t,
+		proxy+"/IntelSGXRootCA.der",
+		redirectToProxy("https://certificates.trustedservices.intel.com/IntelSGXRootCA.der"))
+
+	assert.Equal(t, proxy+"/vcek/v1/Milan/crl", redirectToProxy(proxy+"/vcek/v1/Milan/crl"))
+	assert.Equal(t, "https://kdsintf.amd.com/vcek/v1/Milan/abc", redirectToProxy("https://kdsintf.amd.com/vcek/v1/Milan/abc"))
+
+	// With no proxy configured, nothing is rewritten.
+	collateralProxyBase = ""
+	const rootCRL = "https://certificates.trustedservices.intel.com/IntelSGXRootCA.der"
+	assert.Equal(t, rootCRL, redirectToProxy(rootCRL))
+}
+
 const crlURLMatch string = "https://kdsintf.amd.com/vcek/v1/test/crl"
 
 func TestMemcachedHTTPSGetter(t *testing.T) {
