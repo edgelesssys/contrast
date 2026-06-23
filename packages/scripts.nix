@@ -358,18 +358,21 @@
     '';
   };
 
-  # Usage: get-credentials $gcloudSecretRef
+  # Usage: get-credentials $gcloudSecretRef $platformString $targetConfType
   get-credentials = writeShellApplication {
     name = "get-credentials";
     runtimeInputs = with pkgs; [
       google-cloud-sdk
       scripts.merge-kube-config
+      gnused
     ];
     text = ''
       set -euo pipefail
       tmpConfig=$(mktemp)
       gcloud secrets versions access "$1" --out-file="$tmpConfig"
       merge-kube-config "$tmpConfig"
+      sed -i "s/^default_platform=.*/default_platform=\"$2\"/" justfile.env
+      sed -i "s/^node_installer_target_conf_type=.*/node_installer_target_conf_type=\"$3\"/" justfile.env
     '';
   };
 
