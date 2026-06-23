@@ -108,7 +108,7 @@ e2e target=default_deploy_target platform=default_platform set=default_set:
 _e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell k8s-log-collector strongswan (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
-    if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
+    if [[ {{ target }} == "gpu" ]] ; then
         just request-fifo-ticket 90m
     fi
     if [[ -n "${contrast_ghcr_read:-}" ]]; then
@@ -329,7 +329,7 @@ apply target=default_deploy_target platform=default_platform:
             kubectl apply -f ./{{ workspace_dir }}/runtime/runtime.yml
         ;;
         *)
-            if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU"  ]] ; then
+            if [[ {{ target }} == "gpu" || {{ target }} == "custom" && {{ platform }} == *-GPU ]] ; then
                 just request-fifo-ticket 90m
                 trap 'just release-fifo-ticket' ERR
                 kubectl label ns $(tail -1 ./{{ workspace_dir }}/just.namespace) contrast.edgeless.systems/sync-ticket=$(cat ./{{ workspace_dir }}/just.sync-ticket) --overwrite
