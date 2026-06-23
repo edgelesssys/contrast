@@ -88,8 +88,8 @@ func (m *Manifest) Validate() error {
 			coordinatorCount++
 		}
 	}
-	if coordinatorCount != 1 {
-		return &CoordinatorCountError{Count: coordinatorCount}
+	if coordinatorCount == 0 {
+		return ErrMissingCoordinator
 	}
 
 	if err := m.ReferenceValues.Validate(); err != nil {
@@ -110,14 +110,15 @@ func (m *Manifest) Validate() error {
 	return errors.Join(errs...)
 }
 
-// CoordinatorPolicyHash returns the hash of the coordinator policy.
-func (m *Manifest) CoordinatorPolicyHash() (HexString, error) {
+// CoordinatorPolicyHashes returnsa slice of all initdata hashes that correspond to Coordinators.
+func (m *Manifest) CoordinatorPolicyHashes() []HexString {
+	var out []HexString
 	for policyHash, policy := range m.Policies {
 		if policy.Role == RoleCoordinator {
-			return policyHash, nil
+			out = append(out, policyHash)
 		}
 	}
-	return "", errors.New("no coordinator found in manifest")
+	return out
 }
 
 // SNPValidateOpts returns validate options generators populated with the manifest's
@@ -536,12 +537,8 @@ func (e *ValidationError) OnlyExpectedMissingReferenceValues() bool {
 	return true
 }
 
-// CoordinatorCountError occurs during manifest validation when either zero, or more than one coordinators have been defined.
-type CoordinatorCountError struct{ Count uint }
-
-func (e *CoordinatorCountError) Error() string {
-	return fmt.Sprintf("expected exactly 1 policy with role 'coordinator', got %d", e.Count)
-}
+// ErrMissingCoordinator is returned when the manifest does not contain at least one policy for a Coordinator.
+var ErrMissingCoordinator = errors.New("expected at least 1 policy with role 'coordinator'")
 
 func toPtr[T any](v T) *T {
 	return &v

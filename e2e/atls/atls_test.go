@@ -79,9 +79,9 @@ func TestATLS(t *testing.T) {
 		require.NoError(json.Unmarshal(manifestBytes, &manifestParsed))
 		require.NoError(manifestParsed.Validate())
 
-		coordPolicyHash, err := manifestParsed.CoordinatorPolicyHash()
-		require.NoError(err, "getting coordinator policy hash")
-		coordPolicyHashBytes, err = coordPolicyHash.Bytes()
+		coordPolicyHashes := manifestParsed.CoordinatorPolicyHashes()
+		require.NotEmpty(coordPolicyHashes, "getting coordinator policy hash")
+		coordPolicyHashBytes, err = coordPolicyHashes[0].Bytes()
 		require.NoError(err, "converting coordinator policy hash to bytes")
 	}))
 

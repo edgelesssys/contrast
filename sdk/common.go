@@ -24,46 +24,51 @@ import (
 // Originally an unexported function in the contrast CLI.
 // Can be made unexported again, if we decide to move all userapi calls from the CLI to the SDK.
 // Validators MUST NOT be used concurrently.
+// The returned validators only allow COordinators.
 func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.Manifest, log *slog.Logger) ([]atls.Validator, error) {
 	var validators []atls.Validator
 
-	coordPolicyHash, err := m.CoordinatorPolicyHash()
-	if err != nil {
-		return nil, fmt.Errorf("getting coordinator policy hash: %w", err)
-	}
-	coordPolicyHashBytes, err := coordPolicyHash.Bytes()
-	if err != nil {
-		return nil, fmt.Errorf("converting coordinator policy hash to bytes: %w", err)
+	coordPolicyHashes := m.CoordinatorPolicyHashes()
+	if len(coordPolicyHashes) < 1 {
+		return nil, fmt.Errorf("the manifest does not contain a policy with role %q", manifest.RoleCoordinator)
 	}
 	opts, err := m.SNPValidateOpts(kdsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("getting SNP validate options: %w", err)
 	}
-	for i, opt := range opts {
-		opt.ValidateOpts.HostData = coordPolicyHashBytes
-		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
-		validatorLog := logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name})
-		var v atls.Validator
-		if len(opt.APEIP) == 4 {
-			seed := [snpmeasure.LaunchDigestSize]byte(opt.ValidateOpts.Measurement)
-			apEIP := binary.BigEndian.Uint32(opt.APEIP)
-			v = snp.NewIterativeValidator(opt.VerifyOpts, opt.ValidateOpts, seed, apEIP, opt.VCPUSig, opt.AllowedChipIDs, validatorLog, name)
-		} else {
-			v = snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, validatorLog, name)
+	// TODO(burgerdev): reduce the amount of individual validators through accepting a slice of HOSTDATA entries.
+	for _, coordPolicyHash := range coordPolicyHashes {
+		coordPolicyHashBytes, err := coordPolicyHash.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("converting coordinator policy hash %q to bytes: %w", coordPolicyHash, err)
 		}
-		validators = append(validators, v)
-	}
 
-	tdxOpts, err := m.TDXValidateOpts(kdsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("generating TDX validation options: %w", err)
-	}
-	var mrConfigID [48]byte
-	copy(mrConfigID[:], coordPolicyHashBytes)
-	for i, opt := range tdxOpts {
-		name := fmt.Sprintf("tdx-%d", i)
-		opt.ValidateOpts.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
-		validators = append(validators, tdx.NewValidator(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
+		for i, opt := range opts {
+			opt.ValidateOpts.HostData = coordPolicyHashBytes
+			name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
+			validatorLog := logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name})
+			var v atls.Validator
+			if len(opt.APEIP) == 4 {
+				seed := [snpmeasure.LaunchDigestSize]byte(opt.ValidateOpts.Measurement)
+				apEIP := binary.BigEndian.Uint32(opt.APEIP)
+				v = snp.NewIterativeValidator(opt.VerifyOpts, opt.ValidateOpts, seed, apEIP, opt.VCPUSig, opt.AllowedChipIDs, validatorLog, name)
+			} else {
+				v = snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, validatorLog, name)
+			}
+			validators = append(validators, v)
+		}
+
+		tdxOpts, err := m.TDXValidateOpts(kdsGetter)
+		if err != nil {
+			return nil, fmt.Errorf("generating TDX validation options: %w", err)
+		}
+		var mrConfigID [48]byte
+		copy(mrConfigID[:], coordPolicyHashBytes)
+		for i, opt := range tdxOpts {
+			name := fmt.Sprintf("tdx-%d", i)
+			opt.ValidateOpts.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
+			validators = append(validators, tdx.NewValidator(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
+		}
 	}
 
 	return validators, nil

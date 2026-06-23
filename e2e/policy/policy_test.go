@@ -183,8 +183,9 @@ func TestPolicy(t *testing.T) {
 		require.NoError(json.Unmarshal(manifestBytes, &m))
 
 		// Change expected coordinator policy hash.
-		policyHash, err := m.CoordinatorPolicyHash()
-		require.NoError(err)
+		policyHashes := m.CoordinatorPolicyHashes()
+		require.NotEmpty(policyHashes)
+		policyHash := policyHashes[0]
 		policy := m.Policies[policyHash]
 		delete(m.Policies, policyHash)
 		policyHashBytes, err := policyHash.Bytes()
