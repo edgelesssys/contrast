@@ -24,7 +24,6 @@ import (
 
 const (
 	exposeServiceAnnotation       = "contrast.edgeless.systems/expose-service"
-	contrastRoleAnnotationKey     = "contrast.edgeless.systems/pod-role"
 	skipInitializerAnnotationKey  = "contrast.edgeless.systems/skip-initializer"
 	smIngressConfigAnnotationKey  = "contrast.edgeless.systems/servicemesh-ingress"
 	smEgressConfigAnnotationKey   = "contrast.edgeless.systems/servicemesh-egress"
@@ -40,6 +39,11 @@ const (
 
 	// MainRunnerNodeLabel restricts pods to the bare-metal nodes of our CI runner.
 	MainRunnerNodeLabel = "ci.contrast.edgeless.systems/main-runner"
+
+	// ContrastRoleAnnotationKey assigns a role to the annotated pod.
+	//
+	// This is used to determine whether a given pod may act as Coordinator.
+	ContrastRoleAnnotationKey = "contrast.edgeless.systems/pod-role"
 )
 
 // CollateralProxyDefaultService is the default in-cluster URL of the collateral-proxy.
@@ -320,7 +324,7 @@ func SetCollateralProxyEnv(resources []any, proxyURL string) []any {
 	out := make([]any, 0, len(resources))
 	for _, resource := range resources {
 		out = append(out, MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-			if meta == nil || meta.Annotations[contrastRoleAnnotationKey] != "coordinator" {
+			if meta == nil || meta.Annotations[ContrastRoleAnnotationKey] != string(manifest.RoleCoordinator) {
 				return meta, spec
 			}
 			for i := range spec.Containers {
@@ -515,7 +519,7 @@ func AddLogging(resources []any, level, subsystem string) []any {
 		switch r := resource.(type) {
 		case *applyappsv1.StatefulSetApplyConfiguration:
 			if r.Spec != nil && r.Spec.Template != nil &&
-				r.Spec.Template.Annotations["contrast.edgeless.systems/pod-role"] == "coordinator" {
+				r.Spec.Template.Annotations[ContrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
 				r.Spec.Template.Spec.Containers[0].WithEnv(
 					NewEnvVar("CONTRAST_LOG_LEVEL", level),
 					NewEnvVar("CONTRAST_LOG_SUBSYSTEMS", subsystem),
@@ -744,7 +748,7 @@ func PatchCoordinatorMetrics(resources []any) []any {
 		case *applyappsv1.StatefulSetApplyConfiguration:
 			if r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.Spec != nil &&
 				len(r.Spec.Template.Spec.Containers) > 0 &&
-				r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+				r.Spec.Template.Annotations[ContrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
 				r.Spec.Template.Spec.Containers[0].WithEnv(NewEnvVar("CONTRAST_METRICS", "1"))
 				r.Spec.Template.Spec.Containers[0].WithPorts(
 					ContainerPort().
