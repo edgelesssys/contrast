@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/regclient/regclient/types/ref"
 
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -40,7 +41,7 @@ func (v *VersionsMatch) Verify(toVerify any) error {
 
 		var podRole string
 		if meta != nil && meta.Annotations != nil {
-			podRole = meta.Annotations["contrast.edgeless.systems/pod-role"]
+			podRole = meta.Annotations[kuberesource.ContrastRoleAnnotationKey]
 		}
 		for _, container := range spec.Containers {
 			if !needsImageVersionCheck(*container.Name, podRole) {
@@ -74,7 +75,7 @@ func needsImageVersionCheck(containerName string, podRole string) bool {
 	if slices.Contains([]string{"contrast-initializer", "contrast-service-mesh"}, containerName) {
 		return true
 	}
-	if containerName == "coordinator" && podRole == "coordinator" {
+	if containerName == "coordinator" && podRole == string(manifest.RoleCoordinator) {
 		return true
 	}
 	return false

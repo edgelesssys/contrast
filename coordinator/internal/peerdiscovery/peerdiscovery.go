@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ func (d *Discovery) GetPeers(ctx context.Context) ([]string, error) {
 	}
 	var peers []string
 	for _, pod := range pods.Items {
-		if pod.Annotations["contrast.edgeless.systems/pod-role"] != "coordinator" ||
+		if pod.Annotations[kuberesource.ContrastRoleAnnotationKey] != string(manifest.RoleCoordinator) ||
 			pod.Name == os.Getenv("HOSTNAME") {
 			continue
 		}

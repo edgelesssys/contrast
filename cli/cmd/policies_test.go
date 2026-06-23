@@ -35,8 +35,8 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 					WithSpec(kuberesource.DeploymentSpec().
 						WithTemplate(kuberesource.PodTemplateSpec().
 							WithAnnotations(map[string]string{
-								initdata.InitdataAnnotationKey: anno,
-								contrastRoleAnnotationKey:      "coordinator",
+								initdata.InitdataAnnotationKey:         anno,
+								kuberesource.ContrastRoleAnnotationKey: string(manifest.RoleCoordinator),
 							}).
 							WithSpec(kuberesource.PodSpec().
 								WithRuntimeClassName("contrast-cc"),
@@ -83,8 +83,8 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 					WithSpec(kuberesource.DeploymentSpec().
 						WithTemplate(kuberesource.PodTemplateSpec().
 							WithAnnotations(map[string]string{
-								initdata.InitdataAnnotationKey: anno,
-								contrastRoleAnnotationKey:      "coordinator",
+								initdata.InitdataAnnotationKey:         anno,
+								kuberesource.ContrastRoleAnnotationKey: string(manifest.RoleCoordinator),
 							}).
 							WithSpec(kuberesource.PodSpec().
 								WithRuntimeClassName("contrast-cc"),

@@ -42,7 +42,6 @@ import (
 const (
 	annotationPrefix              = "contrast.edgeless.systems/"
 	kataAnnotationPrefix          = "io.katacontainers.config.hypervisor."
-	contrastRoleAnnotationKey     = annotationPrefix + "pod-role"
 	workloadSecretIDAnnotationKey = annotationPrefix + "workload-secret-id"
 	idBlockAnnotation             = kataAnnotationPrefix + "snp_id_block_"
 	idAuthAnnotationKey           = kataAnnotationPrefix + "snp_id_auth_"
@@ -350,7 +349,7 @@ func isCoordinator(resource any) bool {
 		r.Spec.Template != nil &&
 		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 		r.Spec.Template.Annotations != nil &&
-		r.Spec.Template.Annotations[contrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
+		r.Spec.Template.Annotations[kuberesource.ContrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
 		return true
 	}
 	return false

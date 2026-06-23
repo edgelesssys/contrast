@@ -7,6 +7,8 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,13 +80,13 @@ func TestGetPeers(t *testing.T) {
 	}
 }
 
-func newPod(name, namespace, labelName, role, ip string, isReady bool) runtime.Object {
+func newPod(name, namespace, labelName string, role manifest.Role, ip string, isReady bool) runtime.Object {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Namespace:   namespace,
 			Labels:      map[string]string{"app.kubernetes.io/name": labelName},
-			Annotations: map[string]string{"contrast.edgeless.systems/pod-role": role},
+			Annotations: map[string]string{kuberesource.ContrastRoleAnnotationKey: string(role)},
 		},
 		Status: corev1.PodStatus{
 			Conditions: []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionFalse}},

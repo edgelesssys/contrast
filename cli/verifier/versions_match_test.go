@@ -9,6 +9,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/verifier"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +20,7 @@ kind: Pod
 metadata:
   name: test
   annotations:
-    contrast.edgeless.systems/pod-role: %s
+    %s: %s
 spec:
   runtimeClassName: contrast-cc
   containers:
@@ -65,7 +66,7 @@ func TestVerifyVersionsMatch(t *testing.T) {
 			version:       "v1.13.0",
 		},
 		"versions match with pod-role": {
-			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, "coordinator", "v1.13.0"),
+			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, kuberesource.ContrastRoleAnnotationKey, manifest.RoleCoordinator, "v1.13.0"),
 			version:       "v1.13.0",
 		},
 		"cli version newer": {
@@ -79,12 +80,12 @@ func TestVerifyVersionsMatch(t *testing.T) {
 			wantErr:       true,
 		},
 		"cli version mismatch with pod-role": {
-			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, "coordinator", "v1.13.0"),
+			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, kuberesource.ContrastRoleAnnotationKey, manifest.RoleCoordinator, "v1.13.0"),
 			version:       "v1.12.0",
 			wantErr:       true,
 		},
 		"cli version mismatch with differing pod-role unaffected": {
-			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, "not-coordinator", "v1.13.0"),
+			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, kuberesource.ContrastRoleAnnotationKey, manifest.RoleNone, "v1.13.0"),
 			version:       "v1.12.0",
 		},
 		"resource missing version skipped": {

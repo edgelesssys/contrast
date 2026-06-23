@@ -73,7 +73,7 @@ func policiesFromKubeResources(fileMap map[string][]*unstructured.Unstructured) 
 				return meta, spec
 			}
 			annotation = meta.Annotations[initdata.InitdataAnnotationKey]
-			role = manifest.Role(meta.Annotations[contrastRoleAnnotationKey])
+			role = manifest.Role(meta.Annotations[kuberesource.ContrastRoleAnnotationKey])
 			workloadSecretID = meta.Annotations[workloadSecretIDAnnotationKey]
 			return meta, spec
 		})
