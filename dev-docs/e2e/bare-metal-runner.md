@@ -82,6 +82,10 @@ These steps depend on the Kubernetes distribution used for this runner.
 
 Add K3s configuration override
 
+<!-- NOTE:
+If you change something here, make sure to change packages/cleanup-bare-metal.sh, too!
+-->
+
 ```bash
 mkdir -p /etc/rancher/k3s
 cat > /etc/rancher/k3s/config.yaml <<EOF

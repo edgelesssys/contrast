@@ -102,6 +102,8 @@ if nsenter -t 1 -m sh -c "command -v k3s >/dev/null 2>&1"; then
   if [[ $installed_version != "$K3S_VERSION" ]]; then
     echo "Updating k3s to version ${K3S_VERSION} ..."
     mkdir -p /host/etc/rancher/k3s
+    # NOTE:
+    # If you change something here, make sure to change dev-docs/e2e/bare-metal-runner.md, too!
     cat >/host/etc/rancher/k3s/config.yaml <<EOF
 write-kubeconfig-mode: "0640"
 write-kubeconfig-group: sudo
@@ -109,6 +111,9 @@ disable:
   - local-storage
 kubelet-arg:
   - "runtime-request-timeout=5m"
+node-label:
+  - ci.contrast.edgeless.systems/main-runner=true
+embedded-registry: true
 EOF
     nsenter -t 1 -m -n sh -c "curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${K3S_VERSION} sh -"
   else
