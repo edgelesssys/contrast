@@ -85,6 +85,10 @@ type ContrastTest struct {
 	GHCRToken                      string
 	Kubeclient                     *kubeclient.Kubeclient
 
+	// DoNotUseCollateralProxy disables injection of collateral-proxy env vars + CA bundle into Contrast pods.
+	// Used by the kds-pcs-downtime test.
+	DoNotUseCollateralProxy bool
+
 	// outputs of contrast subcommands
 	meshCACertPEM []byte
 	rootCACertPEM []byte
@@ -230,6 +234,9 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 	)
 	if Flags.GenpolicyCachePath != "" {
 		args = append(args, "--genpolicy-cache-path", Flags.GenpolicyCachePath)
+	}
+	if !ct.DoNotUseCollateralProxy {
+		args = append(args, "--collateral-proxy", kuberesource.CollateralProxyDefaultService)
 	}
 	args = append(args, ct.WorkDir)
 
