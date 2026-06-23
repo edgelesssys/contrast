@@ -48,13 +48,35 @@ let
   crateOf = id: crates.${id};
   purlOf = c: "pkg:cargo/${c.crateName}@${c.version}";
 
-  mkComponent = id: {
-    type = "library";
-    "bom-ref" = id;
-    name = (crateOf id).crateName;
-    inherit ((crateOf id)) version;
-    purl = purlOf (crateOf id);
-  };
+  # Author and licence metadata, mapped from the fields crate2nix emits into
+  # Cargo.nix. `authors` is present today; `license` is not yet forwarded by
+  # crate2nix (see the note at the bottom of this file), so the licence attr is a
+  # no-op until that lands, at which point every crate gains a concluded licence.
+  metaOf =
+    c:
+    lib.optionalAttrs ((c.authors or [ ]) != [ ]) {
+      # CycloneDX 1.5 carries a single author string; join multiple authors.
+      author = lib.concatStringsSep ", " c.authors;
+    }
+    // lib.optionalAttrs ((c.license or null) != null) {
+      # Normalise the deprecated Cargo `A/B` form to the SPDX `A OR B` expression
+      # (SPDX ignores the extra whitespace); some crates still use the slash form.
+      licenses = [ { expression = builtins.replaceStrings [ "/" ] [ " OR " ] c.license; } ];
+    };
+
+  mkComponent =
+    id:
+    let
+      c = crateOf id;
+    in
+    {
+      type = "library";
+      "bom-ref" = id;
+      name = c.crateName;
+      inherit (c) version;
+      purl = purlOf c;
+    }
+    // metaOf c;
 
   rootCrate = crateOf member;
 
@@ -84,7 +106,8 @@ let
       name = rootCrate.crateName;
       inherit (rootCrate) version;
       purl = purlOf rootCrate;
-    };
+    }
+    // metaOf rootCrate;
     components = map mkComponent (lib.filter (id: id != member) ids);
     dependencies = map (id: {
       ref = id;
@@ -94,4 +117,11 @@ let
 in
 # bombon consumes bombonVendoredSbom as a directory of CycloneDX files, so emit
 # the SBOM into a directory rather than as a bare file.
+#
+# NOTE on licences (TR-03183-2 / CRA): crate2nix already resolves each crate's
+# licence via `cargo metadata` at generation time but does not write it into
+# Cargo.nix (it forwards `authors` but not `license`). Forwarding `license`
+# upstream — symmetric with the existing `authors` — and regenerating Cargo.nix
+# would populate a concluded licence for every crate here with no build and no
+# import-from-derivation. Until then `metaOf` emits authors only.
 writeTextDir "${pname}.cdx.json" (builtins.toJSON bom)

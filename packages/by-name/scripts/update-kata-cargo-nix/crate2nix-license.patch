@@ -1,0 +1,36 @@
+diff --git a/src/resolve.rs b/src/resolve.rs
+index 97c4c32..f1f77c0 100644
+--- a/src/resolve.rs
++++ b/src/resolve.rs
+@@ -32,6 +32,8 @@ pub struct CrateDerivation {
+     pub crate_name: String,
+     pub edition: String,
+     pub authors: Vec<String>,
++    /// The SPDX license expression of the crate, as declared in its Cargo.toml.
++    pub license: Option<String>,
+     pub version: Version,
+     /// The name of a native library the package is linking to.
+     pub links: Option<String>,
+@@ -159,6 +161,7 @@ impl CrateDerivation {
+             crate_name: package.name.clone(),
+             edition: package.edition.to_string(),
+             authors: package.authors.clone(),
++            license: package.license.clone(),
+             package_id: package.id.clone(),
+             version: package.version.clone(),
+             links: package.links.clone(),
+diff --git a/templates/Cargo.nix.tera b/templates/Cargo.nix.tera
+index 6a394bd..381cba9 100644
+--- a/templates/Cargo.nix.tera
++++ b/templates/Cargo.nix.tera
+@@ -209,6 +209,10 @@ rec {
+         ];
+         {%- endif -%}
+ 
++        {%- if crate.license %}
++        license = {{crate.license}};
++        {%- endif -%}
++
+         {%- if crate.dependencies|length > 0 %}
+         dependencies = [
+         {%- for dependency in crate.dependencies %}

@@ -18,6 +18,7 @@
   lib,
   runCommand,
   cyclonedx-gomod,
+  jq,
   go,
   git,
   cacert,
@@ -52,6 +53,7 @@ lib.throwIfNot (package.proxyVendor or false)
   {
     nativeBuildInputs = [
       cyclonedx-gomod
+      jq
       go
       git
       cacert
@@ -96,5 +98,18 @@ lib.throwIfNot (package.proxyVendor or false)
         -main "$main" \
         -output "$out/$out_name.cdx.json" \
         .
+
+      # cyclonedx-gomod records detected licenses as `evidence.licenses` (it
+      # treats detection as non-authoritative). TR-03183-2 requires the licence
+      # as the concluded component `licenses` field, so promote the evidence into
+      # it (keeping evidence) for every component that has one.
+      out_file="$out/$out_name.cdx.json"
+      jq '
+        def promote:
+          (if (.evidence.licenses // [] | length) > 0 then .licenses = .evidence.licenses else . end)
+          | (if has("components") then .components |= map(promote) else . end);
+        .metadata.component |= promote
+        | .components |= map(promote)
+      ' "$out_file" > "$out_file.tmp" && mv "$out_file.tmp" "$out_file"
     done
   ''
