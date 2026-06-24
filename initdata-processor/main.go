@@ -16,7 +16,6 @@ import (
 	"github.com/edgelesssys/contrast/initdata-processor/policy"
 	"github.com/edgelesssys/contrast/initdata-processor/validator"
 	"github.com/edgelesssys/contrast/internal/initdata"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -144,7 +143,7 @@ func checkDeviceAvailability(id string, magic []byte) (string, error) {
 
 		// Check whether the device major number indicates a disk type.
 		// https://www.kernel.org/doc/html/latest/admin-guide/devices.html
-		major := unix.Major(stat.Rdev)
+		major := devMajor(stat)
 		switch {
 		case major == 8:
 			// SCSI / SATA
