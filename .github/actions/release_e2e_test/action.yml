@@ -138,6 +138,11 @@ runs:
       run: |
         mkdir -p workspace
         echo "ghcr.io/edgelesssys/contrast/k8s-log-collector:latest=${LOG_COLLECTOR_IMAGE}" >> workspace/just.containerlookup
+    - name: Download warmed genpolicy layer cache
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: genpolicy-layer-cache
+        path: workspace
     - name: E2E Test
       shell: bash
       env:
@@ -146,6 +151,7 @@ runs:
         PLATFORM_NAME: ${{ inputs.platform_name }}
         NODE_INSTALLER_TARGET_CONF: ${{ inputs.node_installer_target_conf }}
         CLI_ARCH: ${{ inputs.cli_arch }}
+        GENPOLICY_CACHE_PATH: ${{ github.workspace }}/workspace/layers-cache.json
       run: |
         mkdir -p workspace
         nix build ".#base.scripts.get-logs"
