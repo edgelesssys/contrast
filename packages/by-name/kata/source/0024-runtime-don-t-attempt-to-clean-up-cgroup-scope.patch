@@ -70,7 +70,7 @@ index deb472904b82b663213c33e9e567b87f5b7b6363..88f3618072a78fd6f302a465c43bd5a5
  		cgroup = cg
  	} else {
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index 6ceae42de927cfb1dd5337b45ce2222ed0b8e42b..a4559660222d6ee202bfe7391b17886780ecce01 100644
+index 1d7004e441254b296e72962a2ae9b1670c3a978e..a2fa158fdd2e42ef92034163c407aa6c4121f462 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
 @@ -2695,6 +2695,10 @@ func (s *Sandbox) resourceControllerUpdate(ctx context.Context) error {

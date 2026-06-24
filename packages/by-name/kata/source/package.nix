@@ -16,14 +16,14 @@
 }:
 
 rec {
-  version = "3.31.0";
+  version = "3.32.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = version;
-      hash = "sha256-LSwmeNO5mEWZ2NCrC1o3JXPeZJed0eljIUak/J2fkv0=";
+      hash = "sha256-dnbzjYDKeAp0wFQcO5VK71vkf7ubVK5Lh9R9jjuro28=";
     };
 
     patches = [
@@ -137,32 +137,21 @@ rec {
       # Upstream issue: https://github.com/NVIDIA/sandbox-device-plugin/issues/46
       ./0019-shim-guess-CDI-devices-without-direct-match.patch
 
-      # Kata takes a default_maxvcpus config option. Ordinarily, we could set this to 240 and do the same in the kernel commandline below.
-      # However, kata then reduces this number to the actually available number of CPUs at runtime.
-      # This is a problem for us because we need to know the precise kernel command line at buildtime.
-      # TODO(charludo): attempt to make this behavior configurable upstream
-      ./0020-runtime-do-not-add-nr_vcpus-to-kernel-command-line.patch
-
       # Enables the Kata runtime to set the SNP ID blocks for the CPU model it is running on
       # based on Pod annotations. This allows us to run Pods with multiple CPUs.
       # This patch relies on changes made by 0001-emulate-CPU-model-that-most-closely-matches-the-host.patch
       # together with being specific to our use case. There are no plans to upstream it.
-      ./0021-runtime-add-SNP-ID-block-from-Pod-annotations.patch
+      ./0020-runtime-add-SNP-ID-block-from-Pod-annotations.patch
 
       # We pass a custom config to the Kata agent via commandline argument to enable the debug console and customize logging.
       # The provided config should only be used as an override and not as a replacement, so the kernel cmdline is still respected
       # when we don't have any overrides.
-      ./0022-agent-use-config-file-as-override.patch
+      ./0021-agent-use-config-file-as-override.patch
 
       # Terminate the agent gracefully when it encounters problems with the policy. This allows
       # error messages to propagate to the runtime.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/13031.
-      ./0023-agent-don-t-abort-in-case-of-policy-problems.patch
-
-      # Pod-level resource limits are a beta feature since K8s 1.34, but not supported by Kata yet.
-      # We need this to automatically configure memory limits for the entire VM and not on container basis.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/12816
-      ./0024-genpolicy-support-pod-level-resource-limits.patch
+      ./0022-agent-don-t-abort-in-case-of-policy-problems.patch
 
       # Stop the kata shim's cleanup paths from hanging when the kata-agent
       # is unreachable. Without this, agent calls hang in commonDialer past
@@ -170,26 +159,20 @@ rec {
       # and accumulated leaks cascade through kubelet's Requires=containerd.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
       # TODO(sse): retire this carry once contrast migrates to runtime-rs.
-      ./0025-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
+      ./0023-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
 
       # Don't clean up the Kata cgroup when cleaning up a failed pod. It's unnecessary because it
       # will be cleaned up by containerd, and it may hide problems if the cleanup takes too long.
       # No upstream issue because this is unlikely to be accepted upstream as is, and developing a
       # full fix for all potential configurations is not a good investment of time.
       # TODO(burgerdev): drop patch after migrating to runtime-rs
-      ./0026-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
-
-      # Duplicate entry for the safe-path lib (workspace and crates.io) requires ugly hacks in the
-      # update-kata-cargo-nix script. The patch fixes the mismatch.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/13242
-      # TODO(charludo): drop after next kata update.
-      ./0027-runtime-rs-change-safe-path-dependency-from-crates.i.patch
+      ./0024-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
 
       # Cache (un-)compressed image sizes and information to map image references to DiffIDs in the layers-cache.json.
       # For each image reference, compressed sizes are taken from the image manifest and are stored with a reference
       # to the corresponding DiffID. Entries with a DiffID key now also store the uncompressed size of the layer.
       # This allows us to calculate the pod memory requirements based on the image sizes.
-      ./0028-genpolicy-cache-image-sizes-and-layer-info.patch
+      ./0025-genpolicy-cache-image-sizes-and-layer-info.patch
     ];
   };
 

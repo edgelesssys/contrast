@@ -30,6 +30,8 @@ func KataRuntimeConfig(
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "tdx", "share", "OVMF.fd")
+		// TODO: Migrate our custom calls from vsock to unix socket
+		config.Hypervisor["qemu"]["tdx_quote_generation_service_socket_port"] = 4050
 	case platforms.IsSNP(platform) || platforms.IsInsecure(platform):
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)

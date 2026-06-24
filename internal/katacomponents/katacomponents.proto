@@ -1,5 +1,5 @@
 // Copied from kata-containers/src/libs/protocols/protos/confidential_data_hub.proto
-// Version: 3.31.0
+// Version: 3.32.0
 
 //
 // Copyright (c) 2024 IBM

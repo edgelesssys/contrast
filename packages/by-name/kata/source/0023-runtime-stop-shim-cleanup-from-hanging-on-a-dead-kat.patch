@@ -116,10 +116,10 @@ index 6cda1db3dbdf523fef1b792ee79fd0eba2421a0e..47ec82820c47112f81ba4b7c4ea0fd20
  	}
  	defer s.Release(ctx)
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index df3387274fae8627b67a15b393fca387f38dd95d..b09729d8c310d75db8fefd59b94ef43f124ac50a 100644
+index 49706c8c2df0685ad7a6c91f2c54d5e7d8f352c9..4892350e5f311fdb3c51ccf08cb8bc2ee2d6cbd2 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
-@@ -2178,8 +2178,25 @@ func (k *kataAgent) connect(ctx context.Context) error {
+@@ -2401,8 +2401,25 @@ func (k *kataAgent) connect(ctx context.Context) error {
  		return nil
  	}
  
