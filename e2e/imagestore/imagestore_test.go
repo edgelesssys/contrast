@@ -59,13 +59,17 @@ func TestImageStore(t *testing.T) {
 		resources = append(resources, testPod(tc.name, tc.annotation))
 	}
 
+	resources = append(resources, tensorflowPod())
+
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	resources = kuberesource.AddPortForwarders(resources)
 	resources = kuberesource.AddImageStore(resources)
 
 	ct.Init(t, resources)
 
-	require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+	require.True(t.Run("generate", func(t *testing.T) {
+		require.NoError(ct.RunGenerate(t.Context(), "--inject-image-store", "--calculate-pod-memory"))
+	}), "contrast generate needs to succeed for subsequent tests")
 	require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 	require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
@@ -84,6 +88,11 @@ func TestImageStore(t *testing.T) {
 			var expectedKibiBytes int
 			switch tc.annotation {
 			case "0":
+				require.NotNil(pod.Spec.Resources)
+				require.NotNil(pod.Spec.Resources.Limits)
+				require.NotNil(pod.Spec.Resources.Limits.Memory())
+				podMemory := int(pod.Spec.Resources.Limits.Memory().Value())
+
 				containerMemory := 0
 				for _, c := range pod.Spec.Containers {
 					memory := c.Resources.Limits[corev1.ResourceMemory]
@@ -106,10 +115,15 @@ func TestImageStore(t *testing.T) {
 					initContainerMemory = max(initContainerMemory, int(memory.Value()))
 				}
 
-				defaultMemory := platforms.DefaultMemoryInMebiBytes(platform) * 1024 * 1024
-				// k8 adjusts the available memory to either be the maximum of (sequential) init containers,
+				// Usually, K8s adjusts the available memory to either be the maximum of (sequential) init containers,
 				// or the sum of (concurrent) normal and sidecar containers
-				totalMemory := defaultMemory + max(initContainerMemory, containerMemory)
+				minimumMemory := max(initContainerMemory, containerMemory)
+				// Only 50% of the allocated memory is available in /run. Half of the calculated pod memory should then
+				// accommodate for the container limits as defined above, plus additional memory to pull the images.
+				require.Greater(podMemory/2, minimumMemory, "pod memory should be greater than the container limits")
+
+				defaultMemory := platforms.DefaultMemoryInMebiBytes(platform) * 1024 * 1024
+				totalMemory := defaultMemory + podMemory
 				// When the imagestore is disabled, the expectedKibiBytes are (the total VM memory in KiB - internal VM overhead) / 2
 				// For more information on the internal VM overhead, see https://github.com/edgelesssys/contrast/pull/1196
 				vmOverheadBytes := 99 * 1024 * 1024
@@ -117,9 +131,11 @@ func TestImageStore(t *testing.T) {
 			case "":
 				size := resource.MustParse("10Gi")
 				expectedKibiBytes = int(size.Value()) / 1024
+				require.Nil(pod.Spec.Resources)
 			default:
 				size := resource.MustParse(tc.annotation)
 				expectedKibiBytes = int(size.Value()) / 1024
+				require.Nil(pod.Spec.Resources)
 			}
 
 			for _, c := range pod.Spec.Containers {
@@ -143,6 +159,19 @@ func TestImageStore(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("large image with pod resource limits", func(t *testing.T) {
+		// Increase timeout, as pulling the image may take a while.
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(5*time.Minute))
+		t.Cleanup(cancel)
+
+		require = req.New(t)
+
+		// The container is equipped with a very low memory limit, not nearly enough to pull the ~7Gi image.
+		// This verifies that the added pod memory limit during generate is enough to pull the image
+		// when the imagestore is disbabled. If the pod comes up, the test passes.
+		require.NoError(ct.Kubeclient.WaitForPod(ctx, ct.Namespace, "tensorflow"))
+	})
 }
 
 // extractDiskSize capture the "Size" field from df -h / output.
@@ -197,5 +226,24 @@ func testPod(name, annotation string) any {
 						WithMemoryLimitAndRequest(40),
 					),
 			),
+		)
+}
+
+func tensorflowPod() any {
+	return kuberesource.Pod("tensorflow", "").
+		WithLabels(map[string]string{"app.kubernetes.io/name": "tensorflow"}).
+		WithAnnotations(map[string]string{"contrast.edgeless.systems/image-store-size": "0"}).
+		WithSpec(
+			kuberesource.PodSpec().
+				WithContainers(
+					kuberesource.Container().
+						WithName("tensorflow").
+						WithImage("ghcr.io/edgelesssys/tensorflow@sha256:73fe35b67dad5fa5ab0824ed7efeb586820317566a705dff76142f8949ffcaff").
+						WithCommand("/bin/bash", "-c", "sleep infinity").
+						WithResources(
+							kuberesource.ResourceRequirements().
+								WithMemoryLimitAndRequest(10),
+						),
+				),
 		)
 }
