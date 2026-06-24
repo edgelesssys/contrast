@@ -76,8 +76,13 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin]
     env:
       SET: base
+      GOOS: ${{ matrix.goos }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
