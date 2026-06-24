@@ -132,6 +132,7 @@ podman
 PPID
 precalculator
 Privatemode
+proto
 protobuf
 proxied
 QEMU
@@ -149,6 +150,7 @@ safeguardable
 SBOM
 Scaleway
 serializable
+Shamir
 sigstore
 snapshotters?
 snapshotting
