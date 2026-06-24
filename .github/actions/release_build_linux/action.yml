@@ -79,6 +79,30 @@ runs:
         path: |
           LICENSE
           ${{ steps.create-artifacts.outputs.paths }}
+    # Warm the genpolicy layer cache on this fast github-hosted runner so the
+    # self-hosted e2e jobs read it instead of pulling image layers over their
+    # slow ghcr link, which can exceed generate's timeout.
+    - name: Warm genpolicy layer cache for e2e
+      shell: bash
+      env:
+        PATHS: ${{ steps.create-artifacts.outputs.paths }}
+      run: |
+        set -u
+        mkdir -p genpolicy-warmup
+        cp $PATHS genpolicy-warmup/
+        touch genpolicy-warmup/layers-cache.json
+        nix build -L ".#base.contrast.cli-release"
+        ./result/bin/contrast generate \
+          --reference-values Metal-QEMU-SNP \
+          --genpolicy-cache-path genpolicy-warmup/layers-cache.json \
+          genpolicy-warmup/ \
+          || echo "genpolicy warm-up failed; e2e will pull cold"
+    - name: Upload genpolicy layer cache
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: genpolicy-layer-cache
+        path: genpolicy-warmup/layers-cache.json
+        if-no-files-found: warn
     # Dev/test-only image, but pushed here so it can share this job's
     # packages:write permission. The e2e release matrix consumes the digest
     # to substitute the :latest placeholder when get-logs generates the

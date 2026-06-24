@@ -38,7 +38,8 @@ import (
 )
 
 const (
-	tokenEnvVar = "GH_TOKEN"
+	tokenEnvVar          = "GH_TOKEN"
+	genpolicyCacheEnvVar = "GENPOLICY_CACHE_PATH"
 )
 
 var (
@@ -195,7 +196,12 @@ func TestRelease(t *testing.T) {
 		}
 	}), "deployment processing needs to succeed for subsequent tests to run")
 
-	contrast.Run(ctx, t, 4*time.Minute, "generate", "--reference-values", *platformStr, "deployment/")
+	generateArgs := []string{"generate", "--reference-values", *platformStr}
+	if cachePath := os.Getenv(genpolicyCacheEnvVar); cachePath != "" {
+		generateArgs = append(generateArgs, "--genpolicy-cache-path", cachePath)
+	}
+	generateArgs = append(generateArgs, "deployment/")
+	contrast.Run(ctx, t, 4*time.Minute, generateArgs...)
 
 	require.True(t, t.Run("patch reference values", func(t *testing.T) {
 		require := require.New(t)
