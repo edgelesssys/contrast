@@ -4,14 +4,14 @@ Date: Wed, 13 May 2026 16:19:54 +0200
 Subject: [PATCH] agent: use config file as override
 
 ---
- src/agent/src/config.rs | 239 +++++++++++++++++++++-------------------
- 1 file changed, 125 insertions(+), 114 deletions(-)
+ src/agent/src/config.rs | 240 +++++++++++++++++++++-------------------
+ 1 file changed, 125 insertions(+), 115 deletions(-)
 
 diff --git a/src/agent/src/config.rs b/src/agent/src/config.rs
-index a9bc041ca84b9845fdc07d4615d9fbf00084115c..44d61b69f21f29a8d36793ab090297a1f5069573 100644
+index adfdf397c3ec29050f64a107571c1e986a6c4a8e..7597f0f6fc7cf3737e0770f63b7fb67f09d8fc5e 100644
 --- a/src/agent/src/config.rs
 +++ b/src/agent/src/config.rs
-@@ -290,107 +290,7 @@ impl FromStr for AgentConfig {
+@@ -294,108 +294,7 @@ impl FromStr for AgentConfig {
              toml::from_str(s).map_err(anyhow::Error::new)?;
          let mut agent_config: AgentConfig = Default::default();
  
@@ -29,6 +29,7 @@ index a9bc041ca84b9845fdc07d4615d9fbf00084115c..44d61b69f21f29a8d36793ab090297a1
 -        config_override!(agent_config_builder, agent_config, image_pull_timeout);
 -        config_override!(agent_config_builder, agent_config, cdi_timeout);
 -        config_override!(agent_config_builder, agent_config, launch_process_timeout);
+-        config_override!(agent_config_builder, agent_config, visible_cdi_devices);
 -        config_override!(agent_config_builder, agent_config, debug_console_vport);
 -        config_override!(agent_config_builder, agent_config, log_vport);
 -        config_override!(agent_config_builder, agent_config, container_pipe_size);
@@ -120,7 +121,7 @@ index a9bc041ca84b9845fdc07d4615d9fbf00084115c..44d61b69f21f29a8d36793ab090297a1
  
          Ok(agent_config)
      }
-@@ -400,19 +300,6 @@ impl AgentConfig {
+@@ -405,19 +304,6 @@ impl AgentConfig {
      #[instrument]
      #[allow(clippy::redundant_closure_call)]
      pub fn from_cmdline(file: &str, args: Vec<String>) -> Result<AgentConfig> {
@@ -140,7 +141,7 @@ index a9bc041ca84b9845fdc07d4615d9fbf00084115c..44d61b69f21f29a8d36793ab090297a1
          let mut config: AgentConfig = Default::default();
          let cmdline = fs::read_to_string(file)?;
          let params: Vec<&str> = cmdline.split_ascii_whitespace().collect();
-@@ -657,6 +544,23 @@ impl AgentConfig {
+@@ -669,6 +555,23 @@ impl AgentConfig {
              config.mem_agent = Some(mac);
          }
  
@@ -164,7 +165,7 @@ index a9bc041ca84b9845fdc07d4615d9fbf00084115c..44d61b69f21f29a8d36793ab090297a1
          config.override_config_from_envs();
  
          Ok(config)
-@@ -692,6 +596,113 @@ impl AgentConfig {
+@@ -704,6 +607,113 @@ impl AgentConfig {
              self.policy_file = policy_file;
          }
      }

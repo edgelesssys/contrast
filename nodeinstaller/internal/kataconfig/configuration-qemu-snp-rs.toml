@@ -101,7 +101,7 @@ kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
 # Optional dm-verity parameters (comma-separated key=value list):
 # root_hash=...,salt=...,data_blocks=...,data_block_size=...,hash_block_size=...
 # These are used by the runtime to assemble dm-verity kernel params.
-kernel_verity_params = "root_hash=b7b93058bf06cfe1b654f4a7dc92c1c89d3e1b9c04148a23deba3b9f0cfe4e24,salt=5b4910dc5d346f5aa3f5f02e07d5014035bb10075f4f2e92ba8a39edc1b4654c,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
+kernel_verity_params = "root_hash=c1b7e41bcb256b64df44bd5bccd1d05517e581136719caaa7731cbec2eebdde3,salt=4ce0ac520506b38fb03281ccbc18300d439007c67d6f5ed7cbf23b8a692640c5,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
@@ -292,10 +292,18 @@ block_device_logical_sector_size = 0
 block_device_physical_sector_size = 0
 
 # Enable iothreads (data-plane) to be used. This causes IO to be
-# handled in a separate IO thread. This is currently only implemented
-# for SCSI.
+# handled in a separate IO thread. This is currently implemented
+# for virtio-scsi. For virtio-blk-pci hotplug, use indep_iothreads instead.
 #
 enable_iothreads = false
+
+# Number of independent IO threads for virtio-blk-pci devices.
+# When set to a value greater than 0, creates dedicated IO threads
+# that are attached to virtio-blk-pci devices during hotplug.
+# Requires enable_iothreads = true; has no effect otherwise.
+# Default 0 (disabled).
+#
+indep_iothreads = 0
 
 # Enable pre allocation of VM RAM, default false
 # Enabling this will result in lower container density
@@ -349,17 +357,6 @@ enable_iommu_platform = false
 # The default if not set is empty (all annotations rejected.)
 # Your distribution recommends: ["/var/run/kata-containers/vhost-user"]
 valid_vhost_user_store_paths = ["/var/run/kata-containers/vhost-user"]
-
-# Enable file based guest memory support. The default is an empty string which
-# will disable this feature. In the case of virtio-fs, this is enabled
-# automatically and '/dev/shm' is used as the backing folder.
-# This option will be ignored if VM templating is enabled.
-file_mem_backend = ""
-
-# List of valid annotations values for the file_mem_backend annotation
-# The default if not set is empty (all annotations rejected.)
-# Your distribution recommends: [""]
-valid_file_mem_backends = [""]
 
 # -pflash can add image file to VM. The arguments of it should be in format
 # of ["/path/to/flash0.img", "/path/to/flash1.img"]
@@ -666,7 +663,7 @@ disable_new_netns = false
 # The sandbox cgroup path is the parent cgroup of a container with the PodSandbox annotation.
 # The sandbox cgroup is constrained if there is no container type annotation.
 # See: https://pkg.go.dev/github.com/kata-containers/kata-containers/src/runtime/virtcontainers#ContainerType
-sandbox_cgroup_only = false
+sandbox_cgroup_only = true
 
 # If enabled, the runtime will attempt to determine appropriate sandbox size (memory, CPU) before booting the virtual machine. In
 # this case, the runtime will not dynamically update the amount of memory and CPU in the virtual machine. This is generally helpful

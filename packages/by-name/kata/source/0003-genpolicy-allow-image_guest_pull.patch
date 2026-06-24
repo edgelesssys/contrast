@@ -126,10 +126,10 @@ index 74686abf43436d9c5c5117d061f1faed79783f74..e927668e85b61c1d242c1052bf50d7a5
 -    }
 -}
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index c407c98ee8fedeebe1f79aef9e43051b611011fc..022e3e2cb1e1248bfaa38aa32360c4c3c41814e4 100644
+index 1557e50c9319a6bdfcd50e9dc6981a8bedea5d52..ea55392b3f8fea7ccbfc9809433f7dc859f978e9 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
-@@ -1732,7 +1732,7 @@ func getContainerTypeforCRI(c *Container) (string, string) {
+@@ -1955,7 +1955,7 @@ func getContainerTypeforCRI(c *Container) (string, string) {
  	return "", ""
  }
  
@@ -138,7 +138,7 @@ index c407c98ee8fedeebe1f79aef9e43051b611011fc..022e3e2cb1e1248bfaa38aa32360c4c3
  	containerAnnotations := c.GetAnnotations()
  	containerType, criContainerType := getContainerTypeforCRI(c)
  
-@@ -1765,20 +1765,9 @@ func handleImageGuestPullBlockVolume(c *Container, virtualVolumeInfo *types.Kata
+@@ -1988,20 +1988,9 @@ func handleImageGuestPullBlockVolume(c *Container, virtualVolumeInfo *types.Kata
  			return nil, fmt.Errorf("Failed to get image name from annotations")
  		}
  	}
@@ -160,7 +160,7 @@ index c407c98ee8fedeebe1f79aef9e43051b611011fc..022e3e2cb1e1248bfaa38aa32360c4c3
  	vol.Fstype = typeOverlayFS
  	return vol, nil
  }
-@@ -1789,7 +1778,7 @@ func handleVirtualVolumeStorageObject(c *Container, blockDeviceId string, virtVo
+@@ -2012,7 +2001,7 @@ func handleVirtualVolumeStorageObject(c *Container, blockDeviceId string, virtVo
  	if virtVolume.VolumeType == types.KataVirtualVolumeImageGuestPullType {
  		var err error
  		vol = &grpc.Storage{}

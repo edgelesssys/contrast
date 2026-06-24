@@ -61,10 +61,10 @@ index 0b1373063464dcf4f49cf05ea1f8cf63a003683b..ef28bec488fef8cc0be75715601f49db
  }
  
 diff --git a/src/runtime/pkg/device/config/config.go b/src/runtime/pkg/device/config/config.go
-index b912fc6377ad92cffd236fd6c829817183ba9be8..598a122affa919e4103454cb14abe9780929714a 100644
+index 489cf5e4dc749f6e22f206e57055ceb21aa2692b..7cd35363907549afd9c7b55c15570eef92cb6724 100644
 --- a/src/runtime/pkg/device/config/config.go
 +++ b/src/runtime/pkg/device/config/config.go
-@@ -733,3 +733,45 @@ func injectDevices(cdiSpecDirs []string, spec *specs.Spec, devices []string) err
+@@ -748,3 +748,45 @@ func injectDevices(cdiSpecDirs []string, spec *specs.Spec, devices []string) err
  
  	return nil
  }

@@ -57,10 +57,10 @@ index 64db843a5953e7176420274bc65b99974534e407..bf2ec55251ef3013726bc2b24a8c69b4
      Ok(())
  }
 diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
-index f9df3e1860ed7e166fe7af42010e8a701e6ac6f7..6276008a833782a52b4c45d3bbab1ce7839af3cf 100644
+index 06cadc21eec5d4ae91c9de8421470722a9173323..5eb49c5099a1c54cfe5436131bb904bb0512b9b4 100644
 --- a/src/agent/src/rpc.rs
 +++ b/src/agent/src/rpc.rs
-@@ -114,7 +114,7 @@ use kata_types::k8s;
+@@ -120,7 +120,7 @@ use kata_types::k8s;
  
  pub const CONTAINER_BASE: &str = "/run/kata-containers";
  const MODPROBE_PATH: &str = "/sbin/modprobe";
@@ -69,7 +69,7 @@ index f9df3e1860ed7e166fe7af42010e8a701e6ac6f7..6276008a833782a52b4c45d3bbab1ce7
  /// the iptables seriers binaries could appear either in /sbin
  /// or /usr/sbin, we need to check both of them
  const USR_IPTABLES_SAVE: &str = "/usr/sbin/iptables-save";
-@@ -2438,10 +2438,6 @@ pub(crate) async fn cdh_secure_mount(
+@@ -2504,10 +2504,6 @@ pub(crate) async fn cdh_secure_mount(
      mount_point: &str,
      mkfs_opts: &str,
  ) -> Result<()> {

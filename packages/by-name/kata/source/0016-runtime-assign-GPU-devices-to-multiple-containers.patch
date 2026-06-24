@@ -11,10 +11,10 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 41 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
-index dc96e3cf398a3875db58750a94ae5e3312f8920a..ffeb7fdf36e93446500a63221676ff1c7f8fc7bd 100644
+index 0513293cb61c0ca4dad6e33b2d98ba5eda4084e5..bc5d39ebe6989f5d96a88c43ab9e047fbec0fcfb 100644
 --- a/src/runtime/virtcontainers/container.go
 +++ b/src/runtime/virtcontainers/container.go
-@@ -1285,6 +1285,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+@@ -1380,6 +1380,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
  			for _, dev := range devs {
  				containerPaths = append(containerPaths, dev.ContainerPath)
  			}
@@ -29,7 +29,7 @@ index dc96e3cf398a3875db58750a94ae5e3312f8920a..ffeb7fdf36e93446500a63221676ff1c
  		}
  
  		// Now that we have the index lets connect the /dev/vfio/<num>
-@@ -1305,6 +1313,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+@@ -1400,6 +1408,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
  				}
  				return err
  			}
@@ -45,10 +45,10 @@ index dc96e3cf398a3875db58750a94ae5e3312f8920a..ffeb7fdf36e93446500a63221676ff1c
  
  	}
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 5ff1d70c292bf6a80680cebe8c77c0aacc213980..4964ff6eab320e5914ccde8f7ddfe3ac2909da39 100644
+index c1f2b6b3a85e30d8e7153829911adc6684eead9e..c6b8d4afe124d462748e78190cfd9a7f44ea59b3 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -1203,6 +1203,17 @@ impl Container {
+@@ -1221,6 +1221,17 @@ impl Container {
          let limits = self.resources.as_ref()?.limits.as_ref()?;
          sum_limits_by_keys(limits, pgpu_resource_keys)
      }

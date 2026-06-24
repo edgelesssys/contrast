@@ -19,10 +19,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 11d7131da504b54b1fe859aaef0ba46118145723..4b914919618e5dc51a031f1ca09d05f9b0aba805 100644
+index 8f7ca9733a7c04d38af83cebf453e73ce5acd00c..8b89b4e124497ef9f147391f90c48b1a1ea5fa95 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
-@@ -385,7 +385,7 @@ async fn start_sandbox(
+@@ -389,7 +389,7 @@ async fn start_sandbox(
          // Continuing execution without a security policy could be dangerous.
          // Give a brief moment for the logs to flush, then abort the process to stop the VM.
          tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
