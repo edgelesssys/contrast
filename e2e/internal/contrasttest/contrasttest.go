@@ -223,11 +223,12 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 }
 
 // RunGenerate runs the contrast generate command.
-func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
+func (ct *ContrastTest) RunGenerate(ctx context.Context, args ...string) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	args := append(
-		ct.commonArgs(),
+	args = append(args, ct.commonArgs()...)
+	args = append(
+		args,
 		"--image-replacements", ct.ImageReplacementsFile,
 		"--reference-values", ct.Platform.String(),
 		fmt.Sprintf("--insecure-enable-debug-shell-access=%t", Flags.InsecureEnableDebugShell),
