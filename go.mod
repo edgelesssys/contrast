@@ -3,7 +3,9 @@ module github.com/edgelesssys/contrast
 go 1.25.6
 
 // Upstream is poorly maintained, use edgelesssys fork instead.
-replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260120144929-ac8c4b4a23eb
+replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260625101654-86bb3d849c88
+
+replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20260625075350-5c9638ef2416
 
 require (
 	filippo.io/keygen v0.0.0-20260114151900-8e2790ea4c5b
