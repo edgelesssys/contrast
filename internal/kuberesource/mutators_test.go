@@ -143,9 +143,10 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: false,
 		},
@@ -154,10 +155,11 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithInitContainers(initializer).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithInitContainers(initializer).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: false,
 		},
@@ -166,13 +168,15 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc").
-							WithVolumes(Volume().
-								WithName(*initializer.VolumeMounts[0].Name).
-								WithEmptyDir(EmptyDirVolumeSource().Inner()),
-							),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc").
+								WithVolumes(
+									Volume().
+										WithName(*initializer.VolumeMounts[0].Name).
+										WithEmptyDir(EmptyDirVolumeSource().Inner()),
+								),
 						))),
 			wantError: false,
 		},
@@ -181,13 +185,15 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc").
-							WithVolumes(Volume().
-								WithName(*initializer.VolumeMounts[0].Name).
-								WithConfigMap(Volume().ConfigMap),
-							),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc").
+								WithVolumes(
+									Volume().
+										WithName(*initializer.VolumeMounts[0].Name).
+										WithConfigMap(Volume().ConfigMap),
+								),
 						))),
 			wantError: true,
 		},
@@ -196,16 +202,17 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(
-								applycorev1.Container().
-									WithVolumeMounts(
-										VolumeMount().
-											WithName(expectedInitializerVolumeMountName).
-											WithMountPath("/some/other/path"),
-									),
-							).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(
+									applycorev1.Container().
+										WithVolumeMounts(
+											VolumeMount().
+												WithName(expectedInitializerVolumeMountName).
+												WithMountPath("/some/other/path"),
+										),
+								).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: false,
 		},
@@ -214,10 +221,11 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithInitContainers(applycorev1.Container().WithName("custom-init")).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithInitContainers(applycorev1.Container().WithName("custom-init")).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: false,
 		},
@@ -226,17 +234,18 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithInitContainers(
-								applycorev1.Container().
-									WithVolumeMounts(
-										VolumeMount().
-											WithName(expectedInitializerVolumeMountName).
-											WithMountPath("/some/other/path"),
-									),
-							).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithInitContainers(
+									applycorev1.Container().
+										WithVolumeMounts(
+											VolumeMount().
+												WithName(expectedInitializerVolumeMountName).
+												WithMountPath("/some/other/path"),
+										),
+								).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: false,
 		},
@@ -246,14 +255,15 @@ func TestAddInitializer(t *testing.T) {
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc").
-							WithVolumes(
-								Volume().
-									WithName("device").
-									WithPersistentVolumeClaim(applycorev1.PersistentVolumeClaimVolumeSource()),
-							),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc").
+								WithVolumes(
+									Volume().
+										WithName("device").
+										WithPersistentVolumeClaim(applycorev1.PersistentVolumeClaimVolumeSource()),
+								),
 						))),
 			wantError: false,
 		},
@@ -263,9 +273,10 @@ func TestAddInitializer(t *testing.T) {
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithAnnotations(map[string]string{securePVAnnotationKey: "test"}).
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: true,
 		},
@@ -275,9 +286,10 @@ func TestAddInitializer(t *testing.T) {
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: true,
 		},
@@ -287,15 +299,16 @@ func TestAddInitializer(t *testing.T) {
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc").
-							WithVolumes(
-								Volume().WithName("device"),
-								Volume().
-									WithName("mount").
-									WithEmptyDir(EmptyDirVolumeSource().Inner()),
-							),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc").
+								WithVolumes(
+									Volume().WithName("device"),
+									Volume().
+										WithName("mount").
+										WithEmptyDir(EmptyDirVolumeSource().Inner()),
+								),
 						))),
 			wantError: true,
 		},
@@ -397,9 +410,10 @@ func TestAddServiceMesh(t *testing.T) {
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: false,
 		},
@@ -408,9 +422,10 @@ func TestAddServiceMesh(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			skipServiceMesh: true,
 			wantError:       false,
@@ -421,10 +436,11 @@ func TestAddServiceMesh(t *testing.T) {
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithInitContainers(ServiceMeshProxy()).
-							WithRuntimeClassName("contrast-cc"),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithInitContainers(ServiceMeshProxy()).
+								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: false,
 		},
@@ -434,13 +450,15 @@ func TestAddServiceMesh(t *testing.T) {
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc").
-							WithVolumes(Volume().
-								WithName(*ServiceMeshProxy().VolumeMounts[0].Name).
-								WithEmptyDir(EmptyDirVolumeSource().Inner()),
-							),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc").
+								WithVolumes(
+									Volume().
+										WithName(*ServiceMeshProxy().VolumeMounts[0].Name).
+										WithEmptyDir(EmptyDirVolumeSource().Inner()),
+								),
 						))),
 			wantError: false,
 		},
@@ -450,13 +468,15 @@ func TestAddServiceMesh(t *testing.T) {
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
-						WithSpec(applycorev1.PodSpec().
-							WithContainers(applycorev1.Container()).
-							WithRuntimeClassName("contrast-cc").
-							WithVolumes(Volume().
-								WithName(*ServiceMeshProxy().VolumeMounts[0].Name).
-								WithConfigMap(Volume().ConfigMap),
-							),
+						WithSpec(
+							applycorev1.PodSpec().
+								WithContainers(applycorev1.Container()).
+								WithRuntimeClassName("contrast-cc").
+								WithVolumes(
+									Volume().
+										WithName(*ServiceMeshProxy().VolumeMounts[0].Name).
+										WithConfigMap(Volume().ConfigMap),
+								),
 						))),
 			wantError: true,
 		},

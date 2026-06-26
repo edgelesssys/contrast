@@ -180,22 +180,25 @@ func testPod(name, annotation string) any {
 	return kuberesource.Pod(name, "").
 		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
 		WithAnnotations(map[string]string{"contrast.edgeless.systems/image-store-size": annotation}).
-		WithSpec(kuberesource.PodSpec().
-			WithContainers(
-				kuberesource.Container().
-					WithName(name+"-1").
-					WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
-					WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
-					WithResources(kuberesource.ResourceRequirements().
-						WithMemoryLimitAndRequest(40),
-					),
-				kuberesource.Container().
-					WithName(name+"-2").
-					WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
-					WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
-					WithResources(kuberesource.ResourceRequirements().
-						WithMemoryLimitAndRequest(40),
-					),
-			),
+		WithSpec(
+			kuberesource.PodSpec().
+				WithContainers(
+					kuberesource.Container().
+						WithName(name+"-1").
+						WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
+						WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
+						WithResources(
+							kuberesource.ResourceRequirements().
+								WithMemoryLimitAndRequest(40),
+						),
+					kuberesource.Container().
+						WithName(name+"-2").
+						WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
+						WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
+						WithResources(
+							kuberesource.ResourceRequirements().
+								WithMemoryLimitAndRequest(40),
+						),
+				),
 		)
 }

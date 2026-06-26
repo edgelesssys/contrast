@@ -81,45 +81,51 @@ func LogCollector() []any {
 	}
 
 	ds := DaemonSet(name, "").
-		WithSpec(DaemonSetSpec().
-			WithSelector(LabelSelector().WithMatchLabels(labels)).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(labels).
-				WithSpec(PodSpec().
-					WithPriorityClassName(priorityClassName).
-					WithTolerations(tolerations...).
-					WithContainers(Container().
-						WithName(name).
-						WithImage("ghcr.io/edgelesssys/contrast/k8s-log-collector:latest").
-						WithVolumeMounts(
-							VolumeMount().WithName("log-volume").WithMountPath("/logs").WithReadOnly(true),
-							VolumeMount().WithName("journal-volume").WithMountPath("/journal").WithReadOnly(true),
-							VolumeMount().WithName("containerd-run").WithMountPath("/run/containerd").WithReadOnly(true),
-							VolumeMount().WithName("k3s-containerd-run").WithMountPath("/run/k3s/containerd").WithReadOnly(true),
-						).
-						WithEnv(
-							EnvVar().WithName("POD_NAMESPACE").
-								WithValueFrom(applycorev1.EnvVarSource().
-									WithFieldRef(applycorev1.ObjectFieldSelector().WithFieldPath("metadata.namespace")),
-								),
-							EnvVar().WithName("NODE_NAME").
-								WithValueFrom(applycorev1.EnvVarSource().
-									WithFieldRef(applycorev1.ObjectFieldSelector().WithFieldPath("spec.nodeName")),
+		WithSpec(
+			DaemonSetSpec().
+				WithSelector(LabelSelector().WithMatchLabels(labels)).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(labels).
+						WithSpec(
+							PodSpec().
+								WithPriorityClassName(priorityClassName).
+								WithTolerations(tolerations...).
+								WithContainers(
+									Container().
+										WithName(name).
+										WithImage("ghcr.io/edgelesssys/contrast/k8s-log-collector:latest").
+										WithVolumeMounts(
+											VolumeMount().WithName("log-volume").WithMountPath("/logs").WithReadOnly(true),
+											VolumeMount().WithName("journal-volume").WithMountPath("/journal").WithReadOnly(true),
+											VolumeMount().WithName("containerd-run").WithMountPath("/run/containerd").WithReadOnly(true),
+											VolumeMount().WithName("k3s-containerd-run").WithMountPath("/run/k3s/containerd").WithReadOnly(true),
+										).
+										WithEnv(
+											EnvVar().WithName("POD_NAMESPACE").
+												WithValueFrom(
+													applycorev1.EnvVarSource().
+														WithFieldRef(applycorev1.ObjectFieldSelector().WithFieldPath("metadata.namespace")),
+												),
+											EnvVar().WithName("NODE_NAME").
+												WithValueFrom(
+													applycorev1.EnvVarSource().
+														WithFieldRef(applycorev1.ObjectFieldSelector().WithFieldPath("spec.nodeName")),
+												),
+										),
+								).
+								WithVolumes(
+									Volume().WithName("log-volume").
+										WithHostPath(HostPathVolumeSource().WithPath("/var/log/pods").WithType(corev1.HostPathDirectory)),
+									Volume().WithName("journal-volume").
+										WithHostPath(HostPathVolumeSource().WithPath("/var/log/journal").WithType(corev1.HostPathDirectoryOrCreate)),
+									Volume().WithName("containerd-run").
+										WithHostPath(HostPathVolumeSource().WithPath("/run/containerd").WithType(corev1.HostPathDirectoryOrCreate)),
+									Volume().WithName("k3s-containerd-run").
+										WithHostPath(HostPathVolumeSource().WithPath("/run/k3s/containerd").WithType(corev1.HostPathDirectoryOrCreate)),
 								),
 						),
-					).
-					WithVolumes(
-						Volume().WithName("log-volume").
-							WithHostPath(HostPathVolumeSource().WithPath("/var/log/pods").WithType(corev1.HostPathDirectory)),
-						Volume().WithName("journal-volume").
-							WithHostPath(HostPathVolumeSource().WithPath("/var/log/journal").WithType(corev1.HostPathDirectoryOrCreate)),
-						Volume().WithName("containerd-run").
-							WithHostPath(HostPathVolumeSource().WithPath("/run/containerd").WithType(corev1.HostPathDirectoryOrCreate)),
-						Volume().WithName("k3s-containerd-run").
-							WithHostPath(HostPathVolumeSource().WithPath("/run/k3s/containerd").WithType(corev1.HostPathDirectoryOrCreate)),
-					),
 				),
-			),
 		)
 
 	pc := applyschedulingv1.PriorityClass(priorityClassName).
@@ -134,71 +140,83 @@ func LogCollector() []any {
 func OpenSSL() []any {
 	ns := ""
 	backend := Deployment("openssl-backend", ns).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "openssl-backend"}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-backend"}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("openssl-backend").
-							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/sh", "-c", "openssl s_server -port 443 -Verify 2 -CAfile /contrast/tls-config/mesh-ca.pem -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem").
-							WithPorts(
-								ContainerPort().
-									WithName("https").
-									WithContainerPort(443),
-							).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(250),
-							).
-							WithReadinessProbe(Probe().
-								WithInitialDelaySeconds(1).
-								WithPeriodSeconds(5).
-								WithTCPSocket(TCPSocketAction().
-									WithPort(intstr.FromInt(443))),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "openssl-backend"}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-backend"}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("openssl-backend").
+										WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
+										WithCommand("/bin/sh", "-c", "openssl s_server -port 443 -Verify 2 -CAfile /contrast/tls-config/mesh-ca.pem -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem").
+										WithPorts(
+											ContainerPort().
+												WithName("https").
+												WithContainerPort(443),
+										).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(250),
+										).
+										WithReadinessProbe(
+											Probe().
+												WithInitialDelaySeconds(1).
+												WithPeriodSeconds(5).
+												WithTCPSocket(TCPSocketAction().
+													WithPort(intstr.FromInt(443))),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	backendService := ServiceForDeployment(backend)
 
 	frontend := Deployment("openssl-frontend", ns).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "openssl-frontend"}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-frontend"}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("openssl-frontend").
-							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/sh", "-c", "openssl s_server -www -port 443 -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem -cert_chain /contrast/tls-config/certChain.pem").
-							WithPorts(
-								ContainerPort().
-									WithName("https").
-									WithContainerPort(443),
-							).
-							WithReadinessProbe(Probe().
-								WithInitialDelaySeconds(1).
-								WithPeriodSeconds(5).
-								WithTCPSocket(TCPSocketAction().
-									WithPort(intstr.FromInt(443))),
-							).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(250),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "openssl-frontend"}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-frontend"}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("openssl-frontend").
+										WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
+										WithCommand("/bin/sh", "-c", "openssl s_server -www -port 443 -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem -cert_chain /contrast/tls-config/certChain.pem").
+										WithPorts(
+											ContainerPort().
+												WithName("https").
+												WithContainerPort(443),
+										).
+										WithReadinessProbe(
+											Probe().
+												WithInitialDelaySeconds(1).
+												WithPeriodSeconds(5).
+												WithTCPSocket(TCPSocketAction().
+													WithPort(intstr.FromInt(443))),
+										).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(250),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	frontendService := ServiceForDeployment(frontend)
@@ -217,32 +235,37 @@ func OpenSSL() []any {
 func MultiCPU() []any {
 	return []any{
 		Deployment("multi-cpu", "").
-			WithSpec(DeploymentSpec().
-				WithReplicas(1).
-				WithSelector(LabelSelector().
-					WithMatchLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}),
-				).
-				WithTemplate(PodTemplateSpec().
-					WithLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}).
-					WithSpec(PodSpec().
-						WithContainers(
-							Container().
-								WithName("multi-cpu").
-								WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
-								WithCommand("/bin/sh", "-c", "sleep inf").
-								WithResources(ResourceRequirements().
-									WithRequests(corev1.ResourceList{
-										corev1.ResourceMemory: resource.MustParse("200Mi"),
-									}).
-									// Explicitly set a CPU limit to test assignment of CPUs to VMs.
-									WithLimits(corev1.ResourceList{
-										corev1.ResourceMemory: resource.MustParse("200Mi"),
-										corev1.ResourceCPU:    resource.MustParse("1"),
-									}),
-								),
-						),
+			WithSpec(
+				DeploymentSpec().
+					WithReplicas(1).
+					WithSelector(
+						LabelSelector().
+							WithMatchLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}),
+					).
+					WithTemplate(
+						PodTemplateSpec().
+							WithLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}).
+							WithSpec(
+								PodSpec().
+									WithContainers(
+										Container().
+											WithName("multi-cpu").
+											WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
+											WithCommand("/bin/sh", "-c", "sleep inf").
+											WithResources(
+												ResourceRequirements().
+													WithRequests(corev1.ResourceList{
+														corev1.ResourceMemory: resource.MustParse("200Mi"),
+													}).
+													// Explicitly set a CPU limit to test assignment of CPUs to VMs.
+													WithLimits(corev1.ResourceList{
+														corev1.ResourceMemory: resource.MustParse("200Mi"),
+														corev1.ResourceCPU:    resource.MustParse("1"),
+													}),
+											),
+									),
+							),
 					),
-				),
 			),
 	}
 }
@@ -284,65 +307,72 @@ func Emojivoto(smMode serviceMeshMode) []any {
 			"app.kubernetes.io/part-of": "emojivoto",
 			"app.kubernetes.io/version": "v11",
 		}).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{
-					"app.kubernetes.io/name": "emoji-svc",
-					"version":                "v11",
-				}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name": "emoji-svc",
-					"version":                "v11",
-				}).
-				WithSpec(PodSpec().
-					WithServiceAccountName("emoji").
-					WithContainers(
-						Container().
-							WithName("emoji-svc").
-							WithImage(emojiSvcImage).
-							WithPorts(
-								ContainerPort().
-									WithName("grpc").
-									WithContainerPort(8080),
-								ContainerPort().
-									WithName("prom").
-									WithContainerPort(8801),
-							).
-							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
-							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(memoryLimitMiB),
-							).
-							WithReadinessProbe(Probe().
-								WithInitialDelaySeconds(1).
-								WithPeriodSeconds(5).
-								WithTCPSocket(TCPSocketAction().
-									WithPort(intstr.FromInt(8080))),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{
+							"app.kubernetes.io/name": "emoji-svc",
+							"version":                "v11",
+						}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{
+							"app.kubernetes.io/name": "emoji-svc",
+							"version":                "v11",
+						}).
+						WithSpec(
+							PodSpec().
+								WithServiceAccountName("emoji").
+								WithContainers(
+									Container().
+										WithName("emoji-svc").
+										WithImage(emojiSvcImage).
+										WithPorts(
+											ContainerPort().
+												WithName("grpc").
+												WithContainerPort(8080),
+											ContainerPort().
+												WithName("prom").
+												WithContainerPort(8801),
+										).
+										WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
+										WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(memoryLimitMiB),
+										).
+										WithReadinessProbe(
+											Probe().
+												WithInitialDelaySeconds(1).
+												WithPeriodSeconds(5).
+												WithTCPSocket(TCPSocketAction().
+													WithPort(intstr.FromInt(8080))),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	emojiService := ServiceForDeployment(emoji).
 		WithName("emoji-svc").
-		WithSpec(ServiceSpec().
-			WithSelector(
-				map[string]string{"app.kubernetes.io/name": "emoji-svc"},
-			).
-			WithPorts(
-				ServicePort().
-					WithName("grpc").
-					WithPort(8080).
-					WithTargetPort(intstr.FromInt(8080)),
-				ServicePort().
-					WithName("prom").
-					WithPort(8801).
-					WithTargetPort(intstr.FromInt(8801)),
-			),
+		WithSpec(
+			ServiceSpec().
+				WithSelector(
+					map[string]string{"app.kubernetes.io/name": "emoji-svc"},
+				).
+				WithPorts(
+					ServicePort().
+						WithName("grpc").
+						WithPort(8080).
+						WithTargetPort(intstr.FromInt(8080)),
+					ServicePort().
+						WithName("prom").
+						WithPort(8801).
+						WithTargetPort(intstr.FromInt(8801)),
+				),
 		)
 
 	emojiserviceAccount := ServiceAccount("emoji", ns).
@@ -355,35 +385,40 @@ func Emojivoto(smMode serviceMeshMode) []any {
 			"app.kubernetes.io/part-of": "emojivoto",
 			"app.kubernetes.io/version": "v11",
 		}).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{
-					"app.kubernetes.io/name": "vote-bot",
-					"version":                "v11",
-				}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name": "vote-bot",
-					"version":                "v11",
-				}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("vote-bot").
-							WithImage(emojiWebVoteBotImage).
-							WithCommand("emojivoto-vote-bot").
-							WithEnv(
-								EnvVar().WithName("WEB_HOST").WithValue(emojiWebSvcHost),
-								EnvVar().WithName("REQUEST_RATE").WithValue("10"), // speed up voting
-							).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(memoryLimitMiB),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{
+							"app.kubernetes.io/name": "vote-bot",
+							"version":                "v11",
+						}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{
+							"app.kubernetes.io/name": "vote-bot",
+							"version":                "v11",
+						}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("vote-bot").
+										WithImage(emojiWebVoteBotImage).
+										WithCommand("emojivoto-vote-bot").
+										WithEnv(
+											EnvVar().WithName("WEB_HOST").WithValue(emojiWebSvcHost),
+											EnvVar().WithName("REQUEST_RATE").WithValue("10"), // speed up voting
+										).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(memoryLimitMiB),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	voting := Deployment("voting", ns).
@@ -392,65 +427,72 @@ func Emojivoto(smMode serviceMeshMode) []any {
 			"app.kubernetes.io/part-of": "emojivoto",
 			"app.kubernetes.io/version": "v11",
 		}).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{
-					"app.kubernetes.io/name": "voting-svc",
-					"version":                "v11",
-				}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name": "voting-svc",
-					"version":                "v11",
-				}).
-				WithSpec(PodSpec().
-					WithServiceAccountName("voting").
-					WithContainers(
-						Container().
-							WithName("voting-svc").
-							WithImage(emojiVotingSvcImage).
-							WithPorts(
-								ContainerPort().
-									WithName("grpc").
-									WithContainerPort(8080),
-								ContainerPort().
-									WithName("prom").
-									WithContainerPort(8801),
-							).
-							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
-							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(memoryLimitMiB),
-							).
-							WithReadinessProbe(Probe().
-								WithInitialDelaySeconds(1).
-								WithPeriodSeconds(5).
-								WithTCPSocket(TCPSocketAction().
-									WithPort(intstr.FromInt(8080))),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{
+							"app.kubernetes.io/name": "voting-svc",
+							"version":                "v11",
+						}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{
+							"app.kubernetes.io/name": "voting-svc",
+							"version":                "v11",
+						}).
+						WithSpec(
+							PodSpec().
+								WithServiceAccountName("voting").
+								WithContainers(
+									Container().
+										WithName("voting-svc").
+										WithImage(emojiVotingSvcImage).
+										WithPorts(
+											ContainerPort().
+												WithName("grpc").
+												WithContainerPort(8080),
+											ContainerPort().
+												WithName("prom").
+												WithContainerPort(8801),
+										).
+										WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
+										WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(memoryLimitMiB),
+										).
+										WithReadinessProbe(
+											Probe().
+												WithInitialDelaySeconds(1).
+												WithPeriodSeconds(5).
+												WithTCPSocket(TCPSocketAction().
+													WithPort(intstr.FromInt(8080))),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	votingService := ServiceForDeployment(voting).
 		WithName("voting-svc").
-		WithSpec(ServiceSpec().
-			WithSelector(
-				map[string]string{"app.kubernetes.io/name": "voting-svc"},
-			).
-			WithPorts(
-				ServicePort().
-					WithName("grpc").
-					WithPort(8080).
-					WithTargetPort(intstr.FromInt(8080)),
-				ServicePort().
-					WithName("prom").
-					WithPort(8801).
-					WithTargetPort(intstr.FromInt(8801)),
-			),
+		WithSpec(
+			ServiceSpec().
+				WithSelector(
+					map[string]string{"app.kubernetes.io/name": "voting-svc"},
+				).
+				WithPorts(
+					ServicePort().
+						WithName("grpc").
+						WithPort(8080).
+						WithTargetPort(intstr.FromInt(8080)),
+					ServicePort().
+						WithName("prom").
+						WithPort(8801).
+						WithTargetPort(intstr.FromInt(8801)),
+				),
 		)
 
 	votingserviceAccount := ServiceAccount("voting", ns).
@@ -463,64 +505,72 @@ func Emojivoto(smMode serviceMeshMode) []any {
 			"app.kubernetes.io/part-of": "emojivoto",
 			"app.kubernetes.io/version": "v11",
 		}).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{
-					"app.kubernetes.io/name": "web-svc",
-					"version":                "v11",
-				}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name": "web-svc",
-					"version":                "v11",
-				}).
-				WithSpec(PodSpec().
-					WithServiceAccountName("web").
-					WithContainers(
-						Container().
-							WithName("web-svc").
-							WithImage(emojiWebImage).
-							WithPorts(
-								ContainerPort().
-									WithName("https").
-									WithContainerPort(8080),
-							).
-							WithEnv(EnvVar().WithName("WEB_PORT").WithValue("8080")).
-							WithEnv(EnvVar().WithName("EMOJISVC_HOST").WithValue(emojiSvcHost)).
-							WithEnv(EnvVar().WithName("VOTINGSVC_HOST").WithValue(votingSvcHost)).
-							WithEnv(EnvVar().WithName("INDEX_BUNDLE").WithValue("dist/index_bundle.js")).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(memoryLimitMiB),
-							).
-							WithReadinessProbe(applycorev1.Probe().
-								WithHTTPGet(applycorev1.HTTPGetAction().
-									WithPort(intstr.FromInt(8080)).
-									WithScheme(corev1.URISchemeHTTPS),
-								).
-								WithInitialDelaySeconds(1).
-								WithPeriodSeconds(5),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{
+							"app.kubernetes.io/name": "web-svc",
+							"version":                "v11",
+						}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{
+							"app.kubernetes.io/name": "web-svc",
+							"version":                "v11",
+						}).
+						WithSpec(
+							PodSpec().
+								WithServiceAccountName("web").
+								WithContainers(
+									Container().
+										WithName("web-svc").
+										WithImage(emojiWebImage).
+										WithPorts(
+											ContainerPort().
+												WithName("https").
+												WithContainerPort(8080),
+										).
+										WithEnv(EnvVar().WithName("WEB_PORT").WithValue("8080")).
+										WithEnv(EnvVar().WithName("EMOJISVC_HOST").WithValue(emojiSvcHost)).
+										WithEnv(EnvVar().WithName("VOTINGSVC_HOST").WithValue(votingSvcHost)).
+										WithEnv(EnvVar().WithName("INDEX_BUNDLE").WithValue("dist/index_bundle.js")).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(memoryLimitMiB),
+										).
+										WithReadinessProbe(
+											applycorev1.Probe().
+												WithHTTPGet(
+													applycorev1.HTTPGetAction().
+														WithPort(intstr.FromInt(8080)).
+														WithScheme(corev1.URISchemeHTTPS),
+												).
+												WithInitialDelaySeconds(1).
+												WithPeriodSeconds(5),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	webService := ServiceForDeployment(web).
 		WithName("web-svc").
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"}).
-		WithSpec(ServiceSpec().
-			WithSelector(
-				map[string]string{"app.kubernetes.io/name": "web-svc"},
-			).
-			WithType("ClusterIP").
-			WithPorts(
-				ServicePort().
-					WithName("https").
-					WithPort(443).
-					WithTargetPort(intstr.FromInt(8080)),
-			),
+		WithSpec(
+			ServiceSpec().
+				WithSelector(
+					map[string]string{"app.kubernetes.io/name": "web-svc"},
+				).
+				WithType("ClusterIP").
+				WithPorts(
+					ServicePort().
+						WithName("https").
+						WithPort(443).
+						WithTargetPort(intstr.FromInt(8080)),
+				),
 		)
 
 	webserviceAccount := ServiceAccount("web", ns).
@@ -579,51 +629,58 @@ func Emojivoto(smMode serviceMeshMode) []any {
 // mounting of encrypted luks volumes using the workload-secret.
 func VolumeStatefulSet() []any {
 	vss := StatefulSet("volume-tester", "").
-		WithSpec(StatefulSetSpec().
-			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
-				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
-				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}),
-			).
-			WithServiceName("volume-tester").
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}).
-				WithAnnotations(map[string]string{securePVAnnotationKey: "state:share"}).
-				WithSpec(
-					PodSpec().
-						WithContainers(
-							Container().
-								WithName("volume-tester").
-								WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
-								WithCommand("/bin/sh", "-c", "sleep inf").
-								WithVolumeMounts(
-									VolumeMount().
-										WithName("share").
-										WithMountPath("/state").
-										WithMountPropagation(corev1.MountPropagationHostToContainer),
-								).
-								WithResources(ResourceRequirements().
-									// The memory limit here does not need to take the image into
-									// account, since it's already pulled for the initializer
-									// container.
-									WithMemoryLimitAndRequest(50),
+		WithSpec(
+			StatefulSetSpec().
+				WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}),
+				).
+				WithServiceName("volume-tester").
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}).
+						WithAnnotations(map[string]string{securePVAnnotationKey: "state:share"}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("volume-tester").
+										WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
+										WithCommand("/bin/sh", "-c", "sleep inf").
+										WithVolumeMounts(
+											VolumeMount().
+												WithName("share").
+												WithMountPath("/state").
+												WithMountPropagation(corev1.MountPropagationHostToContainer),
+										).
+										WithResources(
+											ResourceRequirements().
+												// The memory limit here does not need to take the image into
+												// account, since it's already pulled for the initializer
+												// container.
+												WithMemoryLimitAndRequest(50),
+										),
+								),
+						),
+				).
+				WithVolumeClaimTemplates(
+					PersistentVolumeClaim("state", "").
+						WithSpec(
+							applycorev1.PersistentVolumeClaimSpec().
+								WithVolumeMode(corev1.PersistentVolumeBlock).
+								WithAccessModes(corev1.ReadWriteOnce).
+								WithResources(
+									VolumeResourceRequirements().
+										// This tests the lower end of the supported volume size range. Larger
+										// volumes are implicitly tested through the imagestore.
+										WithStorageRequest("25Mi"),
 								),
 						),
 				),
-			).
-			WithVolumeClaimTemplates(PersistentVolumeClaim("state", "").
-				WithSpec(applycorev1.PersistentVolumeClaimSpec().
-					WithVolumeMode(corev1.PersistentVolumeBlock).
-					WithAccessModes(corev1.ReadWriteOnce).
-					WithResources(VolumeResourceRequirements().
-						// This tests the lower end of the supported volume size range. Larger
-						// volumes are implicitly tested through the imagestore.
-						WithStorageRequest("25Mi"),
-					),
-				),
-			),
 		)
 
 	return []any{vss}
@@ -633,59 +690,66 @@ func VolumeStatefulSet() []any {
 // with an encrypted luks volume using the workload-secret.
 func MySQL() []any {
 	backend := StatefulSet("mysql-backend", "").
-		WithSpec(StatefulSetSpec().
-			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
-				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
-				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "mysql-backend"}),
-			).
-			WithServiceName("mysql-backend").
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-backend"}).
-				WithAnnotations(map[string]string{
-					smIngressConfigAnnotationKey: "",
-					securePVAnnotationKey:        "state:share",
-				}).
-				WithSpec(
-					PodSpec().
-						WithContainers(
-							Container().
-								WithName("mysql-backend").
-								WithImage("docker.io/library/mysql:9.1.0@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6").
-								WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
-								WithPorts(
-									ContainerPort().
-										WithName("mysql").
-										WithContainerPort(3306),
+		WithSpec(
+			StatefulSetSpec().
+				WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "mysql-backend"}),
+				).
+				WithServiceName("mysql-backend").
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-backend"}).
+						WithAnnotations(map[string]string{
+							smIngressConfigAnnotationKey: "",
+							securePVAnnotationKey:        "state:share",
+						}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("mysql-backend").
+										WithImage("docker.io/library/mysql:9.1.0@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6").
+										WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
+										WithPorts(
+											ContainerPort().
+												WithName("mysql").
+												WithContainerPort(3306),
+										).
+										WithVolumeMounts(
+											VolumeMount().
+												WithName("share").
+												WithMountPath("/var/lib/mysql").
+												WithMountPropagation(corev1.MountPropagationHostToContainer),
+										).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(2000),
+										),
 								).
-								WithVolumeMounts(
-									VolumeMount().
+								WithVolumes(
+									applycorev1.Volume().
 										WithName("share").
-										WithMountPath("/var/lib/mysql").
-										WithMountPropagation(corev1.MountPropagationHostToContainer),
-								).
-								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(2000),
+										WithEmptyDir(applycorev1.EmptyDirVolumeSource().WithMedium(corev1.StorageMediumMemory)),
 								),
-						).
-						WithVolumes(
-							applycorev1.Volume().
-								WithName("share").
-								WithEmptyDir(applycorev1.EmptyDirVolumeSource().WithMedium(corev1.StorageMediumMemory)),
+						),
+				).
+				WithVolumeClaimTemplates(
+					PersistentVolumeClaim("state", "").
+						WithSpec(
+							applycorev1.PersistentVolumeClaimSpec().
+								WithVolumeMode(corev1.PersistentVolumeBlock).
+								WithAccessModes(corev1.ReadWriteOnce).
+								WithResources(
+									VolumeResourceRequirements().
+										WithStorageRequest("1Gi"),
+								),
 						),
 				),
-			).
-			WithVolumeClaimTemplates(PersistentVolumeClaim("state", "").
-				WithSpec(applycorev1.PersistentVolumeClaimSpec().
-					WithVolumeMode(corev1.PersistentVolumeBlock).
-					WithAccessModes(corev1.ReadWriteOnce).
-					WithResources(VolumeResourceRequirements().
-						WithStorageRequest("1Gi"),
-					),
-				),
-			),
 		)
 
 	backendService := ServiceForStatefulSet(backend)
@@ -705,28 +769,32 @@ done
 `
 
 	client := Deployment("mysql-client", "").
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "mysql-client"}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-client"}).
-				WithAnnotations(map[string]string{smEgressConfigAnnotationKey: "mysql-backend#127.137.0.1:3306#mysql-backend:3306"}).
-				WithSpec(
-					PodSpec().
-						WithContainers(
-							Container().
-								WithName("mysql-client").
-								WithImage("docker.io/library/mysql:9.1.0@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6").
-								WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
-								WithCommand("/bin/sh", "-c", clientCmd).
-								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(2000),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "mysql-client"}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-client"}).
+						WithAnnotations(map[string]string{smEgressConfigAnnotationKey: "mysql-backend#127.137.0.1:3306#mysql-backend:3306"}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("mysql-client").
+										WithImage("docker.io/library/mysql:9.1.0@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6").
+										WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
+										WithCommand("/bin/sh", "-c", clientCmd).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(2000),
+										),
 								),
 						),
 				),
-			),
 		)
 
 	return []any{
@@ -742,69 +810,77 @@ done
 // gpuQuantity is the number of GPUs.
 func GPU(name string, gpuClass string, gpuQuantity int64) []any {
 	tester := Deployment(name, "").
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("gpu-tester-direct"). // This container directly requests a GPU.
-							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
-							WithCommand("/bin/sh", "-c", "sleep inf").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(500). // This accounts for nvidia-smi and the guest pull overhead.
-								WithLimits(corev1.ResourceList{
-									corev1.ResourceName(gpuClass): *resource.NewQuantity(gpuQuantity, resource.DecimalExponent),
-								}),
-							),
-						Container().
-							WithName("gpu-tester-indirect"). // This container indirectly shares the H100 through the NVIDIA_VISIBLE_DEVICES env var.
-							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
-							WithCommand("/bin/sh", "-c", "sleep inf").
-							WithEnv(EnvVar().
-								WithName("NVIDIA_VISIBLE_DEVICES").WithValue("all"),
-							).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(500),
-							),
-						Container().
-							WithName("no-gpu"). // This container should not get a GPU mount because it does not set NVIDIA_VISIBLE_DEVICES.
-							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
-							WithCommand("/bin/sh", "-c", "sleep inf").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(100),
-							).
-							// This volume is added as a regression test to ensure that block
-							// devices don't interfere with GPUs.
-							WithVolumeDevices(
-								applycorev1.VolumeDevice().
-									WithName("ephemeral-pvc").
-									WithDevicePath("/dev/csi0"),
-							),
-					).
-					WithVolumes(
-						Volume().
-							WithName("ephemeral-pvc").
-							WithEphemeral(
-								applycorev1.EphemeralVolumeSource().WithVolumeClaimTemplate(
-									applycorev1.PersistentVolumeClaimTemplate().
-										WithSpec(
-											applycorev1.PersistentVolumeClaimSpec().
-												WithAccessModes(corev1.ReadWriteOnce).
-												WithVolumeMode(corev1.PersistentVolumeBlock).
-												WithResources(applycorev1.VolumeResourceRequirements().WithRequests(corev1.ResourceList{
-													corev1.ResourceName("storage"): resource.MustParse("10Mi"),
-												})),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("gpu-tester-direct"). // This container directly requests a GPU.
+										WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
+										WithCommand("/bin/sh", "-c", "sleep inf").
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(500). // This accounts for nvidia-smi and the guest pull overhead.
+												WithLimits(corev1.ResourceList{
+													corev1.ResourceName(gpuClass): *resource.NewQuantity(gpuQuantity, resource.DecimalExponent),
+												}),
+										),
+									Container().
+										WithName("gpu-tester-indirect"). // This container indirectly shares the H100 through the NVIDIA_VISIBLE_DEVICES env var.
+										WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
+										WithCommand("/bin/sh", "-c", "sleep inf").
+										WithEnv(
+											EnvVar().
+												WithName("NVIDIA_VISIBLE_DEVICES").WithValue("all"),
+										).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(500),
+										),
+									Container().
+										WithName("no-gpu"). // This container should not get a GPU mount because it does not set NVIDIA_VISIBLE_DEVICES.
+										WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
+										WithCommand("/bin/sh", "-c", "sleep inf").
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(100),
+										).
+										// This volume is added as a regression test to ensure that block
+										// devices don't interfere with GPUs.
+										WithVolumeDevices(
+											applycorev1.VolumeDevice().
+												WithName("ephemeral-pvc").
+												WithDevicePath("/dev/csi0"),
+										),
+								).
+								WithVolumes(
+									Volume().
+										WithName("ephemeral-pvc").
+										WithEphemeral(
+											applycorev1.EphemeralVolumeSource().WithVolumeClaimTemplate(
+												applycorev1.PersistentVolumeClaimTemplate().
+													WithSpec(
+														applycorev1.PersistentVolumeClaimSpec().
+															WithAccessModes(corev1.ReadWriteOnce).
+															WithVolumeMode(corev1.PersistentVolumeBlock).
+															WithResources(applycorev1.VolumeResourceRequirements().WithRequests(corev1.ResourceList{
+																corev1.ResourceName("storage"): resource.MustParse("10Mi"),
+															})),
+													),
+											),
 										),
 								),
-							),
-					),
+						),
 				),
-			),
 		)
 
 	return []any{tester}
@@ -855,79 +931,91 @@ seal "transit" {
 	)
 
 	vaultSfSets := StatefulSet("vault", namespace).
-		WithSpec(StatefulSetSpec().
-			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
-				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
-				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "vault"}),
-			).
-			WithServiceName("vault").
-			WithTemplate(
-				PodTemplateSpec().
-					WithLabels(map[string]string{"app.kubernetes.io/name": "vault"}).
-					WithAnnotations(map[string]string{
-						workloadSecretIDAnnotationKey: "vault_unsealing",
-						securePVAnnotationKey:         "state:share",
-					}).
-					WithSpec(PodSpec().
-						WithContainers(
-							Container().
-								WithName("openbao-server").
-								WithImage(vaultImage).
-								WithCommand("/bin/sh", "-c", vaultServerEntrypoint).
-								WithEnvFrom(applycorev1.EnvFromSource().
-									WithConfigMapRef(applycorev1.ConfigMapEnvSource().
-										WithName("vault-config"),
-									)).
-								// Probe passes when Vault is capable of introspection: https://developer.hashicorp.com/vault/api-docs/system/seal-status.
-								WithStartupProbe(applycorev1.Probe().
-									WithHTTPGet(applycorev1.HTTPGetAction().
-										WithPort(intstr.FromInt(8200)).
-										WithScheme(corev1.URISchemeHTTPS).
-										WithPath("/v1/sys/seal-status"),
-									).
-									WithInitialDelaySeconds(1).
-									WithPeriodSeconds(1).
-									WithFailureThreshold(10),
-								).
-								WithReadinessProbe(applycorev1.Probe().
-									WithHTTPGet(applycorev1.HTTPGetAction().
-										WithPort(intstr.FromInt(8200)).
-										WithScheme(corev1.URISchemeHTTPS).
-										WithPath("/v1/sys/seal-status"),
-									).
-									WithPeriodSeconds(2),
-								).
-								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(500),
-								).WithVolumeMounts(
-								VolumeMount().
-									WithName("share").WithMountPath("/openbao/file").WithMountPropagation(corev1.MountPropagationHostToContainer),
-								VolumeMount().
-									WithName("logs").WithMountPath("/openbao/logs"),
-							).WithPorts(
-								ContainerPort().
-									WithName("vault-listener").
-									WithContainerPort(8200),
+		WithSpec(
+			StatefulSetSpec().
+				WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "vault"}),
+				).
+				WithServiceName("vault").
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "vault"}).
+						WithAnnotations(map[string]string{
+							workloadSecretIDAnnotationKey: "vault_unsealing",
+							securePVAnnotationKey:         "state:share",
+						}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("openbao-server").
+										WithImage(vaultImage).
+										WithCommand("/bin/sh", "-c", vaultServerEntrypoint).
+										WithEnvFrom(applycorev1.EnvFromSource().
+											WithConfigMapRef(
+												applycorev1.ConfigMapEnvSource().
+													WithName("vault-config"),
+											)).
+										// Probe passes when Vault is capable of introspection: https://developer.hashicorp.com/vault/api-docs/system/seal-status.
+										WithStartupProbe(
+											applycorev1.Probe().
+												WithHTTPGet(
+													applycorev1.HTTPGetAction().
+														WithPort(intstr.FromInt(8200)).
+														WithScheme(corev1.URISchemeHTTPS).
+														WithPath("/v1/sys/seal-status"),
+												).
+												WithInitialDelaySeconds(1).
+												WithPeriodSeconds(1).
+												WithFailureThreshold(10),
+										).
+										WithReadinessProbe(
+											applycorev1.Probe().
+												WithHTTPGet(
+													applycorev1.HTTPGetAction().
+														WithPort(intstr.FromInt(8200)).
+														WithScheme(corev1.URISchemeHTTPS).
+														WithPath("/v1/sys/seal-status"),
+												).
+												WithPeriodSeconds(2),
+										).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(500),
+										).WithVolumeMounts(
+										VolumeMount().
+											WithName("share").WithMountPath("/openbao/file").WithMountPropagation(corev1.MountPropagationHostToContainer),
+										VolumeMount().
+											WithName("logs").WithMountPath("/openbao/logs"),
+									).WithPorts(
+										ContainerPort().
+											WithName("vault-listener").
+											WithContainerPort(8200),
+									),
+								).WithVolumes(
+								Volume().WithName("logs").WithEmptyDir(
+									applycorev1.EmptyDirVolumeSource(),
+								),
 							),
-						).WithVolumes(
-						Volume().WithName("logs").WithEmptyDir(
-							applycorev1.EmptyDirVolumeSource(),
 						),
-					),
-					),
-			).
-			WithVolumeClaimTemplates(PersistentVolumeClaim("state", "").
-				WithSpec(applycorev1.PersistentVolumeClaimSpec().
-					WithVolumeMode(corev1.PersistentVolumeBlock).
-					WithAccessModes(corev1.ReadWriteOnce).
-					WithResources(VolumeResourceRequirements().
-						WithStorageRequest("1Gi"),
-					),
+				).
+				WithVolumeClaimTemplates(
+					PersistentVolumeClaim("state", "").
+						WithSpec(
+							applycorev1.PersistentVolumeClaimSpec().
+								WithVolumeMode(corev1.PersistentVolumeBlock).
+								WithAccessModes(corev1.ReadWriteOnce).
+								WithResources(
+									VolumeResourceRequirements().
+										WithStorageRequest("1Gi"),
+								),
+						),
 				),
-			),
 		)
 	vaultService := ServiceForStatefulSet(vaultSfSets).
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
@@ -940,49 +1028,54 @@ seal "transit" {
 	)
 
 	client := Deployment("vault-client", namespace).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "vault-client"}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "vault-client"}).
-				WithSpec(PodSpec().
-					WithVolumes(
-						Volume().WithName("logs").WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
-						Volume().WithName("file").WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
-					).
-					WithContainers(
-						Container().
-							WithName("vault-client").
-							WithImage(vaultImage).
-							WithCommand("/bin/sh", "-c", vaultClientEntrypoint).
-							WithEnv(
-								EnvVar().WithName("VAULT_ADDR").WithValue("https://vault:8200"),
-								EnvVar().WithName("VAULT_CACERT").WithValue("/contrast/tls-config/mesh-ca.pem"),
-								EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem"),
-								EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem"),
-							).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(500),
-							).
-							WithVolumeMounts(
-								VolumeMount().WithName("logs").WithMountPath("/openbao/logs"),
-								VolumeMount().WithName("file").WithMountPath("/openbao/file"),
-							).
-							WithReadinessProbe(
-								applycorev1.Probe().
-									WithExec(
-										applycorev1.ExecAction().WithCommand(
-											"sh", "-c", "test -f /done",
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "vault-client"}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "vault-client"}).
+						WithSpec(
+							PodSpec().
+								WithVolumes(
+									Volume().WithName("logs").WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+									Volume().WithName("file").WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+								).
+								WithContainers(
+									Container().
+										WithName("vault-client").
+										WithImage(vaultImage).
+										WithCommand("/bin/sh", "-c", vaultClientEntrypoint).
+										WithEnv(
+											EnvVar().WithName("VAULT_ADDR").WithValue("https://vault:8200"),
+											EnvVar().WithName("VAULT_CACERT").WithValue("/contrast/tls-config/mesh-ca.pem"),
+											EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem"),
+											EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem"),
+										).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(500),
+										).
+										WithVolumeMounts(
+											VolumeMount().WithName("logs").WithMountPath("/openbao/logs"),
+											VolumeMount().WithName("file").WithMountPath("/openbao/file"),
+										).
+										WithReadinessProbe(
+											applycorev1.Probe().
+												WithExec(
+													applycorev1.ExecAction().WithCommand(
+														"sh", "-c", "test -f /done",
+													),
+												).
+												WithInitialDelaySeconds(5).
+												WithPeriodSeconds(5),
 										),
-									).
-									WithInitialDelaySeconds(5).
-									WithPeriodSeconds(5),
-							),
-					),
+								),
+						),
 				),
-			),
 		)
 
 	return []any{vaultSfSets, vaultService, configMap, client}
@@ -992,67 +1085,79 @@ seal "transit" {
 func MemDump() []any {
 	ns := ""
 	listener := Deployment("listener", ns).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "listener"}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "listener"}).
-				WithAnnotations(map[string]string{
-					smIngressConfigAnnotationKey: "netcat#8000#false",
-				}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("listener").
-							WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
-							WithCommand("/bin/sh", "-c", "socat TCP-LISTEN:8000,fork,reuseaddr FILE:/dev/shm/data,create,append").
-							WithPorts(
-								ContainerPort().
-									WithName("netcat").
-									WithContainerPort(8000),
-							).
-							WithReadinessProbe(Probe().
-								WithInitialDelaySeconds(1).
-								WithPeriodSeconds(5).
-								WithTCPSocket(TCPSocketAction().
-									WithPort(intstr.FromInt(8000)),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "listener"}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "listener"}).
+						WithAnnotations(map[string]string{
+							smIngressConfigAnnotationKey: "netcat#8000#false",
+						}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("listener").
+										WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
+										WithCommand("/bin/sh", "-c", "socat TCP-LISTEN:8000,fork,reuseaddr FILE:/dev/shm/data,create,append").
+										WithPorts(
+											ContainerPort().
+												WithName("netcat").
+												WithContainerPort(8000),
+										).
+										WithReadinessProbe(
+											Probe().
+												WithInitialDelaySeconds(1).
+												WithPeriodSeconds(5).
+												WithTCPSocket(
+													TCPSocketAction().
+														WithPort(intstr.FromInt(8000)),
+												),
+										).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(1500),
+										),
 								),
-							).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(1500),
-							),
-					),
+						),
 				),
-			),
 		)
 
 	listenerService := ServiceForDeployment(listener)
 
 	sender := Deployment("sender", ns).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "sender"}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "sender"}).
-				WithAnnotations(map[string]string{
-					smEgressConfigAnnotationKey: "netcat#127.137.0.1:8000#listener:8000",
-				}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("sender").
-							WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
-							WithCommand("/bin/sh", "-c", "sleep inf").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(1500),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "sender"}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "sender"}).
+						WithAnnotations(map[string]string{
+							smEgressConfigAnnotationKey: "netcat#127.137.0.1:8000#listener:8000",
+						}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("sender").
+										WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
+										WithCommand("/bin/sh", "-c", "sleep inf").
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(1500),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	resources := []any{
@@ -1067,36 +1172,40 @@ func MemDump() []any {
 // MemDumpTester returns the non-cc resources for the memdump test.
 func MemDumpTester() []any {
 	memdump := Deployment("memdump", "").
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "memdump"}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "memdump"}).
-				WithSpec(PodSpec().
-					WithHostPID(true).
-					WithContainers(
-						Container().
-							WithName("memdump").
-							WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
-							WithCommand("/bin/sh", "-c", "sleep inf").
-							WithVolumeMounts(
-								VolumeMount().
-									WithName("host").
-									WithMountPath("/host"),
-							).
-							WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration),
-					).
-					WithVolumes(
-						Volume().WithName("host").WithHostPath(
-							applycorev1.HostPathVolumeSource().
-								WithPath("/").
-								WithType(corev1.HostPathDirectory),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "memdump"}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "memdump"}).
+						WithSpec(
+							PodSpec().
+								WithHostPID(true).
+								WithContainers(
+									Container().
+										WithName("memdump").
+										WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
+										WithCommand("/bin/sh", "-c", "sleep inf").
+										WithVolumeMounts(
+											VolumeMount().
+												WithName("host").
+												WithMountPath("/host"),
+										).
+										WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration),
+								).
+								WithVolumes(
+									Volume().WithName("host").WithHostPath(
+										applycorev1.HostPathVolumeSource().
+											WithPath("/").
+											WithType(corev1.HostPathDirectory),
+									),
+								),
 						),
-					),
 				),
-			),
 		)
 
 	return []any{memdump}
@@ -1105,25 +1214,30 @@ func MemDumpTester() []any {
 // AuthenticatedPullTester returns the resources for the imagepuller-auth test.
 func AuthenticatedPullTester(name string) any {
 	deployment := Deployment(name, "").
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("my-image-is-private").
-							WithImage("ghcr.io/edgelesssys/bash-private@sha256:44ddf003cf6d966487da334edf972c55e91d1aa30db5690ad0445b459cbca924").
-							WithCommand("bash", "-c", "sleep infinity").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(100),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("my-image-is-private").
+										WithImage("ghcr.io/edgelesssys/bash-private@sha256:44ddf003cf6d966487da334edf972c55e91d1aa30db5690ad0445b459cbca924").
+										WithCommand("bash", "-c", "sleep infinity").
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(100),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	return deployment
@@ -1133,48 +1247,58 @@ func AuthenticatedPullTester(name string) any {
 func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApplyConfiguration, *applyappsv1.DeploymentApplyConfiguration) {
 	runcName := fmt.Sprintf("%s-runc", name)
 	runc := Deployment(runcName, "").
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": runcName}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": runcName}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("runc-by-tag").
-							WithImage("ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-tag").
-							WithCommand("bash", "-c", "sleep infinity").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(200),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": runcName}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": runcName}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("runc-by-tag").
+										WithImage("ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-tag").
+										WithCommand("bash", "-c", "sleep infinity").
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(200),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	ccName := fmt.Sprintf("%s-cc", name)
 	cc := Deployment(ccName, "").
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": ccName}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": ccName}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("cc-by-digest").
-							WithImage("ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-digest").
-							WithCommand("bash", "-c", "sleep infinity").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(200),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": ccName}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": ccName}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("cc-by-digest").
+										WithImage("ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-digest").
+										WithCommand("bash", "-c", "sleep infinity").
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(200),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	return runc, cc
@@ -1183,25 +1307,30 @@ func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApply
 // IPSec returns the resources for testing IPSec tunnels with strongSwan.
 func IPSec() []any {
 	deploy := Deployment("ipsec", "").
-		WithSpec(DeploymentSpec().
-			WithReplicas(2).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "ipsec"}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "ipsec"}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("ipsec").
-							WithImage("ghcr.io/edgelesssys/contrast/strongswan:latest").
-							WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(800),
-							),
-					),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(2).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "ipsec"}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": "ipsec"}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName("ipsec").
+										WithImage("ghcr.io/edgelesssys/contrast/strongswan:latest").
+										WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(800),
+										),
+								),
+						),
 				),
-			),
 		)
 
 	return []any{deploy}
@@ -1210,25 +1339,30 @@ func IPSec() []any {
 // DeploymentWithRuntimeClass returns a example with the given runtimeClassName.
 func DeploymentWithRuntimeClass(name, runtimeClassName string) any {
 	return Deployment(name, "").
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName(name).
-							WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
-							WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(100),
-							),
-					).
-					WithRuntimeClassName(runtimeClassName),
+		WithSpec(
+			DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(
+					LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
+				).
+				WithTemplate(
+					PodTemplateSpec().
+						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+						WithSpec(
+							PodSpec().
+								WithContainers(
+									Container().
+										WithName(name).
+										WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
+										WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
+										WithResources(
+											ResourceRequirements().
+												WithMemoryLimitAndRequest(100),
+										),
+								).
+								WithRuntimeClassName(runtimeClassName),
+						),
 				),
-			),
 		)
 }

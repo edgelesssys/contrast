@@ -133,7 +133,8 @@ func TestTransitAPICyclic(t *testing.T) {
 						map[string]string{
 							"ciphertext":      ciphertext,
 							"associated_data": tc.encryptionInput.AssociatedData,
-						})
+						},
+					)
 					require.NoError(err)
 
 					decryptReq := httptest.NewRequestWithContext(t.Context(), http.MethodPut, "/v1/transit/decrypt/"+tc.name, bytes.NewReader(decryptReqBody))

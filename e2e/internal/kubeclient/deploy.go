@@ -391,20 +391,21 @@ func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, names
 func (c *Kubeclient) WaitForDeletion(ctx context.Context, objs ...*unstructured.Unstructured) error {
 	for _, obj := range objs {
 		c.log.Info("waiting for deletion of object", "namespace", obj.GetNamespace(), "kind", obj.GetKind(), "name", obj.GetName())
-		if err := wait.PollUntilContextCancel(ctx, 500*time.Millisecond, true, func(ctx context.Context) (bool, error) {
-			ri, err := c.ResourceInterfaceFor(obj)
-			if err != nil {
-				return false, err
-			}
-			_, err = ri.Get(ctx, obj.GetName(), metav1.GetOptions{})
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					return true, nil
+		if err := wait.PollUntilContextCancel(
+			ctx, 500*time.Millisecond, true, func(ctx context.Context) (bool, error) {
+				ri, err := c.ResourceInterfaceFor(obj)
+				if err != nil {
+					return false, err
 				}
-				return false, err
-			}
-			return false, nil
-		},
+				_, err = ri.Get(ctx, obj.GetName(), metav1.GetOptions{})
+				if err != nil {
+					if apierrors.IsNotFound(err) {
+						return true, nil
+					}
+					return false, err
+				}
+				return false, nil
+			},
 		); err != nil {
 			return fmt.Errorf("waiting for deletion of %s %s in namespace %s: %w", obj.GetKind(), obj.GetName(), obj.GetNamespace(), err)
 		}

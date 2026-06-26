@@ -14,6 +14,13 @@
       oneElementLines = true;
       sortArrays = true;
     };
+    gofumpt = {
+      enable = true;
+      excludes = [
+        "vendor/*" # keep the default exclude
+        "**/*.pb.go"
+      ];
+    };
     jsonfmt.enable = true;
     just.enable = true;
     keep-sorted.enable = true;
