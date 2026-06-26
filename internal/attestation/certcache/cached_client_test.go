@@ -53,23 +53,21 @@ func TestAlwaysRevalidate(t *testing.T) {
 
 func TestRedirectToProxy(t *testing.T) {
 	const proxy = "http://collateral-proxy.default.svc"
-	t.Cleanup(func() { collateralProxyBase = "" })
-
-	collateralProxyBase = proxy
+	c := &CachedHTTPSGetter{collateralProxyBase: proxy}
 	assert.Equal(t,
 		proxy+"/IntelSGXRootCA.der",
-		redirectToProxy("https://certificates.trustedservices.intel.com/IntelSGXRootCA.der"))
+		c.redirectToProxy("https://certificates.trustedservices.intel.com/IntelSGXRootCA.der"))
 	assert.Equal(t,
 		proxy+"/vcek/v1/Milan/abc",
-		redirectToProxy("https://kdsintf.amd.com/vcek/v1/Milan/abc"))
+		c.redirectToProxy("https://kdsintf.amd.com/vcek/v1/Milan/abc"))
 	assert.Equal(t,
 		proxy+"/sgx/certification/v4/pckcrl?ca=platform&encoding=der",
-		redirectToProxy("https://api.trustedservices.intel.com/sgx/certification/v4/pckcrl?ca=platform&encoding=der"))
+		c.redirectToProxy("https://api.trustedservices.intel.com/sgx/certification/v4/pckcrl?ca=platform&encoding=der"))
 
 	// With no proxy configured, nothing is rewritten.
-	collateralProxyBase = ""
+	noProxy := &CachedHTTPSGetter{}
 	const rootCRL = "https://certificates.trustedservices.intel.com/IntelSGXRootCA.der"
-	assert.Equal(t, rootCRL, redirectToProxy(rootCRL))
+	assert.Equal(t, rootCRL, noProxy.redirectToProxy(rootCRL))
 }
 
 const crlURLMatch string = "https://kdsintf.amd.com/vcek/v1/test/crl"
@@ -255,8 +253,6 @@ func TestProxyFallback(t *testing.T) {
 		proxyHost = "collateral-proxy.default.svc"
 		kdsHost   = "kdsintf.amd.com"
 	)
-	t.Cleanup(func() { collateralProxyBase = "" })
-	collateralProxyBase = proxyBase
 
 	directCRL := "https://" + kdsHost + "/vcek/v1/Milan/crl"
 
@@ -267,7 +263,7 @@ func TestProxyFallback(t *testing.T) {
 			errHosts: map[string]error{proxyHost: errors.New("dial tcp: connection refused")},
 			body:     []byte("crl-bytes"),
 		}
-		client := newHostGetterClient(getter)
+		client := newHostGetterClient(getter, proxyBase)
 
 		_, body, err := client.Get(directCRL)
 		assert.NoError(err)
@@ -288,7 +284,7 @@ func TestProxyFallback(t *testing.T) {
 			hits:     map[string]int{},
 			errHosts: map[string]error{proxyHost: &httpError{code: 404, status: "404 Not Found"}},
 		}
-		client := newHostGetterClient(getter)
+		client := newHostGetterClient(getter, proxyBase)
 
 		_, _, err := client.Get(directCRL)
 		assert.Error(err)
@@ -298,12 +294,13 @@ func TestProxyFallback(t *testing.T) {
 	})
 }
 
-func newHostGetterClient(getter *fakeHostGetter) *CachedHTTPSGetter {
+func newHostGetterClient(getter *fakeHostGetter, collateralProxyBase string) *CachedHTTPSGetter {
 	return &CachedHTTPSGetter{
-		ContextHTTPSGetter: getter,
-		gcTicker:           NeverGCTicker,
-		cache:              memstore.New[string, []byte](),
-		logger:             slog.Default(),
+		ContextHTTPSGetter:  getter,
+		gcTicker:            NeverGCTicker,
+		cache:               memstore.New[string, []byte](),
+		logger:              slog.Default(),
+		collateralProxyBase: collateralProxyBase,
 	}
 }
 

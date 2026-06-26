@@ -150,7 +150,7 @@ func TestATLS(t *testing.T) {
 				require := require.New(t)
 
 				kdsCache := memstore.New[string, []byte]()
-				kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, logger.WithGroup("kds-getter"))
+				kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, logger.WithGroup("kds-getter"), "")
 				opts, err := manifestParsed.SNPValidateOpts(kdsGetter)
 				require.NoError(err, "getting SNP validate options")
 				var allValidators []validators.Validator
