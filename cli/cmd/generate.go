@@ -87,7 +87,7 @@ subcommands.`,
 	must(cmd.Flags().MarkHidden("image-replacements"))
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
 	cmd.Flags().Bool("skip-service-mesh", false, "skip injection of Contrast service mesh sidecar")
-	cmd.Flags().String("collateral-proxy", "", "route attestation-collateral fetches through the caching proxy at this base URL")
+	addCollateralProxyFlag(cmd)
 	cmd.Flags().Bool("inject-image-store", false, "inject an ephemeral storage device to pull images onto instead of into memory")
 	cmd.Flags().Bool("insecure-enable-debug-shell-access", false, "enable the debug shell service in the pod CVM to get access from container to guest VM")
 	cmd.Flags().Bool("calculate-pod-memory", false, "calculate pod memory based on image layer sizes and container resource limits")

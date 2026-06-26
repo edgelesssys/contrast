@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -41,6 +42,7 @@ The recover command is used to provide the seed to the Coordinator.`,
 	cmd.Flags().String("seedshare-owner-key", seedshareOwnerPEM, "private key file to decrypt the seed share")
 	cmd.Flags().String("seed", seedSharesFilename, "file with the encrypted seed shares")
 	cmd.Flags().Bool("force", false, "skip sanity checks while recovering")
+	addCollateralProxyFlag(cmd)
 
 	return cmd
 }
@@ -74,6 +76,7 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("decrypting seed: %w", err)
 	}
 
+	certcache.SetCollateralProxy(flags.collateralProxyURL)
 	kdsGetter, err := cachedHTTPSGetter(log)
 	if err != nil {
 		return fmt.Errorf("configuring KDS cache: %w", err)
@@ -114,6 +117,7 @@ type recoverFlags struct {
 	workloadOwnerKeyPath  string
 	manifestPath          string
 	workspaceDir          string
+	collateralProxyURL    string
 	force                 bool
 }
 
@@ -181,6 +185,10 @@ func parseRecoverFlags(cmd *cobra.Command) (*recoverFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	collateralProxyURL, err := cmd.Flags().GetString("collateral-proxy")
+	if err != nil {
+		return nil, err
+	}
 
 	if workspaceDir != "" {
 		// Prepend default paths with workspaceDir
@@ -205,6 +213,7 @@ func parseRecoverFlags(cmd *cobra.Command) (*recoverFlags, error) {
 		workloadOwnerKeyPath:  workloadOwnerKeyPath,
 		manifestPath:          manifestPath,
 		workspaceDir:          workspaceDir,
+		collateralProxyURL:    collateralProxyURL,
 		force:                 force,
 	}, nil
 }

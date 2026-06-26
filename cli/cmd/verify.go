@@ -48,6 +48,7 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
+	addCollateralProxyFlag(cmd)
 
 	return cmd
 }
@@ -68,6 +69,8 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read manifest file: %w", err)
 	}
+
+	certcache.SetCollateralProxy(flags.collateralProxyURL)
 
 	kdsDir, err := cachedir("kds")
 	if err != nil {
@@ -130,9 +133,10 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 }
 
 type verifyFlags struct {
-	manifestPath string
-	coordinator  string
-	workspaceDir string
+	manifestPath       string
+	coordinator        string
+	workspaceDir       string
+	collateralProxyURL string
 }
 
 func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
@@ -148,6 +152,10 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	collateralProxyURL, err := cmd.Flags().GetString("collateral-proxy")
+	if err != nil {
+		return nil, err
+	}
 
 	if workspaceDir != "" {
 		// Prepend default path with workspaceDir
@@ -157,9 +165,10 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	}
 
 	return &verifyFlags{
-		manifestPath: manifestPath,
-		coordinator:  coordinator,
-		workspaceDir: workspaceDir,
+		manifestPath:       manifestPath,
+		coordinator:        coordinator,
+		workspaceDir:       workspaceDir,
+		collateralProxyURL: collateralProxyURL,
 	}, nil
 }
 
