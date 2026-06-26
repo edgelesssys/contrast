@@ -4,6 +4,7 @@
 package atls
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/tls"
@@ -12,6 +13,7 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/atls/reportdata"
@@ -24,7 +26,7 @@ import (
 
 func TestVerifyEmbeddedReport(t *testing.T) {
 	expectedReportData := reportdata.Construct(nil, nil)
-	fakeAttDoc := &FakeAttestationDoc{
+	fakeAttDoc := &fakeAttestationDoc{
 		ReportData: expectedReportData[:],
 	}
 	attDocBytes, err := json.Marshal(fakeAttDoc)
@@ -48,7 +50,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: NewFakeValidators(stubSNPValidator{}),
+			validators: newFakeValidators(stubSNPValidator{}),
 		},
 		"multiple matches": {
 			cert: &x509.Certificate{
@@ -63,7 +65,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: NewFakeValidators(stubSNPValidator{}),
+			validators: newFakeValidators(stubSNPValidator{}),
 		},
 		"skip non-matching validator": {
 			cert: &x509.Certificate{
@@ -77,7 +79,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: append(NewFakeValidators(stubSNPValidator{}), NewFakeValidator(stubFooValidator{})),
+			validators: append(newFakeValidators(stubSNPValidator{}), newFakeValidators(stubFooValidator{})...),
 		},
 		"match, error": {
 			cert: &x509.Certificate{
@@ -88,7 +90,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: NewFakeValidators(stubSNPValidator{}),
+			validators: newFakeValidators(stubSNPValidator{}),
 			wantErr:    true,
 		},
 		"no extensions": {
@@ -126,6 +128,39 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 			}
 		})
 	}
+}
+
+// fakeValidator fakes a validator and can be used for tests.
+type fakeValidator struct {
+	Getter
+	err error
+}
+
+// newFakeValidators returns a slice with a single FakeValidator.
+func newFakeValidators(oid Getter) []Validator {
+	return []Validator{&fakeValidator{oid, nil}}
+}
+
+func (v fakeValidator) Validate(_ context.Context, attDoc []byte, reportData []byte) error {
+	var doc fakeAttestationDoc
+	if err := json.Unmarshal(attDoc, &doc); err != nil {
+		return err
+	}
+
+	if !bytes.Equal(doc.ReportData, reportData) {
+		return fmt.Errorf("invalid reportData: expected %x, got %x", doc.ReportData, reportData)
+	}
+
+	return v.err
+}
+
+func (v *fakeValidator) String() string {
+	return ""
+}
+
+// fakeAttestationDoc is a fake attestation document used for testing.
+type fakeAttestationDoc struct {
+	ReportData []byte
 }
 
 type stubSNPValidator struct{}
