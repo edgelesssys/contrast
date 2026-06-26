@@ -90,7 +90,7 @@ func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, valida
 
 // Issuer issues an attestation document.
 type Issuer interface {
-	Getter
+	OID() asn1.ObjectIdentifier
 	Issue(ctx context.Context, reportData [64]byte) (quote []byte, err error)
 }
 
@@ -239,7 +239,7 @@ func verifyEmbeddedReport(ctx context.Context, validators []validators.Validator
 		foundExtension = true
 		for _, validator := range validators {
 			// Optimization: Skip the validator if it doesn't match the attestation type of the document.
-			if !ex.Id.Equal(validator.OID()) {
+			if !validator.Supports(ex.Id) {
 				continue
 			}
 
@@ -484,9 +484,4 @@ func getNonce(chi *tls.ClientHelloInfo) ([]byte, error) {
 		return nil, fmt.Errorf("decoding nonce from SNI: %w", err)
 	}
 	return clientNonce, nil
-}
-
-// Getter returns an ASN.1 Object Identifier.
-type Getter interface {
-	OID() asn1.ObjectIdentifier
 }

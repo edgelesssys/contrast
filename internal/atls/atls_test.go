@@ -51,7 +51,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: newFakeValidators(stubSNPValidator{}),
+			validators: newFakeValidators(oid.RawSNPReport),
 		},
 		"multiple matches": {
 			cert: &x509.Certificate{
@@ -66,7 +66,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: newFakeValidators(stubSNPValidator{}),
+			validators: newFakeValidators(oid.RawSNPReport),
 		},
 		"skip non-matching validator": {
 			cert: &x509.Certificate{
@@ -80,7 +80,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: append(newFakeValidators(stubSNPValidator{}), newFakeValidators(stubFooValidator{})...),
+			validators: append(newFakeValidators(oid.RawSNPReport), newFakeValidators([]int{1, 2, 3})...),
 		},
 		"match, error": {
 			cert: &x509.Certificate{
@@ -91,7 +91,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: newFakeValidators(stubSNPValidator{}),
+			validators: newFakeValidators(oid.RawSNPReport),
 			wantErr:    true,
 		},
 		"no extensions": {
@@ -133,13 +133,17 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 
 // fakeValidator fakes a validator and can be used for tests.
 type fakeValidator struct {
-	Getter
+	oid asn1.ObjectIdentifier
 	err error
 }
 
 // newFakeValidators returns a slice with a single FakeValidator.
-func newFakeValidators(oid Getter) []validators.Validator {
+func newFakeValidators(oid asn1.ObjectIdentifier) []validators.Validator {
 	return []validators.Validator{&fakeValidator{oid, nil}}
+}
+
+func (v *fakeValidator) Supports(other asn1.ObjectIdentifier) bool {
+	return v.oid.Equal(other)
 }
 
 func (v fakeValidator) Validate(_ context.Context, attDoc []byte, reportData []byte) error {
@@ -164,18 +168,6 @@ type fakeAttestationDoc struct {
 	ReportData []byte
 }
 
-type stubSNPValidator struct{}
-
-func (v stubSNPValidator) OID() asn1.ObjectIdentifier {
-	return oid.RawSNPReport
-}
-
-type stubFooValidator struct{}
-
-func (v stubFooValidator) OID() asn1.ObjectIdentifier {
-	return []int{1, 2, 3}
-}
-
 // TestPublicKey ensures that all key types used by Contrast can be passed to publicKey.
 func TestPublicKey(t *testing.T) {
 	for typ, key := range map[string]crypto.PrivateKey{
@@ -197,8 +189,8 @@ type contextValidator struct {
 	inputC <-chan error
 }
 
-func (contextValidator) OID() asn1.ObjectIdentifier {
-	return oid.RawSNPReport
+func (contextValidator) Supports(other asn1.ObjectIdentifier) bool {
+	return oid.RawSNPReport.Equal(other)
 }
 
 func (contextValidator) String() string {
@@ -220,7 +212,7 @@ func TestContextPassdown(t *testing.T) {
 	cert := &x509.Certificate{
 		Extensions: []pkix.Extension{
 			{
-				Id: validator.OID(),
+				Id: oid.RawSNPReport,
 			},
 		},
 	}

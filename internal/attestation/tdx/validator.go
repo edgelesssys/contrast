@@ -68,9 +68,9 @@ func NewValidatorWithReportSetter(verifyOpts *verify.Options, optsGen validateOp
 	return v
 }
 
-// OID returns the OID for the raw TDX report extension used by the validator.
-func (v *Validator) OID() asn1.ObjectIdentifier {
-	return oid.RawTDXReport
+// Supports returns true if the given OID is the OID for raw TDX reports.
+func (v *Validator) Supports(other asn1.ObjectIdentifier) bool {
+	return oid.RawTDXReport.Equal(other)
 }
 
 // Validate a TDX attestation.

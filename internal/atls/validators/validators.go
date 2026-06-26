@@ -12,8 +12,8 @@ import (
 
 // Validator is able to validate an attestation document.
 type Validator interface {
-	// OID returns the identifier for documents that this validator supports.
-	OID() asn1.ObjectIdentifier
+	// Supports returns true if this validator understands attestation docs with the given OID.
+	Supports(oid asn1.ObjectIdentifier) bool
 
 	// Validate validates an attestation doc and returns an error if validation failed.
 	//

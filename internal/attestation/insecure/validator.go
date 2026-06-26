@@ -33,9 +33,9 @@ func NewValidatorWithReportSetter(log *slog.Logger, reportSetter attestation.Rep
 	return &Validator{reportSetter: reportSetter, logger: log, name: name}
 }
 
-// OID returns the OID for the insecure attestation.
-func (v *Validator) OID() asn1.ObjectIdentifier {
-	return oid.RawInsecureReport
+// Supports returns true if the given OID is the OID for insecure reports.
+func (v *Validator) Supports(other asn1.ObjectIdentifier) bool {
+	return oid.RawInsecureReport.Equal(other)
 }
 
 // Validate verifies the fake attestation document and extracts the host data.

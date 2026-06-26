@@ -68,9 +68,9 @@ func NewValidatorWithReportSetter(
 	}
 }
 
-// OID returns the OID for the raw SNP report extension used by the validator.
-func (v *Validator) OID() asn1.ObjectIdentifier {
-	return oid.RawSNPReport
+// Supports returns true if the given OID is the OID for raw SNP reports.
+func (v *Validator) Supports(other asn1.ObjectIdentifier) bool {
+	return oid.RawSNPReport.Equal(other)
 }
 
 // Validate a SNP based attestation.
@@ -204,9 +204,9 @@ func NewIterativeValidatorWithReportSetter(
 	return v
 }
 
-// OID returns the OID for the raw SNP report extension.
-func (v *IterativeValidator) OID() asn1.ObjectIdentifier {
-	return oid.RawSNPReport
+// Supports returns true if the given OID is the OID for raw SNP reports.
+func (v *IterativeValidator) Supports(other asn1.ObjectIdentifier) bool {
+	return oid.RawSNPReport.Equal(other)
 }
 
 // Validate tries vCPU counts 1–220, verifying the attestation once and
