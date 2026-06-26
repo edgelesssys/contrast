@@ -412,7 +412,12 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 		return fmt.Errorf("calling HTTP API: %w", err)
 	}
 
-	state, err := client.ValidateAttestation(ctx, nonce, serializedAttestation)
+	var state *sdk.CoordinatorState
+	err = ct.withForwardedCollateralProxy(ctx, func(proxyBaseURL string) error {
+		var err error
+		state, err = client.WithCollateralProxy(proxyBaseURL).ValidateAttestation(ctx, nonce, serializedAttestation)
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("validating attestation: %w", err)
 	}
@@ -557,6 +562,21 @@ func (ct *ContrastTest) getImagePullSecret(ctx context.Context, t *testing.T) []
 	return nil
 }
 
+const (
+	collateralProxyNamespace  = "default"
+	collateralProxyPodName    = "collateral-proxy-0"
+	collateralProxyRemotePort = "80"
+)
+
+func (ct *ContrastTest) withForwardedCollateralProxy(ctx context.Context, f func(proxyBaseURL string) error) error {
+	if ct.DoNotUseCollateralProxy {
+		return f("")
+	}
+	return ct.Kubeclient.WithForwardedPort(ctx, collateralProxyNamespace, collateralProxyPodName, collateralProxyRemotePort, func(proxyAddr string) error {
+		return f("http://" + proxyAddr)
+	})
+}
+
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
 func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
 	if err := ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace); err != nil {
@@ -572,21 +592,26 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 	cmd.Flags().String("workspace-dir", "", "")
 	cmd.Flags().String("log-level", "debug", "")
 
-	return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", userapi.Port, func(addr string) error {
-		// Go never uses a proxy for connections to localhost. To enable proxy tests, we
-		// replace localhost with 0.0.0.0, which can be used as localhost on Linux and BSD.
-		addr = strings.Replace(addr, "localhost", "0.0.0.0", 1)
+	return ct.withForwardedCollateralProxy(ctx, func(proxyBaseURL string) error {
+		return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", userapi.Port, func(addr string) error {
+			// Go never uses a proxy for connections to localhost. To enable proxy tests, we
+			// replace localhost with 0.0.0.0, which can be used as localhost on Linux and BSD.
+			addr = strings.Replace(addr, "localhost", "0.0.0.0", 1)
 
-		commonArgs := append(ct.commonArgs(), "--coordinator", addr)
-		cmd.SetArgs(append(commonArgs, args...))
-		cmd.SetOut(io.Discard)
-		errBuf := &bytes.Buffer{}
-		cmd.SetErr(errBuf)
+			cmdArgs := append(ct.commonArgs(), "--coordinator", addr)
+			if proxyBaseURL != "" {
+				cmdArgs = append(cmdArgs, "--collateral-proxy", proxyBaseURL)
+			}
+			cmd.SetArgs(append(cmdArgs, args...))
+			cmd.SetOut(io.Discard)
+			errBuf := &bytes.Buffer{}
+			cmd.SetErr(errBuf)
 
-		if err := cmd.ExecuteContext(ctx); err != nil {
-			return fmt.Errorf("running %q: %s", cmd.Use, errBuf)
-		}
-		return nil
+			if err := cmd.ExecuteContext(ctx); err != nil {
+				return fmt.Errorf("running %q: %s", cmd.Use, errBuf)
+			}
+			return nil
+		})
 	})
 }
 
