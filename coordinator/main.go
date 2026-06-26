@@ -27,6 +27,7 @@ import (
 	userapiserver "github.com/edgelesssys/contrast/coordinator/internal/userapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/defaultdeny"
@@ -127,7 +128,7 @@ func run() (retErr error) {
 		return fmt.Errorf("creating issuer: %w", err)
 	}
 
-	userAPICredentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics, loggerpkg.NewNamed(logger, "atlscredentials"))
+	userAPICredentials := atlscredentials.New(issuer, validators.NoValidation(), atls.NoMetrics, loggerpkg.NewNamed(logger, "atlscredentials"))
 	userAPIServer := newGRPCServer(userAPICredentials, serverMetrics)
 	userapi.RegisterUserAPIServer(userAPIServer, userapiserver.New(logger, meshAuth, discovery))
 	serverMetrics.InitializeMetrics(userAPIServer)

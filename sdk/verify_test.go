@@ -13,7 +13,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/httpapi"
@@ -153,8 +153,8 @@ func TestValidateAttestation(t *testing.T) {
 
 			c := New()
 
-			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]atls.Validator, error) {
-				return []atls.Validator{&stubValidator{err: tc.validateErr}}, nil
+			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]validators.Validator, error) {
+				return []validators.Validator{&stubValidator{err: tc.validateErr}}, nil
 			}
 			state, err := c.ValidateAttestation(t.Context(), tc.nonce, attestation)
 			if tc.wantErr != "" {
@@ -226,7 +226,7 @@ var testManifest = []byte(`
 `)
 
 type stubValidator struct {
-	atls.Validator
+	validators.Validator
 
 	err error
 }

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
@@ -71,7 +72,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		State: state,
 	}
 
-	var validators []atls.Validator
+	var allValidators []validators.Validator
 
 	snpOpts, err := state.Manifest().SNPValidateOpts(c.kdsGetter)
 	if err != nil {
@@ -82,7 +83,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 	for i, opt := range snpOpts {
 		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
 		validatorLog := logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": name})
-		var validator atls.Validator
+		var validator validators.Validator
 		if len(opt.APEIP) == 4 {
 			seed := [snpmeasure.LaunchDigestSize]byte(opt.ValidateOpts.Measurement)
 			apEIP := binary.BigEndian.Uint32(opt.APEIP)
@@ -90,7 +91,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		} else {
 			validator = snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, validatorLog, &authInfo, name)
 		}
-		validators = append(validators, validator)
+		allValidators = append(allValidators, validator)
 	}
 
 	tdxOpts, err := state.Manifest().TDXValidateOpts(c.kdsGetter)
@@ -100,11 +101,11 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 	}
 	for i, opt := range tdxOpts {
 		name := fmt.Sprintf("tdx-%d", i)
-		validators = append(validators, tdx.NewValidatorWithReportSetter(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs,
+		allValidators = append(allValidators, tdx.NewValidatorWithReportSetter(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": name}), &authInfo, name))
 	}
 
-	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators, c.attestationFailuresCounter)
+	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, allValidators, c.attestationFailuresCounter)
 	if err != nil {
 		log.Error("Could not create TLS config", "error", err)
 		return nil, nil, err

@@ -16,6 +16,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -183,12 +184,12 @@ func periodically(ctx context.Context, clock clock.WithTicker, interval time.Dur
 }
 
 type meshAPIDialer interface {
-	Dial(context.Context, atls.Issuer, []atls.Validator, *slog.Logger, string) (meshapi.MeshAPIClient, func() error, error)
+	Dial(context.Context, atls.Issuer, []validators.Validator, *slog.Logger, string) (meshapi.MeshAPIClient, func() error, error)
 }
 
 type defaultMeshAPIDialer struct{}
 
-func (defaultMeshAPIDialer) Dial(ctx context.Context, issuer atls.Issuer, validators []atls.Validator, logger *slog.Logger, addr string) (meshapi.MeshAPIClient, func() error, error) {
+func (defaultMeshAPIDialer) Dial(ctx context.Context, issuer atls.Issuer, validators []validators.Validator, logger *slog.Logger, addr string) (meshapi.MeshAPIClient, func() error, error) {
 	dial := dialer.New(issuer, validators, atls.NoMetrics, nil, logger)
 	conn, err := dial.Dial(ctx, addr)
 	if err != nil {

@@ -15,6 +15,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -230,12 +231,12 @@ type stubDialer struct {
 	responses map[string]meshapi.MeshAPIClient
 
 	recordedIssuer     atls.Issuer
-	recordedValidators []atls.Validator
+	recordedValidators []validators.Validator
 	recordedAddress    string
 	closeCalled        bool
 }
 
-func (d *stubDialer) Dial(_ context.Context, issuer atls.Issuer, validators []atls.Validator, _ *slog.Logger, addr string) (meshapi.MeshAPIClient, func() error, error) {
+func (d *stubDialer) Dial(_ context.Context, issuer atls.Issuer, validators []validators.Validator, _ *slog.Logger, addr string) (meshapi.MeshAPIClient, func() error, error) {
 	d.recordedAddress = addr
 	d.recordedIssuer = issuer
 	d.recordedValidators = validators
