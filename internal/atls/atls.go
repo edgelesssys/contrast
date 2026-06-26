@@ -496,21 +496,6 @@ func getNonce(chi *tls.ClientHelloInfo) ([]byte, error) {
 	return clientNonce, nil
 }
 
-// FakeIssuer fakes an issuer and can be used for tests.
-type FakeIssuer struct {
-	Getter
-}
-
-// NewFakeIssuer creates a new FakeIssuer with the given OID.
-func NewFakeIssuer(oid Getter) *FakeIssuer {
-	return &FakeIssuer{oid}
-}
-
-// Issue marshals the user data and returns it.
-func (FakeIssuer) Issue(_ context.Context, reportData [64]byte) ([]byte, error) {
-	return json.Marshal(FakeAttestationDoc{ReportData: reportData[:]})
-}
-
 // FakeValidator fakes a validator and can be used for tests.
 type FakeValidator struct {
 	Getter
