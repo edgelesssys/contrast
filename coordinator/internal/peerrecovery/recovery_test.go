@@ -104,7 +104,7 @@ func TestRecoverOnce(t *testing.T) {
 			r := &Recoverer{
 				guard:      tc.guard,
 				peerGetter: tc.peerGetter,
-				issuer:     &atls.FakeIssuer{},
+				issuer:     &fakeIssuer{},
 				dialer:     &stubDialer{responses: tc.dialResponse},
 				logger:     logger,
 			}
@@ -128,7 +128,7 @@ func TestRecoverFromPeer(t *testing.T) {
 	}
 	r := &Recoverer{
 		guard:  newFakeStaleGuard(t),
-		issuer: &atls.FakeIssuer{},
+		issuer: &fakeIssuer{},
 		dialer: dialer,
 		logger: logger,
 	}
@@ -141,6 +141,10 @@ func TestRecoverFromPeer(t *testing.T) {
 	// One SNP reference value with APEIP set yields one IterativeValidator.
 	require.Len(dialer.recordedValidators, 1)
 	assert.IsType(&snp.IterativeValidator{}, dialer.recordedValidators[0])
+}
+
+type fakeIssuer struct {
+	atls.Issuer
 }
 
 type fakeStaleGuard struct {
