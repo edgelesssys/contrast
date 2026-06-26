@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -88,12 +89,13 @@ func (c *Cache) loadAll() error {
 		if d.IsDir() || !strings.HasSuffix(path, ".json") {
 			return nil
 		}
-		raw, err := os.ReadFile(path)
+		f, err := os.Open(path)
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 		var e Entry
-		if err := json.Unmarshal(raw, &e); err != nil {
+		if err := json.NewDecoder(f).Decode(&e); err != nil {
 			slog.Warn("skipping corrupt cache entry", "path", path, "err", err)
 			return nil
 		}
@@ -103,16 +105,19 @@ func (c *Cache) loadAll() error {
 }
 
 func (c *Cache) writeDisk(e *Entry) error {
-	raw, err := json.Marshal(e)
+	path := filepath.Join(c.dir, base64.RawURLEncoding.EncodeToString([]byte(e.URL))+".json")
+	f, err := os.CreateTemp(c.dir, "tmp-*")
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(c.dir, base64.RawURLEncoding.EncodeToString([]byte(e.URL))+".json")
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, raw, 0o600); err != nil {
+
+	if err := json.NewEncoder(f).Encode(e); err != nil {
+		return errors.Join(err, f.Close())
+	}
+	if err := f.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmp, path)
+	return os.Rename(f.Name(), path)
 }
 
 // understoodStatusCodes are the response status codes whose caching requirements this cache understands,

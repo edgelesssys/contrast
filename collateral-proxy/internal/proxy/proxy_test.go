@@ -24,6 +24,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// amdHWID is a sample hex-encoded 64-byte AMD hardware ID.
+const amdHWID = "" +
+	"a1b2c3d4e5f60718293a4b5c6d7e8f90" +
+	"0102030405060708090a0b0c0d0e0f10" +
+	"1112131415161718191a1b1c1d1e1f20" +
+	"2122232425262728292a2b2c2d2e2f30"
+
 func TestRoute(t *testing.T) {
 	for _, c := range []struct {
 		path     string
@@ -31,11 +38,12 @@ func TestRoute(t *testing.T) {
 		docType  string
 		rejected bool
 	}{
-		{path: "/vcek/v1/Milan/9af1a3beef", host: "kdsintf.amd.com", docType: "ak-cert"},
-		{path: "/vlek/v1/Milan/abcdef0123", host: "kdsintf.amd.com", docType: "ak-cert"},
+		{path: "/vcek/v1/Milan/" + amdHWID, host: "kdsintf.amd.com", docType: "ak-cert"},
+		{path: "/vlek/v1/Milan/" + amdHWID, host: "kdsintf.amd.com", docType: "ak-cert"},
 		{path: "/vcek/v1/Milan/crl", host: "kdsintf.amd.com", docType: "crl"},
 		{path: "/vcek/v1/Milan/cert_chain", host: "kdsintf.amd.com", docType: "collateral"},
 		{path: "/vcek/v1/Milan/not-a-hwid", host: "kdsintf.amd.com", docType: "unknown"},
+		{path: "/vcek/v1/Milan/9af1a3beef", host: "kdsintf.amd.com", docType: "unknown"}, // too short to be a hardware ID
 
 		{path: "/sgx/certification/v4/pckcert", host: "api.trustedservices.intel.com", docType: "ak-cert"},
 		{path: "/sgx/certification/v4/pckcrl", host: "api.trustedservices.intel.com", docType: "crl"},
