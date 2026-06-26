@@ -15,7 +15,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/fsstore"
@@ -38,7 +38,7 @@ type Client struct {
 	log *slog.Logger
 
 	// validatorsFromManifestOverride is used by tests to replace the validators.
-	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]atls.Validator, error)
+	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]validators.Validator, error)
 }
 
 // New returns a new [Client].

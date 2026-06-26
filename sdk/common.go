@@ -11,7 +11,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
@@ -24,8 +24,8 @@ import (
 // Originally an unexported function in the contrast CLI.
 // Can be made unexported again, if we decide to move all userapi calls from the CLI to the SDK.
 // Validators MUST NOT be used concurrently.
-func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.Manifest, log *slog.Logger) ([]atls.Validator, error) {
-	var validators []atls.Validator
+func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.Manifest, log *slog.Logger) ([]validators.Validator, error) {
+	var allValidators []validators.Validator
 
 	coordPolicyHash, err := m.CoordinatorPolicyHash()
 	if err != nil {
@@ -43,7 +43,7 @@ func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.
 		opt.ValidateOpts.HostData = coordPolicyHashBytes
 		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
 		validatorLog := logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name})
-		var v atls.Validator
+		var v validators.Validator
 		if len(opt.APEIP) == 4 {
 			seed := [snpmeasure.LaunchDigestSize]byte(opt.ValidateOpts.Measurement)
 			apEIP := binary.BigEndian.Uint32(opt.APEIP)
@@ -51,7 +51,7 @@ func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.
 		} else {
 			v = snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, validatorLog, name)
 		}
-		validators = append(validators, v)
+		allValidators = append(allValidators, v)
 	}
 
 	tdxOpts, err := m.TDXValidateOpts(kdsGetter)
@@ -63,8 +63,8 @@ func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.
 	for i, opt := range tdxOpts {
 		name := fmt.Sprintf("tdx-%d", i)
 		opt.ValidateOpts.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
-		validators = append(validators, tdx.NewValidator(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
+		allValidators = append(allValidators, tdx.NewValidator(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
 	}
 
-	return validators, nil
+	return allValidators, nil
 }

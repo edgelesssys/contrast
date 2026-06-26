@@ -25,6 +25,7 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
@@ -152,12 +153,12 @@ func TestATLS(t *testing.T) {
 				kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, logger.WithGroup("kds-getter"))
 				opts, err := manifestParsed.SNPValidateOpts(kdsGetter)
 				require.NoError(err, "getting SNP validate options")
-				var validators []atls.Validator
+				var allValidators []validators.Validator
 				for i, opt := range opts {
 					opt.ValidateOpts.HostData = coordPolicyHashBytes
 					assert.NoError(tc.manifestModifyFunc(&opt))
 					name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
-					var v atls.Validator
+					var v validators.Validator
 					if len(opt.APEIP) == 4 {
 						seed := [snpmeasure.LaunchDigestSize]byte(opt.ValidateOpts.Measurement)
 						apEIP := binary.BigEndian.Uint32(opt.APEIP)
@@ -165,10 +166,10 @@ func TestATLS(t *testing.T) {
 					} else {
 						v = snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, logger.WithGroup("validator"), name)
 					}
-					validators = append(validators, v)
+					allValidators = append(allValidators, v)
 				}
 
-				dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, nil, logger)
+				dialer := dialer.New(atls.NoIssuer, allValidators, atls.NoMetrics, nil, logger)
 				conn, err := dialer.Dial(ctx, addr)
 				require.NoError(err, "dialing coordinator")
 				defer conn.Close()

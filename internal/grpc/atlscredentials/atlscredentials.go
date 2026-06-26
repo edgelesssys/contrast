@@ -14,6 +14,7 @@ import (
 	"net"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc/credentials"
@@ -22,14 +23,14 @@ import (
 // Credentials for attested TLS (ATLS).
 type Credentials struct {
 	issuer              atls.Issuer
-	validators          []atls.Validator
+	validators          []validators.Validator
 	attestationFailures prometheus.Counter
 	privKey             crypto.PrivateKey
 	logger              *slog.Logger
 }
 
 // New creates new ATLS credentials.
-func New(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, log *slog.Logger) *Credentials {
+func New(issuer atls.Issuer, validators []validators.Validator, attestationFailures prometheus.Counter, log *slog.Logger) *Credentials {
 	return &Credentials{
 		issuer:              issuer,
 		attestationFailures: attestationFailures,
@@ -39,7 +40,7 @@ func New(issuer atls.Issuer, validators []atls.Validator, attestationFailures pr
 }
 
 // NewWithKey creates new ATLS credentials for the given key.
-func NewWithKey(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, key crypto.PrivateKey, log *slog.Logger) *Credentials {
+func NewWithKey(issuer atls.Issuer, validators []validators.Validator, attestationFailures prometheus.Counter, key crypto.PrivateKey, log *slog.Logger) *Credentials {
 	return &Credentials{
 		privKey:             key,
 		issuer:              issuer,

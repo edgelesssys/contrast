@@ -23,14 +23,13 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls/reportdata"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
-	// NoValidators skips validation of the server's attestation document.
-	NoValidators = []Validator{}
 	// NoIssuer skips embedding the client's attestation document.
 	NoIssuer Issuer
 	// NoMetrics skips collecting metrics for attestation failures.
@@ -45,7 +44,7 @@ var (
 // CreateAttestationServerTLSConfig creates a tls.Config object with a self-signed certificate and an embedded attestation document.
 // Pass a list of validators to enable mutual aTLS.
 // If issuer is nil, no attestation will be embedded.
-func CreateAttestationServerTLSConfig(issuer Issuer, validators []Validator, attestationFailures prometheus.Counter) (*tls.Config, error) {
+func CreateAttestationServerTLSConfig(issuer Issuer, validators []validators.Validator, attestationFailures prometheus.Counter) (*tls.Config, error) {
 	getConfigForClient, err := getATLSConfigForClientFunc(issuer, validators, attestationFailures)
 	if err != nil {
 		return nil, fmt.Errorf("get aTLS config for client: %w", err)
@@ -63,7 +62,7 @@ func CreateAttestationServerTLSConfig(issuer Issuer, validators []Validator, att
 //
 // If no validators are set, the server's attestation document will not be verified.
 // If issuer is nil, the client will be unable to perform mutual aTLS.
-func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, validators []Validator, privKey crypto.PrivateKey) (*tls.Config, error) {
+func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, validators []validators.Validator, privKey crypto.PrivateKey) (*tls.Config, error) {
 	clientNonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
 	if err != nil {
 		return nil, err
@@ -95,17 +94,10 @@ type Issuer interface {
 	Issue(ctx context.Context, reportData [64]byte) (quote []byte, err error)
 }
 
-// Validator is able to validate an attestation document.
-type Validator interface {
-	Getter
-	Validate(ctx context.Context, attDoc []byte, reportData []byte) error
-	fmt.Stringer
-}
-
 // getATLSConfigForClientFunc returns a config setup function that is called once for every client connecting to the server.
 // This allows for different server configuration for every client.
 // In aTLS this is used to generate unique nonces for every client.
-func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestationFailures prometheus.Counter) (func(*tls.ClientHelloInfo) (*tls.Config, error), error) {
+func getATLSConfigForClientFunc(issuer Issuer, validators []validators.Validator, attestationFailures prometheus.Counter) (func(*tls.ClientHelloInfo) (*tls.Config, error), error) {
 	// generate key for the server
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -227,7 +219,7 @@ func processCertificate(rawCerts [][]byte, _ [][]*x509.Certificate) (*x509.Certi
 // verifyEmbeddedReport verifies an aTLS certificate by validating the attestation document embedded in the TLS certificate.
 //
 // It will check against all applicable validator for the type of attestation document, and return success on the first match.
-func verifyEmbeddedReport(ctx context.Context, validators []Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
+func verifyEmbeddedReport(ctx context.Context, validators []validators.Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
 	// For better error reporting, let's keep track of whether we've found a valid extension at all..
 	var foundExtension bool
 	// .. and whether we've found a matching validator.
@@ -382,7 +374,7 @@ func extractNonce(proto string) (string, error) {
 // clientConnection holds state for client to server connections.
 type clientConnection struct {
 	issuer      Issuer
-	validators  []Validator
+	validators  []validators.Validator
 	clientNonce []byte
 	privKey     crypto.PrivateKey
 }
@@ -441,7 +433,7 @@ func publicKey(key crypto.PrivateKey) crypto.PublicKey {
 // serverConnection holds state for server to client connections.
 type serverConnection struct {
 	issuer              Issuer
-	validators          []Validator
+	validators          []validators.Validator
 	attestationFailures prometheus.Counter
 	privKey             crypto.PrivateKey
 	serverNonce         []byte

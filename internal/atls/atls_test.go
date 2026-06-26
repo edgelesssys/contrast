@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/atls/reportdata"
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/edgelesssys/contrast/internal/testkeys"
@@ -34,7 +35,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 
 	testCases := map[string]struct {
 		cert       *x509.Certificate
-		validators []Validator
+		validators []validators.Validator
 		wantErr    bool
 		targetErr  error
 	}{
@@ -137,8 +138,8 @@ type fakeValidator struct {
 }
 
 // newFakeValidators returns a slice with a single FakeValidator.
-func newFakeValidators(oid Getter) []Validator {
-	return []Validator{&fakeValidator{oid, nil}}
+func newFakeValidators(oid Getter) []validators.Validator {
+	return []validators.Validator{&fakeValidator{oid, nil}}
 }
 
 func (v fakeValidator) Validate(_ context.Context, attDoc []byte, reportData []byte) error {
@@ -223,7 +224,7 @@ func TestContextPassdown(t *testing.T) {
 			},
 		},
 	}
-	validators := []Validator{validator}
+	validators := []validators.Validator{validator}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	// If the context is not passed down, the select statement in ValidateContext will not return at all.
