@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
 	"github.com/edgelesssys/contrast/internal/history"
@@ -60,6 +61,7 @@ issuer certificates.`,
 	cmd.Flags().String("latest-transition", "", "latest transition hash set at the coordinator (hex string)")
 	cmd.Flags().StringP("signature", "s", "", "path to a detached transition signature (DER) file")
 	must(cmd.MarkFlagFilename("signature"))
+	addCollateralProxyFlag(cmd)
 
 	return cmd
 }
@@ -135,6 +137,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	certcache.SetCollateralProxy(flags.collateralProxyURL)
 	kdsGetter, err := cachedHTTPSGetter(log)
 	if err != nil {
 		return fmt.Errorf("configuring KDS cache: %w", err)
@@ -218,6 +221,7 @@ type setFlags struct {
 	latestTransition     string
 	signaturePath        string
 	workspaceDir         string
+	collateralProxyURL   string
 }
 
 func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
@@ -254,6 +258,10 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	flags.workspaceDir, err = cmd.Flags().GetString("workspace-dir")
 	if err != nil {
 		return nil, fmt.Errorf("getting workspace-dir flag: %w", err)
+	}
+	flags.collateralProxyURL, err = cmd.Flags().GetString("collateral-proxy")
+	if err != nil {
+		return nil, fmt.Errorf("getting collateral-proxy flag: %w", err)
 	}
 
 	if flags.workspaceDir != "" {
