@@ -93,6 +93,10 @@ func cachedHTTPSGetter(log *slog.Logger) (*certcache.CachedHTTPSGetter, error) {
 	return certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter")), nil
 }
 
+func addCollateralProxyFlag(cmd *cobra.Command) {
+	cmd.Flags().String("collateral-proxy", "", "route attestation-collateral fetches through the caching proxy at this base URL")
+}
+
 func must(err error) {
 	if err != nil {
 		panic(err)
