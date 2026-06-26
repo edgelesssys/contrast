@@ -152,7 +152,7 @@ func TestATLS(t *testing.T) {
 
 				// TODO(burgerdev): should this test use Manifest.CoordinatorValidator()?
 				kdsCache := memstore.New[string, []byte]()
-				kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, logger.WithGroup("kds-getter"))
+				kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, logger.WithGroup("kds-getter"), "")
 				opts, err := manifestParsed.SNPValidateOpts(kdsGetter)
 				require.NoError(err, "getting SNP validate options")
 				var allValidators []validators.Validator

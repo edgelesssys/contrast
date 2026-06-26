@@ -17,12 +17,13 @@ import (
 )
 
 // New creates an attestation issuer for the current platform.
-func New(log *slog.Logger) (atls.Issuer, error) {
+func New(log *slog.Logger, collateralProxy string) (atls.Issuer, error) {
 	cpuid.Detect()
 	switch {
 	case cpuid.CPU.Supports(cpuid.SEV_SNP):
 		return snpissuer.New(
 			logger.NewWithAttrs(logger.NewNamed(log, "issuer"), map[string]string{"tee-type": "snp"}),
+			collateralProxy,
 		), nil
 	case cpuid.CPU.Supports(cpuid.TDX_GUEST):
 		return tdxissuer.New(

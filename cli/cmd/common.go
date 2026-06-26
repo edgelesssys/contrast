@@ -82,7 +82,7 @@ func cachedir(subdir string) (string, error) {
 	return filepath.Join(dir, subdir), nil
 }
 
-func cachedHTTPSGetter(log *slog.Logger) (*certcache.CachedHTTPSGetter, error) {
+func cachedHTTPSGetter(log *slog.Logger, collateralProxy string) (*certcache.CachedHTTPSGetter, error) {
 	kdsDir, err := cachedir("kds")
 	if err != nil {
 		return nil, fmt.Errorf("getting cache dir: %w", err)
@@ -90,7 +90,7 @@ func cachedHTTPSGetter(log *slog.Logger) (*certcache.CachedHTTPSGetter, error) {
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
 	kdsCache := fsstore.New(afero.NewBasePathFs(afero.NewOsFs(), kdsDir), log.WithGroup("kds-cache"))
-	return certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter")), nil
+	return certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"), collateralProxy), nil
 }
 
 func addCollateralProxyFlag(cmd *cobra.Command) {
