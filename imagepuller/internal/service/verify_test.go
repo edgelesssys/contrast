@@ -206,7 +206,8 @@ func TestStoreAndVerifyLayers(t *testing.T) {
 			realImg, err := s.getAndVerifyImage(
 				t.Context(),
 				log,
-				fmt.Sprintf("%s/busybox:v0.0.1@%s",
+				fmt.Sprintf(
+					"%s/busybox:v0.0.1@%s",
 					server.Listener.Addr().String(),
 					registry.ManifestDigest(),
 				),

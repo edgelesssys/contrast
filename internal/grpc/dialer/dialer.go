@@ -57,7 +57,8 @@ func NewWithKey(issuer atls.Issuer, validators []atls.Validator, attestationFail
 func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error) {
 	credentials := atlscredentials.NewWithKey(d.issuer, d.validators, d.attestationFailures, d.privKey, logger.NewNamed(d.logger, "atlscredentials"))
 
-	return grpc.NewClient(target,
+	return grpc.NewClient(
+		target,
 		d.grpcWithDialer(),
 		grpc.WithTransportCredentials(credentials),
 		grpc.WithConnectParams(grpc.ConnectParams{
@@ -72,7 +73,8 @@ func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error
 // DialInsecure creates a new grpc client connection to the given target without using encryption or verification.
 // Only use this method when using another kind of encryption / verification (VPN, etc).
 func (d *Dialer) DialInsecure(_ context.Context, target string) (*grpc.ClientConn, error) {
-	return grpc.NewClient(target,
+	return grpc.NewClient(
+		target,
 		d.grpcWithDialer(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -82,7 +84,8 @@ func (d *Dialer) DialInsecure(_ context.Context, target string) (*grpc.ClientCon
 func (d *Dialer) DialNoVerify(_ context.Context, target string) (*grpc.ClientConn, error) {
 	credentials := atlscredentials.New(atls.NoIssuer, atls.NoValidators, atls.NoMetrics, logger.NewNamed(d.logger, "atlscredentials"))
 
-	return grpc.NewClient(target,
+	return grpc.NewClient(
+		target,
 		d.grpcWithDialer(),
 		grpc.WithTransportCredentials(credentials),
 	)

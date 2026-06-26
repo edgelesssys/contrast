@@ -228,7 +228,8 @@ func guidString(b []byte) string {
 	timeLow := binary.LittleEndian.Uint32(b[0:4])
 	timeMid := binary.LittleEndian.Uint16(b[4:6])
 	timeHi := binary.LittleEndian.Uint16(b[6:8])
-	return fmt.Sprintf("%08x-%04x-%04x-%x-%x",
+	return fmt.Sprintf(
+		"%08x-%04x-%04x-%x-%x",
 		timeLow, timeMid, timeHi,
 		b[8:10], b[10:16],
 	)

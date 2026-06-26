@@ -38,8 +38,9 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 								initdata.InitdataAnnotationKey: anno,
 								contrastRoleAnnotationKey:      "coordinator",
 							}).
-							WithSpec(kuberesource.PodSpec().
-								WithRuntimeClassName("contrast-cc"),
+							WithSpec(
+								kuberesource.PodSpec().
+									WithRuntimeClassName("contrast-cc"),
 							))),
 			},
 			expectedOutput: []deployment{
@@ -57,8 +58,9 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 				kuberesource.Deployment("test", "").
 					WithSpec(kuberesource.DeploymentSpec().
 						WithTemplate(kuberesource.PodTemplateSpec().
-							WithSpec(kuberesource.PodSpec().
-								WithRuntimeClassName("contrast-cc"),
+							WithSpec(
+								kuberesource.PodSpec().
+									WithRuntimeClassName("contrast-cc"),
 							))),
 			},
 			expectedErr: "missing initdata annotation",
@@ -70,8 +72,9 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 					WithAnnotations(map[string]string{
 						initdata.InitdataAnnotationKey: "invalid-base64",
 					}).
-					WithSpec(kuberesource.PodSpec().
-						WithRuntimeClassName("contrast-cc"),
+					WithSpec(
+						kuberesource.PodSpec().
+							WithRuntimeClassName("contrast-cc"),
 					),
 			},
 			expectedErr: "illegal base64 data",
@@ -86,15 +89,17 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 								initdata.InitdataAnnotationKey: anno,
 								contrastRoleAnnotationKey:      "coordinator",
 							}).
-							WithSpec(kuberesource.PodSpec().
-								WithRuntimeClassName("contrast-cc"),
+							WithSpec(
+								kuberesource.PodSpec().
+									WithRuntimeClassName("contrast-cc"),
 							))),
 				kuberesource.Pod("another-pod", "").
 					WithAnnotations(map[string]string{
 						initdata.InitdataAnnotationKey: anno,
 					}).
-					WithSpec(kuberesource.PodSpec().
-						WithRuntimeClassName("contrast-cc"),
+					WithSpec(
+						kuberesource.PodSpec().
+							WithRuntimeClassName("contrast-cc"),
 					),
 			},
 			expectedOutput: []deployment{
