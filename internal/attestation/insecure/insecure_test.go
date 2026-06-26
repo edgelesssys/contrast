@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,3 +59,6 @@ type stubReportSetter struct {
 func (s *stubReportSetter) SetReport(report attestation.Report) {
 	s.report = report
 }
+
+// Ensure that Validator implements the intended interface.
+var _ validators.Validator = (*Validator)(nil)
