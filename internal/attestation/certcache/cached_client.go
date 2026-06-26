@@ -41,29 +41,6 @@ func alwaysRevalidate(rawURL string) bool {
 	return snpCrlPath.MatchString(u.Path) || tdxRootCrlPath.MatchString(u.Path) || tdxBasePath.MatchString(u.Path)
 }
 
-var collateralProxyBase string
-
-// SetCollateralProxy routes attestation-collateral fetches through the collateral-proxy at proxyURL.
-// An empty proxyURL leaves fetches going directly upstream.
-func SetCollateralProxy(proxyURL string) {
-	collateralProxyBase = strings.TrimRight(proxyURL, "/")
-}
-
-func redirectToProxy(rawURL string) string {
-	if collateralProxyBase == "" {
-		return rawURL
-	}
-	u, err := neturl.Parse(rawURL)
-	if err != nil {
-		return rawURL
-	}
-	redirected := collateralProxyBase + u.Path
-	if u.RawQuery != "" {
-		redirected += "?" + u.RawQuery
-	}
-	return redirected
-}
-
 // CachedHTTPSGetter is a HTTPS client that caches responses in memory.
 type CachedHTTPSGetter struct {
 	trust.ContextHTTPSGetter
@@ -72,28 +49,46 @@ type CachedHTTPSGetter struct {
 	gcTicker clock.Ticker
 	cache    store
 
+	collateralProxyBase string
+
 	proxyUnreachable atomic.Bool
 }
 
 // NewCachedHTTPSGetter returns a new CachedHTTPSGetter.
-func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger) *CachedHTTPSGetter {
+func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger, collateralProxy string) *CachedHTTPSGetter {
 	c := &CachedHTTPSGetter{
-		ContextHTTPSGetter: NewRetryHTTPSGetter(http.DefaultClient, retryInterval),
-		logger:             log,
-		cache:              s,
-		gcTicker:           ticker,
+		ContextHTTPSGetter:  NewRetryHTTPSGetter(http.DefaultClient, retryInterval),
+		logger:              log,
+		cache:               s,
+		gcTicker:            ticker,
+		collateralProxyBase: strings.TrimRight(collateralProxy, "/"),
 	}
 	return c
 }
 
+func (c *CachedHTTPSGetter) redirectToProxy(rawURL string) string {
+	if c.collateralProxyBase == "" {
+		return rawURL
+	}
+	u, err := neturl.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	redirected := c.collateralProxyBase + u.Path
+	if u.RawQuery != "" {
+		redirected += "?" + u.RawQuery
+	}
+	return redirected
+}
+
 // fetch issues the GET request, routing it through the collateral-proxy if configured.
 func (c *CachedHTTPSGetter) fetch(ctx context.Context, url string) (map[string][]string, []byte, error) {
-	if collateralProxyBase == "" || c.proxyUnreachable.Load() {
+	if c.collateralProxyBase == "" || c.proxyUnreachable.Load() {
 		return c.ContextHTTPSGetter.GetContext(ctx, url)
 	}
 
 	proxyCtx, cancel := context.WithTimeout(ctx, retryAttemptsProxy*retryInterval)
-	header, body, err := c.ContextHTTPSGetter.GetContext(proxyCtx, redirectToProxy(url))
+	header, body, err := c.ContextHTTPSGetter.GetContext(proxyCtx, c.redirectToProxy(url))
 	cancel()
 	if err == nil {
 		return header, body, nil

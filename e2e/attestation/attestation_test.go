@@ -184,7 +184,7 @@ func TestAttestation(t *testing.T) {
 
 				logger := slog.Default()
 				store := fsstore.New(afero.NewMemMapFs(), logger)
-				cache := certcache.NewCachedHTTPSGetter(store, certcache.NeverGCTicker, logger)
+				cache := certcache.NewCachedHTTPSGetter(store, certcache.NeverGCTicker, logger, "")
 				validator, err := m.CoordinatorValidator(logger, cache)
 				require.NoError(err)
 

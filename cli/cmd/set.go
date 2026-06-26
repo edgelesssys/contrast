@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
 	"github.com/edgelesssys/contrast/internal/history"
@@ -136,8 +135,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	certcache.SetCollateralProxy(flags.collateralProxyURL)
-	kdsGetter, err := cachedHTTPSGetter(log)
+	kdsGetter, err := cachedHTTPSGetter(log, flags.collateralProxyURL)
 	if err != nil {
 		return fmt.Errorf("configuring KDS cache: %w", err)
 	}

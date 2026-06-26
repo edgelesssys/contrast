@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -76,8 +75,7 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("decrypting seed: %w", err)
 	}
 
-	certcache.SetCollateralProxy(flags.collateralProxyURL)
-	kdsGetter, err := cachedHTTPSGetter(log)
+	kdsGetter, err := cachedHTTPSGetter(log, flags.collateralProxyURL)
 	if err != nil {
 		return fmt.Errorf("configuring KDS cache: %w", err)
 	}

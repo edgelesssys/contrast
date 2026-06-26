@@ -38,12 +38,12 @@ type Issuer struct {
 }
 
 // New returns a new Issuer.
-func New(log *slog.Logger) *Issuer {
+func New(log *slog.Logger, collateralProxy string) *Issuer {
 	month := 30 * 24 * time.Hour
 	ticker := clock.RealClock{}.NewTicker(9 * month)
 	return &Issuer{
 		logger:    log,
-		kdsGetter: certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter-issuer")).SNPGetter(),
+		kdsGetter: certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter-issuer"), collateralProxy).SNPGetter(),
 	}
 }
 
