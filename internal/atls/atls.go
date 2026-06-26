@@ -5,7 +5,6 @@
 package atls
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"crypto/ecdsa"
@@ -17,7 +16,6 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -494,46 +492,6 @@ func getNonce(chi *tls.ClientHelloInfo) ([]byte, error) {
 		return nil, fmt.Errorf("decoding nonce from SNI: %w", err)
 	}
 	return clientNonce, nil
-}
-
-// FakeValidator fakes a validator and can be used for tests.
-type FakeValidator struct {
-	Getter
-	err error // used for package internal testing only
-}
-
-// NewFakeValidator creates a new FakeValidator with the given OID.
-func NewFakeValidator(oid Getter) *FakeValidator {
-	return &FakeValidator{oid, nil}
-}
-
-// NewFakeValidators returns a slice with a single FakeValidator.
-func NewFakeValidators(oid Getter) []Validator {
-	return []Validator{NewFakeValidator(oid)}
-}
-
-// Validate unmarshals the attestation document and verifies the nonce.
-func (v FakeValidator) Validate(_ context.Context, attDoc []byte, reportData []byte) error {
-	var doc FakeAttestationDoc
-	if err := json.Unmarshal(attDoc, &doc); err != nil {
-		return err
-	}
-
-	if !bytes.Equal(doc.ReportData, reportData) {
-		return fmt.Errorf("invalid reportData: expected %x, got %x", doc.ReportData, reportData)
-	}
-
-	return v.err
-}
-
-// String returns the name as identifier of the validator.
-func (v *FakeValidator) String() string {
-	return ""
-}
-
-// FakeAttestationDoc is a fake attestation document used for testing.
-type FakeAttestationDoc struct {
-	ReportData []byte
 }
 
 // Getter returns an ASN.1 Object Identifier.
