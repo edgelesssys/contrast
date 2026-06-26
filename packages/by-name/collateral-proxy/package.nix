@@ -34,9 +34,13 @@ buildGoModule (finalAttrs: {
     "-X main.version=v${finalAttrs.version}"
   ];
 
+  preCheck = ''
+    export CGO_ENABLED=1
+  '';
+
   checkPhase = ''
     runHook preCheck
-    go test ./...
+    go test -race ./...
     runHook postCheck
   '';
 

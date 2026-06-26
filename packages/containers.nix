@@ -80,7 +80,6 @@
     copyToRoot = (with pkgs; [ busybox ]) ++ (with dockerTools; [ caCertificates ]);
     config = {
       Entrypoint = [ (lib.getExe contrastPkgs.collateral-proxy) ];
-      Env = [ "PATH=/bin" ];
     };
   };
 

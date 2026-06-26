@@ -6,6 +6,8 @@ package proxy
 import (
 	"log/slog"
 	"net/http"
+	"net/url"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -30,6 +32,7 @@ var (
 	requestResults = []string{"hit", "miss", "stale", "error"}
 )
 
+// newMetrics registers the Prometheus collectors and initializes every known label combination to 0 to improve readability.
 func newMetrics(reg prometheus.Registerer) *metrics {
 	m := &metrics{
 		requests: promauto.With(reg).NewCounterVec(prometheus.CounterOpts{
@@ -77,27 +80,30 @@ func New(log *slog.Logger, c *cache.Cache, u *upstream.Fetcher, reg *prometheus.
 }
 
 // route resolves a request path to the vendor host that serves it  and a coarse document type used as a metrics label.
-func route(path string) (host, docType string, ok bool) {
+func route(urlPath string) (host, docType string, ok bool) {
 	switch {
-	case strings.HasPrefix(path, "/vcek/"), strings.HasPrefix(path, "/vlek/"):
-		return "kdsintf.amd.com", amdKDSDocType(path), true
-	case strings.HasPrefix(path, "/sgx/"), strings.HasPrefix(path, "/tdx/"):
-		return "api.trustedservices.intel.com", intelPCSDocType(path), true
-	case strings.HasPrefix(path, "/IntelSGX"):
-		return "certificates.trustedservices.intel.com", intelCertsDocType(path), true
-	case strings.HasPrefix(path, "/v1/rim/"):
+	case strings.HasPrefix(urlPath, "/vcek/"), strings.HasPrefix(urlPath, "/vlek/"):
+		return "kdsintf.amd.com", amdKDSDocType(urlPath), true
+	case strings.HasPrefix(urlPath, "/sgx/"), strings.HasPrefix(urlPath, "/tdx/"):
+		return "api.trustedservices.intel.com", intelPCSDocType(urlPath), true
+	case strings.HasPrefix(urlPath, "/IntelSGX"):
+		return "certificates.trustedservices.intel.com", intelCertsDocType(urlPath), true
+	case strings.HasPrefix(urlPath, "/v1/rim/"):
 		return "rim.attestation.nvidia.com", "collateral", true
 	default:
 		return "", "", false
 	}
 }
 
-// amdHardwareID matches the hex hardware ID that addresses a VCEK/VLEK certificate.
-var amdHardwareID = regexp.MustCompile(`^[0-9a-fA-F]+$`)
+// amdHardwareID matches the hex-encoded hardware ID that addresses a VCEK/VLEK certificate.
+// The hwID is a fixed-sized 64-byte field/128 hex chars across Milan/Genoa/Turin.
+// https://github.com/google/go-sev-guest/blob/33e009a4b5d6ec448cb55d89405276c2140c50c3/abi/abi.go#L65
+// https://github.com/google/go-sev-guest/blob/33e009a4b5d6ec448cb55d89405276c2140c50c3/kds/kds.go#L515
+var amdHardwareID = regexp.MustCompile(`^[0-9a-fA-F]{128}$`)
 
 // amdKDSDocType classifies AMD KDS paths of the form /{vcek,vlek}/v1/{product}/{resource}.
-func amdKDSDocType(path string) string {
-	switch seg := lastSegment(path); {
+func amdKDSDocType(urlPath string) string {
+	switch seg := path.Base(urlPath); {
 	case seg == "crl":
 		return "crl"
 	case seg == "cert_chain":
@@ -110,8 +116,8 @@ func amdKDSDocType(path string) string {
 }
 
 // intelPCSDocType classifies Intel PCS paths by their trailing resource.
-func intelPCSDocType(path string) string {
-	switch seg := lastSegment(path); seg {
+func intelPCSDocType(urlPath string) string {
+	switch seg := path.Base(urlPath); seg {
 	case "pckcrl", "rootcacrl":
 		return "crl"
 	case "pckcert":
@@ -124,15 +130,11 @@ func intelPCSDocType(path string) string {
 }
 
 // intelCertsDocType classifies the Intel SGX Root CA distribution host.
-func intelCertsDocType(path string) string {
-	if lastSegment(path) == "IntelSGXRootCA.der" {
+func intelCertsDocType(urlPath string) string {
+	if path.Base(urlPath) == "IntelSGXRootCA.der" {
 		return "crl"
 	}
 	return "unknown"
-}
-
-func lastSegment(path string) string {
-	return path[strings.LastIndex(path, "/")+1:]
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -160,10 +162,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serveCollateral(w http.ResponseWriter, r *http.Request, upstreamHost, docType string) {
-	upstreamURL := "https://" + upstreamHost + r.URL.Path
-	if r.URL.RawQuery != "" {
-		upstreamURL += "?" + r.URL.RawQuery
-	}
+	upstreamURL := (&url.URL{
+		Scheme:   "https",
+		Host:     upstreamHost,
+		Path:     r.URL.Path,
+		RawQuery: r.URL.RawQuery,
+	}).String()
 
 	entry, fresh := s.cache.Get(upstreamURL)
 	if fresh {
