@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/oid"
 )
@@ -33,13 +34,11 @@ func NewValidatorWithReportSetter(log *slog.Logger, reportSetter attestation.Rep
 	return &Validator{reportSetter: reportSetter, logger: log, name: name}
 }
 
-// OID returns the OID for the insecure attestation.
-func (v *Validator) OID() asn1.ObjectIdentifier {
-	return oid.RawInsecureReport
-}
-
 // Validate verifies the fake attestation document and extracts the host data.
-func (v *Validator) Validate(_ context.Context, attDocRaw []byte, reportData []byte) error {
+func (v *Validator) Validate(_ context.Context, id asn1.ObjectIdentifier, attDocRaw []byte, reportData []byte) error {
+	if !oid.RawInsecureReport.Equal(id) {
+		return validators.ErrOIDNotSupported
+	}
 	var doc attestationDoc
 	if err := json.Unmarshal(attDocRaw, &doc); err != nil {
 		return fmt.Errorf("unmarshaling insecure attestation: %w", err)

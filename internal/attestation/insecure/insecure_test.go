@@ -12,6 +12,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
+	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +35,7 @@ func TestIssueAndValidate(t *testing.T) {
 
 	setter := &stubReportSetter{}
 	validator := NewValidatorWithReportSetter(slog.Default(), setter, "insecure")
-	require.NoError(t, validator.Validate(context.Background(), attDoc, reportData[:]))
+	require.NoError(t, validator.Validate(context.Background(), oid.RawInsecureReport, attDoc, reportData[:]))
 	require.NotNil(t, setter.report)
 	assert.Equal(t, hostData, setter.report.HostData())
 }
@@ -43,7 +44,7 @@ func TestValidateMismatchingReportData(t *testing.T) {
 	validator := NewValidator(slog.Default(), "insecure")
 	attDoc := []byte(`{"reportData":"AQ==","hostData":"Ag=="}`)
 
-	err := validator.Validate(context.Background(), attDoc, []byte{0x02})
+	err := validator.Validate(context.Background(), oid.RawInsecureReport, attDoc, []byte{0x02})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reportData mismatch")
 }

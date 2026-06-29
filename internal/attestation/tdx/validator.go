@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx/quote"
 	"github.com/edgelesssys/contrast/internal/oid"
@@ -68,13 +69,11 @@ func NewValidatorWithReportSetter(verifyOpts *verify.Options, optsGen validateOp
 	return v
 }
 
-// OID returns the OID for the raw TDX report extension used by the validator.
-func (v *Validator) OID() asn1.ObjectIdentifier {
-	return oid.RawTDXReport
-}
-
 // Validate a TDX attestation.
-func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData []byte) (err error) {
+func (v *Validator) Validate(ctx context.Context, id asn1.ObjectIdentifier, attDocRaw []byte, reportData []byte) (err error) {
+	if !oid.RawTDXReport.Equal(id) {
+		return validators.ErrOIDNotSupported
+	}
 	v.logger.Info("Validate called", "name", v.name, "report-data", hex.EncodeToString(reportData))
 	defer func() {
 		if err != nil {

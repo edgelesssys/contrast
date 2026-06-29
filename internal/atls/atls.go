@@ -219,7 +219,7 @@ func processCertificate(rawCerts [][]byte, _ [][]*x509.Certificate) (*x509.Certi
 // verifyEmbeddedReport verifies an aTLS certificate by validating the attestation document embedded in the TLS certificate.
 //
 // It will check against all applicable validator for the type of attestation document, and return success on the first match.
-func verifyEmbeddedReport(ctx context.Context, validators []validators.Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
+func verifyEmbeddedReport(ctx context.Context, allValidators []validators.Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
 	// For better error reporting, let's keep track of whether we've found a valid extension at all..
 	var foundExtension bool
 	// .. and whether we've found a matching validator.
@@ -237,22 +237,18 @@ func verifyEmbeddedReport(ctx context.Context, validators []validators.Validator
 
 		// We have a valid attestation document. Let's check it against all applicable validators.
 		foundExtension = true
-		for _, validator := range validators {
-			// Optimization: Skip the validator if it doesn't match the attestation type of the document.
-			if !ex.Id.Equal(validator.OID()) {
-				continue
-			}
-
-			// We've found a matching validator. Let's validate the document.
-			foundMatchingValidator = true
-
-			validationErr := validator.Validate(ctx, ex.Value, expectedReportData[:])
+		for _, validator := range allValidators {
+			validationErr := validator.Validate(ctx, ex.Id, ex.Value, expectedReportData[:])
 			if validationErr == nil {
 				// The validator has successfully verified the document. We can exit.
 				return nil
+			} else if errors.Is(validationErr, validators.ErrOIDNotSupported) {
+				// This is the wrong validator, don't include the generic error in the response.
+				continue
 			}
 			// Otherwise, we'll keep track of the error and continue with the next validator.
-			retErr = errors.Join(retErr, fmt.Errorf(" validator %s failed: %w", validator.String(), validationErr))
+			foundMatchingValidator = true
+			retErr = errors.Join(retErr, fmt.Errorf(" validator %s failed: %w", validatorName(validator), validationErr))
 		}
 	}
 
@@ -489,4 +485,11 @@ func getNonce(chi *tls.ClientHelloInfo) ([]byte, error) {
 // Getter returns an ASN.1 Object Identifier.
 type Getter interface {
 	OID() asn1.ObjectIdentifier
+}
+
+func validatorName(v any) string {
+	if s, ok := v.(fmt.Stringer); ok {
+		return s.String()
+	}
+	return fmt.Sprintf("%T", v)
 }

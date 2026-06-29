@@ -51,7 +51,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: newFakeValidators(stubSNPValidator{}),
+			validators: newFakeValidators(oid.RawSNPReport),
 		},
 		"multiple matches": {
 			cert: &x509.Certificate{
@@ -66,7 +66,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: newFakeValidators(stubSNPValidator{}),
+			validators: newFakeValidators(oid.RawSNPReport),
 		},
 		"skip non-matching validator": {
 			cert: &x509.Certificate{
@@ -80,7 +80,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: append(newFakeValidators(stubSNPValidator{}), newFakeValidators(stubFooValidator{})...),
+			validators: append(newFakeValidators(oid.RawSNPReport), newFakeValidators(asn1.ObjectIdentifier{1, 2, 3})...),
 		},
 		"match, error": {
 			cert: &x509.Certificate{
@@ -91,7 +91,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: newFakeValidators(stubSNPValidator{}),
+			validators: newFakeValidators(oid.RawSNPReport),
 			wantErr:    true,
 		},
 		"no extensions": {
@@ -133,16 +133,19 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 
 // fakeValidator fakes a validator and can be used for tests.
 type fakeValidator struct {
-	Getter
+	oid asn1.ObjectIdentifier
 	err error
 }
 
 // newFakeValidators returns a slice with a single FakeValidator.
-func newFakeValidators(oid Getter) []validators.Validator {
+func newFakeValidators(oid asn1.ObjectIdentifier) []validators.Validator {
 	return []validators.Validator{&fakeValidator{oid, nil}}
 }
 
-func (v fakeValidator) Validate(_ context.Context, attDoc []byte, reportData []byte) error {
+func (v fakeValidator) Validate(_ context.Context, id asn1.ObjectIdentifier, attDoc []byte, reportData []byte) error {
+	if !v.oid.Equal(id) {
+		return validators.ErrOIDNotSupported
+	}
 	var doc fakeAttestationDoc
 	if err := json.Unmarshal(attDoc, &doc); err != nil {
 		return err
@@ -162,18 +165,6 @@ func (v *fakeValidator) String() string {
 // fakeAttestationDoc is a fake attestation document used for testing.
 type fakeAttestationDoc struct {
 	ReportData []byte
-}
-
-type stubSNPValidator struct{}
-
-func (v stubSNPValidator) OID() asn1.ObjectIdentifier {
-	return oid.RawSNPReport
-}
-
-type stubFooValidator struct{}
-
-func (v stubFooValidator) OID() asn1.ObjectIdentifier {
-	return []int{1, 2, 3}
 }
 
 // TestPublicKey ensures that all key types used by Contrast can be passed to publicKey.
@@ -197,15 +188,7 @@ type contextValidator struct {
 	inputC <-chan error
 }
 
-func (contextValidator) OID() asn1.ObjectIdentifier {
-	return oid.RawSNPReport
-}
-
-func (contextValidator) String() string {
-	return "contextValidator"
-}
-
-func (c *contextValidator) Validate(ctx context.Context, _, _ []byte) error {
+func (c *contextValidator) Validate(ctx context.Context, _ asn1.ObjectIdentifier, _, _ []byte) error {
 	select {
 	case err := <-c.inputC:
 		return err
@@ -220,7 +203,7 @@ func TestContextPassdown(t *testing.T) {
 	cert := &x509.Certificate{
 		Extensions: []pkix.Extension{
 			{
-				Id: validator.OID(),
+				Id: oid.RawSNPReport,
 			},
 		},
 	}
