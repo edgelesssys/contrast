@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
+	"encoding/asn1"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -125,8 +126,9 @@ func TestAttestationHandler(t *testing.T) {
 			require.NoError(err)
 			tc.guard.ca = ca
 
+			expectedOID := asn1.ObjectIdentifier{1, 2, 3}
 			if tc.issuer == nil {
-				tc.issuer = &stubIssuer{}
+				tc.issuer = &stubIssuer{oid: expectedOID}
 			}
 
 			handler := &AttestationHandler{
@@ -171,6 +173,7 @@ func TestAttestationHandler(t *testing.T) {
 				var resp httpapi.AttestationResponse
 				require.NoError(json.NewDecoder(res.Body).Decode(&resp))
 				require.Equal(constants.Version, resp.Version)
+				require.Equal(expectedOID, resp.AttestationType)
 				require.NotEmpty(resp.RawAttestationDoc)
 			}
 		})
@@ -178,8 +181,13 @@ func TestAttestationHandler(t *testing.T) {
 }
 
 type stubIssuer struct {
+	oid      asn1.ObjectIdentifier
 	issueErr error
 	atls.Issuer
+}
+
+func (s *stubIssuer) OID() asn1.ObjectIdentifier {
+	return s.oid
 }
 
 func (s *stubIssuer) Issue(_ context.Context, _ [64]byte) (quote []byte, err error) {
