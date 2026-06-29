@@ -36,11 +36,14 @@ buildGoModule (_finalAttrs: {
         (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
         (fileset.intersection (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           fileset.unions [
+            (path.append root "internal/atls")
             (path.append root "internal/attestation")
             (path.append root "internal/constants")
             (path.append root "internal/idblock")
             (path.append root "internal/kuberesource")
+            (path.append root "internal/logger")
             (path.append root "internal/manifest")
+            (path.append root "internal/oid")
             (path.append root "internal/platforms")
             (path.append root "internal/retry")
             (path.append root "internal/userapi")
