@@ -138,7 +138,7 @@ func TestRecoverFromPeer(t *testing.T) {
 	assert.Equal(expectedAddr, dialer.recordedAddress)
 	assert.NotNil(dialer.recordedIssuer)
 	assert.True(dialer.closeCalled)
-	require.Len(dialer.recordedValidators, 1)
+	require.NotNil(dialer.recordedValidator)
 }
 
 type fakeIssuer struct {
@@ -227,16 +227,16 @@ func (pg *stubPeerGetter) GetPeers(context.Context) ([]string, error) {
 type stubDialer struct {
 	responses map[string]meshapi.MeshAPIClient
 
-	recordedIssuer     atls.Issuer
-	recordedValidators []validators.Validator
-	recordedAddress    string
-	closeCalled        bool
+	recordedIssuer    atls.Issuer
+	recordedValidator validators.Validator
+	recordedAddress   string
+	closeCalled       bool
 }
 
-func (d *stubDialer) Dial(_ context.Context, issuer atls.Issuer, validators []validators.Validator, _ *slog.Logger, addr string) (meshapi.MeshAPIClient, func() error, error) {
+func (d *stubDialer) Dial(_ context.Context, issuer atls.Issuer, validator validators.Validator, _ *slog.Logger, addr string) (meshapi.MeshAPIClient, func() error, error) {
 	d.recordedAddress = addr
 	d.recordedIssuer = issuer
-	d.recordedValidators = validators
+	d.recordedValidator = validator
 	cancel := func() error {
 		d.closeCalled = true
 		return nil

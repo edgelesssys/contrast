@@ -12,7 +12,6 @@ import (
 	"net"
 
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
@@ -71,7 +70,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, fmt.Errorf("creating validator from manifest: %w", err)
 	}
 
-	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, []validators.Validator{validator}, c.attestationFailuresCounter)
+	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validator, c.attestationFailuresCounter)
 	if err != nil {
 		log.Error("Could not create TLS config", "error", err)
 		return nil, nil, err

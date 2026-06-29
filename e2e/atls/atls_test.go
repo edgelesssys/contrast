@@ -149,6 +149,7 @@ func TestATLS(t *testing.T) {
 				assert := require.New(t)
 				require := require.New(t)
 
+				// TODO(burgerdev): should this test use Manifest.CoordinatorValidator()?
 				kdsCache := memstore.New[string, []byte]()
 				kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, logger.WithGroup("kds-getter"))
 				opts, err := manifestParsed.SNPValidateOpts(kdsGetter)
@@ -169,7 +170,7 @@ func TestATLS(t *testing.T) {
 					allValidators = append(allValidators, v)
 				}
 
-				dialer := dialer.New(atls.NoIssuer, allValidators, atls.NoMetrics, nil, logger)
+				dialer := dialer.New(atls.NoIssuer, validators.Any(allValidators...), atls.NoMetrics, nil, logger)
 				conn, err := dialer.Dial(ctx, addr)
 				require.NoError(err, "dialing coordinator")
 				defer conn.Close()

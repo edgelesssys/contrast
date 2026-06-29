@@ -42,10 +42,10 @@ var (
 )
 
 // CreateAttestationServerTLSConfig creates a tls.Config object with a self-signed certificate and an embedded attestation document.
-// Pass a list of validators to enable mutual aTLS.
 // If issuer is nil, no attestation will be embedded.
-func CreateAttestationServerTLSConfig(issuer Issuer, validators []validators.Validator, attestationFailures prometheus.Counter) (*tls.Config, error) {
-	getConfigForClient, err := getATLSConfigForClientFunc(issuer, validators, attestationFailures)
+// If validator is nil, no attestation will be requested from the peer. Otherwise, use mutual TLS.
+func CreateAttestationServerTLSConfig(issuer Issuer, validator validators.Validator, attestationFailures prometheus.Counter) (*tls.Config, error) {
+	getConfigForClient, err := getATLSConfigForClientFunc(issuer, validator, attestationFailures)
 	if err != nil {
 		return nil, fmt.Errorf("get aTLS config for client: %w", err)
 	}
@@ -60,24 +60,21 @@ func CreateAttestationServerTLSConfig(issuer Issuer, validators []validators.Val
 // ATTENTION: The returned config is configured with a nonce and uses the input context. It must
 // only be used for a single connection.
 //
-// If no validators are set, the server's attestation document will not be verified.
+// If validator is nil, the server's attestation document will not be verified.
 // If issuer is nil, the client will be unable to perform mutual aTLS.
-func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, validators []validators.Validator, privKey crypto.PrivateKey) (*tls.Config, error) {
+func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, validator validators.Validator, privKey crypto.PrivateKey) (*tls.Config, error) {
 	clientNonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
 	if err != nil {
 		return nil, err
 	}
 	clientConn := &clientConnection{
 		issuer:      issuer,
-		validators:  validators,
+		validator:   validator,
 		clientNonce: clientNonce,
 		privKey:     privKey,
 	}
 
-	return &tls.Config{
-		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			return clientConn.verify(ctx, rawCerts, verifiedChains)
-		},
+	cfg := &tls.Config{
 		GetClientCertificate: clientConn.getCertificate, // use custom certificate for mutual aTLS connections
 		InsecureSkipVerify:   true,                      // disable default verification because we use our own verify func
 		MinVersion:           tls.VersionTLS13,
@@ -85,7 +82,17 @@ func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, valida
 			encodeNonceToNextProtos(clientNonce),
 			"h2", // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
 		},
-	}, nil
+	}
+
+	// clientConnection.verify does not consider a nil validator, so we only add it as verifier if
+	// the validator is not nil.
+	if validator != nil {
+		cfg.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			return clientConn.verify(ctx, rawCerts, verifiedChains)
+		}
+	}
+
+	return cfg, nil
 }
 
 // Issuer issues an attestation document.
@@ -97,7 +104,9 @@ type Issuer interface {
 // getATLSConfigForClientFunc returns a config setup function that is called once for every client connecting to the server.
 // This allows for different server configuration for every client.
 // In aTLS this is used to generate unique nonces for every client.
-func getATLSConfigForClientFunc(issuer Issuer, validators []validators.Validator, attestationFailures prometheus.Counter) (func(*tls.ClientHelloInfo) (*tls.Config, error), error) {
+//
+// As a special case, client certificates are not required if the input validator is nil.
+func getATLSConfigForClientFunc(issuer Issuer, validator validators.Validator, attestationFailures prometheus.Counter) (func(*tls.ClientHelloInfo) (*tls.Config, error), error) {
 	// generate key for the server
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -115,7 +124,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []validators.Validator
 		serverConn := &serverConnection{
 			privKey:             priv,
 			issuer:              issuer,
-			validators:          validators,
+			validator:           validator,
 			attestationFailures: attestationFailures,
 			serverNonce:         serverNonce,
 		}
@@ -134,7 +143,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []validators.Validator
 		}
 
 		// enable mutual aTLS if any validators are set
-		if len(validators) > 0 {
+		if validator != nil {
 			cfg.ClientAuth = tls.RequireAnyClientCert // validity of certificate will be checked by our custom verify function
 			cfg.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 				return serverConn.verify(chi.Context(), rawCerts, verifiedChains)
@@ -218,8 +227,15 @@ func processCertificate(rawCerts [][]byte, _ [][]*x509.Certificate) (*x509.Certi
 
 // verifyEmbeddedReport verifies an aTLS certificate by validating the attestation document embedded in the TLS certificate.
 //
-// It will check against all applicable validator for the type of attestation document, and return success on the first match.
-func verifyEmbeddedReport(ctx context.Context, allValidators []validators.Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
+// It walks over all candidate extensions and runs them through the given validator. The
+// peerPublicKey and nonce arguments are used to construct the expected report data.
+//
+// This function returns nil if an attestation extension passed the validator.
+// If the certificate does not contain any recognized attestation extensions, it returns
+// ErrNoValidAttestationExtensions. If the validator does not understand any of the attestation
+// extensions, it returns ErrNoMatchingValidators. Otherwise, it returns a combined error of all
+// applicable but failing validators.
+func verifyEmbeddedReport(ctx context.Context, validator validators.Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
 	// For better error reporting, let's keep track of whether we've found a valid extension at all..
 	var foundExtension bool
 	// .. and whether we've found a matching validator.
@@ -235,21 +251,19 @@ func verifyEmbeddedReport(ctx context.Context, allValidators []validators.Valida
 			continue
 		}
 
-		// We have a valid attestation document. Let's check it against all applicable validators.
+		// We have a valid attestation document. Let's check it against the validator.
 		foundExtension = true
-		for _, validator := range allValidators {
-			validationErr := validator.Validate(ctx, ex.Id, ex.Value, expectedReportData[:])
-			if validationErr == nil {
-				// The validator has successfully verified the document. We can exit.
-				return nil
-			} else if errors.Is(validationErr, validators.ErrOIDNotSupported) {
-				// This is the wrong validator, don't include the generic error in the response.
-				continue
-			}
-			// Otherwise, we'll keep track of the error and continue with the next validator.
-			foundMatchingValidator = true
-			retErr = errors.Join(retErr, fmt.Errorf(" validator %s failed: %w", validatorName(validator), validationErr))
+		validationErr := validator.Validate(ctx, ex.Id, ex.Value, expectedReportData[:])
+		if validationErr == nil {
+			// The validator has successfully verified the document. We can exit.
+			return nil
+		} else if errors.Is(validationErr, validators.ErrOIDNotSupported) {
+			// This extension did not match, but maybe another does.
+			continue
 		}
+		// Otherwise, we'll keep track of the error and continue with the next validator.
+		foundMatchingValidator = true
+		retErr = errors.Join(retErr, fmt.Errorf(" validator %s failed: %w", validatorName(validator), validationErr))
 	}
 
 	if !foundExtension {
@@ -370,7 +384,7 @@ func extractNonce(proto string) (string, error) {
 // clientConnection holds state for client to server connections.
 type clientConnection struct {
 	issuer      Issuer
-	validators  []validators.Validator
+	validator   validators.Validator
 	clientNonce []byte
 	privKey     crypto.PrivateKey
 }
@@ -382,12 +396,7 @@ func (c *clientConnection) verify(ctx context.Context, rawCerts [][]byte, verifi
 		return fmt.Errorf("process certificate: %w", err)
 	}
 
-	// don't perform verification of attestation document if no validators are set
-	if len(c.validators) == 0 {
-		return nil
-	}
-
-	return verifyEmbeddedReport(ctx, c.validators, cert, pubBytes, c.clientNonce)
+	return verifyEmbeddedReport(ctx, c.validator, cert, pubBytes, c.clientNonce)
 }
 
 // getCertificate generates a client certificate for mutual aTLS connections.
@@ -429,7 +438,7 @@ func publicKey(key crypto.PrivateKey) crypto.PublicKey {
 // serverConnection holds state for server to client connections.
 type serverConnection struct {
 	issuer              Issuer
-	validators          []validators.Validator
+	validator           validators.Validator
 	attestationFailures prometheus.Counter
 	privKey             crypto.PrivateKey
 	serverNonce         []byte
@@ -443,7 +452,7 @@ func (c *serverConnection) verify(ctx context.Context, rawCerts [][]byte, verifi
 		return fmt.Errorf("process certificate: %w", err)
 	}
 
-	err = verifyEmbeddedReport(ctx, c.validators, cert, pubBytes, c.serverNonce)
+	err = verifyEmbeddedReport(ctx, c.validator, cert, pubBytes, c.serverNonce)
 	if err != nil && c.attestationFailures != nil {
 		c.attestationFailures.Inc()
 	}

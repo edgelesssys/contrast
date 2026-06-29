@@ -34,10 +34,10 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 	require.NoError(t, err)
 
 	testCases := map[string]struct {
-		cert       *x509.Certificate
-		validators []validators.Validator
-		wantErr    bool
-		targetErr  error
+		cert      *x509.Certificate
+		validator validators.Validator
+		wantErr   bool
+		targetErr error
 	}{
 		"success": {
 			cert: &x509.Certificate{
@@ -51,7 +51,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: newFakeValidators(oid.RawSNPReport),
+			validator: newFakeValidator(oid.RawSNPReport),
 		},
 		"multiple matches": {
 			cert: &x509.Certificate{
@@ -66,21 +66,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: newFakeValidators(oid.RawSNPReport),
-		},
-		"skip non-matching validator": {
-			cert: &x509.Certificate{
-				Extensions: []pkix.Extension{
-					{
-						Id: []int{4, 5, 6},
-					},
-					{
-						Id:    oid.RawSNPReport,
-						Value: attDocBytes,
-					},
-				},
-			},
-			validators: append(newFakeValidators(oid.RawSNPReport), newFakeValidators(asn1.ObjectIdentifier{1, 2, 3})...),
+			validator: newFakeValidator(oid.RawSNPReport),
 		},
 		"match, error": {
 			cert: &x509.Certificate{
@@ -91,14 +77,14 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: newFakeValidators(oid.RawSNPReport),
-			wantErr:    true,
+			validator: newFakeValidator(oid.RawSNPReport),
+			wantErr:   true,
 		},
 		"no extensions": {
-			cert:       &x509.Certificate{},
-			validators: nil,
-			targetErr:  ErrNoValidAttestationExtensions,
-			wantErr:    true,
+			cert:      &x509.Certificate{},
+			validator: nil,
+			targetErr: ErrNoValidAttestationExtensions,
+			wantErr:   true,
 		},
 		"no matching validator": {
 			cert: &x509.Certificate{
@@ -108,9 +94,9 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 					},
 				},
 			},
-			validators: nil,
-			targetErr:  ErrNoMatchingValidators,
-			wantErr:    true,
+			validator: validators.Any(),
+			targetErr: ErrNoMatchingValidators,
+			wantErr:   true,
 		},
 	}
 
@@ -118,7 +104,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
-			err := verifyEmbeddedReport(t.Context(), tc.validators, tc.cert, nil, nil)
+			err := verifyEmbeddedReport(t.Context(), tc.validator, tc.cert, nil, nil)
 			if tc.wantErr {
 				require.Error(err)
 				if tc.targetErr != nil {
@@ -137,9 +123,9 @@ type fakeValidator struct {
 	err error
 }
 
-// newFakeValidators returns a slice with a single FakeValidator.
-func newFakeValidators(oid asn1.ObjectIdentifier) []validators.Validator {
-	return []validators.Validator{&fakeValidator{oid, nil}}
+// newFakeValidator returns a single FakeValidator.
+func newFakeValidator(oid asn1.ObjectIdentifier) validators.Validator {
+	return &fakeValidator{oid, nil}
 }
 
 func (v fakeValidator) Validate(_ context.Context, id asn1.ObjectIdentifier, attDoc []byte, reportData []byte) error {
@@ -207,12 +193,11 @@ func TestContextPassdown(t *testing.T) {
 			},
 		},
 	}
-	validators := []validators.Validator{validator}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	// If the context is not passed down, the select statement in ValidateContext will not return at all.
 	// We expect this function to return because the context was already cancelled.
-	err := verifyEmbeddedReport(ctx, validators, cert, nil, nil)
+	err := verifyEmbeddedReport(ctx, validator, cert, nil, nil)
 	// The contextValidator forwards the context error, so this should be canceled.
 	require.ErrorIs(t, err, context.Canceled)
 }

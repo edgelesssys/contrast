@@ -23,28 +23,35 @@ import (
 // Credentials for attested TLS (ATLS).
 type Credentials struct {
 	issuer              atls.Issuer
-	validators          []validators.Validator
+	validator           validators.Validator
 	attestationFailures prometheus.Counter
 	privKey             crypto.PrivateKey
 	logger              *slog.Logger
 }
 
 // New creates new ATLS credentials.
-func New(issuer atls.Issuer, validators []validators.Validator, attestationFailures prometheus.Counter, log *slog.Logger) *Credentials {
+//
+// issuer and validator can be nil, which means attestation won't be performed or requested,
+// respectively.
+// The attestationFailures counter will be incremented whenever the validator rejects a connection
+// attempt.
+func New(issuer atls.Issuer, validator validators.Validator, attestationFailures prometheus.Counter, log *slog.Logger) *Credentials {
 	return &Credentials{
 		issuer:              issuer,
 		attestationFailures: attestationFailures,
-		validators:          validators,
+		validator:           validator,
 		logger:              log,
 	}
 }
 
 // NewWithKey creates new ATLS credentials for the given key.
-func NewWithKey(issuer atls.Issuer, validators []validators.Validator, attestationFailures prometheus.Counter, key crypto.PrivateKey, log *slog.Logger) *Credentials {
+//
+// See New for details on the other arguments.
+func NewWithKey(issuer atls.Issuer, validator validators.Validator, attestationFailures prometheus.Counter, key crypto.PrivateKey, log *slog.Logger) *Credentials {
 	return &Credentials{
 		privKey:             key,
 		issuer:              issuer,
-		validators:          validators,
+		validator:           validator,
 		attestationFailures: attestationFailures,
 		logger:              log,
 	}
@@ -54,7 +61,7 @@ func NewWithKey(issuer atls.Issuer, validators []validators.Validator, attestati
 func (c *Credentials) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	c.logger.DebugContext(ctx, "ClientHandshake", "authority", authority)
 
-	clientCfg, err := atls.CreateAttestationClientTLSConfig(ctx, c.issuer, c.validators, c.privKey)
+	clientCfg, err := atls.CreateAttestationClientTLSConfig(ctx, c.issuer, c.validator, c.privKey)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "Creating client TLS config failed", "error", err)
 		return nil, nil, err
@@ -67,7 +74,7 @@ func (c *Credentials) ClientHandshake(ctx context.Context, authority string, raw
 func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	c.logger.Debug("ServerHandshake", "peer", rawConn.RemoteAddr())
 
-	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, c.validators, c.attestationFailures)
+	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, c.validator, c.attestationFailures)
 	if err != nil {
 		c.logger.Error("Error creating server TLS config", "error", err)
 		return nil, nil, err
