@@ -24,7 +24,7 @@ import (
 // Dialer can open grpc client connections with different levels of ATLS encryption / verification.
 type Dialer struct {
 	issuer              atls.Issuer
-	validators          []validators.Validator
+	validator           validators.Validator
 	attestationFailures prometheus.Counter
 	netDialer           NetDialer
 	privKey             crypto.PrivateKey
@@ -32,10 +32,16 @@ type Dialer struct {
 }
 
 // New creates a new Dialer.
-func New(issuer atls.Issuer, validators []validators.Validator, attestationFailures prometheus.Counter, netDialer NetDialer, log *slog.Logger) *Dialer {
+//
+// issuer and validator can be nil, which means attestation won't be performed or requested,
+// respectively.
+// The attestationFailures counter will be incremented whenever the validator rejects a connection
+// attempt.
+// netDialer can be used to customize TCP connection establishment (e.g., proxies or tests).
+func New(issuer atls.Issuer, validator validators.Validator, attestationFailures prometheus.Counter, netDialer NetDialer, log *slog.Logger) *Dialer {
 	return &Dialer{
 		issuer:              issuer,
-		validators:          validators,
+		validator:           validator,
 		attestationFailures: attestationFailures,
 		netDialer:           netDialer,
 		logger:              log,
@@ -43,10 +49,12 @@ func New(issuer atls.Issuer, validators []validators.Validator, attestationFailu
 }
 
 // NewWithKey creates a new Dialer with the given private key.
-func NewWithKey(issuer atls.Issuer, validators []validators.Validator, attestationFailures prometheus.Counter, netDialer NetDialer, privKey crypto.PrivateKey, log *slog.Logger) *Dialer {
+//
+// See New for details on the other arguments.
+func NewWithKey(issuer atls.Issuer, validator validators.Validator, attestationFailures prometheus.Counter, netDialer NetDialer, privKey crypto.PrivateKey, log *slog.Logger) *Dialer {
 	return &Dialer{
 		issuer:              issuer,
-		validators:          validators,
+		validator:           validator,
 		attestationFailures: attestationFailures,
 		netDialer:           netDialer,
 		privKey:             privKey,
@@ -56,7 +64,7 @@ func NewWithKey(issuer atls.Issuer, validators []validators.Validator, attestati
 
 // Dial creates a new grpc client connection to the given target using the atls validator.
 func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error) {
-	credentials := atlscredentials.NewWithKey(d.issuer, d.validators, d.attestationFailures, d.privKey, logger.NewNamed(d.logger, "atlscredentials"))
+	credentials := atlscredentials.NewWithKey(d.issuer, d.validator, d.attestationFailures, d.privKey, logger.NewNamed(d.logger, "atlscredentials"))
 
 	return grpc.NewClient(
 		target,

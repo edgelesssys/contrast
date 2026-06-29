@@ -36,11 +36,6 @@ func (f ValidatorFunc) Validate(ctx context.Context, oid asn1.ObjectIdentifier, 
 	return f(ctx, oid, attDoc, reportData)
 }
 
-// NoValidation skips validation of the server's attestation document.
-func NoValidation() []Validator {
-	return []Validator{}
-}
-
 // Any creates a Validator that passes if one of the input Validators passes.
 //
 // The Validators are tried in order, until one succeeds or no more are left.

@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -38,7 +37,7 @@ type Client struct {
 	log *slog.Logger
 
 	// validatorsFromManifestOverride is used by tests to replace the validators.
-	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]validators.Validator, error)
+	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error)
 }
 
 // New returns a new [Client].
@@ -164,7 +163,7 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 	if c.validatorsFromManifestOverride != nil {
 		validatorsFromManifest = c.validatorsFromManifestOverride
 	}
-	validators, err := validatorsFromManifest(kdsGetter, &latestManifest, c.log)
+	validator, err := validatorsFromManifest(kdsGetter, &latestManifest, c.log)
 	if err != nil {
 		return nil, fmt.Errorf("getting validators: %w", err)
 	}
@@ -173,19 +172,8 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 	transitionDigest := transitions[len(transitions)-1].Digest()
 	reportData := httpapi.ConstructReportData(nonce, transitionDigest[:], &resp.CoordinatorState)
 
-	validated := false
-	var errs []error
-	for _, v := range validators {
-		if err := v.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
-			c.log.Debug("validator failed", "error", err)
-			errs = append(errs, err)
-			continue
-		}
-		validated = true
-		break
-	}
-	if !validated {
-		return nil, fmt.Errorf("validation failed:\n%w", errors.Join(errs...))
+	if err := validator.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 	state := CoordinatorState{
 		Manifests: resp.Manifests,

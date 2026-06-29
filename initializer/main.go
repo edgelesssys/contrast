@@ -21,7 +21,6 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
-	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
@@ -114,9 +113,9 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}
 
 	requestCert := func() (*meshapi.NewMeshCertResponse, error) {
-		// Supply an empty list of validators, as the coordinator does not need to be
+		// Supply a nil validator, as the coordinator does not need to be
 		// validated by the initializer.
-		dial := dialer.NewWithKey(issuer, validators.NoValidation(), atls.NoMetrics, nil, privKey, log)
+		dial := dialer.NewWithKey(issuer, nil, atls.NoMetrics, nil, privKey, log)
 		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, meshapi.Port))
 		if err != nil {
 			return nil, fmt.Errorf("dialing: %w", err)

@@ -21,7 +21,6 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
@@ -245,7 +244,7 @@ func TestAttestation(t *testing.T) {
 
 		validator := tdx.NewValidatorWithReportSetter(verifyOpts, validateOptsGen, nil, logger, &reportRecorder, "tdx-collateral-test")
 
-		cfg, err := atls.CreateAttestationClientTLSConfig(ctx, nil, []validators.Validator{validator}, nil)
+		cfg, err := atls.CreateAttestationClientTLSConfig(ctx, nil, validator, nil)
 		require.NoError(err)
 
 		require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", userapi.Port, func(addr string) error {

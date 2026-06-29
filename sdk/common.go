@@ -18,10 +18,10 @@ import (
 // Originally an unexported function in the contrast CLI.
 // Can be made unexported again, if we decide to move all userapi calls from the CLI to the SDK.
 // Validators MUST NOT be used concurrently.
-func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.Manifest, log *slog.Logger) ([]validators.Validator, error) {
+func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.Manifest, log *slog.Logger) (validators.Validator, error) {
 	v, err := m.CoordinatorValidator(log, kdsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("creating coordinator validator: %w", err)
 	}
-	return []validators.Validator{v}, nil
+	return v, nil
 }

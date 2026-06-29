@@ -158,8 +158,8 @@ func TestValidateAttestation(t *testing.T) {
 
 			c := New()
 
-			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]validators.Validator, error) {
-				return []validators.Validator{&stubValidator{err: tc.validateErr}}, nil
+			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error) {
+				return &stubValidator{err: tc.validateErr}, nil
 			}
 			state, err := c.ValidateAttestation(t.Context(), tc.nonce, attestation)
 			if tc.wantErr != "" {
