@@ -18,6 +18,8 @@ import (
 // Originally an unexported function in the contrast CLI.
 // Can be made unexported again, if we decide to move all userapi calls from the CLI to the SDK.
 // Validators MUST NOT be used concurrently.
+//
+// Deprecated: This low-level API is not intended for direct use, use the sdk.Client methods instead.
 func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.Manifest, log *slog.Logger) (validators.Validator, error) {
 	v, err := m.CoordinatorValidator(log, kdsGetter)
 	if err != nil {

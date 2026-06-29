@@ -14,7 +14,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 )
 
@@ -79,12 +78,12 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("configuring KDS cache: %w", err)
 	}
-	validators, err := sdk.ValidatorsFromManifest(kdsGetter, &m, log)
+	validator, err := m.CoordinatorValidator(log, kdsGetter)
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}
 
-	dialer := dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, nil, seedShareOwnerKey, log)
+	dialer := dialer.NewWithKey(atls.NoIssuer, validator, atls.NoMetrics, nil, seedShareOwnerKey, log)
 
 	log.Debug("Dialing coordinator", "endpoint", flags.coordinator)
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)

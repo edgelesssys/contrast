@@ -30,7 +30,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/edgelesssys/contrast/sdk"
 	"github.com/google/go-tdx-guest/validate"
 	"github.com/google/go-tdx-guest/verify"
 	"github.com/spf13/afero"
@@ -186,12 +185,12 @@ func TestAttestation(t *testing.T) {
 				logger := slog.Default()
 				store := fsstore.New(afero.NewMemMapFs(), logger)
 				cache := certcache.NewCachedHTTPSGetter(store, certcache.NeverGCTicker, logger)
-				validators, err := sdk.ValidatorsFromManifest(cache, &m, logger)
+				validator, err := m.CoordinatorValidator(logger, cache)
 				require.NoError(err)
 
 				key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 				require.NoError(err)
-				cfg, err := atls.CreateAttestationClientTLSConfig(ctx, nil, validators, key)
+				cfg, err := atls.CreateAttestationClientTLSConfig(ctx, nil, validator, key)
 				require.NoError(err)
 
 				require.ErrorContains(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", userapi.Port, func(addr string) error {

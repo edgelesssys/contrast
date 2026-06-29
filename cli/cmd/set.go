@@ -27,7 +27,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -139,16 +138,16 @@ func runSet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("configuring KDS cache: %w", err)
 	}
-	validators, err := sdk.ValidatorsFromManifest(kdsGetter, &m, log)
+	validator, err := m.CoordinatorValidator(log, kdsGetter)
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}
 
 	var dialr *dialer.Dialer
 	if workloadOwnerKey == nil {
-		dialr = dialer.New(atls.NoIssuer, validators, atls.NoMetrics, nil, log)
+		dialr = dialer.New(atls.NoIssuer, validator, atls.NoMetrics, nil, log)
 	} else {
-		dialr = dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, nil, workloadOwnerKey, log)
+		dialr = dialer.NewWithKey(atls.NoIssuer, validator, atls.NoMetrics, nil, workloadOwnerKey, log)
 	}
 
 	conn, err := dialr.Dial(cmd.Context(), flags.coordinator)
