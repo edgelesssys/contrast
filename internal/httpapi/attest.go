@@ -5,6 +5,7 @@ package httpapi
 
 import (
 	"bytes"
+	"encoding/asn1"
 	"encoding/json"
 	"fmt"
 
@@ -33,6 +34,10 @@ type AttestationResponse struct {
 	Version string `json:"version"`
 	// RawAttestationDoc is a raw attestation report.
 	RawAttestationDoc []byte `json:"raw_attestation_doc"`
+	// AttestationType is the OID used to identify the type of attestation document.
+	//
+	// Outside of unit tests, this will always be an OID from the internal/oid package.
+	AttestationType asn1.ObjectIdentifier `json:"attestation_type"`
 
 	CoordinatorState
 }

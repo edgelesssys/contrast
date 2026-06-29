@@ -77,6 +77,7 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ht
 
 	resp := &httpapi.AttestationResponse{
 		Version:           constants.Version,
+		AttestationType:   h.Issuer.OID(),
 		RawAttestationDoc: attestation,
 		CoordinatorState:  *coordinatorState,
 	}

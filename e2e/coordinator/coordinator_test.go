@@ -6,10 +6,12 @@
 package coordinator
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -212,6 +214,17 @@ func TestCoordinator(t *testing.T) {
 		}))
 
 		state, err := client.ValidateAttestation(ctx, nonce[:], report)
+		require.NoError(err)
+		require.Equal(manifestBytesExpected, state.Manifests[0])
+
+		// Test backwards compatibility of AttestationType.
+		var resp httpapi.AttestationResponse
+		require.NoError(json.NewDecoder(bytes.NewReader(report)).Decode(&resp))
+		resp.AttestationType = nil
+		reportWithoutType, err := json.Marshal(resp)
+		require.NoError(err)
+
+		state, err = client.ValidateAttestation(ctx, nonce[:], reportWithoutType)
 		require.NoError(err)
 		require.Equal(manifestBytesExpected, state.Manifests[0])
 
