@@ -8,7 +8,9 @@ import (
 	"encoding/asn1"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAny(t *testing.T) {
@@ -86,6 +88,17 @@ func TestAny(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestWithFixedOID(t *testing.T) {
+	require := require.New(t)
+	inputOID := oid.RawSNPReport
+	expectedOID := oid.RawTDXReport
+	s := &stubValidator{}
+	v := WithFixedOID(expectedOID, s)
+
+	require.NoError(v.Validate(t.Context(), inputOID, nil, nil))
+	require.True(expectedOID.Equal(s.oid))
 }
 
 type stubValidator struct {
