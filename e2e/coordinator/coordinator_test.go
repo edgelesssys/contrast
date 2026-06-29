@@ -11,6 +11,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"flag"
+	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,9 +20,11 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
+	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/edgelesssys/contrast/sdk"
 	"github.com/stretchr/testify/require"
 )
 
@@ -171,6 +175,50 @@ func TestCoordinator(t *testing.T) {
 		t.Logf("Using OpenSSL from: %s", string(out))
 
 		require.NoError(ct.RunSet(ctx, "--signature", filepath.Join(ct.WorkDir, "transition.sig")))
+	})
+
+	t.Run("http api", func(t *testing.T) {
+		require := require.New(t)
+		ct := contrasttest.New(t)
+
+		resources := kuberesource.CoordinatorBundle()
+		resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+		resources = kuberesource.AddPortForwarders(resources)
+		ct.Init(t, resources)
+
+		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+		require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
+
+		// Read manifest for later comparison.
+		manifestBytesExpected, err := os.ReadFile(ct.ManifestPath())
+		require.NoError(err)
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
+		t.Cleanup(cancel)
+
+		client := sdk.New()
+		client.WithSlog(slog.Default())
+
+		nonce := [32]byte{}
+		var report []byte
+		require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator-ready", httpapi.Port, func(addr string) error {
+			r, err := client.GetAttestation(ctx, fmt.Sprintf("http://%s/attest", addr), nonce[:])
+			if err != nil {
+				return err
+			}
+			report = r
+			return nil
+		}))
+
+		state, err := client.ValidateAttestation(ctx, nonce[:], report)
+		require.NoError(err)
+		require.Equal(manifestBytesExpected, state.Manifests[0])
+
+		nonce[0] = 0xFF
+		state, err = client.ValidateAttestation(ctx, nonce[:], report)
+		require.Error(err)
+		require.Nil(state)
 	})
 }
 
