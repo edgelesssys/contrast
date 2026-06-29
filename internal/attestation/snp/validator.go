@@ -100,6 +100,7 @@ func (v *Validator) Validate(ctx context.Context, id asn1.ObjectIdentifier, attD
 	//
 
 	// CRL validity and expiration is checked as part of verify.SnpAttestation.
+	// TODO(CON-202): don't reuse the v.verifyOpts!
 	if err := addCRLtoVerifyOptions(attestationData, v.verifyOpts); err != nil {
 		// Log error but continue, the client can still request the CRL/VCEK from the KDS.
 		v.logger.Info("could not use cached CRL from Coordinator aTLS handshake", slog.String("error", err.Error()))

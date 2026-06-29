@@ -8,7 +8,6 @@ package sdk
 import (
 	"bytes"
 	"context"
-	"encoding/asn1"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,15 +17,11 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
-	"github.com/edgelesssys/contrast/internal/attestation/insecure"
-	"github.com/edgelesssys/contrast/internal/attestation/snp"
-	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/spf13/afero"
 )
 
@@ -181,14 +176,6 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 	validated := false
 	var errs []error
 	for _, v := range validators {
-		if resp.AttestationType == nil {
-			wrapped, err := validatorForLegacyResponse(v)
-			if err != nil {
-				c.log.Warn("using this validator requires a server update", "error", err)
-				continue
-			}
-			v = wrapped
-		}
 		if err := v.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
 			c.log.Debug("validator failed", "error", err)
 			errs = append(errs, err)
@@ -223,27 +210,4 @@ type CoordinatorState struct {
 	LatestTransitionHash []byte
 	// Signature of the latest transition hash by the Coordinator.
 	LatestTransitionSignature []byte
-}
-
-// validatorForLegacyResponse determines the right OID for the given validator and overrides the input OID with it.
-//
-// This is needed because the OID was not part of the HTTP API response in prior versions.
-//
-// TODO(burgerdev): remove once all clients receive the OID from the HTTP API.
-func validatorForLegacyResponse(v validators.Validator) (validators.Validator, error) {
-	var id asn1.ObjectIdentifier
-	switch v.(type) {
-	case *snp.Validator, *snp.IterativeValidator:
-		id = oid.RawSNPReport
-	case *tdx.Validator:
-		id = oid.RawTDXReport
-	case *insecure.Validator:
-		id = oid.RawInsecureReport
-	default:
-		return nil, fmt.Errorf("unexpected validator type: %T", v)
-	}
-
-	return validators.ValidatorFunc(func(ctx context.Context, _ asn1.ObjectIdentifier, attDoc, reportData []byte) error {
-		return v.Validate(ctx, id, attDoc, reportData)
-	}), nil
 }

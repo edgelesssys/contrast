@@ -17,3 +17,11 @@ type Report interface {
 type ReportSetter interface {
 	SetReport(report Report)
 }
+
+// ReportSetterFunc creates a ReportSetter from a func.
+type ReportSetterFunc func(report Report)
+
+// SetReport calls the adapted func to implement ReportSetter.SetReport.
+func (f ReportSetterFunc) SetReport(report Report) {
+	f(report)
+}

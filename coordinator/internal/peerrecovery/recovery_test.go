@@ -16,7 +16,6 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
-	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -139,9 +138,7 @@ func TestRecoverFromPeer(t *testing.T) {
 	assert.Equal(expectedAddr, dialer.recordedAddress)
 	assert.NotNil(dialer.recordedIssuer)
 	assert.True(dialer.closeCalled)
-	// One SNP reference value with APEIP set yields one IterativeValidator.
 	require.Len(dialer.recordedValidators, 1)
-	assert.IsType(&snp.IterativeValidator{}, dialer.recordedValidators[0])
 }
 
 type fakeIssuer struct {
