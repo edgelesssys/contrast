@@ -159,7 +159,9 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 	}
 
 	kdsGetter := certcache.NewCachedHTTPSGetter(c.fsstore, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))
-	validatorsFromManifest := ValidatorsFromManifest
+	validatorsFromManifest := func(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.Manifest, log *slog.Logger) (validators.Validator, error) {
+		return m.CoordinatorValidator(log, kdsGetter)
+	}
 	if c.validatorsFromManifestOverride != nil {
 		validatorsFromManifest = c.validatorsFromManifestOverride
 	}

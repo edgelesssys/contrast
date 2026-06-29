@@ -190,11 +190,11 @@ func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byt
 
 	kdsCache := fsstore.New(afero.NewBasePathFs(afero.NewOsFs(), kdsDir), log.WithGroup("kds-cache"))
 	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
-	validators, err := sdk.ValidatorsFromManifest(kdsGetter, &m, log)
+	validator, err := m.CoordinatorValidator(log, kdsGetter)
 	if err != nil {
 		return sdk.CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
 	}
-	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, nil, log)
+	dialer := dialer.New(atls.NoIssuer, validator, atls.NoMetrics, nil, log)
 
 	log.Debug("Dialing coordinator", "endpoint", endpoint)
 

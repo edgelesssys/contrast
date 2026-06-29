@@ -22,7 +22,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/seedengine"
-	"github.com/edgelesssys/contrast/sdk"
 	"k8s.io/utils/clock"
 )
 
@@ -136,12 +135,12 @@ type authorizer struct {
 // AuthorizeByManifest calls meshapi.Recover on a peer coordinator given as context value and
 // verifies that the peer is an authorized Coordinator according to the manifest.
 func (a *authorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
-	validators, err := sdk.ValidatorsFromManifest(a.httpsGetter, mnfst, a.logger)
+	validator, err := mnfst.CoordinatorValidator(a.logger, a.httpsGetter)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generating validators: %w", err)
 	}
 
-	client, closeConn, err := a.dialer.Dial(ctx, a.issuer, validators, a.logger, a.peer)
+	client, closeConn, err := a.dialer.Dial(ctx, a.issuer, validator, a.logger, a.peer)
 	if err != nil {
 		return nil, nil, fmt.Errorf("dialing coordinator: %w", err)
 	}
