@@ -68,3 +68,13 @@ func Any(vs ...Validator) Validator {
 		return errors.Join(interestingErrors...)
 	})
 }
+
+// WithFixedOID wraps the given Validator, passing a fixed OID instead of the original one.
+//
+// This is only useful for backwards compatibility in the HTTP API client.
+// TODO(burgerdev): remove once all clients receive the OID from the HTTP API.
+func WithFixedOID(oid asn1.ObjectIdentifier, v Validator) Validator {
+	return ValidatorFunc(func(ctx context.Context, _ asn1.ObjectIdentifier, attDoc, reportData []byte) error {
+		return v.Validate(ctx, oid, attDoc, reportData)
+	})
+}
