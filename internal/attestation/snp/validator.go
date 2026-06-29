@@ -16,6 +16,7 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/idblock"
@@ -68,13 +69,11 @@ func NewValidatorWithReportSetter(
 	}
 }
 
-// OID returns the OID for the raw SNP report extension used by the validator.
-func (v *Validator) OID() asn1.ObjectIdentifier {
-	return oid.RawSNPReport
-}
-
 // Validate a SNP based attestation.
-func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData []byte) (err error) {
+func (v *Validator) Validate(ctx context.Context, id asn1.ObjectIdentifier, attDocRaw []byte, reportData []byte) (err error) {
+	if !oid.RawSNPReport.Equal(id) {
+		return validators.ErrOIDNotSupported
+	}
 	v.logger.Info("Validate called", "name", v.name, "report-data", hex.EncodeToString(reportData))
 	defer func() {
 		if err != nil {
@@ -204,14 +203,12 @@ func NewIterativeValidatorWithReportSetter(
 	return v
 }
 
-// OID returns the OID for the raw SNP report extension.
-func (v *IterativeValidator) OID() asn1.ObjectIdentifier {
-	return oid.RawSNPReport
-}
-
 // Validate tries vCPU counts 1–220, verifying the attestation once and
 // then validating claims against the first matching per-vCPU measurement.
-func (v *IterativeValidator) Validate(ctx context.Context, attDocRaw []byte, reportData []byte) (err error) {
+func (v *IterativeValidator) Validate(ctx context.Context, id asn1.ObjectIdentifier, attDocRaw []byte, reportData []byte) (err error) {
+	if !oid.RawSNPReport.Equal(id) {
+		return validators.ErrOIDNotSupported
+	}
 	v.logger.Info("Validate called", "name", v.name, "report-data", hex.EncodeToString(reportData))
 	defer func() {
 		if err != nil {

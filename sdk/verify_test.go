@@ -7,6 +7,7 @@ package sdk
 
 import (
 	"context"
+	"encoding/asn1"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -106,6 +107,7 @@ func TestGetAttestation(t *testing.T) {
 
 func TestValidateAttestation(t *testing.T) {
 	testNonce := make([]byte, 32)
+	testOID := asn1.ObjectIdentifier{1, 2, 3}
 	for name, tc := range map[string]struct {
 		nonce       []byte
 		resp        *httpapi.AttestationResponse
@@ -115,6 +117,7 @@ func TestValidateAttestation(t *testing.T) {
 		"success": {
 			nonce: testNonce,
 			resp: &httpapi.AttestationResponse{
+				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
 				CoordinatorState: httpapi.CoordinatorState{
 					Manifests: [][]byte{testManifest},
@@ -124,6 +127,7 @@ func TestValidateAttestation(t *testing.T) {
 		"no manifests": {
 			nonce: testNonce,
 			resp: &httpapi.AttestationResponse{
+				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
 				CoordinatorState:  httpapi.CoordinatorState{},
 			},
@@ -135,6 +139,7 @@ func TestValidateAttestation(t *testing.T) {
 		"failed validation": {
 			nonce: testNonce,
 			resp: &httpapi.AttestationResponse{
+				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
 				CoordinatorState: httpapi.CoordinatorState{
 					Manifests: [][]byte{testManifest},
@@ -226,11 +231,9 @@ var testManifest = []byte(`
 `)
 
 type stubValidator struct {
-	validators.Validator
-
 	err error
 }
 
-func (v *stubValidator) Validate(context.Context, []byte, []byte) error {
+func (v *stubValidator) Validate(context.Context, asn1.ObjectIdentifier, []byte, []byte) error {
 	return v.err
 }
