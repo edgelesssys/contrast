@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	neturl "net/url"
 	"sync"
 	"testing"
 	"time"
@@ -52,20 +53,21 @@ func TestAlwaysRevalidate(t *testing.T) {
 
 func TestRedirectToProxy(t *testing.T) {
 	const proxy = "http://collateral-proxy.default.svc"
-	t.Cleanup(func() { collateralProxyBase = "" })
-
-	collateralProxyBase = proxy
+	c := &CachedHTTPSGetter{collateralProxyBase: proxy}
 	assert.Equal(t,
 		proxy+"/IntelSGXRootCA.der",
-		redirectToProxy("https://certificates.trustedservices.intel.com/IntelSGXRootCA.der"))
-
-	assert.Equal(t, proxy+"/vcek/v1/Milan/crl", redirectToProxy(proxy+"/vcek/v1/Milan/crl"))
-	assert.Equal(t, "https://kdsintf.amd.com/vcek/v1/Milan/abc", redirectToProxy("https://kdsintf.amd.com/vcek/v1/Milan/abc"))
+		c.redirectToProxy("https://certificates.trustedservices.intel.com/IntelSGXRootCA.der"))
+	assert.Equal(t,
+		proxy+"/vcek/v1/Milan/abc",
+		c.redirectToProxy("https://kdsintf.amd.com/vcek/v1/Milan/abc"))
+	assert.Equal(t,
+		proxy+"/sgx/certification/v4/pckcrl?ca=platform&encoding=der",
+		c.redirectToProxy("https://api.trustedservices.intel.com/sgx/certification/v4/pckcrl?ca=platform&encoding=der"))
 
 	// With no proxy configured, nothing is rewritten.
-	collateralProxyBase = ""
+	noProxy := &CachedHTTPSGetter{}
 	const rootCRL = "https://certificates.trustedservices.intel.com/IntelSGXRootCA.der"
-	assert.Equal(t, rootCRL, redirectToProxy(rootCRL))
+	assert.Equal(t, rootCRL, noProxy.redirectToProxy(rootCRL))
 }
 
 const crlURLMatch string = "https://kdsintf.amd.com/vcek/v1/test/crl"
@@ -243,6 +245,86 @@ func TestContextCancellation(t *testing.T) {
 
 	_, _, err := getter.GetContext(ctx, crlURLMatch)
 	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestProxyFallback(t *testing.T) {
+	const (
+		proxyBase = "http://collateral-proxy.default.svc"
+		proxyHost = "collateral-proxy.default.svc"
+		kdsHost   = "kdsintf.amd.com"
+	)
+
+	directCRL := "https://" + kdsHost + "/vcek/v1/Milan/crl"
+
+	t.Run("unreachable proxy falls back to upstream", func(t *testing.T) {
+		assert := assert.New(t)
+		getter := &fakeHostGetter{
+			hits:     map[string]int{},
+			errHosts: map[string]error{proxyHost: errors.New("dial tcp: connection refused")},
+			body:     []byte("crl-bytes"),
+		}
+		client := newHostGetterClient(getter, proxyBase)
+
+		_, body, err := client.Get(directCRL)
+		assert.NoError(err)
+		assert.Equal([]byte("crl-bytes"), body)
+		assert.Equal(1, getter.hits[proxyHost])
+		assert.Equal(1, getter.hits[kdsHost])
+		assert.True(client.proxyUnreachable.Load())
+
+		_, _, err = client.Get(directCRL)
+		assert.NoError(err)
+		assert.Equal(1, getter.hits[proxyHost])
+		assert.Equal(2, getter.hits[kdsHost])
+	})
+
+	t.Run("HTTP status from proxy is honored, no fallback", func(t *testing.T) {
+		assert := assert.New(t)
+		getter := &fakeHostGetter{
+			hits:     map[string]int{},
+			errHosts: map[string]error{proxyHost: &httpError{code: 404, status: "404 Not Found"}},
+		}
+		client := newHostGetterClient(getter, proxyBase)
+
+		_, _, err := client.Get(directCRL)
+		assert.Error(err)
+		assert.Equal(1, getter.hits[proxyHost])
+		assert.Equal(0, getter.hits[kdsHost]) // upstream not contacted
+		assert.False(client.proxyUnreachable.Load())
+	})
+}
+
+func newHostGetterClient(getter *fakeHostGetter, collateralProxyBase string) *CachedHTTPSGetter {
+	return &CachedHTTPSGetter{
+		ContextHTTPSGetter:  getter,
+		gcTicker:            NeverGCTicker,
+		cache:               memstore.New[string, []byte](),
+		logger:              slog.Default(),
+		collateralProxyBase: collateralProxyBase,
+	}
+}
+
+// fakeHostGetter records hits and returns a configured error per upstream host.
+type fakeHostGetter struct {
+	mux      sync.Mutex
+	hits     map[string]int
+	errHosts map[string]error
+	header   map[string][]string
+	body     []byte
+}
+
+func (g *fakeHostGetter) GetContext(_ context.Context, url string) (map[string][]string, []byte, error) {
+	u, err := neturl.Parse(url)
+	if err != nil {
+		return nil, nil, err
+	}
+	g.mux.Lock()
+	defer g.mux.Unlock()
+	g.hits[u.Host]++
+	if e := g.errHosts[u.Host]; e != nil {
+		return nil, nil, e
+	}
+	return g.header, g.body, nil
 }
 
 // Ensure CachedHTTPSGetter implements the expected interfaces.

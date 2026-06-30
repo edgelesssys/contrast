@@ -84,9 +84,9 @@ func run() (retErr error) {
 
 	logger.Info("Coordinator started")
 
-	if proxy := os.Getenv(constants.CollateralProxyEnvVar); proxy != "" {
-		logger.Info("routing attestation collateral through proxy", "proxy", proxy)
-		certcache.SetCollateralProxy(proxy)
+	collateralProxy := os.Getenv(constants.CollateralProxyEnvVar)
+	if collateralProxy != "" {
+		logger.Info("routing attestation collateral through proxy", "proxy", collateralProxy)
 	}
 
 	// The coordinator doesn't have an initcontainer to remove the default deny rule.
@@ -123,7 +123,7 @@ func run() (retErr error) {
 
 	meshAuth := stateguard.New(hist, promRegistry, logger)
 
-	issuer, err := issuer.New(logger)
+	issuer, err := issuer.New(logger, collateralProxy)
 	if err != nil {
 		return fmt.Errorf("creating issuer: %w", err)
 	}
@@ -136,7 +136,7 @@ func run() (retErr error) {
 	month := 30 * 24 * time.Hour
 	ticker := clock.RealClock{}.NewTicker(9 * month)
 	defer ticker.Stop()
-	kdsGetter := certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, loggerpkg.NewNamed(logger, "kds-getter-validator"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, loggerpkg.NewNamed(logger, "kds-getter-validator"), collateralProxy)
 
 	meshAPIcredentials := meshAuth.Credentials(promRegistry, issuer, kdsGetter)
 	meshAPIServer := newGRPCServer(meshAPIcredentials, serverMetrics)

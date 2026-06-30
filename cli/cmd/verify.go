@@ -48,6 +48,7 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
+	addCollateralProxyFlag(cmd)
 
 	return cmd
 }
@@ -75,7 +76,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	resp, err := getCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, log)
+	resp, err := getCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, flags.collateralProxyURL, log)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
 	}
@@ -130,9 +131,10 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 }
 
 type verifyFlags struct {
-	manifestPath string
-	coordinator  string
-	workspaceDir string
+	manifestPath       string
+	coordinator        string
+	workspaceDir       string
+	collateralProxyURL string
 }
 
 func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
@@ -148,6 +150,10 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	collateralProxyURL, err := cmd.Flags().GetString("collateral-proxy")
+	if err != nil {
+		return nil, err
+	}
 
 	if workspaceDir != "" {
 		// Prepend default path with workspaceDir
@@ -157,9 +163,10 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	}
 
 	return &verifyFlags{
-		manifestPath: manifestPath,
-		coordinator:  coordinator,
-		workspaceDir: workspaceDir,
+		manifestPath:       manifestPath,
+		coordinator:        coordinator,
+		workspaceDir:       workspaceDir,
+		collateralProxyURL: collateralProxyURL,
 	}, nil
 }
 
@@ -179,7 +186,7 @@ func writeFilelist(dir string, filelist map[string][]byte) error {
 }
 
 // getCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
-func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint string, log *slog.Logger) (sdk.CoordinatorState, error) {
+func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint, collateralProxy string, log *slog.Logger) (sdk.CoordinatorState, error) {
 	var m manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
 		return sdk.CoordinatorState{}, fmt.Errorf("unmarshalling manifest: %w", err)
@@ -189,7 +196,7 @@ func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byt
 	}
 
 	kdsCache := fsstore.New(afero.NewBasePathFs(afero.NewOsFs(), kdsDir), log.WithGroup("kds-cache"))
-	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"), collateralProxy)
 	validators, err := sdk.ValidatorsFromManifest(kdsGetter, &m, log)
 	if err != nil {
 		return sdk.CoordinatorState{}, fmt.Errorf("getting validators: %w", err)

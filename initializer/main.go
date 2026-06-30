@@ -22,7 +22,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
-	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/logger"
@@ -79,9 +78,9 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 
 	log.Info("Initializer started")
 
-	if proxy := os.Getenv(constants.CollateralProxyEnvVar); proxy != "" {
-		log.Info("routing attestation collateral through proxy", "proxy", proxy)
-		certcache.SetCollateralProxy(proxy)
+	collateralProxy := os.Getenv(constants.CollateralProxyEnvVar)
+	if collateralProxy != "" {
+		log.Info("routing attestation collateral through proxy", "proxy", collateralProxy)
 	}
 
 	// If the service mesh is disabled, we don't have a service mesh sidecar
@@ -108,7 +107,7 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 		return fmt.Errorf("generating key: %w", err)
 	}
 
-	issuer, err := issuer.New(log)
+	issuer, err := issuer.New(log, collateralProxy)
 	if err != nil {
 		return fmt.Errorf("creating issuer: %w", err)
 	}

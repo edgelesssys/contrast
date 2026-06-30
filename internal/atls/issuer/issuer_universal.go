@@ -12,6 +12,6 @@ import (
 )
 
 // New creates an attestation issuer for the current platform.
-func New(_ *slog.Logger) (atls.Issuer, error) {
+func New(_ *slog.Logger, _ string) (atls.Issuer, error) {
 	panic("issuing is only supported on Linux")
 }

@@ -6,18 +6,25 @@ package certcache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	neturl "net/url"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"time"
 
-	"github.com/google/go-sev-guest/kds"
-	"github.com/google/go-tdx-guest/pcs"
 	"github.com/google/go-tdx-guest/verify/trust"
 	"k8s.io/utils/clock"
 	testingclock "k8s.io/utils/clock/testing"
+)
+
+const (
+	// retryInterval is the spacing between upstream fetch attempts.
+	retryInterval = 5 * time.Second
+	// retryAttemptsProxy is the number of times we attempt to use the proxy before falling back to upstream.
+	retryAttemptsProxy = 5
 )
 
 var (
@@ -34,37 +41,6 @@ func alwaysRevalidate(rawURL string) bool {
 	return snpCrlPath.MatchString(u.Path) || tdxRootCrlPath.MatchString(u.Path) || tdxBasePath.MatchString(u.Path)
 }
 
-var collateralProxyBase string
-
-const intelCertificatesHost = "certificates.trustedservices.intel.com"
-
-// SetCollateralProxy routes attestation-collateral fetches through the in-cluster collateral-proxy at proxyURL.
-func SetCollateralProxy(proxyURL string) {
-	proxyURL = strings.TrimRight(proxyURL, "/")
-	if proxyURL == "" {
-		return
-	}
-	kds.KDSBaseURL = proxyURL
-	pcs.SgxBaseURL = proxyURL + "/sgx/certification/v4"
-	pcs.TdxBaseURL = proxyURL + "/tdx/certification/v4"
-	collateralProxyBase = proxyURL
-}
-
-func redirectToProxy(rawURL string) string {
-	if collateralProxyBase == "" {
-		return rawURL
-	}
-	u, err := neturl.Parse(rawURL)
-	if err != nil || u.Host != intelCertificatesHost {
-		return rawURL
-	}
-	redirected := collateralProxyBase + u.Path
-	if u.RawQuery != "" {
-		redirected += "?" + u.RawQuery
-	}
-	return redirected
-}
-
 // CachedHTTPSGetter is a HTTPS client that caches responses in memory.
 type CachedHTTPSGetter struct {
 	trust.ContextHTTPSGetter
@@ -72,17 +48,59 @@ type CachedHTTPSGetter struct {
 
 	gcTicker clock.Ticker
 	cache    store
+
+	collateralProxyBase string
+
+	proxyUnreachable atomic.Bool
 }
 
 // NewCachedHTTPSGetter returns a new CachedHTTPSGetter.
-func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger) *CachedHTTPSGetter {
+func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger, collateralProxy string) *CachedHTTPSGetter {
 	c := &CachedHTTPSGetter{
-		ContextHTTPSGetter: NewRetryHTTPSGetter(http.DefaultClient, 5*time.Second),
-		logger:             log,
-		cache:              s,
-		gcTicker:           ticker,
+		ContextHTTPSGetter:  NewRetryHTTPSGetter(http.DefaultClient, retryInterval),
+		logger:              log,
+		cache:               s,
+		gcTicker:            ticker,
+		collateralProxyBase: strings.TrimRight(collateralProxy, "/"),
 	}
 	return c
+}
+
+func (c *CachedHTTPSGetter) redirectToProxy(rawURL string) string {
+	if c.collateralProxyBase == "" {
+		return rawURL
+	}
+	u, err := neturl.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	redirected := c.collateralProxyBase + u.Path
+	if u.RawQuery != "" {
+		redirected += "?" + u.RawQuery
+	}
+	return redirected
+}
+
+// fetch issues the GET request, routing it through the collateral-proxy if configured.
+func (c *CachedHTTPSGetter) fetch(ctx context.Context, url string) (map[string][]string, []byte, error) {
+	if c.collateralProxyBase == "" || c.proxyUnreachable.Load() {
+		return c.ContextHTTPSGetter.GetContext(ctx, url)
+	}
+
+	proxyCtx, cancel := context.WithTimeout(ctx, retryAttemptsProxy*retryInterval)
+	header, body, err := c.ContextHTTPSGetter.GetContext(proxyCtx, c.redirectToProxy(url))
+	cancel()
+	if err == nil {
+		return header, body, nil
+	}
+	var httpErr *httpError
+	if errors.As(err, &httpErr) {
+		return nil, nil, err
+	}
+	if c.proxyUnreachable.CompareAndSwap(false, true) {
+		c.logger.Warn("collateral proxy not reachable, falling back to direct upstream fetching", "url", url, "error", err)
+	}
+	return c.ContextHTTPSGetter.GetContext(ctx, url)
 }
 
 // Get makes a GET request to the given URL.
@@ -99,13 +117,12 @@ func (c *CachedHTTPSGetter) GetContext(ctx context.Context, url string) (map[str
 	default:
 	}
 
-	url = redirectToProxy(url)
 	log := c.logger.With("url", url)
 
 	if alwaysRevalidate(url) {
 		// For CRLs or TDX TCB/QeIdentity always query. When request failure, fallback to cache.
 		log.Debug("Requesting URL")
-		header, body, err := c.ContextHTTPSGetter.GetContext(ctx, url)
+		header, body, err := c.fetch(ctx, url)
 		if err == nil {
 			if data, err := json.Marshal(cacheEntry{header, body}); err == nil {
 				c.cache.Set(url, data)
@@ -134,7 +151,7 @@ func (c *CachedHTTPSGetter) GetContext(ctx context.Context, url string) (map[str
 		}
 	}
 	log.Debug("Cache miss, requesting")
-	header, body, err := c.ContextHTTPSGetter.GetContext(ctx, url)
+	header, body, err := c.fetch(ctx, url)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -35,6 +35,9 @@ type Client struct {
 	// Client.
 	fsstore *fsstore.Store
 
+	// collateralProxy, when non-empty, is the base URL of a proxy that attestation-collateral fetches are routed through.
+	collateralProxy string
+
 	log *slog.Logger
 
 	// validatorsFromManifestOverride is used by tests to replace the validators.
@@ -77,6 +80,14 @@ func (c *Client) WithSlog(log *slog.Logger) *Client {
 // WithHTTPClient replaces the Client's default [http.Client].
 func (c *Client) WithHTTPClient(httpClient *http.Client) *Client {
 	c.httpClient = httpClient
+	return c
+}
+
+// WithCollateralProxy routes the Client's attestation-collateral fetches (AMD KDS, Intel PCS, NVIDIA RIM)
+// through a caching proxy at the given base URL, falling back to direct upstream fetching when the proxy is unreachable.
+// An empty URL (the default) fetches directly upstream.
+func (c *Client) WithCollateralProxy(proxyURL string) *Client {
+	c.collateralProxy = proxyURL
 	return c
 }
 
@@ -159,7 +170,7 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 		return nil, fmt.Errorf("validating latest manifest: %w", err)
 	}
 
-	kdsGetter := certcache.NewCachedHTTPSGetter(c.fsstore, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(c.fsstore, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"), c.collateralProxy)
 	validatorsFromManifest := ValidatorsFromManifest
 	if c.validatorsFromManifestOverride != nil {
 		validatorsFromManifest = c.validatorsFromManifestOverride
