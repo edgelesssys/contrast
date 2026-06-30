@@ -28,7 +28,7 @@
   };
   go-test = {
     enable = true;
-    entry = "go test -tags contrast_unstable_api -v ./...";
+    entry = "just unit";
     pass_filenames = false;
     stages = [ "pre-push" ];
   };
