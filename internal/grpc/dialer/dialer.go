@@ -81,17 +81,6 @@ func (d *Dialer) DialInsecure(_ context.Context, target string) (*grpc.ClientCon
 	)
 }
 
-// DialNoVerify creates a new grpc client connection to the given target without verifying the server's attestation.
-func (d *Dialer) DialNoVerify(_ context.Context, target string) (*grpc.ClientConn, error) {
-	credentials := atlscredentials.New(atls.NoIssuer, validators.NoValidation(), atls.NoMetrics, logger.NewNamed(d.logger, "atlscredentials"))
-
-	return grpc.NewClient(
-		target,
-		d.grpcWithDialer(),
-		grpc.WithTransportCredentials(credentials),
-	)
-}
-
 func (d *Dialer) grpcWithDialer() grpc.DialOption {
 	if d.netDialer == nil {
 		return grpc.EmptyDialOption{}
