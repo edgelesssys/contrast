@@ -127,6 +127,7 @@ func TestImageStore(t *testing.T) {
 				// When the imagestore is disabled, the expectedKibiBytes are (the total VM memory in KiB - internal VM overhead) / 2
 				// For more information on the internal VM overhead, see https://github.com/edgelesssys/contrast/pull/1196
 				vmOverheadBytes := 99 * 1024 * 1024
+				vmOverheadBytes += swiotlbSizeBytes(totalMemory)
 				expectedKibiBytes = ((totalMemory - vmOverheadBytes) / 1024) / 2
 			case "":
 				size := resource.MustParse("10Gi")
@@ -186,6 +187,22 @@ func extractDiskSize(logs string) (int, error) {
 		return 0, fmt.Errorf("could not parse disk size: %w", err)
 	}
 	return parsed, nil
+}
+
+// swiotlbSizeBytes returns the SWIOTLB bounce buffer reservation the guest kernel makes on confidential platforms, given the total VM memory in bytes.
+// The kernel sizes them at 6% of total RAM, and clamps the result to [64MiB, SZ_1G], then SWIOTLB rounds it up to a power of two.
+// https://github.com/torvalds/linux/blob/adc218676eef25575469234709c2d87185ca223a/arch/x86/mm/mem_encrypt.c#L115-L134
+func swiotlbSizeBytes(totalMemoryBytes int) int {
+	const (
+		ioTLBDefaultSize = 64 * 1024 * 1024   // IO_TLB_DEFAULT_SIZE
+		maxSize          = 1024 * 1024 * 1024 // SZ_1G
+	)
+	size := min(max(totalMemoryBytes*6/100, ioTLBDefaultSize), maxSize)
+	pow2 := ioTLBDefaultSize
+	for pow2 < size {
+		pow2 *= 2
+	}
+	return pow2
 }
 
 // checkDiskSize checks whether the captured size is roughly the same as what we have set.
