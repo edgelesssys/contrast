@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Tue, 30 Jun 2026 13:49:08 +0200
+Subject: [PATCH] runtime: annotate the sandbox container with VFIO metadata
+
+---
+ src/runtime/virtcontainers/container.go |  5 -----
+ src/tools/genpolicy/src/policy.rs       | 16 +++++++++++++---
+ 2 files changed, 13 insertions(+), 8 deletions(-)
+
+diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
+index bc5d39ebe6989f5d96a88c43ab9e047fbec0fcfb..869b6454ed4dbaf24c8745009afe9c5562c55b5c 100644
+--- a/src/runtime/virtcontainers/container.go
++++ b/src/runtime/virtcontainers/container.go
+@@ -1334,11 +1334,6 @@ type DeviceRelation struct {
+ // otherwise we do not know which GPU is which.
+ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error {
+ 
+-	if ContainerType(c.config.Annotations[vcAnnotations.ContainerTypeKey]).IsCriSandbox() {
+-		c.Logger().Info("Skipping VFIO metadata annotation for sandbox container")
+-		return nil
+-	}
+-
+ 	modeIsGK := (c.sandbox.config.VfioMode == config.VFIOModeGuestKernel)
+ 
+ 	if modeIsGK {
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index ca62127d31c36a098c82e07128fb484f42ebd26b..d1bd2f9800226448da622042df6fb6e4bdb2d343 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -772,9 +772,19 @@ impl AgentPolicy {
+ 
+         // Generate expected device entries and annotation key-value pairs for VFIO devices
+         let mut runtime_anno_patterns = BTreeMap::new();
+-        if let Some(nvidia_pgpu_count) = yaml_container
+-            .get_nvidia_pgpu_count(&self.config.settings.devices.vfio.nvidia.pgpu_resource_keys)
+-        {
++        let pgpu_resource_keys = &self.config.settings.devices.vfio.nvidia.pgpu_resource_keys;
++        let nvidia_pgpu_count = if is_pause_container {
++            Some(
++                resource
++                    .get_containers()
++                    .iter()
++                    .filter_map(|c| c.get_nvidia_pgpu_count(pgpu_resource_keys))
++                    .sum::<usize>(),
++            )
++        } else {
++            yaml_container.get_nvidia_pgpu_count(pgpu_resource_keys)
++        };
++        if let Some(nvidia_pgpu_count) = nvidia_pgpu_count {
+             if nvidia_pgpu_count > 0 {
+                 for _ in 0..nvidia_pgpu_count {
+                     let mut device = agent::Device::new();
