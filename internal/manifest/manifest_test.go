@@ -224,7 +224,6 @@ func TestValidate(t *testing.T) {
 					Role: "coordinator",
 				}
 			},
-			wantErr: true,
 		},
 		"no chip IDs": {
 			m: newTestManifestSNP(),

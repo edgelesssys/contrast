@@ -250,13 +250,10 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 
 	mnf.Policies = policyMap
 	// Existing manifests are already validated above, but newly generated manifests may be missing reference values or a coordinator.
-	var ce *manifest.CoordinatorCountError
 	var ve *manifest.ValidationError
-	if err := mnf.Validate(); errors.As(err, &ce) {
-		if ce.Count == 0 {
-			fmt.Fprintln(cmd.OutOrStdout(), "  No Coordinator resource found, did you forget to add it to your resources?")
-		}
-		return ce
+	if err := mnf.Validate(); errors.Is(err, manifest.ErrMissingCoordinator) {
+		fmt.Fprintln(cmd.OutOrStdout(), "  No Coordinator resource found, did you forget to add it to your resources?")
+		return err
 	} else if errors.As(err, &ve) && ve.OnlyExpectedMissingReferenceValues() {
 		for _, e := range ve.Unwrap() {
 			fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", e)
