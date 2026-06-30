@@ -71,13 +71,25 @@ var ErrWrongCoordinatorPolicyHash = errors.New("wrong policy hash for Coordinato
 //
 // This is a more restrictive version of Validator, see the warning there.
 func (m *Manifest) CoordinatorValidator(log *slog.Logger, kdsGetter *certcache.CachedHTTPSGetter) (validators.Validator, error) {
-	coordPolicyHash, err := m.CoordinatorPolicyHash()
+	coordPolicyHashes, err := m.CoordinatorPolicyHashes()
 	if err != nil {
 		return nil, fmt.Errorf("getting coordinator policy hash: %w", err)
 	}
-	coordPolicyHashBytes, err := coordPolicyHash.Bytes()
-	if err != nil {
-		return nil, fmt.Errorf("converting coordinator policy hash to bytes: %w", err)
+	return coordinatorValidator(m.Validator, coordPolicyHashes, log, kdsGetter)
+}
+
+type validatorFactory func(log *slog.Logger, kdsGetter *certcache.CachedHTTPSGetter, reportSetter attestation.ReportSetter) (validators.Validator, error)
+
+// coordinatorValidator is the implementation of the post-validation step for CoordinatorValidator.
+// It can be parametrized for testing.
+func coordinatorValidator(validatorFactory validatorFactory, coordPolicyHashes []HexString, log *slog.Logger, kdsGetter *certcache.CachedHTTPSGetter) (validators.Validator, error) {
+	var allHashes [][]byte
+	for _, hash := range coordPolicyHashes {
+		b, err := hash.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("converting coordinator policy hash %q to bytes: %w", hash.String(), err)
+		}
+		allHashes = append(allHashes, b)
 	}
 
 	return validators.ValidatorFunc(func(ctx context.Context, oid asn1.ObjectIdentifier, attDoc []byte, reportData []byte) error {
@@ -85,7 +97,7 @@ func (m *Manifest) CoordinatorValidator(log *slog.Logger, kdsGetter *certcache.C
 		// the validators and the captured report variable are not shared. Constructing the
 		// validators is anyway orders of magnitude faster than doing the validation.
 		var report attestation.Report
-		validator, err := m.Validator(log, kdsGetter, attestation.ReportSetterFunc(func(r attestation.Report) {
+		validator, err := validatorFactory(log, kdsGetter, attestation.ReportSetterFunc(func(r attestation.Report) {
 			report = r
 		}))
 		if err != nil {
@@ -94,8 +106,10 @@ func (m *Manifest) CoordinatorValidator(log *slog.Logger, kdsGetter *certcache.C
 		if err := validator.Validate(ctx, oid, attDoc, reportData); err != nil {
 			return err
 		}
-		if !slices.Equal(coordPolicyHashBytes, report.HostData()) {
-			return fmt.Errorf("%w: got %x, want %x", ErrWrongCoordinatorPolicyHash, report.HostData(), coordPolicyHashBytes)
+		if !slices.ContainsFunc(allHashes, func(b []byte) bool {
+			return slices.Equal(report.HostData(), b)
+		}) {
+			return fmt.Errorf("%w: got %x, want %v", ErrWrongCoordinatorPolicyHash, report.HostData(), coordPolicyHashes)
 		}
 		return nil
 	}), nil
