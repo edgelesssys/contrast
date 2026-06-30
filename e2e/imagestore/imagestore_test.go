@@ -59,7 +59,9 @@ func TestImageStore(t *testing.T) {
 		resources = append(resources, testPod(tc.name, tc.annotation))
 	}
 
-	resources = append(resources, tensorflowPod())
+	if !*skipLargeImage {
+		resources = append(resources, tensorflowPod())
+	}
 
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	resources = kuberesource.AddPortForwarders(resources)
@@ -160,6 +162,10 @@ func TestImageStore(t *testing.T) {
 		})
 	}
 
+	if *skipLargeImage {
+		return
+	}
+
 	t.Run("large image with pod resource limits", func(t *testing.T) {
 		// Increase timeout, as pulling the image may take a while.
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(5*time.Minute))
@@ -197,6 +203,8 @@ func checkDiskSize(expected, size int, name string) error {
 	}
 	return nil
 }
+
+var skipLargeImage = flag.Bool("imagestore-skip-large-image", false, "skip the large (tensorflow) image pod and its subtest")
 
 func TestMain(m *testing.M) {
 	contrasttest.RegisterFlags()

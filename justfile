@@ -125,6 +125,10 @@ _e2e target=default_deploy_target platform=default_platform set=default_set: sof
     if [[ {{ target }} == "containerd-11644-reproducer" ]]; then
         just containerd-reproducer
     fi
+    test_args=()
+    if [[ {{ target }} == "imagestore" && "${imagestore_skip_large_image:-false}" == "true" ]]; then
+        test_args+=(--imagestore-skip-large-image)
+    fi
     get_logs=$(nix build .#{{ set }}.scripts.get-logs --no-link --print-out-paths)
     # get-logs start waits until the namespace file is created, then spawns self-cleaning background tasks and exits.
     "$get_logs/bin/get-logs" start ./{{ workspace_dir }}/just.namespace &
@@ -136,7 +140,8 @@ _e2e target=default_deploy_target platform=default_platform set=default_set: sof
             --node-installer-target-conf-type "${node_installer_target_conf_type}" \
             --namespace-suffix=${namespace_suffix-} \
             --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket \
-            --insecure-enable-debug-shell-access=${debug:-false}
+            --insecure-enable-debug-shell-access=${debug:-false} \
+            "${test_args[@]}"
 
 # Run additional tests for a PR. Set `post` to `true` to auto-post the comment.
 e2e-ci target platforms="all" post="false" set="testcase-default" debug_shell="false" skip_undeploy="false":
