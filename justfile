@@ -546,6 +546,10 @@ fmt:
 lint:
     nix run -L .#base.scripts.golangci-lint -- run
 
+# Run Go unit tests.
+unit:
+    CGO_ENABLED=1 go test -tags=contrast_unstable_api -v -race ./...
+
 # Check links.
 check-links config="external":
     nix run .#base.nixpkgs.lychee -- --config tools/lychee/config-{{ config }}.toml .
