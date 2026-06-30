@@ -173,6 +173,13 @@ rec {
       # to the corresponding DiffID. Entries with a DiffID key now also store the uncompressed size of the layer.
       # This allows us to calculate the pod memory requirements based on the image sizes.
       ./0025-genpolicy-cache-image-sizes-and-layer-info.patch
+
+      # Cold-plugged VFIO devices (GPUs) land in the pause container's CreateContainerRequest, but the cdi.k8s.io/vfio<n> annotation
+      # is only added to workload containers. The agent policy requires the device and its annotation to both exist, so the sandbox request can
+      # never be authorized and GPU pods fail with PermissionDenied. Annotate the sandbox container with the missing CDI metadata,
+      # and make genpolicy expect the pod's total cold-plugged GPU devices and annotations on the pause container.
+      # TODO(charludo): open upstream issue and PR.
+      ./0026-runtime-annotate-the-sandbox-container-with-VFIO-met.patch
     ];
   };
 
