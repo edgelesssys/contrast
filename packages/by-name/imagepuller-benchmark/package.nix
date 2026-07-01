@@ -36,5 +36,5 @@ buildGoModule (finalAttrs: {
 
   doCheck = false;
 
-  meta.mainProgram = "imagepuller-benchmark";
+  meta = lib.contrast.ourMeta { mainProgram = "imagepuller-benchmark"; };
 })

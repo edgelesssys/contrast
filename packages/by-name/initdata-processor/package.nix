@@ -83,5 +83,5 @@ buildGoModule (finalAttrs: {
     runHook postCheck
   '';
 
-  meta.mainProgram = "initdata-processor";
+  meta = lib.contrast.ourMeta { mainProgram = "initdata-processor"; };
 })

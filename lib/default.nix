@@ -3,4 +3,7 @@
 
 { lib }:
 
-import ./matrix.nix { inherit lib; }
+(import ./matrix.nix { inherit lib; })
+// {
+  ourMeta = import ./meta.nix { inherit lib; };
+}

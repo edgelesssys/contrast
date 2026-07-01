@@ -33,5 +33,5 @@ buildGoModule (finalAttrs: {
 
   doCheck = false;
 
-  meta.mainProgram = "sev-snp-measure-go";
+  meta = lib.contrast.ourMeta { mainProgram = "sev-snp-measure-go"; };
 })

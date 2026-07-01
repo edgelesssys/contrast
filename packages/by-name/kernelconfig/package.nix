@@ -28,5 +28,5 @@ buildGoModule (finalAttrs: {
 
   ldflags = [ "-s" ];
 
-  meta.mainProgram = "kernelconfig";
+  meta = lib.contrast.ourMeta { mainProgram = "kernelconfig"; };
 })

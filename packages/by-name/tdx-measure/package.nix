@@ -1,7 +1,10 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{ buildGoModule }:
+{
+  lib,
+  buildGoModule,
+}:
 
 buildGoModule (finalAttrs: {
   pname = "tdx-measure";
@@ -31,5 +34,5 @@ buildGoModule (finalAttrs: {
     runHook postCheck
   '';
 
-  meta.mainProgram = "tdx-measure";
+  meta = lib.contrast.ourMeta { mainProgram = "tdx-measure"; };
 })
