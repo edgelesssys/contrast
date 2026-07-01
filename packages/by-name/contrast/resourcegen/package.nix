@@ -71,8 +71,5 @@ buildGoModule (_finalAttrs: {
   # need any other fixup, saving some seconds.
   dontFixup = true;
 
-  meta = {
-    description = "Resource generator for Contrast";
-    mainProgram = "resourcegen";
-  };
+  meta = lib.contrast.ourMeta { mainProgram = "resourcegen"; };
 })

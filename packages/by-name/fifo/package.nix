@@ -1,7 +1,10 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{ buildGoModule }:
+{
+  lib,
+  buildGoModule,
+}:
 
 buildGoModule {
   pname = "fifo";
@@ -16,5 +19,5 @@ buildGoModule {
 
   ldflags = [ "-s" ];
 
-  meta.mainProgram = "fifo";
+  meta = lib.contrast.ourMeta { mainProgram = "fifo"; };
 }

@@ -36,5 +36,5 @@ buildGoModule (finalAttrs: {
     "-X main.version=v${finalAttrs.version}"
   ];
 
-  meta.mainProgram = "imagestore";
+  meta = lib.contrast.ourMeta { mainProgram = "imagestore"; };
 })
