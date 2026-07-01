@@ -92,6 +92,22 @@ func TestCoordinatorValidator(t *testing.T) {
 
 		require.ErrorIs(v.Validate(t.Context(), nil, nil, nil), assert.AnError)
 	})
+
+	t.Run("bad validator", func(t *testing.T) {
+		require := require.New(t)
+
+		badValidatorFactory := func(*slog.Logger, *certcache.CachedHTTPSGetter, attestation.ReportSetter) (validators.Validator, error) {
+			return validators.ValidatorFunc(func(context.Context, asn1.ObjectIdentifier, []byte, []byte) error {
+				return nil
+			}), nil
+		}
+
+		v, err := coordinatorValidator(badValidatorFactory, nil, nil, nil)
+		require.NoError(err)
+		require.NotNil(v)
+
+		require.ErrorIs(v.Validate(t.Context(), nil, nil, nil), ErrBadValidator)
+	})
 }
 
 type stubReport struct {
