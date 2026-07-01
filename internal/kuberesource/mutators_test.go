@@ -130,7 +130,7 @@ func TestPatchNamespaces(t *testing.T) {
 }
 
 func TestAddInitializer(t *testing.T) {
-	initializer := Initializer("coordinator-ready.default")
+	initializer := Initializer("coordinator-ready.default", MemoryProfileFull)
 	expectedInitializerContainerName := *initializer.Name
 	expectedInitializerVolumeMountName := *initializer.VolumeMounts[0].Name
 	for _, tc := range []struct {
@@ -439,7 +439,7 @@ func TestAddServiceMesh(t *testing.T) {
 						WithSpec(
 							applycorev1.PodSpec().
 								WithContainers(applycorev1.Container()).
-								WithInitContainers(ServiceMeshProxy()).
+								WithInitContainers(ServiceMeshProxy(MemoryProfileFull)).
 								WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: false,
@@ -456,7 +456,7 @@ func TestAddServiceMesh(t *testing.T) {
 								WithRuntimeClassName("contrast-cc").
 								WithVolumes(
 									Volume().
-										WithName(*ServiceMeshProxy().VolumeMounts[0].Name).
+										WithName(*ServiceMeshProxy(MemoryProfileFull).VolumeMounts[0].Name).
 										WithEmptyDir(EmptyDirVolumeSource().Inner()),
 								),
 						))),
@@ -474,7 +474,7 @@ func TestAddServiceMesh(t *testing.T) {
 								WithRuntimeClassName("contrast-cc").
 								WithVolumes(
 									Volume().
-										WithName(*ServiceMeshProxy().VolumeMounts[0].Name).
+										WithName(*ServiceMeshProxy(MemoryProfileFull).VolumeMounts[0].Name).
 										WithConfigMap(Volume().ConfigMap),
 								),
 						))),
@@ -484,7 +484,7 @@ func TestAddServiceMesh(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			require := require.New(t)
 
-			_, err := AddServiceMesh(tc.d, ServiceMeshProxy())
+			_, err := AddServiceMesh(tc.d, ServiceMeshProxy(MemoryProfileFull))
 			if tc.wantError {
 				require.Error(err)
 				return
@@ -496,13 +496,13 @@ func TestAddServiceMesh(t *testing.T) {
 				return
 			}
 			require.NotEmpty(tc.d.Spec.Template.Spec.InitContainers)
-			require.Equal(*tc.d.Spec.Template.Spec.InitContainers[0].Name, *ServiceMeshProxy().Name)
+			require.Equal(*tc.d.Spec.Template.Spec.InitContainers[0].Name, *ServiceMeshProxy(MemoryProfileFull).Name)
 			require.NotEmpty(tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts)
-			require.Equal(*tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name, *ServiceMeshProxy().VolumeMounts[0].Name)
+			require.Equal(*tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name, *ServiceMeshProxy(MemoryProfileFull).VolumeMounts[0].Name)
 
 			serviceMeshCount := 0
 			for _, c := range tc.d.Spec.Template.Spec.InitContainers {
-				if *c.Name == *ServiceMeshProxy().Name {
+				if *c.Name == *ServiceMeshProxy(MemoryProfileFull).Name {
 					serviceMeshCount++
 				}
 			}
@@ -511,7 +511,7 @@ func TestAddServiceMesh(t *testing.T) {
 			require.NotEmpty(tc.d.Spec.Template.Spec.Volumes)
 			serviceMeshVolumeCount := 0
 			for _, v := range tc.d.Spec.Template.Spec.Volumes {
-				if *v.Name == *ServiceMeshProxy().VolumeMounts[0].Name {
+				if *v.Name == *ServiceMeshProxy(MemoryProfileFull).VolumeMounts[0].Name {
 					serviceMeshVolumeCount++
 				}
 			}
@@ -785,7 +785,7 @@ spec:
 			res, err := UnmarshalApplyConfigurations(tc.resource)
 			require.Len(res, 1)
 			require.NoError(err)
-			withShell, err := AddDebugShell(res[0], DebugShell())
+			withShell, err := AddDebugShell(res[0], DebugShell(false))
 			require.NoError(err)
 
 			pod, ok := withShell.(*applycorev1.PodApplyConfiguration)
