@@ -29,11 +29,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	smIngressConfigAnnotationKey = "contrast.edgeless.systems/servicemesh-ingress"
-	smEgressConfigAnnotationKey  = "contrast.edgeless.systems/servicemesh-egress"
-)
-
 // TestIngressEgress tests that the ingress and egress proxies work as configured.
 func TestIngressEgress(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
@@ -54,13 +49,13 @@ func TestIngressEgress(t *testing.T) {
 	// Add dummy egress annotation in voting pod with no ingress for the
 	// "egress annotation alone causes ingress to activate" test.
 	serviceMeshAnnotations := map[string]string{
-		smEgressConfigAnnotationKey: "dummy#127.137.0.2:8200#coordinator:8200",
+		kuberesource.SmEgressConfigAnnotationKey: "dummy#127.137.0.2:8200#coordinator:8200",
 	}
 	resources = kuberesource.PatchReplaceServiceMesh(resources, serviceMeshAnnotations, kuberesource.HasNameLabel("voting-svc"))
 
 	// Open service mesh admin port in emoji pod for the "admin interface is available" test.
 	serviceMeshAnnotations = map[string]string{
-		smIngressConfigAnnotationKey: "envoy#9901#true",
+		kuberesource.SmIngressConfigAnnotationKey: "envoy#9901#true",
 	}
 	resources = kuberesource.PatchReplaceServiceMesh(resources, serviceMeshAnnotations, kuberesource.HasNameLabel("emoji-svc"))
 	resources = kuberesource.PatchServiceMeshAdminInterface(resources, 9901, kuberesource.HasNameLabel("emoji-svc"))

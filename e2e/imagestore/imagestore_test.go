@@ -225,7 +225,7 @@ func TestMain(m *testing.M) {
 func testPod(name, annotation string) any {
 	return kuberesource.Pod(name, "").
 		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-		WithAnnotations(map[string]string{"contrast.edgeless.systems/image-store-size": annotation}).
+		WithAnnotations(map[string]string{kuberesource.ImageStoreSizeAnnotationKey: annotation}).
 		WithSpec(
 			kuberesource.PodSpec().
 				WithContainers(
@@ -252,7 +252,7 @@ func testPod(name, annotation string) any {
 func tensorflowPod() any {
 	return kuberesource.Pod("tensorflow", "").
 		WithLabels(map[string]string{"app.kubernetes.io/name": "tensorflow"}).
-		WithAnnotations(map[string]string{"contrast.edgeless.systems/image-store-size": "0"}).
+		WithAnnotations(map[string]string{kuberesource.ImageStoreSizeAnnotationKey: "0"}).
 		WithSpec(
 			kuberesource.PodSpec().
 				WithContainers(

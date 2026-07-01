@@ -35,7 +35,7 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 					WithSpec(kuberesource.DeploymentSpec().
 						WithTemplate(kuberesource.PodTemplateSpec().
 							WithAnnotations(map[string]string{
-								initdata.InitdataAnnotationKey:         anno,
+								kuberesource.InitdataAnnotationKey:     anno,
 								kuberesource.ContrastRoleAnnotationKey: string(manifest.RoleCoordinator),
 							}).
 							WithSpec(
@@ -70,7 +70,7 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 			resources: []any{
 				kuberesource.Pod("test", "").
 					WithAnnotations(map[string]string{
-						initdata.InitdataAnnotationKey: "invalid-base64",
+						kuberesource.InitdataAnnotationKey: "invalid-base64",
 					}).
 					WithSpec(
 						kuberesource.PodSpec().
@@ -86,7 +86,7 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 					WithSpec(kuberesource.DeploymentSpec().
 						WithTemplate(kuberesource.PodTemplateSpec().
 							WithAnnotations(map[string]string{
-								initdata.InitdataAnnotationKey:         anno,
+								kuberesource.InitdataAnnotationKey:     anno,
 								kuberesource.ContrastRoleAnnotationKey: string(manifest.RoleCoordinator),
 							}).
 							WithSpec(
@@ -95,7 +95,7 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 							))),
 				kuberesource.Pod("another-pod", "").
 					WithAnnotations(map[string]string{
-						initdata.InitdataAnnotationKey: anno,
+						kuberesource.InitdataAnnotationKey: anno,
 					}).
 					WithSpec(
 						kuberesource.PodSpec().
