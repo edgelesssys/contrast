@@ -67,6 +67,9 @@ func (m *Manifest) Validator(log *slog.Logger, kdsGetter *certcache.CachedHTTPSG
 // ErrWrongCoordinatorPolicyHash is returned when the Coordinator policy hash does not match the manifest policy hash.
 var ErrWrongCoordinatorPolicyHash = errors.New("wrong policy hash for Coordinator")
 
+// ErrBadValidator is returned when the validator did not call the ReportSetter callback.
+var ErrBadValidator = errors.New("validator did not produce a report")
+
 // CoordinatorValidator returns a validator that succeeds only for workloads with the Coordinator role.
 //
 // This is a more restrictive version of Validator, see the warning there.
@@ -105,6 +108,9 @@ func coordinatorValidator(validatorFactory validatorFactory, coordPolicyHashes [
 		}
 		if err := validator.Validate(ctx, oid, attDoc, reportData); err != nil {
 			return err
+		}
+		if report == nil {
+			return ErrBadValidator
 		}
 		if !slices.ContainsFunc(allHashes, func(b []byte) bool {
 			return slices.Equal(report.HostData(), b)
