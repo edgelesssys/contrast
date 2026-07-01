@@ -29,6 +29,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/stretchr/testify/require"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 )
 
 func TestCoordinator(t *testing.T) {
@@ -229,6 +230,66 @@ func TestCoordinator(t *testing.T) {
 		require.Error(err)
 		require.Nil(state)
 	})
+
+	t.Run("multiple coordinators", func(t *testing.T) {
+		// This test shows that attestation works with more than one Coordinator in the manifest,
+		// and that Coordinators can recover from other Coordinators not in their StatefulSet.
+		require := require.New(t)
+		ct := contrasttest.New(t)
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(5*time.Minute))
+		t.Cleanup(cancel)
+
+		resources := kuberesource.CoordinatorBundle()
+		resources = append(resources, modifyCoordinator(t, kuberesource.CoordinatorBundle()))
+		resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+		resources = kuberesource.AddPortForwarders(resources)
+		ct.Init(t, resources)
+
+		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+		require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
+
+		mnfstBytes, err := os.ReadFile(ct.ManifestPath())
+		require.NoError(err)
+		var mnfst manifest.Manifest
+		require.NoError(json.Unmarshal(mnfstBytes, &mnfst))
+		coordinatorPolicies, err := mnfst.CoordinatorPolicyHashes()
+		require.NoError(err)
+		require.Len(coordinatorPolicies, 2)
+
+		require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"))
+		require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, alternativeCoordinatorName))
+	})
+}
+
+const alternativeCoordinatorName = "modified-coordinator"
+
+// modifyCoordinator only keeps the coordinator from the given resources, changes its name and modifies it such that the policy changes.
+func modifyCoordinator(t *testing.T, rs []any) any {
+	t.Helper()
+	require := require.New(t)
+
+	var out any
+	for _, r := range rs {
+		s, ok := r.(*applyappsv1.StatefulSetApplyConfiguration)
+		if !ok {
+			continue
+		}
+		s.Name = toPtr(alternativeCoordinatorName)
+		s.Spec.Template.Spec.Containers[0].WithEnv(kuberesource.EnvVar().WithName("ONLY_FOR_POLICY").WithValue("foo"))
+		selector := kuberesource.SelectorLabels(alternativeCoordinatorName, alternativeCoordinatorName)
+		selector[kuberesource.ContrastRoleLabelKey] = string(manifest.RoleCoordinator)
+		s.Spec.WithSelector(kuberesource.LabelSelector().WithMatchLabels(selector))
+		s.Spec.Template.WithLabels(selector)
+		out = s
+	}
+	require.NotNil(out, "no coordinator found")
+	return out
+}
+
+func toPtr[A any](a A) *A {
+	return &a
 }
 
 func TestMain(m *testing.M) {
