@@ -19,6 +19,36 @@ import (
 	applyrbacv1 "k8s.io/client-go/applyconfigurations/rbac/v1"
 )
 
+// MemoryProfile represents the memory profile of a container.
+type MemoryProfile bool
+
+const (
+	// MemoryProfileFull includes the image requirements in the container memory limits.
+	MemoryProfileFull MemoryProfile = false
+	// MemoryProfileRuntimeOnly only includes the runtime requirements in the container memory limits.
+	MemoryProfileRuntimeOnly MemoryProfile = true
+)
+
+var containerMemoryLimits = map[string]map[MemoryProfile]int64{
+	"contrast-initializer": {
+		// In v1.18.0, the initializer image was 50MiB compressed, 160MiB uncompressed.
+		// Double that because only 50% of the VM memory are available for /run.
+		MemoryProfileFull: 420,
+		// The container's cgroup memory.peak is at about 5MiB.
+		MemoryProfileRuntimeOnly: 20,
+	},
+	"contrast-service-mesh": {
+		MemoryProfileFull: 400,
+		// When running the emojivoto deployment, the container's cgroup memory.peak is at about 20MiB.
+		MemoryProfileRuntimeOnly: 100,
+	},
+	"contrast-debug-shell": {
+		MemoryProfileFull: 1000,
+		// Leave enough memory for debugging tasks.
+		MemoryProfileRuntimeOnly: 200,
+	},
+}
+
 // ContrastRuntimeClass creates a new RuntimeClassConfig.
 func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, error) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
@@ -490,15 +520,14 @@ func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) (*apply
 }
 
 // Initializer creates a new InitializerConfig.
-func Initializer(coordinatorHost string) *applycorev1.ContainerApplyConfiguration {
+func Initializer(coordinatorHost string, memoryProfile MemoryProfile) *applycorev1.ContainerApplyConfiguration {
+	memoryLimit := containerMemoryLimits["contrast-initializer"][memoryProfile]
 	return applycorev1.Container().
 		WithName("contrast-initializer").
 		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 		WithResources(
 			ResourceRequirements().
-				// In v1.18.0, the initializer image was 50MiB compressed, 160MiB uncompressed.
-				// Double that because only 50% of the VM memory are available for /run.
-				WithMemoryLimitAndRequest(420),
+				WithMemoryLimitAndRequest(memoryLimit),
 		).
 		WithEnv(NewEnvVar("COORDINATOR_HOST", coordinatorHost)).
 		WithVolumeMounts(
@@ -518,7 +547,8 @@ func Initializer(coordinatorHost string) *applycorev1.ContainerApplyConfiguratio
 }
 
 // ServiceMeshProxy creates a new service mesh proxy sidecar container.
-func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
+func ServiceMeshProxy(memoryProfile MemoryProfile) *applycorev1.ContainerApplyConfiguration {
+	memoryLimit := containerMemoryLimits["contrast-service-mesh"][memoryProfile]
 	return applycorev1.Container().
 		WithName("contrast-service-mesh").
 		WithImage("ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest").
@@ -547,19 +577,20 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 		).
 		WithResources(
 			ResourceRequirements().
-				WithMemoryLimitAndRequest(400),
+				WithMemoryLimitAndRequest(memoryLimit),
 		)
 }
 
 // DebugShell creates a new debug shell container.
-func DebugShell() *applycorev1.ContainerApplyConfiguration {
+func DebugShell(memoryProfile MemoryProfile) *applycorev1.ContainerApplyConfiguration {
+	memoryLimit := containerMemoryLimits["contrast-debug-shell"][memoryProfile]
 	return applycorev1.Container().
 		WithName("contrast-debug-shell").
 		WithImage("ghcr.io/edgelesssys/contrast/debugshell:latest").
 		WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
 		WithResources(
 			ResourceRequirements().
-				WithMemoryLimitAndRequest(1000),
+				WithMemoryLimitAndRequest(memoryLimit),
 		)
 }
 

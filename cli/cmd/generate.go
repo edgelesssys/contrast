@@ -572,18 +572,19 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 		if flags.collateralProxyURL != "" && isCoordinator(res) {
 			res = kuberesource.SetCollateralProxyEnv([]any{res}, flags.collateralProxyURL)[0]
 		}
+		memoryProfile := kuberesource.MemoryProfile(flags.calculatePodMemory)
 		if flags.insecureEnableDebugShell {
-			if _, err := kuberesource.AddDebugShell(res, kuberesource.DebugShell()); err != nil {
+			if _, err := kuberesource.AddDebugShell(res, kuberesource.DebugShell(memoryProfile)); err != nil {
 				return nil, fmt.Errorf("injecting debug shell container: %w", err)
 			}
 		}
 		if !flags.skipInitializer {
-			if err := injectInitializer(res, coordinatorNamespace, flags.collateralProxyURL); err != nil {
+			if err := injectInitializer(res, coordinatorNamespace, flags.collateralProxyURL, memoryProfile); err != nil {
 				return nil, fmt.Errorf("injecting Initializer: %w", err)
 			}
 		}
 		if !flags.skipServiceMesh {
-			if err := injectServiceMesh(res); err != nil {
+			if err := injectServiceMesh(res, memoryProfile); err != nil {
 				return nil, fmt.Errorf("injecting Service Mesh: %w", err)
 			}
 		}
@@ -607,7 +608,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 	})
 }
 
-func injectInitializer(resource any, coordinatorNamespace, collateralProxyURL string) error {
+func injectInitializer(resource any, coordinatorNamespace, collateralProxyURL string, memoryProfile kuberesource.MemoryProfile) error {
 	if isCoordinator(resource) {
 		return nil
 	}
@@ -615,7 +616,7 @@ func injectInitializer(resource any, coordinatorNamespace, collateralProxyURL st
 		coordinatorNamespace = "default"
 	}
 	coordinatorHost := fmt.Sprintf("coordinator-ready.%s", coordinatorNamespace)
-	initializer := kuberesource.Initializer(coordinatorHost)
+	initializer := kuberesource.Initializer(coordinatorHost, memoryProfile)
 	if collateralProxyURL != "" {
 		initializer.WithEnv(kuberesource.NewEnvVar(constants.CollateralProxyEnvVar, collateralProxyURL))
 	}
@@ -625,11 +626,11 @@ func injectInitializer(resource any, coordinatorNamespace, collateralProxyURL st
 	return nil
 }
 
-func injectServiceMesh(resource any) error {
+func injectServiceMesh(resource any, memoryProfile kuberesource.MemoryProfile) error {
 	if isCoordinator(resource) {
 		return nil
 	}
-	if _, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy()); err != nil {
+	if _, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy(memoryProfile)); err != nil {
 		return err
 	}
 	return nil
