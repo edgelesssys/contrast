@@ -199,7 +199,7 @@ func TestPolicy(t *testing.T) {
 		require.NoError(os.WriteFile(ct.ManifestPath(), manifestBytes, 0o644))
 
 		// Verification should fail.
-		require.ErrorContains(ct.RunVerify(t.Context()), "validating report")
+		require.ErrorContains(ct.RunVerify(t.Context()), manifest.ErrWrongCoordinatorPolicyHash.Error())
 
 		// Restore correct coordinator policy hash.
 		delete(m.Policies, policyHashAlt)

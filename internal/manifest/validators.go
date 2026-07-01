@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/asn1"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -63,6 +64,9 @@ func (m *Manifest) Validator(log *slog.Logger, kdsGetter *certcache.CachedHTTPSG
 	return validators.Any(allValidators...), nil
 }
 
+// ErrWrongCoordinatorPolicyHash is returned when the Coordinator policy hash does not match the manifest policy hash.
+var ErrWrongCoordinatorPolicyHash = errors.New("wrong policy hash for Coordinator")
+
 // CoordinatorValidator returns a validator that succeeds only for workloads with the Coordinator role.
 //
 // This is a more restrictive version of Validator, see the warning there.
@@ -91,7 +95,7 @@ func (m *Manifest) CoordinatorValidator(log *slog.Logger, kdsGetter *certcache.C
 			return err
 		}
 		if !slices.Equal(coordPolicyHashBytes, report.HostData()) {
-			return fmt.Errorf("wrong policy hash for Coordinator: got %x, want %x", report.HostData(), coordPolicyHashBytes)
+			return fmt.Errorf("%w: got %x, want %x", ErrWrongCoordinatorPolicyHash, report.HostData(), coordPolicyHashBytes)
 		}
 		return nil
 	}), nil
