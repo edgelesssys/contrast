@@ -47,13 +47,17 @@
 
         # setsFromDirectory reads overlays from a directory and creates a set of pkgs instances for each.
         # The filename is used as attribute name in the resulting set, the .nix extension is stripped.
+        # Files starting with `_` are treated as private helpers (e.g. shared scope-override functions
+        # imported by the set overlays) and are not loaded as sets themselves.
         setsFromDirectory =
           dir:
           builtins.listToAttrs (
-            map (file: rec {
-              name = builtins.substring 0 (builtins.stringLength file - 4) (baseNameOf file);
-              value = mkSet ((defaultOverlays name) ++ [ (import (dir + "/${file}")) ]);
-            }) (builtins.attrNames (builtins.readDir dir))
+            map
+              (file: rec {
+                name = builtins.substring 0 (builtins.stringLength file - 4) (baseNameOf file);
+                value = mkSet ((defaultOverlays name) ++ [ (import (dir + "/${file}")) ]);
+              })
+              (builtins.filter (n: builtins.substring 0 1 n != "_") (builtins.attrNames (builtins.readDir dir)))
           );
 
         # reverseContrastNesting takes a pkgs instance and reverses the nesting by moving the
