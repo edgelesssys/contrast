@@ -27,8 +27,9 @@ type SeedEngine struct {
 	seed    []byte
 	salt    []byte
 
-	podStateSeed []byte
-	historySeed  []byte
+	podStateSeed      []byte
+	historySeed       []byte
+	transitEngineSeed []byte
 
 	rootCAKey             *ecdsa.PrivateKey
 	transactionSigningKey *ecdsa.PrivateKey
@@ -60,6 +61,10 @@ func New(secretSeed []byte, salt []byte) (*SeedEngine, error) {
 	if err != nil {
 		return nil, fmt.Errorf("deriving seed: %w", err)
 	}
+	se.transitEngineSeed, err = se.hkdfDerive(secretSeed, "TRANSIT ENGINE SECRET")
+	if err != nil {
+		return nil, fmt.Errorf("deriving seed: %w", err)
+	}
 	transactionSigningSeed, err := se.hkdfDerive(secretSeed, "TRANSACTION SIGNING SECRET")
 	if err != nil {
 		return nil, fmt.Errorf("deriving seed: %w", err)
@@ -87,6 +92,14 @@ func (s *SeedEngine) DeriveWorkloadSecret(workloadSecretID string) ([]byte, erro
 		return nil, errors.New("workload secret ID must not be empty")
 	}
 	return s.hkdfDerive(s.podStateSeed, fmt.Sprintf("WORKLOAD SECRET ID: %s", workloadSecretID))
+}
+
+// DeriveTransitEngineKey derives a symmetric key for the transit engine API from a key version and name.
+func (s *SeedEngine) DeriveTransitEngineKey(keyVersion uint32, name string) ([]byte, error) {
+	if name == "" {
+		return nil, errors.New("transit engine key name must not be empty")
+	}
+	return s.hkdfDerive(s.transitEngineSeed, fmt.Sprintf("TRANSIT ENGINE KEY: %d %s", keyVersion, name))
 }
 
 // GenerateMeshCAKey generates a new random key for the mesh authority.

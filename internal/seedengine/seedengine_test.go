@@ -124,3 +124,67 @@ func TestSeedEngine_DeriveWorkloadSecret(t *testing.T) {
 		})
 	}
 }
+
+func TestSeedEngine_DeriveTransitEngineKey(t *testing.T) {
+	require := require.New(t)
+
+	testCases := map[string]struct {
+		keyVersion uint32
+		name       string
+		want       string // hex encoded
+		err        bool
+	}{
+		/*
+			Crypto-determinism regression test cases.
+
+			DO NOT CHANGE!
+		*/
+		"v0 vault_unsealing": {keyVersion: 0, name: "vault_unsealing", want: "9c402681fb939a40cc956e49cec12f533b40198a5cf74acc3ae7ea0a0241a532"},
+		"v2 autounseal":      {keyVersion: 2, name: "autounseal", want: "890718bce191aca942cdb9a766bd89503711fe007c272176da49061085f0dcd7"},
+		"v0 workload-1":      {keyVersion: 0, name: "workload-1", want: "13842ea44839b525ab5a3eb2a15d6303b86faae4f6f820dfe56d126216b11f16"},
+		"v2000 special char": {keyVersion: 2000, name: "thi$$hoU_ld+*work", want: "f2f22ada9cbf5b2f462e06def0d7cbd8e38dd42ef5331d9359aab13b59331650"},
+		"empty name errors":  {keyVersion: 0, name: "", err: true},
+	}
+
+	secretSeed, err := hex.DecodeString("9c7f285a46704602f8b6d9d4a89193579a979f144a9d8733fddd4f2bbcecd77f")
+	require.NoError(err)
+	salt, err := hex.DecodeString("6227b2cae740349beaff040af74aa1566ac330e9b54ce0e58f8d5ee47281745a")
+	require.NoError(err)
+
+	se, err := New(secretSeed, salt)
+	require.NoError(err)
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			key, err := se.DeriveTransitEngineKey(tc.keyVersion, tc.name)
+
+			if tc.err {
+				require.Error(err)
+				return
+			}
+			assert.NoError(err)
+			assert.Equal(tc.want, hex.EncodeToString(key))
+		})
+	}
+
+	// Domain separation: a transit engine key is addressed on the transit API by a key_name (plus key_version),
+	// whereas a workload secret is addressed by the WorkloadSecretID from the manifest. The two are drawn from
+	// separate key domains and must never derive to the same bytes. Otherwise a workload could obtain a transit
+	// key just by being deployed with a matching WorkloadSecretID, without ever calling the transit API.
+	//
+	// The pairing below is the exact pre-fix collision: the transit key for key_name "vault_unsealing" at
+	// version 0 used to be DeriveWorkloadSecret("0_vault_unsealing") (from the old "%d_%s" derivation input),
+	// so a pod with the crafted WorkloadSecretID "0_vault_unsealing" received the transit key as its own
+	// workload secret. This assertion fails against that old derivation and passes only once the domains split.
+	t.Run("transit key never equals a workload secret", func(t *testing.T) {
+		assert := assert.New(t)
+
+		transitKey, err := se.DeriveTransitEngineKey(0, "vault_unsealing")
+		require.NoError(err)
+		craftedWorkloadSecret, err := se.DeriveWorkloadSecret("0_vault_unsealing")
+		require.NoError(err)
+		assert.NotEqual(hex.EncodeToString(craftedWorkloadSecret), hex.EncodeToString(transitKey))
+	})
+}
