@@ -75,7 +75,7 @@ jobs:
           NIGHTLY_RUN_ID: ${{ steps.nightly-info.outputs.nightly_run_id }}
           GH_REPO: ${{ github.repository }}
         run: |
-          required_jobs=$(gh api --paginate \
+          release_requirement_jobs=$(gh api --paginate \
             "repos/${GH_REPO}/actions/runs/${NIGHTLY_RUN_ID}/jobs?per_page=30" \
             --jq '.jobs[] | select(.name | startswith("release-requirement: ")) | {name, conclusion}')
           # Every release-requirement job must be present, so a rename can't
@@ -92,7 +92,7 @@ jobs:
           )
           missing=()
           for prefix in "${expected[@]}"; do
-            if ! jq -e -s --arg p "${prefix}" 'any(.[]; .name | startswith($p))' <<<"${required_jobs}" >/dev/null; then
+            if ! jq -e -s --arg p "${prefix}" 'any(.[]; .name | startswith($p))' <<<"${release_requirement_jobs}" >/dev/null; then
               missing+=("${prefix}")
             fi
           done
@@ -101,13 +101,17 @@ jobs:
             printf '%s\n' "${missing[@]}"
             exit 1
           fi
-          failed=$(jq -rs '.[] | select(.conclusion != "success") | "\(.name): \(.conclusion)"' <<<"${required_jobs}")
+          prefixes=$(printf '%s\n' "${expected[@]}" | jq -R . | jq -s .)
+          required_jobs=$(jq -s --argjson prefixes "${prefixes}" \
+            '[.[] | select(.name as $n | $prefixes | any(. as $p | $n | startswith($p)))]' \
+            <<<"${release_requirement_jobs}")
+          failed=$(jq -r '.[] | select(.conclusion != "success") | "\(.name): \(.conclusion)"' <<<"${required_jobs}")
           if [[ -n "${failed}" ]]; then
             echo "::error::The following required jobs did not succeed in nightly run ${NIGHTLY_RUN_ID}:"
             echo "${failed}"
             exit 1
           fi
-          required=$(jq -rs 'length' <<<"${required_jobs}")
+          required=$(jq 'length' <<<"${required_jobs}")
           echo "All ${required} release-requirement job(s) passed in nightly run ${NIGHTLY_RUN_ID}."
       - name: Verify nightly draft release has artifacts
         env:
