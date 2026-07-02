@@ -91,6 +91,10 @@ func (m *Manifest) Validate() error {
 		errs = append(errs, newValidationError("ReferenceValues", err))
 	}
 
+	if m.HasInsecurePlatforms() && m.HasSecurePlatforms() {
+		errs = append(errs, newValidationError("ReferenceValues", errors.New("manifest must not mix secure and insecure platforms")))
+	}
+
 	for i, key := range m.WorkloadOwnerPubKeys {
 		if _, err := ParseWorkloadOwnerPublicKey(key); err != nil {
 			errs = append(errs, newValidationError(fmt.Sprintf("WorkloadOwnerPubKeys[%d]", i), err))
@@ -119,15 +123,35 @@ func (m *Manifest) CoordinatorPolicyHashes() ([]HexString, error) {
 	return all, nil
 }
 
-// AllowInsecure returns true if the manifest contains reference values for insecure platforms.
-func (m *Manifest) AllowInsecure() bool {
+// HasInsecurePlatforms returns true if the manifest contains a reference value for a recognized
+// insecure platform.
+func (m *Manifest) HasInsecurePlatforms() bool {
+	return m.anyReferenceValue(func(p platforms.Platform, ok bool) bool {
+		return ok && platforms.IsInsecure(p)
+	})
+}
+
+// HasSecurePlatforms returns true if the manifest contains a reference value that does not target a
+// recognized insecure platform. Unknown or unset platforms are treated as secure (fail-closed), so
+// a malformed secure reference value mixed with an insecure one is still detected as a mix.
+func (m *Manifest) HasSecurePlatforms() bool {
+	return m.anyReferenceValue(func(p platforms.Platform, ok bool) bool {
+		return !ok || !platforms.IsInsecure(p)
+	})
+}
+
+// anyReferenceValue reports whether any SNP or TDX reference value's platform satisfies pred. pred
+// receives the parsed platform and whether parsing succeeded.
+func (m *Manifest) anyReferenceValue(pred func(p platforms.Platform, ok bool) bool) bool {
 	for _, v := range m.ReferenceValues.SNP {
-		if p, err := platforms.FromString(v.Platform); err == nil && platforms.IsInsecure(p) {
+		p, err := platforms.FromString(v.Platform)
+		if pred(p, err == nil) {
 			return true
 		}
 	}
 	for _, v := range m.ReferenceValues.TDX {
-		if p, err := platforms.FromString(v.Platform); err == nil && platforms.IsInsecure(p) {
+		p, err := platforms.FromString(v.Platform)
+		if pred(p, err == nil) {
 			return true
 		}
 	}

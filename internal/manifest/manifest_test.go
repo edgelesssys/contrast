@@ -122,6 +122,13 @@ func TestValidate(t *testing.T) {
 			// APEIP is optional for backwards compatibility with older manifests.
 			wantErr: false,
 		},
+		"mixed secure and insecure platforms": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, SNPReferenceValues{Platform: "Metal-QEMU-Insecure"})
+			},
+			wantErr: true,
+		},
 		"invalid workload owner key": {
 			m: newTestManifestSNP(),
 			mutate: func(m *Manifest) {
@@ -320,6 +327,61 @@ func TestSNPValidateOpts(t *testing.T) {
 	}
 	assert.Equal(tcbParts, opts[0].ValidateOpts.MinimumTCB)
 	assert.Equal(tcbParts, opts[0].ValidateOpts.MinimumLaunchTCB)
+}
+
+func TestSNPValidateOptsRejectsEmptyMeasurement(t *testing.T) {
+	require := require.New(t)
+
+	// This guards the code path that bypasses Validate: Validate's insecure early-return means the
+	// "non-empty TrustedMeasurement" invariant no longer holds for the whole SNP refval slice, so
+	// SNPValidateOpts must reject an empty measurement on a secure platform itself.
+	m := newTestManifestSNP()
+	m.ReferenceValues.SNP[0].TrustedMeasurement = ""
+
+	_, err := m.SNPValidateOpts(nil)
+	require.Error(err)
+}
+
+func TestHasInsecureAndSecurePlatforms(t *testing.T) {
+	insecureRefVal := SNPReferenceValues{Platform: "Metal-QEMU-Insecure"}
+
+	testCases := map[string]struct {
+		m            *Manifest
+		wantInsecure bool
+		wantSecure   bool
+	}{
+		"all secure": {
+			m:          newTestManifestSNP(),
+			wantSecure: true,
+		},
+		"all insecure": {
+			m: func() *Manifest {
+				m := &Manifest{}
+				m.ReferenceValues.SNP = []SNPReferenceValues{insecureRefVal}
+				return m
+			}(),
+			wantInsecure: true,
+		},
+		"mixed": {
+			m: func() *Manifest {
+				m := newTestManifestSNP()
+				m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, insecureRefVal)
+				return m
+			}(),
+			wantInsecure: true,
+			wantSecure:   true,
+		},
+		"empty": {
+			m: &Manifest{},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			assert.Equal(tc.wantInsecure, tc.m.HasInsecurePlatforms())
+			assert.Equal(tc.wantSecure, tc.m.HasSecurePlatforms())
+		})
+	}
 }
 
 func TestHexString(t *testing.T) {

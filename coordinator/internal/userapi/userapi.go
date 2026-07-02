@@ -156,6 +156,8 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 			code = codes.FailedPrecondition
 		case errors.Is(err, stateguard.ErrInsecureNotAllowed):
 			code = codes.InvalidArgument
+		case errors.Is(err, stateguard.ErrMixedManifestNotAllowed):
+			code = codes.InvalidArgument
 		}
 		return nil, status.Errorf(code, "updating Coordinator state: %v", err)
 	}

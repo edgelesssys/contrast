@@ -62,7 +62,7 @@ func (m *Manifest) Validator(log *slog.Logger, kdsGetter *certcache.CachedHTTPSG
 		allValidators = append(allValidators, validators.WithFixedOID(oid.RawTDXReport, validator))
 	}
 
-	if m.AllowInsecure() {
+	if m.HasInsecurePlatforms() {
 		insecureValidator := insecure.NewValidatorWithReportSetter(
 			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": "insecure"}),
 			reportSetter, "insecure",

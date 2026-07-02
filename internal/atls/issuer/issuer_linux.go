@@ -6,6 +6,7 @@
 package issuer
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/edgelesssys/contrast/internal/atls"
@@ -29,6 +30,13 @@ func New(log *slog.Logger) (atls.Issuer, error) {
 			logger.NewWithAttrs(logger.NewNamed(log, "issuer"), map[string]string{"tee-type": "tdx"}),
 		), nil
 	default:
+		allowed, err := insecure.AttestationAllowed()
+		if err != nil {
+			return nil, fmt.Errorf("checking insecure attestation opt-in: %w", err)
+		}
+		if !allowed {
+			return nil, fmt.Errorf("unsupported platform: %T", cpuid.CPU)
+		}
 		log.Warn("No TEE platform detected, using insecure attestation issuer")
 		return insecure.NewIssuer(), nil
 	}

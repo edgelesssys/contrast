@@ -121,12 +121,19 @@ func run() (retErr error) {
 
 	hist := history.NewWithStore(logger.WithGroup("history"), store)
 
-	_, allowInsecure := os.LookupEnv(allowInsecureEnvVar)
-	if allowInsecure {
-		logger.Warn("Coordinator is configured to allow insecure manifests")
+	allowInsecure := false
+	if v, ok := os.LookupEnv(allowInsecureEnvVar); ok {
+		allowInsecure, err = strconv.ParseBool(v)
+		if err != nil {
+			return fmt.Errorf("parsing %s: %w", allowInsecureEnvVar, err)
+		}
 	}
 
-	meshAuth := stateguard.New(hist, promRegistry, logger, allowInsecure)
+	meshAuth := stateguard.New(hist, promRegistry, logger)
+	if allowInsecure {
+		logger.Warn("Coordinator is configured to allow insecure manifests")
+		meshAuth.MakeInsecure()
+	}
 
 	issuer, err := issuer.New(logger)
 	if err != nil {
