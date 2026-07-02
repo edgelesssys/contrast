@@ -212,6 +212,9 @@ type SNPReferenceValues struct {
 
 // Validate checks the validity of all fields in the AKS reference values.
 func (r SNPReferenceValues) Validate() error {
+	if p, err := platforms.FromString(r.Platform); err == nil && platforms.IsInsecure(p) {
+		return nil
+	}
 	var minTCBErrs []error
 	if r.MinimumTCB.BootloaderVersion == nil {
 		minTCBErrs = append(minTCBErrs, newValidationError("BootloaderVersion", ExpectedMissingReferenceValueError{Err: errors.New("field cannot be empty")}))
@@ -325,6 +328,9 @@ type TDXReferenceValues struct {
 
 // Validate checks the validity of all fields in the bare metal TDX reference values.
 func (r TDXReferenceValues) Validate() error {
+	if p, err := platforms.FromString(r.Platform); err == nil && platforms.IsInsecure(p) {
+		return nil
+	}
 	var errs []error
 	if err := validateHexString(r.MrTd, 48); err != nil {
 		errs = append(errs, newValidationError("MrTd", err))

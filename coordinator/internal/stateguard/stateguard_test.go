@@ -192,6 +192,53 @@ func TestResetState(t *testing.T) {
 	require.ErrorIs(err, assert.AnError)
 }
 
+func TestUpdateStateInsecure(t *testing.T) {
+	ctx := t.Context()
+
+	_, insecureManifestBytes, policies := newInsecureManifest(t)
+	se := newSeedEngine(t)
+
+	t.Run("rejected when allowInsecure is false", func(t *testing.T) {
+		require := require.New(t)
+
+		store := aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()})
+		hist := history.NewWithStore(slog.Default(), store)
+		g := New(hist, prometheus.NewRegistry(), slog.Default())
+
+		state, err := g.UpdateState(ctx, nil, se, insecureManifestBytes, policies)
+		require.ErrorIs(err, ErrInsecureNotAllowed)
+		require.Nil(state)
+	})
+
+	t.Run("accepted when allowInsecure is true", func(t *testing.T) {
+		require := require.New(t)
+
+		store := aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()})
+		hist := history.NewWithStore(slog.Default(), store)
+		g := New(hist, prometheus.NewRegistry(), slog.Default())
+		g.MakeInsecure()
+
+		state, err := g.UpdateState(ctx, nil, se, insecureManifestBytes, policies)
+		require.NoError(err)
+		require.NotNil(state)
+	})
+
+	t.Run("mixed manifest rejected even when allowInsecure is true", func(t *testing.T) {
+		require := require.New(t)
+
+		_, mixedManifestBytes, mixedPolicies := newMixedManifest(t)
+
+		store := aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()})
+		hist := history.NewWithStore(slog.Default(), store)
+		g := New(hist, prometheus.NewRegistry(), slog.Default())
+		g.MakeInsecure()
+
+		state, err := g.UpdateState(ctx, nil, se, mixedManifestBytes, mixedPolicies)
+		require.ErrorIs(err, ErrMixedManifestNotAllowed)
+		require.Nil(state)
+	})
+}
+
 func TestConcurrentUpdateState(t *testing.T) {
 	ctx := t.Context()
 	assert := assert.New(t)
@@ -538,6 +585,51 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	workloadOwnerKey := testkeys.ECDSA(t)
 	workloadOwnerKeyHex := manifest.MarshalWorkloadOwnerPubKey(&workloadOwnerKey.PublicKey)
 	mnfst.WorkloadOwnerPubKeys = []manifest.HexString{workloadOwnerKeyHex}
+	mnfstBytes, err := json.Marshal(mnfst)
+	require.NoError(t, err)
+	return mnfst, mnfstBytes, [][]byte{policy}
+}
+
+func newInsecureManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
+	t.Helper()
+	policy := []byte("=== SOME REGO HERE ===")
+	policyHash := sha256.Sum256(policy)
+	policyHashHex := manifest.NewHexString(policyHash[:])
+
+	mnfst := &manifest.Manifest{}
+	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{
+		policyHashHex: {
+			SANs:             []string{"test"},
+			WorkloadSecretID: "test2",
+			Role:             manifest.RoleCoordinator,
+		},
+	}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{
+		{Platform: "Metal-QEMU-Insecure"},
+	}
+	mnfstBytes, err := json.Marshal(mnfst)
+	require.NoError(t, err)
+	return mnfst, mnfstBytes, [][]byte{policy}
+}
+
+func newMixedManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
+	t.Helper()
+	policy := []byte("=== SOME REGO HERE ===")
+	policyHash := sha256.Sum256(policy)
+	policyHashHex := manifest.NewHexString(policyHash[:])
+
+	mnfst := &manifest.Manifest{}
+	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{
+		policyHashHex: {
+			SANs:             []string{"test"},
+			WorkloadSecretID: "test2",
+			Role:             manifest.RoleCoordinator,
+		},
+	}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{
+		{Platform: "Metal-QEMU-Insecure"},
+		{Platform: "Metal-QEMU-SNP"},
+	}
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)
 	return mnfst, mnfstBytes, [][]byte{policy}

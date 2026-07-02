@@ -52,6 +52,14 @@ var (
 	// ErrConcurrentUpdate is returned by state-modifying operations if the input oldState is not
 	// the current state. This usually happens when a concurrent operation succeeded.
 	ErrConcurrentUpdate = errors.New("coordinator state was updated concurrently")
+
+	// ErrInsecureNotAllowed is returned when a manifest contains insecure platforms but the
+	// coordinator was not started with the allow-insecure flag.
+	ErrInsecureNotAllowed = errors.New("manifest contains insecure platforms, but the coordinator is not configured to allow them")
+
+	// ErrMixedManifestNotAllowed is returned when a manifest mixes secure and insecure platforms.
+	// Manifests must be either all-secure or all-insecure.
+	ErrMixedManifestNotAllowed = errors.New("manifest must not mix secure and insecure platforms")
 )
 
 // Guard manages the manifest state of Contrast.
@@ -65,6 +73,10 @@ type Guard struct {
 	logger  *slog.Logger
 	metrics metrics
 
+	// allowInsecure controls whether manifests with insecure platforms are accepted.
+	// It defaults to false and can be enabled via MakeInsecure.
+	allowInsecure bool
+
 	clock clock.Clock
 }
 
@@ -73,6 +85,9 @@ type metrics struct {
 }
 
 // New creates a new state Guard instance.
+//
+// By default, the Guard rejects manifests that contain insecure platforms. Call MakeInsecure to
+// allow them.
 func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Guard {
 	manifestGeneration := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
 		Subsystem: "contrast_coordinator",
@@ -89,6 +104,14 @@ func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Gua
 		},
 		clock: clock.RealClock{},
 	}
+}
+
+// MakeInsecure configures the Guard to accept manifests that contain insecure platforms.
+//
+// This voids the security guarantees of the deployment and must only be used for testing or
+// benchmarking. It should be called before the Guard starts serving requests.
+func (g *Guard) MakeInsecure() {
+	g.allowInsecure = true
 }
 
 // WatchHistory monitors the history for manifest updates and sets the state stale if necessary.
@@ -270,6 +293,14 @@ func (g *Guard) UpdateState(_ context.Context, oldState *State, se *seedengine.S
 	var mnfst manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
 		return nil, fmt.Errorf("unmarshaling manifest: %w", err)
+	}
+	if mnfst.HasInsecurePlatforms() {
+		if !g.allowInsecure {
+			return nil, ErrInsecureNotAllowed
+		}
+		if mnfst.HasSecurePlatforms() {
+			return nil, ErrMixedManifestNotAllowed
+		}
 	}
 	policyMap := make(map[[history.HashSize]byte][]byte)
 	for _, policy := range policies {

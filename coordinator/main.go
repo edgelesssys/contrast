@@ -52,6 +52,7 @@ import (
 
 const (
 	metricsEnvVar       = "CONTRAST_METRICS"
+	allowInsecureEnvVar = "CONTRAST_ALLOW_INSECURE"
 	probeAndMetricsPort = 9102
 	// transitEngineAPIPort specifies the default port to expose the transit engine API.
 	transitEngineAPIPort = "8200"
@@ -120,7 +121,19 @@ func run() (retErr error) {
 
 	hist := history.NewWithStore(logger.WithGroup("history"), store)
 
+	allowInsecure := false
+	if v, ok := os.LookupEnv(allowInsecureEnvVar); ok {
+		allowInsecure, err = strconv.ParseBool(v)
+		if err != nil {
+			return fmt.Errorf("parsing %s: %w", allowInsecureEnvVar, err)
+		}
+	}
+
 	meshAuth := stateguard.New(hist, promRegistry, logger)
+	if allowInsecure {
+		logger.Warn("Coordinator is configured to allow insecure manifests")
+		meshAuth.MakeInsecure()
+	}
 
 	issuer, err := issuer.New(logger)
 	if err != nil {

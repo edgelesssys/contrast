@@ -232,6 +232,48 @@ func TestSetManifest(t *testing.T) {
 		require.Equal(codes.InvalidArgument, status.Code(err))
 	})
 
+	t.Run("insecure manifest rejected", func(t *testing.T) {
+		require := require.New(t)
+
+		// Default coordinator does not allow insecure manifests.
+		coordinator := newCoordinator()
+		m := newInsecureManifest(t)
+		manifestBytes, err := json.Marshal(m)
+		require.NoError(err)
+		req := &userapi.SetManifestRequest{Manifest: manifestBytes}
+		_, err = coordinator.SetManifest(t.Context(), req)
+		require.Error(err)
+		require.Equal(codes.InvalidArgument, status.Code(err))
+		require.ErrorContains(err, "insecure")
+	})
+
+	t.Run("insecure manifest accepted when allowed", func(t *testing.T) {
+		require := require.New(t)
+
+		coordinator := newCoordinatorAllowInsecure()
+		m := newInsecureManifest(t)
+		manifestBytes, err := json.Marshal(m)
+		require.NoError(err)
+		req := &userapi.SetManifestRequest{Manifest: manifestBytes}
+		resp, err := coordinator.SetManifest(t.Context(), req)
+		require.NoError(err)
+		require.NotNil(resp)
+	})
+
+	t.Run("mixed manifest rejected even when insecure allowed", func(t *testing.T) {
+		require := require.New(t)
+
+		coordinator := newCoordinatorAllowInsecure()
+		m := newMixedManifest(t)
+		manifestBytes, err := json.Marshal(m)
+		require.NoError(err)
+		req := &userapi.SetManifestRequest{Manifest: manifestBytes}
+		_, err = coordinator.SetManifest(t.Context(), req)
+		require.Error(err)
+		require.Equal(codes.InvalidArgument, status.Code(err))
+		require.ErrorContains(err, "mix")
+	})
+
 	t.Run("atomic manifest update", func(t *testing.T) {
 		require := require.New(t)
 
@@ -855,6 +897,35 @@ func newCoordinatorWithRegistry(reg *prometheus.Registry) *Server {
 	hist := history.NewWithStore(slog.Default(), store)
 	auth := stateguard.New(hist, reg, logger)
 	return New(logger, auth, &stubDiscovery{})
+}
+
+func newCoordinatorAllowInsecure() *Server {
+	logger := slog.Default()
+	fs := afero.NewMemMapFs()
+	store := aferostore.New(&afero.Afero{Fs: fs})
+	hist := history.NewWithStore(slog.Default(), store)
+	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
+	auth.MakeInsecure()
+	return New(logger, auth, &stubDiscovery{})
+}
+
+func newInsecureManifest(t *testing.T) *manifest.Manifest {
+	t.Helper()
+	mnfst := &manifest.Manifest{}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{
+		{Platform: "Metal-QEMU-Insecure"},
+	}
+	return mnfst
+}
+
+func newMixedManifest(t *testing.T) *manifest.Manifest {
+	t.Helper()
+	mnfst := &manifest.Manifest{}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{
+		{Platform: "Metal-QEMU-Insecure"},
+		{Platform: "Metal-QEMU-SNP"},
+	}
+	return mnfst
 }
 
 func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Server {
