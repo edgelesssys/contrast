@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -210,6 +211,46 @@ func TestAdversarialDecryptInputs(t *testing.T) {
 			require.Equal(tc.wantCode, res.StatusCode, string(body))
 		})
 	}
+}
+
+// TestRejectLegacyCiphertext ensures the transit engine does NOT decrypt ciphertext wrapped with the legacy,
+// pre-domain-separation key (DeriveWorkloadSecret("<version>_<name>")). Honoring that key on the decrypt path
+// would let an attacker who derives it via a matching WorkloadSecretID forge auto-unseal blobs the Coordinator
+// accepts. This test guards against a fallback being reintroduced and silently reopening that hole.
+func TestRejectLegacyCiphertext(t *testing.T) {
+	require := require.New(t)
+
+	guard, err := newTestGuard()
+	require.NoError(err)
+	mux := newMockTransitEngineMux(guard)
+
+	const name = "vault_unsealing"
+
+	// Forge a ciphertext as the pre-fix transit engine would have: wrapped with the legacy workload-secret key.
+	state, err := guard.GetState(t.Context())
+	require.NoError(err)
+	legacyKey, err := state.SeedEngine().DeriveWorkloadSecret(fmt.Sprintf("%d_%s", 0, name))
+	require.NoError(err)
+
+	container, err := symmetricEncryptRaw(legacyKey[:aesGCMKeySize], []byte("super-secret"), nil)
+	require.NoError(err)
+	ciphertext, err := json.Marshal(container) // "vault:v0:<base64>"
+	require.NoError(err)
+
+	decryptReqBody, err := json.Marshal(map[string]string{"ciphertext": string(bytes.Trim(ciphertext, `"`))})
+	require.NoError(err)
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPut, "/v1/transit/decrypt/"+name, bytes.NewReader(decryptReqBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	res := rec.Result()
+	t.Cleanup(func() { _ = res.Body.Close() })
+
+	body, err := io.ReadAll(res.Body)
+	require.NoError(err)
+	require.Equal(http.StatusBadRequest, res.StatusCode, string(body))
 }
 
 type fakeStateGuard struct {
