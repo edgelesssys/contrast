@@ -51,5 +51,5 @@ buildGoModule (finalAttrs: {
     runHook postCheck
   '';
 
-  meta.mainProgram = "service-mesh";
+  meta = lib.contrast.ourMeta { mainProgram = "service-mesh"; };
 })

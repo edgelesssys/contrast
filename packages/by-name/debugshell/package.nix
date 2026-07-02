@@ -65,5 +65,5 @@ buildGoModule {
       cp ${lib.getExe debugshell} $out/bin/debugshell
     '';
 
-  meta.mainProgram = "debugshell-server";
+  meta = lib.contrast.ourMeta { mainProgram = "debugshell-server"; };
 }

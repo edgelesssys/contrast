@@ -102,5 +102,5 @@ buildGoModule (finalAttrs: {
   # need any other fixup, saving some seconds.
   dontFixup = true;
 
-  meta.mainProgram = "contrast";
+  meta = lib.contrast.ourMeta { mainProgram = "contrast"; };
 })
