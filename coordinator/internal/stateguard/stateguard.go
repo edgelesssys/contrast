@@ -132,7 +132,7 @@ func (g *Guard) WatchHistory(ctx context.Context) error {
 					return nil
 				})
 				if walkErr != nil {
-					g.logger.Warn("received problematic transition update", "error", err)
+					g.logger.Warn("received problematic transition update", "error", walkErr)
 					continue
 				}
 				if stateInAncestors {
