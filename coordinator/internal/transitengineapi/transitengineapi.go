@@ -137,7 +137,7 @@ func getEncryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 			}, logger)
 			return
 		}
-		key, err := deriveEncryptionKey(r.Context(), guard, fmt.Sprintf("%d_%s", encReq.KeyVersion, workloadSecretID))
+		key, err := deriveEncryptionKey(r.Context(), guard, encReq.KeyVersion, workloadSecretID)
 		if err != nil {
 			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
@@ -209,7 +209,7 @@ func getDecryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 			}, logger)
 			return
 		}
-		key, err := deriveEncryptionKey(r.Context(), guard, fmt.Sprintf("%d_%s", decReq.CiphertextContainer.keyVersion, workloadSecretID))
+		key, err := deriveEncryptionKey(r.Context(), guard, decReq.CiphertextContainer.keyVersion, workloadSecretID)
 		if err != nil {
 			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
@@ -263,21 +263,21 @@ func authorizeWorkloadSecret(workloadSecretID string, r *http.Request, logger *s
 	return fmt.Errorf("mismatching workloadSecretIDs: name:%s, extension:%s", workloadSecretID, extensionWSID)
 }
 
-// deriveEncryptionKey derives the workload secret used as the encryption key by receiving the seedengine of the current state.
-func deriveEncryptionKey(ctx context.Context, guard stateGuard, workloadSecretID string) ([]byte, error) {
+// deriveEncryptionKey derives the transit engine encryption key from the current state's seed engine.
+func deriveEncryptionKey(ctx context.Context, guard stateGuard, keyVersion uint32, name string) ([]byte, error) {
 	// TODO(burgerdev): we should be using the state from the request context here!
 	state, err := guard.GetState(ctx)
 	if err != nil {
 		return nil, err
 	}
-	derivedWorkloadSecret, err := state.SeedEngine().DeriveWorkloadSecret(workloadSecretID)
+	key, err := state.SeedEngine().DeriveTransitEngineKey(keyVersion, name)
 	if err != nil {
 		return nil, err
 	}
-	if len(derivedWorkloadSecret) < aesGCMKeySize {
+	if len(key) < aesGCMKeySize {
 		return nil, fmt.Errorf("derived key too small, expected key length: %d", aesGCMKeySize)
 	}
-	return derivedWorkloadSecret[:aesGCMKeySize], nil
+	return key[:aesGCMKeySize], nil
 }
 
 // writeJSONResponse wraps any payload inside a "data" object and sends it as an HTTP response.
