@@ -27,7 +27,7 @@ func manipulateInitdata(fileMap map[string][]*unstructured.Unstructured, manipul
 				retErr = errors.Join(retErr, err)
 				return meta, spec
 			}
-			annotation := meta.Annotations[initdata.InitdataAnnotationKey]
+			annotation := meta.Annotations[kuberesource.InitdataAnnotationKey]
 			if annotation == "" {
 				return fail(fmt.Errorf("missing initdata annotation in %s", path))
 			}
@@ -52,7 +52,7 @@ func manipulateInitdata(fileMap map[string][]*unstructured.Unstructured, manipul
 			if err != nil {
 				return fail(fmt.Errorf("encoding initdata annotation in %s: %w", path, err))
 			}
-			meta.Annotations[initdata.InitdataAnnotationKey] = annotation
+			meta.Annotations[kuberesource.InitdataAnnotationKey] = annotation
 			return meta, spec
 		}), retErr
 	})
@@ -72,9 +72,9 @@ func policiesFromKubeResources(fileMap map[string][]*unstructured.Unstructured) 
 			if meta == nil {
 				return meta, spec
 			}
-			annotation = meta.Annotations[initdata.InitdataAnnotationKey]
+			annotation = meta.Annotations[kuberesource.InitdataAnnotationKey]
 			role = manifest.Role(meta.Annotations[kuberesource.ContrastRoleAnnotationKey])
-			workloadSecretID = meta.Annotations[workloadSecretIDAnnotationKey]
+			workloadSecretID = meta.Annotations[kuberesource.WorkloadSecretIDAnnotationKey]
 			return meta, spec
 		})
 		if annotation == "" {

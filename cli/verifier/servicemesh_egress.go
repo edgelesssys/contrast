@@ -25,7 +25,7 @@ func (v *ServiceMeshEgressNotEmpty) Verify(toVerify any) error {
 			return meta, spec
 		}
 		for k, v := range meta.Annotations {
-			if k != "contrast.edgeless.systems/servicemesh-egress" {
+			if k != kuberesource.SmEgressConfigAnnotationKey {
 				continue
 			}
 			if v == "" {
