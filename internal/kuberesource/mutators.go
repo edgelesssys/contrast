@@ -300,7 +300,7 @@ func SetCollateralProxyEnv(resources []any, proxyURL string) []any {
 	out := make([]any, 0, len(resources))
 	for _, resource := range resources {
 		out = append(out, MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-			if meta == nil || meta.Annotations[ContrastRoleAnnotationKey] != string(manifest.RoleCoordinator) {
+			if meta == nil || meta.Labels[ContrastRoleLabelKey] != string(manifest.RoleCoordinator) {
 				return meta, spec
 			}
 			for i := range spec.Containers {
@@ -494,8 +494,8 @@ func AddLogging(resources []any, level, subsystem string) []any {
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applyappsv1.StatefulSetApplyConfiguration:
-			if r.Spec != nil && r.Spec.Template != nil &&
-				r.Spec.Template.Annotations[ContrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
+			if r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
+				r.Spec.Template.Labels[ContrastRoleLabelKey] == string(manifest.RoleCoordinator) {
 				r.Spec.Template.Spec.Containers[0].WithEnv(
 					NewEnvVar("CONTRAST_LOG_LEVEL", level),
 					NewEnvVar("CONTRAST_LOG_SUBSYSTEMS", subsystem),
@@ -724,7 +724,8 @@ func PatchCoordinatorMetrics(resources []any) []any {
 		case *applyappsv1.StatefulSetApplyConfiguration:
 			if r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.Spec != nil &&
 				len(r.Spec.Template.Spec.Containers) > 0 &&
-				r.Spec.Template.Annotations[ContrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
+				r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
+				r.Spec.Template.Labels[ContrastRoleLabelKey] == string(manifest.RoleCoordinator) {
 				r.Spec.Template.Spec.Containers[0].WithEnv(NewEnvVar("CONTRAST_METRICS", "1"))
 				r.Spec.Template.Spec.Containers[0].WithPorts(
 					ContainerPort().

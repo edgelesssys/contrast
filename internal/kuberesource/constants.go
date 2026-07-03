@@ -9,10 +9,10 @@ const (
 )
 
 const (
-	// ContrastRoleAnnotationKey assigns a role to the annotated pod.
+	// ContrastRoleLabelKey assigns a role to the labeled pod.
 	//
 	// This is used to determine whether a given pod may act as Coordinator.
-	ContrastRoleAnnotationKey = annotationPrefix + "pod-role"
+	ContrastRoleLabelKey = annotationPrefix + "pod-role"
 
 	// ExposeServiceAnnotationKey is the annotation key used to specify whether a Service should be exposed via a LoadBalancer.
 	ExposeServiceAnnotationKey = annotationPrefix + "expose-service"

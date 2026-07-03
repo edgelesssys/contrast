@@ -45,7 +45,11 @@ for resource in "${resourcesToCheck[@]}"; do
 done
 
 # Extract runtime class names from running node installers
-kubectl get pods --all-namespaces -o jsonpath='{.items[?(@.metadata.annotations.contrast\.edgeless\.systems/pod-role=="contrast-node-installer")].metadata.name}' |
+{
+  # TODO(burgerdev): checking the annotation is a fallback for older runtimes, can be removed in Q4 2026.
+  kubectl get pods --all-namespaces -o jsonpath='{.items[?(@.metadata.annotations.contrast\.edgeless\.systems/pod-role=="contrast-node-installer")].metadata.name}'
+  kubectl get pods --all-namespaces --selector contrast.edgeless.systems/pod-role=contrast-node-installer -o jsonpath='{.items[*].metadata.name}'
+} |
   tr ' ' '\n' |
   grep -o "contrast-cc-.\+" |
   sed "s/-nodeinstaller.*//g" >>usedRuntimeClasses || true

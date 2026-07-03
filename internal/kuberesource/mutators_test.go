@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -809,7 +810,7 @@ func TestSetCollateralProxyEnv(t *testing.T) {
 	assert := assert.New(t)
 
 	coordinatorPod := applycorev1.Pod("coordinator", "default").
-		WithAnnotations(map[string]string{ContrastRoleAnnotationKey: "coordinator"}).
+		WithLabels(map[string]string{ContrastRoleLabelKey: string(manifest.RoleCoordinator)}).
 		WithSpec(applycorev1.PodSpec().
 			WithRuntimeClassName("contrast-cc-foo").
 			WithContainers(applycorev1.Container().WithName("coordinator").WithImage("coordinator")))
