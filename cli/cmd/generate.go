@@ -336,8 +336,8 @@ func isCoordinator(resource any) bool {
 		r.Spec != nil &&
 		r.Spec.Template != nil &&
 		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
-		r.Spec.Template.Annotations != nil &&
-		r.Spec.Template.Annotations[kuberesource.ContrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
+		r.Spec.Template.Labels != nil &&
+		r.Spec.Template.Labels[kuberesource.ContrastRoleLabelKey] == string(manifest.RoleCoordinator) {
 		return true
 	}
 	return false

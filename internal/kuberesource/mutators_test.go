@@ -809,7 +809,7 @@ func TestSetCollateralProxyEnv(t *testing.T) {
 	assert := assert.New(t)
 
 	coordinatorPod := applycorev1.Pod("coordinator", "default").
-		WithAnnotations(map[string]string{ContrastRoleAnnotationKey: "coordinator"}).
+		WithLabels(map[string]string{ContrastRoleLabelKey: "coordinator"}).
 		WithSpec(applycorev1.PodSpec().
 			WithRuntimeClassName("contrast-cc-foo").
 			WithContainers(applycorev1.Container().WithName("coordinator").WithImage("coordinator")))

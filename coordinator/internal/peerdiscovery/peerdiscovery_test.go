@@ -30,36 +30,29 @@ func TestGetPeers(t *testing.T) {
 		},
 		"no peers": {
 			pods: []runtime.Object{
-				newPod(host, namespace, "coordinator", "coordinator", "1.2.3.4", true),
+				newPod(host, namespace, "coordinator", "1.2.3.4", true),
 			},
 			expected: nil,
 		},
 		"multiple peers": {
 			pods: []runtime.Object{
-				newPod(host, namespace, "coordinator", "coordinator", "1.2.3.4", true),
-				newPod("coordinator-1", namespace, "coordinator", "coordinator", "5.6.7.8", true),
-				newPod("coordinator-2", namespace, "coordinator", "coordinator", "9.10.11.12", true),
+				newPod(host, namespace, "coordinator", "1.2.3.4", true),
+				newPod("coordinator-1", namespace, "coordinator", "5.6.7.8", true),
+				newPod("coordinator-2", namespace, "coordinator", "9.10.11.12", true),
 			},
 			expected: []string{"5.6.7.8", "9.10.11.12"},
 		},
 		"peer not ready": {
 			pods: []runtime.Object{
-				newPod(host, namespace, "coordinator", "coordinator", "1.2.3.4", true),
-				newPod("coordinator-1", namespace, "coordinator", "coordinator", "5.6.7.8", false),
+				newPod(host, namespace, "coordinator", "1.2.3.4", true),
+				newPod("coordinator-1", namespace, "coordinator", "5.6.7.8", false),
 			},
 			expected: nil,
 		},
 		"peer has no coordinator role": {
 			pods: []runtime.Object{
-				newPod(host, namespace, "coordinator", "coordinator", "1.2.3.4", true),
-				newPod("coordinator-1", namespace, "coordinator", "worker", "5.6.7.8", true),
-			},
-			expected: nil,
-		},
-		"peer has no coordinator label": {
-			pods: []runtime.Object{
-				newPod(host, namespace, "coordinator", "coordinator", "1.2.3.4", true),
-				newPod("coordinator-1", namespace, "worker", "coordinator", "5.6.7.8", true),
+				newPod(host, namespace, "coordinator", "1.2.3.4", true),
+				newPod("coordinator-1", namespace, "worker", "5.6.7.8", true),
 			},
 			expected: nil,
 		},
@@ -80,13 +73,12 @@ func TestGetPeers(t *testing.T) {
 	}
 }
 
-func newPod(name, namespace, labelName string, role manifest.Role, ip string, isReady bool) runtime.Object {
+func newPod(name, namespace string, role manifest.Role, ip string, isReady bool) runtime.Object {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        name,
-			Namespace:   namespace,
-			Labels:      map[string]string{"app.kubernetes.io/name": labelName},
-			Annotations: map[string]string{kuberesource.ContrastRoleAnnotationKey: string(role)},
+			Name:      name,
+			Namespace: namespace,
+			Labels:    map[string]string{kuberesource.ContrastRoleLabelKey: string(role)},
 		},
 		Status: corev1.PodStatus{
 			Conditions: []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionFalse}},

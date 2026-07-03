@@ -120,7 +120,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
 						WithAnnotations(map[string]string{
-							ContrastRoleAnnotationKey:            string(manifest.RoleNodeInstaller),
+							ContrastRoleLabelKey:                 string(manifest.RoleNodeInstaller),
 							"contrast.edgeless.systems/platform": platform.String(),
 						}).
 						WithSpec(
@@ -309,8 +309,10 @@ func Coordinator(namespace string) *CoordinatorConfig {
 					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)). // TODO(burgerdev): this should be RETAIN for released coordinators.
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
-						WithAnnotations(map[string]string{ContrastRoleAnnotationKey: string(manifest.RoleCoordinator)}).
+						WithLabels(map[string]string{
+							"app.kubernetes.io/name": "coordinator",
+							ContrastRoleLabelKey:     string(manifest.RoleCoordinator),
+						}).
 						WithSpec(
 							PodSpec().
 								WithServiceAccountName("coordinator").

@@ -40,8 +40,8 @@ func (v *VersionsMatch) Verify(toVerify any) error {
 		}
 
 		var podRole string
-		if meta != nil && meta.Annotations != nil {
-			podRole = meta.Annotations[kuberesource.ContrastRoleAnnotationKey]
+		if meta != nil && meta.Labels != nil {
+			podRole = meta.Labels[kuberesource.ContrastRoleLabelKey]
 		}
 		for _, container := range spec.Containers {
 			if !needsImageVersionCheck(*container.Name, podRole) {
