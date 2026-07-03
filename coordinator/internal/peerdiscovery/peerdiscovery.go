@@ -34,15 +34,14 @@ func New(client kubernetes.Interface, namespace string) *Discovery {
 func (d *Discovery) GetPeers(ctx context.Context) ([]string, error) {
 	// TODO(burgerdev): this should be an informer with cache.
 	pods, err := d.client.CoreV1().Pods(d.namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.Set{"app.kubernetes.io/name": "coordinator"}.String(),
+		LabelSelector: labels.Set{kuberesource.ContrastRoleLabelKey: string(manifest.RoleCoordinator)}.String(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("listing coordinator pods: %w", err)
 	}
 	var peers []string
 	for _, pod := range pods.Items {
-		if pod.Annotations[kuberesource.ContrastRoleAnnotationKey] != string(manifest.RoleCoordinator) ||
-			pod.Name == os.Getenv("HOSTNAME") {
+		if pod.Name == os.Getenv("HOSTNAME") {
 			continue
 		}
 		if isReady(&pod) {

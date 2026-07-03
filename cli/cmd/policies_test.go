@@ -34,9 +34,11 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 				kuberesource.Deployment("test", "").
 					WithSpec(kuberesource.DeploymentSpec().
 						WithTemplate(kuberesource.PodTemplateSpec().
+							WithLabels(map[string]string{
+								kuberesource.ContrastRoleLabelKey: string(manifest.RoleCoordinator),
+							}).
 							WithAnnotations(map[string]string{
-								kuberesource.InitdataAnnotationKey:     anno,
-								kuberesource.ContrastRoleAnnotationKey: string(manifest.RoleCoordinator),
+								kuberesource.InitdataAnnotationKey: anno,
 							}).
 							WithSpec(
 								kuberesource.PodSpec().
@@ -85,9 +87,11 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 				kuberesource.Deployment("test", "").
 					WithSpec(kuberesource.DeploymentSpec().
 						WithTemplate(kuberesource.PodTemplateSpec().
+							WithLabels(map[string]string{
+								kuberesource.ContrastRoleLabelKey: string(manifest.RoleCoordinator),
+							}).
 							WithAnnotations(map[string]string{
-								kuberesource.InitdataAnnotationKey:     anno,
-								kuberesource.ContrastRoleAnnotationKey: string(manifest.RoleCoordinator),
+								kuberesource.InitdataAnnotationKey: anno,
 							}).
 							WithSpec(
 								kuberesource.PodSpec().

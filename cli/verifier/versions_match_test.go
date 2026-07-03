@@ -19,8 +19,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: test
-  annotations:
-    %s: %s
+  labels:
+    %q: %q
 spec:
   runtimeClassName: contrast-cc
   containers:
@@ -66,7 +66,7 @@ func TestVerifyVersionsMatch(t *testing.T) {
 			version:       "v1.13.0",
 		},
 		"versions match with pod-role": {
-			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, kuberesource.ContrastRoleAnnotationKey, manifest.RoleCoordinator, "v1.13.0"),
+			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, kuberesource.ContrastRoleLabelKey, manifest.RoleCoordinator, "v1.13.0"),
 			version:       "v1.13.0",
 		},
 		"cli version newer": {
@@ -80,12 +80,12 @@ func TestVerifyVersionsMatch(t *testing.T) {
 			wantErr:       true,
 		},
 		"cli version mismatch with pod-role": {
-			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, kuberesource.ContrastRoleAnnotationKey, manifest.RoleCoordinator, "v1.13.0"),
+			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, kuberesource.ContrastRoleLabelKey, manifest.RoleCoordinator, "v1.13.0"),
 			version:       "v1.12.0",
 			wantErr:       true,
 		},
 		"cli version mismatch with differing pod-role unaffected": {
-			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, kuberesource.ContrastRoleAnnotationKey, manifest.RoleNone, "v1.13.0"),
+			k8sObjectYAML: fmt.Appendf(nil, coordinatorWithVersionTemplate, kuberesource.ContrastRoleLabelKey, manifest.RoleNone, "v1.13.0"),
 			version:       "v1.12.0",
 		},
 		"resource missing version skipped": {
