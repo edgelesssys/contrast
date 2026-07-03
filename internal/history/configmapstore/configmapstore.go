@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
@@ -30,6 +29,11 @@ import (
 
 // timeout is the timeout for Kubernetes API calls.
 const timeout = 10 * time.Second
+
+const (
+	appName      = "kvstore"
+	appComponent = "coordinator"
+)
 
 // ConfigMapStore is a Store implementation backed by Kubernetes Config Maps.
 type ConfigMapStore struct {
@@ -159,7 +163,6 @@ func (s *ConfigMapStore) Watch(key string) (<-chan []byte, func(), error) {
 		return nil, nil, err
 	}
 	watcher, err := s.client.CoreV1().ConfigMaps(s.namespace).Watch(context.Background(), metav1.ListOptions{
-		LabelSelector: labels.Set(map[string]string{"app.kubernetes.io/managed-by": "contrast.edgeless.systems"}).AsSelector().String(),
 		FieldSelector: fields.OneTermEqualSelector("metadata.name", cmName).String(),
 	})
 	if err != nil {
@@ -246,11 +249,13 @@ func RecoverConfigMaps(manifests [][]byte, policies [][]byte, latestTransitionHa
 }
 
 func (s *ConfigMapStore) newEntry(cmName, key string, value []byte) *corev1.ConfigMap {
+	labels := kuberesource.ContrastLabels(appName, appComponent)
+	labels[kuberesource.KubernetesAppManagedByLabel] = "contrast.edgeless.systems"
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cmName,
 			Namespace: s.namespace,
-			Labels:    map[string]string{"app.kubernetes.io/managed-by": "contrast.edgeless.systems"},
+			Labels:    labels,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: "apps/v1",

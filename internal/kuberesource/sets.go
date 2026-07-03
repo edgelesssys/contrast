@@ -64,10 +64,11 @@ func Runtime(platform platforms.Platform) ([]any, error) {
 func LogCollector() []any {
 	const (
 		name              = "log-collector"
+		component         = "test-resources"
 		priorityClassName = "high-priority-logcollector"
 	)
 
-	labels := map[string]string{"app.kubernetes.io/name": name}
+	labels := SelectorLabels(name, component)
 
 	tolerations := []*applycorev1.TolerationApplyConfiguration{
 		applycorev1.Toleration().
@@ -81,6 +82,7 @@ func LogCollector() []any {
 	}
 
 	ds := DaemonSet(name, "").
+		WithLabels(ContrastLabels(name, component)).
 		WithSpec(
 			DaemonSetSpec().
 				WithSelector(LabelSelector().WithMatchLabels(labels)).
@@ -138,18 +140,24 @@ func LogCollector() []any {
 
 // OpenSSL returns a set of resources for testing with OpenSSL.
 func OpenSSL() []any {
+	const (
+		backendName  = "openssl-backend"
+		frontendName = "openssl-frontend"
+		component    = "openssl"
+	)
 	ns := ""
-	backend := Deployment("openssl-backend", ns).
+	backend := Deployment(backendName, ns).
+		WithLabels(ContrastLabels(backendName, component)).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
 				WithSelector(
 					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "openssl-backend"}),
+						WithMatchLabels(SelectorLabels(backendName, component)),
 				).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-backend"}).
+						WithLabels(SelectorLabels(backendName, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -180,17 +188,18 @@ func OpenSSL() []any {
 
 	backendService := ServiceForDeployment(backend)
 
-	frontend := Deployment("openssl-frontend", ns).
+	frontend := Deployment(frontendName, ns).
+		WithLabels(ContrastLabels(frontendName, component)).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
 				WithSelector(
 					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "openssl-frontend"}),
+						WithMatchLabels(SelectorLabels(frontendName, component)),
 				).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-frontend"}).
+						WithLabels(SelectorLabels(frontendName, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -233,18 +242,20 @@ func OpenSSL() []any {
 
 // MultiCPU returns a deployment that requests 2 CPUs.
 func MultiCPU() []any {
+	const name = "multi-cpu"
 	return []any{
-		Deployment("multi-cpu", "").
+		Deployment(name, "").
+			WithLabels(ContrastLabels(name, name)).
 			WithSpec(
 				DeploymentSpec().
 					WithReplicas(1).
 					WithSelector(
 						LabelSelector().
-							WithMatchLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}),
+							WithMatchLabels(SelectorLabels(name, name)),
 					).
 					WithTemplate(
 						PodTemplateSpec().
-							WithLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}).
+							WithLabels(SelectorLabels(name, name)).
 							WithSpec(
 								PodSpec().
 									WithContainers(
@@ -272,6 +283,13 @@ func MultiCPU() []any {
 
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto(smMode serviceMeshMode) []any {
+	const (
+		emojiName   = "emoji"
+		voteBotName = "vote-bot"
+		votingName  = "voting"
+		webName     = "web"
+	)
+
 	ns := ""
 	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost, emojiWebSvcHost string
 	var memoryLimitMiB int64
@@ -301,31 +319,26 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		panic(fmt.Sprintf("unknown service mesh mode: %s", smMode))
 	}
 
-	emoji := Deployment("emoji", ns).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name":    "emoji",
-			"app.kubernetes.io/part-of": "emojivoto",
+	labels := func(name string) map[string]string {
+		return map[string]string{
+			KubernetesAppNameLabel:      name,
+			KubernetesAppPartOfLabel:    "emojivoto",
 			"app.kubernetes.io/version": "v11",
-		}).
+		}
+	}
+
+	emoji := Deployment(emojiName, ns).
+		WithLabels(labels(emojiName)).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{
-							"app.kubernetes.io/name": "emoji-svc",
-							"version":                "v11",
-						}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(labels(emojiName))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{
-							"app.kubernetes.io/name": "emoji-svc",
-							"version":                "v11",
-						}).
+						WithLabels(labels(emojiName)).
 						WithSpec(
 							PodSpec().
-								WithServiceAccountName("emoji").
+								WithServiceAccountName(emojiName).
 								WithContainers(
 									Container().
 										WithName("emoji-svc").
@@ -360,9 +373,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		WithName("emoji-svc").
 		WithSpec(
 			ServiceSpec().
-				WithSelector(
-					map[string]string{"app.kubernetes.io/name": "emoji-svc"},
-				).
+				WithSelector(labels(emojiName)).
 				WithPorts(
 					ServicePort().
 						WithName("grpc").
@@ -375,32 +386,19 @@ func Emojivoto(smMode serviceMeshMode) []any {
 				),
 		)
 
-	emojiserviceAccount := ServiceAccount("emoji", ns).
+	emojiserviceAccount := ServiceAccount(emojiName, ns).
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
 
-	voteBot := Deployment("vote-bot", ns).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name":    "vote-bot",
-			"app.kubernetes.io/part-of": "emojivoto",
-			"app.kubernetes.io/version": "v11",
-		}).
+	voteBot := Deployment(voteBotName, ns).
+		WithLabels(labels(voteBotName)).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{
-							"app.kubernetes.io/name": "vote-bot",
-							"version":                "v11",
-						}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(labels(voteBotName))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{
-							"app.kubernetes.io/name": "vote-bot",
-							"version":                "v11",
-						}).
+						WithLabels(labels(voteBotName)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -421,31 +419,18 @@ func Emojivoto(smMode serviceMeshMode) []any {
 				),
 		)
 
-	voting := Deployment("voting", ns).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name":    "voting",
-			"app.kubernetes.io/part-of": "emojivoto",
-			"app.kubernetes.io/version": "v11",
-		}).
+	voting := Deployment(votingName, ns).
+		WithLabels(labels(votingName)).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{
-							"app.kubernetes.io/name": "voting-svc",
-							"version":                "v11",
-						}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(labels(votingName))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{
-							"app.kubernetes.io/name": "voting-svc",
-							"version":                "v11",
-						}).
+						WithLabels(labels(votingName)).
 						WithSpec(
 							PodSpec().
-								WithServiceAccountName("voting").
+								WithServiceAccountName(votingName).
 								WithContainers(
 									Container().
 										WithName("voting-svc").
@@ -480,9 +465,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		WithName("voting-svc").
 		WithSpec(
 			ServiceSpec().
-				WithSelector(
-					map[string]string{"app.kubernetes.io/name": "voting-svc"},
-				).
+				WithSelector(labels(votingName)).
 				WithPorts(
 					ServicePort().
 						WithName("grpc").
@@ -495,35 +478,22 @@ func Emojivoto(smMode serviceMeshMode) []any {
 				),
 		)
 
-	votingserviceAccount := ServiceAccount("voting", ns).
+	votingserviceAccount := ServiceAccount(votingName, ns).
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
 
-	web := Deployment("web", ns).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name":    "web",
-			"app.kubernetes.io/part-of": "emojivoto",
-			"app.kubernetes.io/version": "v11",
-		}).
+	web := Deployment(webName, ns).
+		WithLabels(labels(webName)).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{
-							"app.kubernetes.io/name": "web-svc",
-							"version":                "v11",
-						}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(labels(webName))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{
-							"app.kubernetes.io/name": "web-svc",
-							"version":                "v11",
-						}).
+						WithLabels(labels(webName)).
 						WithSpec(
 							PodSpec().
-								WithServiceAccountName("web").
+								WithServiceAccountName(webName).
 								WithContainers(
 									Container().
 										WithName("web-svc").
@@ -561,9 +531,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		WithAnnotations(map[string]string{ExposeServiceAnnotationKey: "true"}).
 		WithSpec(
 			ServiceSpec().
-				WithSelector(
-					map[string]string{"app.kubernetes.io/name": "web-svc"},
-				).
+				WithSelector(labels(webName)).
 				WithType("ClusterIP").
 				WithPorts(
 					ServicePort().
@@ -573,7 +541,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 				),
 		)
 
-	webserviceAccount := ServiceAccount("web", ns).
+	webserviceAccount := ServiceAccount(webName, ns).
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
 
@@ -628,21 +596,19 @@ func Emojivoto(smMode serviceMeshMode) []any {
 // VolumeStatefulSet returns a stateful set for testing volume mounts and the
 // mounting of encrypted luks volumes using the workload-secret.
 func VolumeStatefulSet() []any {
-	vss := StatefulSet("volume-tester", "").
+	const name = "volume-tester"
+	vss := StatefulSet(name, "").
 		WithSpec(
 			StatefulSetSpec().
 				WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
 					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
 					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}),
-				).
-				WithServiceName("volume-tester").
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, name))).
+				WithServiceName(name).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}).
+						WithLabels(SelectorLabels(name, name)).
 						WithAnnotations(map[string]string{SecurePVAnnotationKey: "state:share"}).
 						WithSpec(
 							PodSpec().
@@ -689,6 +655,11 @@ func VolumeStatefulSet() []any {
 // MySQL returns the resources for deploying a MySQL database
 // with an encrypted luks volume using the workload-secret.
 func MySQL() []any {
+	const (
+		backendName = "mysql-backend"
+		clientName  = "mysql-client"
+		component   = "mysql"
+	)
 	backend := StatefulSet("mysql-backend", "").
 		WithSpec(
 			StatefulSetSpec().
@@ -696,14 +667,11 @@ func MySQL() []any {
 					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
 					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "mysql-backend"}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(backendName, component))).
 				WithServiceName("mysql-backend").
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-backend"}).
+						WithLabels(SelectorLabels(backendName, component)).
 						WithAnnotations(map[string]string{
 							SmIngressConfigAnnotationKey: "",
 							SecurePVAnnotationKey:        "state:share",
@@ -779,17 +747,14 @@ while true; do
 done
 `
 
-	client := Deployment("mysql-client", "").
+	client := Deployment(clientName, "").
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "mysql-client"}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(clientName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-client"}).
+						WithLabels(SelectorLabels(clientName, component)).
 						WithAnnotations(map[string]string{SmEgressConfigAnnotationKey: "mysql-backend#127.137.0.1:3306#mysql-backend:3306"}).
 						WithSpec(
 							PodSpec().
@@ -840,17 +805,15 @@ done
 // gpuClass must be a vendor/class pair, like nvidia.com/GB100_B200.
 // gpuQuantity is the number of GPUs.
 func GPU(name string, gpuClass string, gpuQuantity int64) []any {
+	component := "gpu-test"
 	tester := Deployment(name, "").
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+						WithLabels(SelectorLabels(name, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -920,6 +883,10 @@ func GPU(name string, gpuClass string, gpuQuantity int64) []any {
 // Vault returns the resources for deploying a user managed vault.
 func Vault(namespace string) []any {
 	const (
+		serverName = "vault"
+		clientName = "vault-client"
+		component  = "vault"
+
 		vaultImage = "quay.io/openbao/openbao:2.5.2@sha256:6c75c97223873807260352f269640935a07db0c26b3dbf12a98a36ec43ad9878"
 
 		vaultServerEntrypoint = `set -e
@@ -961,21 +928,18 @@ seal "transit" {
 `
 	)
 
-	vaultSfSets := StatefulSet("vault", namespace).
+	vaultSfSets := StatefulSet(serverName, namespace).
 		WithSpec(
 			StatefulSetSpec().
 				WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
 					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
 					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "vault"}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(serverName, component))).
 				WithServiceName("vault").
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "vault"}).
+						WithLabels(SelectorLabels(serverName, component)).
 						WithAnnotations(map[string]string{
 							WorkloadSecretIDAnnotationKey: "vault_unsealing",
 							SecurePVAnnotationKey:         "state:share",
@@ -1058,17 +1022,14 @@ seal "transit" {
 		},
 	)
 
-	client := Deployment("vault-client", namespace).
+	client := Deployment(clientName, namespace).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "vault-client"}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(clientName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "vault-client"}).
+						WithLabels(SelectorLabels(clientName, component)).
 						WithSpec(
 							PodSpec().
 								WithVolumes(
@@ -1114,18 +1075,20 @@ seal "transit" {
 
 // MemDump returns the resources for the memdump test.
 func MemDump() []any {
+	const (
+		listenerName = "listener"
+		senderName   = "sender"
+		component    = "memdump"
+	)
 	ns := ""
-	listener := Deployment("listener", ns).
+	listener := Deployment(listenerName, ns).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "listener"}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(listenerName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "listener"}).
+						WithLabels(SelectorLabels(listenerName, component)).
 						WithAnnotations(map[string]string{
 							SmIngressConfigAnnotationKey: "netcat#8000#false",
 						}).
@@ -1161,17 +1124,14 @@ func MemDump() []any {
 
 	listenerService := ServiceForDeployment(listener)
 
-	sender := Deployment("sender", ns).
+	sender := Deployment(senderName, ns).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "sender"}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(senderName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "sender"}).
+						WithLabels(SelectorLabels(senderName, component)).
 						WithAnnotations(map[string]string{
 							SmEgressConfigAnnotationKey: "netcat#127.137.0.1:8000#listener:8000",
 						}).
@@ -1202,17 +1162,18 @@ func MemDump() []any {
 
 // MemDumpTester returns the non-cc resources for the memdump test.
 func MemDumpTester() []any {
-	memdump := Deployment("memdump", "").
+	const (
+		name      = "memdump"
+		component = "memdump"
+	)
+	memdump := Deployment(name, "").
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "memdump"}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "memdump"}).
+						WithLabels(SelectorLabels(name, component)).
 						WithSpec(
 							PodSpec().
 								WithHostPID(true).
@@ -1244,17 +1205,15 @@ func MemDumpTester() []any {
 
 // AuthenticatedPullTester returns the resources for the imagepuller-auth test.
 func AuthenticatedPullTester(name string) any {
+	const component = "imagepuller-auth-test"
 	deployment := Deployment(name, "").
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+						WithLabels(SelectorLabels(name, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -1276,18 +1235,16 @@ func AuthenticatedPullTester(name string) any {
 
 // Containerd11644ReproducerTesters returns the resources for the reproducer test for containerd issue #11644.
 func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApplyConfiguration, *applyappsv1.DeploymentApplyConfiguration) {
+	const component = "containerd-11644-reproducer"
 	runcName := fmt.Sprintf("%s-runc", name)
 	runc := Deployment(runcName, "").
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": runcName}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(runcName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": runcName}).
+						WithLabels(SelectorLabels(runcName, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -1309,13 +1266,10 @@ func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApply
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": ccName}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(ccName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": ccName}).
+						WithLabels(SelectorLabels(ccName, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -1337,17 +1291,15 @@ func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApply
 
 // IPSec returns the resources for testing IPSec tunnels with strongSwan.
 func IPSec() []any {
-	deploy := Deployment("ipsec", "").
+	const name = "ipsec"
+	deploy := Deployment(name, "").
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(2).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "ipsec"}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, name))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": "ipsec"}).
+						WithLabels(SelectorLabels(name, name)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -1373,13 +1325,10 @@ func DeploymentWithRuntimeClass(name, runtimeClassName string) any {
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(
-					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
-				).
+				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, name))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+						WithLabels(SelectorLabels(name, name)).
 						WithSpec(
 							PodSpec().
 								WithContainers(

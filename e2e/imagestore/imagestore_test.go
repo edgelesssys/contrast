@@ -231,7 +231,6 @@ func TestMain(m *testing.M) {
 
 func testPod(name, annotation string) any {
 	return kuberesource.Pod(name, "").
-		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
 		WithAnnotations(map[string]string{kuberesource.ImageStoreSizeAnnotationKey: annotation}).
 		WithSpec(
 			kuberesource.PodSpec().
@@ -258,7 +257,6 @@ func testPod(name, annotation string) any {
 
 func postgresPod() any {
 	return kuberesource.Pod("postgres", "").
-		WithLabels(map[string]string{"app.kubernetes.io/name": "postgres"}).
 		WithAnnotations(map[string]string{kuberesource.ImageStoreSizeAnnotationKey: "0"}).
 		WithSpec(
 			kuberesource.PodSpec().

@@ -59,4 +59,17 @@ const (
 
 	// MainRunnerNodeLabel restricts pods to the bare-metal nodes of our CI runner.
 	MainRunnerNodeLabel = "ci.contrast.edgeless.systems/main-runner"
+
+	// Labels defined in https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/.
+
+	// KubernetesAppNameLabel is the name of the application.
+	KubernetesAppNameLabel = "app.kubernetes.io/name"
+	// KubernetesAppComponentLabel is the component within the architecture.
+	KubernetesAppComponentLabel = "app.kubernetes.io/component"
+	// KubernetesAppPartOfLabel is the name of a higher level application this one is part of.
+	KubernetesAppPartOfLabel = "app.kubernetes.io/part-of"
+	// KubernetesAppVersionLabel is the current version of the application.
+	KubernetesAppVersionLabel = "app.kubernetes.io/version"
+	// KubernetesAppManagedByLabel is the tool being used to manage the operation of an application.
+	KubernetesAppManagedByLabel = "app.kubernetes.io/managed-by"
 )

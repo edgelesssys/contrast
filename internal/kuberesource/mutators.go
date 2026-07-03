@@ -672,7 +672,7 @@ func HasNameLabel(targetName string) ResourceFilter {
 			return false
 		}
 
-		name, exists := meta.Labels["app.kubernetes.io/name"]
+		name, exists := meta.Labels[KubernetesAppNameLabel]
 		return exists && name == targetName
 	}
 }
