@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	appsv1 "k8s.io/api/apps/v1"
@@ -97,6 +98,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 	}
 
 	name := fmt.Sprintf("%s-nodeinstaller", runtimeHandler)
+	const component = "runtime"
 
 	var nodeInstallerImageURL string
 	switch {
@@ -108,20 +110,20 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
 
+	selector := SelectorLabels(name, component)
+	selector[ContrastRoleLabelKey] = string(manifest.RoleNodeInstaller)
+
 	d := DaemonSet(name, namespace).
-		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+		WithLabels(ContrastLabels(name, component)).
 		WithSpec(
 			DaemonSetSpec().
 				WithSelector(
 					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
+						WithMatchLabels(selector),
 				).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{
-							ContrastRoleLabelKey:     string(manifest.RoleNodeInstaller),
-							"app.kubernetes.io/name": name,
-						}).
+						WithLabels(selector).
 						WithSpec(
 							PodSpec().
 								WithHostPID(true).
@@ -252,7 +254,7 @@ func PortForwarder(name, namespace string) *PortForwarderConfig {
 	name = "port-forwarder-" + name
 
 	p := Pod(name, namespace).
-		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+		WithLabels(ContrastLabels(name, "test-resources")).
 		WithSpec(
 			PodSpec().
 				WithContainers(
@@ -294,24 +296,25 @@ type CoordinatorConfig struct {
 
 // Coordinator constructs a new CoordinatorConfig.
 func Coordinator(namespace string) *CoordinatorConfig {
+	labelSelector := SelectorLabels("coordinator", "coordinator")
+	labelSelector[ContrastRoleLabelKey] = string(manifest.RoleCoordinator)
+
 	c := StatefulSet("coordinator", namespace).
+		WithLabels(ContrastLabels("coordinator", "coordinator")).
 		WithSpec(
 			StatefulSetSpec().
 				WithReplicas(1).
 				WithServiceName("coordinator").
 				WithSelector(
 					LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}),
+						WithMatchLabels(labelSelector),
 				).
 				WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
 					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
 					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)). // TODO(burgerdev): this should be RETAIN for released coordinators.
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(map[string]string{
-							"app.kubernetes.io/name": "coordinator",
-							ContrastRoleLabelKey:     string(manifest.RoleCoordinator),
-						}).
+						WithLabels(labelSelector).
 						WithSpec(
 							PodSpec().
 								WithServiceAccountName("coordinator").
@@ -645,7 +648,6 @@ func CollateralProxy(namespace, storageClassName string) []any {
 		stateDir = "/var/lib/collateral-proxy"
 		stateVol = "state"
 	)
-	labels := map[string]string{"app.kubernetes.io/name": name}
 
 	pvcSpec := applycorev1.PersistentVolumeClaimSpec().
 		WithAccessModes(corev1.ReadWriteOnce).
@@ -657,12 +659,13 @@ func CollateralProxy(namespace, storageClassName string) []any {
 
 	mem := corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("256Mi")}
 	statefulSet := StatefulSet(name, namespace).
+		WithLabels(ContrastLabels(name, name)).
 		WithSpec(StatefulSetSpec().
 			WithReplicas(1).
 			WithServiceName(name).
-			WithSelector(LabelSelector().WithMatchLabels(labels)).
+			WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, name))).
 			WithTemplate(PodTemplateSpec().
-				WithLabels(labels).
+				WithLabels(SelectorLabels(name, name)).
 				WithSpec(PodSpec().
 					WithContainers(applycorev1.Container().
 						WithName(name).
@@ -686,4 +689,27 @@ func CollateralProxy(namespace, storageClassName string) []any {
 				WithSpec(pvcSpec)))
 
 	return []any{statefulSet, ServiceForStatefulSet(statefulSet)}
+}
+
+// ContrastLabels should be applied to top-level resources.
+// In addition to name and component, it also labels part-of and version with compile-time constants.
+func ContrastLabels(name, component string) map[string]string {
+	// The version must be a label-safe semver: strip the leading "v", and assume
+	// no "+build" metadata, since '+' is invalid in a label value.
+	version, _ := strings.CutPrefix(constants.Version, "v")
+	return map[string]string{
+		KubernetesAppNameLabel:      name,
+		KubernetesAppComponentLabel: component,
+		KubernetesAppPartOfLabel:    "contrast",
+		KubernetesAppVersionLabel:   version,
+	}
+}
+
+// SelectorLabels should be used to construct pod selectors, for example in a Deployment.
+func SelectorLabels(name, component string) map[string]string {
+	return map[string]string{
+		KubernetesAppNameLabel:      name,
+		KubernetesAppComponentLabel: component,
+		KubernetesAppPartOfLabel:    "contrast",
+	}
 }

@@ -423,10 +423,10 @@ wait-for-workload target=default_deploy_target set=default_set:
             nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns openssl-frontend
         ;;
         "emojivoto" | "emojivoto-sm-ingress")
-            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns emoji-svc
+            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns emoji
             nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns vote-bot
-            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns voting-svc
-            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns web-svc
+            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns voting
+            nix run -L .#{{ set }}.scripts.kubectl-wait-ready -- $ns web
         ;;
         "volume-stateful-set")
             nix run .#{{ set }}.scripts.kubectl-wait-ready -- $ns volume-tester
