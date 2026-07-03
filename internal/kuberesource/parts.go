@@ -120,7 +120,6 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
 						WithAnnotations(map[string]string{
-							ContrastRoleLabelKey:                 string(manifest.RoleNodeInstaller),
 							"contrast.edgeless.systems/platform": platform.String(),
 						}).
 						WithSpec(
