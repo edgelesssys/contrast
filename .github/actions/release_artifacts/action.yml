@@ -121,6 +121,7 @@ runs:
         workspace/vault-demo.yml
         workspace/node-installer-target-config-k3s.yml
         workspace/node-installer-target-config-rke2.yml
+        workspace/*.cdx.json
         EOM
         EOF
     - name: Create coordinator resource definitions
@@ -186,6 +187,18 @@ runs:
             --namespace contrast-system \
             --add-namespace-object \
             node-installer-target-conf > "workspace/node-installer-target-config-${distro}.yml"
+        done
+    - name: Create category SBOMs
+      shell: bash
+      env:
+        SET: base
+      run: |
+        set -euo pipefail
+        mkdir -p workspace
+        for category in cli runtimeConfidential runtimeNonConfidential; do
+          sbom=$(nix run ".#${SET}.scripts.finalize-sbom" -- "$category")
+          id=$(jq -r '.metadata.component.name' <<<"$sbom")
+          printf '%s\n' "$sbom" > "workspace/${id}.cdx.json"
         done
     - uses: ./.github/actions/build_cli
       with:
