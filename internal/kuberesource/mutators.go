@@ -22,30 +22,6 @@ import (
 	applyrbacv1 "k8s.io/client-go/applyconfigurations/rbac/v1"
 )
 
-const (
-	exposeServiceAnnotation       = "contrast.edgeless.systems/expose-service"
-	skipInitializerAnnotationKey  = "contrast.edgeless.systems/skip-initializer"
-	smIngressConfigAnnotationKey  = "contrast.edgeless.systems/servicemesh-ingress"
-	smEgressConfigAnnotationKey   = "contrast.edgeless.systems/servicemesh-egress"
-	smAdminInterfaceAnnotationKey = "contrast.edgeless.systems/servicemesh-admin-interface-port"
-	securePVAnnotationKey         = "contrast.edgeless.systems/secure-pv"
-	workloadSecretIDAnnotationKey = "contrast.edgeless.systems/workload-secret-id"
-
-	// ImageStoreSizeAnnotationKey is the annotation key used to configure the size of the image store volume.
-	ImageStoreSizeAnnotationKey = "contrast.edgeless.systems/image-store-size"
-
-	// TDXEnabledNodeLabel is the node-feature-discovery label that marks a node as TDX-capable.
-	TDXEnabledNodeLabel = "feature.node.kubernetes.io/tdx.enabled"
-
-	// MainRunnerNodeLabel restricts pods to the bare-metal nodes of our CI runner.
-	MainRunnerNodeLabel = "ci.contrast.edgeless.systems/main-runner"
-
-	// ContrastRoleAnnotationKey assigns a role to the annotated pod.
-	//
-	// This is used to determine whether a given pod may act as Coordinator.
-	ContrastRoleAnnotationKey = "contrast.edgeless.systems/pod-role"
-)
-
 // CollateralProxyDefaultService is the default in-cluster URL of the collateral-proxy.
 const CollateralProxyDefaultService = "http://collateral-proxy.default.svc"
 
@@ -71,14 +47,14 @@ func AddInitializer(
 	initializer *applycorev1.ContainerApplyConfiguration,
 ) (res any, retErr error) {
 	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-		if meta != nil && meta.Annotations[skipInitializerAnnotationKey] == "true" {
+		if meta != nil && meta.Annotations[SkipInitializerAnnotationKey] == "true" {
 			return meta, spec
 		}
 		if !IsContrastPod(spec) {
 			return meta, spec
 		}
-		if meta != nil && meta.Annotations[securePVAnnotationKey] != "" {
-			securePVValues := strings.Split(meta.Annotations[securePVAnnotationKey], ":")
+		if meta != nil && meta.Annotations[SecurePVAnnotationKey] != "" {
+			securePVValues := strings.Split(meta.Annotations[SecurePVAnnotationKey], ":")
 			if len(securePVValues) != 2 {
 				retErr = fmt.Errorf("secure PV annotation has to be in the format 'device-name:mount-name'")
 				return nil, nil
@@ -212,9 +188,9 @@ func AddServiceMesh(
 			return meta, spec
 		}
 
-		ingressConfig := meta.Annotations[smIngressConfigAnnotationKey]
-		egressConfig := meta.Annotations[smEgressConfigAnnotationKey]
-		portAnnotation := meta.Annotations[smAdminInterfaceAnnotationKey]
+		ingressConfig := meta.Annotations[SmIngressConfigAnnotationKey]
+		egressConfig := meta.Annotations[SmEgressConfigAnnotationKey]
+		portAnnotation := meta.Annotations[SmAdminInterfaceAnnotationKey]
 
 		// Remove already existing init containers with unique service mesh name.
 		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
@@ -502,7 +478,7 @@ func AddLoadBalancers(resources []any) []any {
 	for _, resource := range resources {
 		switch obj := resource.(type) {
 		case *applycorev1.ServiceApplyConfiguration:
-			if obj.Annotations[exposeServiceAnnotation] == "true" {
+			if obj.Annotations[ExposeServiceAnnotationKey] == "true" {
 				if obj.Spec != nil {
 					obj.Spec.WithType("LoadBalancer")
 				}
@@ -729,11 +705,11 @@ func PatchServiceMeshAdminInterface(resources []any, port int32, shouldPatch Res
 				return meta, spec
 			}
 
-			_, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
-			_, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
+			_, ingressOk := meta.Annotations[SmIngressConfigAnnotationKey]
+			_, egressOk := meta.Annotations[SmEgressConfigAnnotationKey]
 			if ingressOk || egressOk {
-				meta.WithAnnotations(map[string]string{smAdminInterfaceAnnotationKey: fmt.Sprint(port)})
-				meta.Annotations[smIngressConfigAnnotationKey] += fmt.Sprintf("##admin#%d#true", port)
+				meta.WithAnnotations(map[string]string{SmAdminInterfaceAnnotationKey: fmt.Sprint(port)})
+				meta.Annotations[SmIngressConfigAnnotationKey] += fmt.Sprintf("##admin#%d#true", port)
 			}
 			return meta, spec
 		}))
@@ -901,9 +877,9 @@ func needsServiceMesh(meta *applymetav1.ObjectMetaApplyConfiguration) bool {
 	if meta == nil {
 		return false
 	}
-	_, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
-	_, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
-	_, portOk := meta.Annotations[smAdminInterfaceAnnotationKey]
+	_, ingressOk := meta.Annotations[SmIngressConfigAnnotationKey]
+	_, egressOk := meta.Annotations[SmEgressConfigAnnotationKey]
+	_, portOk := meta.Annotations[SmAdminInterfaceAnnotationKey]
 
 	return ingressOk || egressOk || portOk
 }

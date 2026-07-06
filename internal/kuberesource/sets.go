@@ -21,7 +21,7 @@ func CoordinatorBundle() []any {
 	coordinator := Coordinator("")
 
 	coordinatorService := ServiceForStatefulSet(coordinator.StatefulSetApplyConfiguration).
-		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
+		WithAnnotations(map[string]string{ExposeServiceAnnotationKey: "true"})
 	coordinatorService.Spec.WithPublishNotReadyAddresses(true)
 
 	coordinatorReadyService := ServiceForStatefulSet(coordinator.StatefulSetApplyConfiguration).
@@ -558,7 +558,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 
 	webService := ServiceForDeployment(web).
 		WithName("web-svc").
-		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"}).
+		WithAnnotations(map[string]string{ExposeServiceAnnotationKey: "true"}).
 		WithSpec(
 			ServiceSpec().
 				WithSelector(
@@ -608,18 +608,18 @@ func Emojivoto(smMode serviceMeshMode) []any {
 	}
 
 	emoji.Spec.Template.WithAnnotations(map[string]string{
-		smIngressConfigAnnotationKey: "",
+		SmIngressConfigAnnotationKey: "",
 	})
 	voting.Spec.Template.WithAnnotations(map[string]string{
-		smIngressConfigAnnotationKey: "",
+		SmIngressConfigAnnotationKey: "",
 	})
 	web.Spec.Template.WithAnnotations(map[string]string{
-		smIngressConfigAnnotationKey: "web#8080#false",
-		smEgressConfigAnnotationKey:  "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080",
+		SmIngressConfigAnnotationKey: "web#8080#false",
+		SmEgressConfigAnnotationKey:  "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080",
 	})
 	voteBot.Spec.Template.WithAnnotations(map[string]string{
-		smIngressConfigAnnotationKey: "DISABLED",
-		smEgressConfigAnnotationKey:  "web#127.137.0.3:8081#web-svc:443",
+		SmIngressConfigAnnotationKey: "DISABLED",
+		SmEgressConfigAnnotationKey:  "web#127.137.0.3:8081#web-svc:443",
 	})
 
 	return resources
@@ -643,7 +643,7 @@ func VolumeStatefulSet() []any {
 				WithTemplate(
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}).
-						WithAnnotations(map[string]string{securePVAnnotationKey: "state:share"}).
+						WithAnnotations(map[string]string{SecurePVAnnotationKey: "state:share"}).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -705,8 +705,8 @@ func MySQL() []any {
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-backend"}).
 						WithAnnotations(map[string]string{
-							smIngressConfigAnnotationKey: "",
-							securePVAnnotationKey:        "state:share",
+							SmIngressConfigAnnotationKey: "",
+							SecurePVAnnotationKey:        "state:share",
 						}).
 						WithSpec(
 							PodSpec().
@@ -779,7 +779,7 @@ done
 				WithTemplate(
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-client"}).
-						WithAnnotations(map[string]string{smEgressConfigAnnotationKey: "mysql-backend#127.137.0.1:3306#mysql-backend:3306"}).
+						WithAnnotations(map[string]string{SmEgressConfigAnnotationKey: "mysql-backend#127.137.0.1:3306#mysql-backend:3306"}).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -946,8 +946,8 @@ seal "transit" {
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": "vault"}).
 						WithAnnotations(map[string]string{
-							workloadSecretIDAnnotationKey: "vault_unsealing",
-							securePVAnnotationKey:         "state:share",
+							WorkloadSecretIDAnnotationKey: "vault_unsealing",
+							SecurePVAnnotationKey:         "state:share",
 						}).
 						WithSpec(
 							PodSpec().
@@ -1018,7 +1018,7 @@ seal "transit" {
 				),
 		)
 	vaultService := ServiceForStatefulSet(vaultSfSets).
-		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
+		WithAnnotations(map[string]string{ExposeServiceAnnotationKey: "true"})
 	vaultService.Spec.WithPublishNotReadyAddresses(true)
 
 	configMap := ConfigMap("vault-config", namespace).WithData(
@@ -1096,7 +1096,7 @@ func MemDump() []any {
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": "listener"}).
 						WithAnnotations(map[string]string{
-							smIngressConfigAnnotationKey: "netcat#8000#false",
+							SmIngressConfigAnnotationKey: "netcat#8000#false",
 						}).
 						WithSpec(
 							PodSpec().
@@ -1142,7 +1142,7 @@ func MemDump() []any {
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": "sender"}).
 						WithAnnotations(map[string]string{
-							smEgressConfigAnnotationKey: "netcat#127.137.0.1:8000#listener:8000",
+							SmEgressConfigAnnotationKey: "netcat#127.137.0.1:8000#listener:8000",
 						}).
 						WithSpec(
 							PodSpec().
