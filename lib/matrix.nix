@@ -53,16 +53,36 @@ rec {
       e: lib.meta.availableOn hostPlatform e.path && e.path.system == hostPlatform.system
     ) entries;
 
+  matrixSkip = [
+    "contrastPkgsStatic"
+    "contrast-releases"
+    "matrix"
+    "cargoNixPackage" # crate2nix standalone outputs
+    "sbom"
+  ];
+
+  # From a list of linkFarm entries, the derivations that expose a passthru.bombonVendoredSbom.
+  vendoredSbomsOf =
+    entries:
+    let
+      carrying = lib.concatMap (
+        e:
+        let
+          has = builtins.tryEval (e.path ? bombonVendoredSbom);
+        in
+        lib.optional (has.success && has.value) e.path
+      ) entries;
+    in
+    lib.attrValues (lib.listToAttrs (map (p: lib.nameValuePair (p.pname or p.name) p) carrying));
+
   mkMatrix =
     pkgs:
-    pkgs.linkFarm "contrast-matrix" (
-      buildableOn pkgs.stdenv.hostPlatform (
-        collectDerivations [
-          "contrastPkgsStatic"
-          "contrast-releases"
-          "matrix"
-          "cargoNixPackage" # crate2nix standalone outputs
-        ] pkgs.contrastPkgs
-      )
-    );
+    let
+      entries = buildableOn pkgs.stdenv.hostPlatform (collectDerivations matrixSkip pkgs.contrastPkgs);
+    in
+    (pkgs.linkFarm "contrast-matrix" entries).overrideAttrs (prev: {
+      passthru = (prev.passthru or { }) // {
+        vendoredSbomRoots = vendoredSbomsOf entries;
+      };
+    });
 }
