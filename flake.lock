@@ -1,5 +1,26 @@
 {
   "nodes": {
+    "bombon": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1783417988,
+        "narHash": "sha256-o4FeB8HaKwQYL8RMVwfGIM+x0gjv/Xn1va4/qBuH41g=",
+        "owner": "edgelesssys",
+        "repo": "bombon",
+        "rev": "8f0412a597fcb64b418be74ca402e58b37e95dd2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "edgelesssys",
+        "repo": "bombon",
+        "rev": "8f0412a597fcb64b418be74ca402e58b37e95dd2",
+        "type": "github"
+      }
+    },
     "cachix": {
       "inputs": {
         "devenv": [
@@ -356,6 +377,7 @@
     },
     "root": {
       "inputs": {
+        "bombon": "bombon",
         "crate2nix": "crate2nix",
         "fenix": "fenix",
         "flake-utils": "flake-utils",

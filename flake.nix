@@ -25,6 +25,10 @@
       url = "github:edgelesssys/crate2nix/3597241ae1fb786945725ef72a6b439da717793a";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    bombon = {
+      url = "github:edgelesssys/bombon/8f0412a597fcb64b418be74ca402e58b37e95dd2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -76,6 +80,9 @@
 
         defaultOverlays = set: [
           (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
+          (final: _prev: {
+            inherit (import self.inputs.bombon { pkgs = final; }) buildBom;
+          })
           (final: _prev: {
             crate2nix = self.inputs.crate2nix.packages.${final.stdenv.hostPlatform.system}.default;
           })
