@@ -300,4 +300,8 @@ func failf(format string, v ...any) {
 		log.Printf("Error moving file: %v", err)
 		return
 	}
+
+	// We signal readiness only after successfully writing the fake policy to avoid a race between
+	// us writing and the Kata agent reading.
+	sdNotifyReady()
 }
