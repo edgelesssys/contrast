@@ -59,7 +59,7 @@ func TestImageStore(t *testing.T) {
 		resources = append(resources, testPod(tc.name, tc.annotation))
 	}
 
-	resources = append(resources, tensorflowPod())
+	resources = append(resources, postgresPod())
 
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	resources = kuberesource.AddPortForwarders(resources)
@@ -168,10 +168,17 @@ func TestImageStore(t *testing.T) {
 
 		require = req.New(t)
 
-		// The container is equipped with a very low memory limit, not nearly enough to pull the ~7Gi image.
-		// This verifies that the added pod memory limit during generate is enough to pull the image
+		// The uncompressed and compressed postgres image layers together are ~815Mi.
+		// The largest VM memory when not using auto-memory limits can be calculated as:
+		//   - default memory (GPU): 1024Mi
+		//   - debugshell memory limit: 1000Mi
+		//   - container memory limit: 10Mi
+		// The available memory for image pulling is then (1024+1000+10) / 2 = 1017Mi.
+		// The debugshell image is ~500-600Mi, which leaves ~400-500Mi for pulling the postgres image,
+		// so the pod wouldn't be able to start.
+		// This test verifies that the added pod memory limit during generate is enough to pull the image
 		// when the imagestore is disbabled. If the pod comes up, the test passes.
-		require.NoError(ct.Kubeclient.WaitForPod(ctx, ct.Namespace, "tensorflow"))
+		require.NoError(ct.Kubeclient.WaitForPod(ctx, ct.Namespace, "postgres"))
 	})
 }
 
@@ -249,21 +256,31 @@ func testPod(name, annotation string) any {
 		)
 }
 
-func tensorflowPod() any {
-	return kuberesource.Pod("tensorflow", "").
-		WithLabels(map[string]string{"app.kubernetes.io/name": "tensorflow"}).
+func postgresPod() any {
+	return kuberesource.Pod("postgres", "").
+		WithLabels(map[string]string{"app.kubernetes.io/name": "postgres"}).
 		WithAnnotations(map[string]string{kuberesource.ImageStoreSizeAnnotationKey: "0"}).
 		WithSpec(
 			kuberesource.PodSpec().
 				WithContainers(
 					kuberesource.Container().
-						WithName("tensorflow").
-						WithImage("ghcr.io/edgelesssys/tensorflow@sha256:73fe35b67dad5fa5ab0824ed7efeb586820317566a705dff76142f8949ffcaff").
+						WithName("postgres").
+						WithImage("docker.io/library/postgres@sha256:4aabea78cf39b90e834caf3af7d602a18565f6fe2508705c8d01aa63245c2e20").
 						WithCommand("/bin/bash", "-c", "sleep infinity").
 						WithResources(
 							kuberesource.ResourceRequirements().
 								WithMemoryLimitAndRequest(10),
+						).
+						WithVolumeMounts(
+							kuberesource.VolumeMount().
+								WithName("postgres-data").
+								WithMountPath("/var/lib/postgresql"),
 						),
+				).
+				WithVolumes(
+					kuberesource.Volume().
+						WithName("postgres-data").
+						WithEmptyDir(kuberesource.EmptyDirVolumeSource().Inner()),
 				),
 		)
 }
