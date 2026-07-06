@@ -254,7 +254,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
+						WithAnnotations(map[string]string{SecurePVAnnotationKey: "device:mount"}).
 						WithSpec(
 							applycorev1.PodSpec().
 								WithContainers(applycorev1.Container()).
@@ -272,7 +272,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithAnnotations(map[string]string{securePVAnnotationKey: "test"}).
+						WithAnnotations(map[string]string{SecurePVAnnotationKey: "test"}).
 						WithSpec(
 							applycorev1.PodSpec().
 								WithContainers(applycorev1.Container()).
@@ -285,7 +285,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
+						WithAnnotations(map[string]string{SecurePVAnnotationKey: "device:mount"}).
 						WithSpec(
 							applycorev1.PodSpec().
 								WithContainers(applycorev1.Container()).
@@ -298,7 +298,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
+						WithAnnotations(map[string]string{SecurePVAnnotationKey: "device:mount"}).
 						WithSpec(
 							applycorev1.PodSpec().
 								WithContainers(applycorev1.Container()).
@@ -329,8 +329,8 @@ func TestAddInitializer(t *testing.T) {
 			require.NotEmpty(tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts)
 			require.Equal(expectedInitializerVolumeMountName, *tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name)
 
-			if tc.d.Annotations[securePVAnnotationKey] != "" {
-				securePVValue := strings.Split(tc.d.Annotations[securePVAnnotationKey], ":")
+			if tc.d.Annotations[SecurePVAnnotationKey] != "" {
+				securePVValue := strings.Split(tc.d.Annotations[SecurePVAnnotationKey], ":")
 				_, mountName := securePVValue[0], securePVValue[1]
 				sharedVolumeMountCount := 0
 				for _, v := range tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts {
@@ -409,7 +409,7 @@ func TestAddServiceMesh(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
+						WithAnnotations(map[string]string{SmIngressConfigAnnotationKey: ""}).
 						WithSpec(
 							applycorev1.PodSpec().
 								WithContainers(applycorev1.Container()).
@@ -435,7 +435,7 @@ func TestAddServiceMesh(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
+						WithAnnotations(map[string]string{SmIngressConfigAnnotationKey: ""}).
 						WithSpec(
 							applycorev1.PodSpec().
 								WithContainers(applycorev1.Container()).
@@ -449,7 +449,7 @@ func TestAddServiceMesh(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
+						WithAnnotations(map[string]string{SmIngressConfigAnnotationKey: ""}).
 						WithSpec(
 							applycorev1.PodSpec().
 								WithContainers(applycorev1.Container()).
@@ -467,7 +467,7 @@ func TestAddServiceMesh(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
-						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
+						WithAnnotations(map[string]string{SmIngressConfigAnnotationKey: ""}).
 						WithSpec(
 							applycorev1.PodSpec().
 								WithContainers(applycorev1.Container()).

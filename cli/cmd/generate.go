@@ -39,15 +39,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	annotationPrefix              = "contrast.edgeless.systems/"
-	kataAnnotationPrefix          = "io.katacontainers.config.hypervisor."
-	workloadSecretIDAnnotationKey = annotationPrefix + "workload-secret-id"
-	idBlockAnnotation             = kataAnnotationPrefix + "snp_id_block_"
-	idAuthAnnotationKey           = kataAnnotationPrefix + "snp_id_auth_"
-	guestPolicyAnnotationKey      = kataAnnotationPrefix + "snp_guest_policy_"
-)
-
 // NewGenerateCmd creates the contrast generate subcommand.
 func NewGenerateCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -488,7 +479,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to generate policy for %q in %q: %w", fileMap[path][idx].GetName(), path, err)
 			}
-			meta.Annotations[initdata.InitdataAnnotationKey] = initdataAnno
+			meta.Annotations[kuberesource.InitdataAnnotationKey] = initdataAnno
 
 			if shouldCalculatePodMemory {
 				podMemory, err := calculatePodMemory(spec, layersCache)
@@ -847,9 +838,9 @@ func computeAndAnnotateIDBlockAnnotations(targetPlatform platforms.Platform, cpu
 	}
 
 	// Populate annotations
-	annotations[idBlockAnnotation+productName] = base64.StdEncoding.EncodeToString(idBlkBytes)
-	annotations[idAuthAnnotationKey+productName] = base64.StdEncoding.EncodeToString(idAuthBytes)
-	annotations[guestPolicyAnnotationKey+productName] = strconv.FormatUint(abi.SnpPolicyToBytes(policy), 10)
+	annotations[kuberesource.IDBlockAnnotationKey+productName] = base64.StdEncoding.EncodeToString(idBlkBytes)
+	annotations[kuberesource.IDAuthAnnotationKey+productName] = base64.StdEncoding.EncodeToString(idAuthBytes)
+	annotations[kuberesource.GuestPolicyAnnotationKey+productName] = strconv.FormatUint(abi.SnpPolicyToBytes(policy), 10)
 
 	return nil
 }

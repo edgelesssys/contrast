@@ -24,9 +24,6 @@ import (
 const (
 	// InitdataVersion is the sole supported version of Initdata.
 	InitdataVersion = "0.1.0"
-
-	// InitdataAnnotationKey as specified in: https://github.com/kata-containers/kata-containers/blob/f6ff9cf7176989d414bf3f45a5b0c0b9fdb1bf3a/src/libs/kata-types/src/annotations/mod.rs#L276
-	InitdataAnnotationKey = "io.katacontainers.config.hypervisor.cc_init_data"
 )
 
 var (

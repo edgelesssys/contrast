@@ -120,7 +120,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": name}).
 						WithAnnotations(map[string]string{
-							"contrast.edgeless.systems/pod-role": "contrast-node-installer",
+							ContrastRoleAnnotationKey:            string(manifest.RoleNodeInstaller),
 							"contrast.edgeless.systems/platform": platform.String(),
 						}).
 						WithSpec(
@@ -310,7 +310,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 				WithTemplate(
 					PodTemplateSpec().
 						WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
-						WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
+						WithAnnotations(map[string]string{ContrastRoleAnnotationKey: string(manifest.RoleCoordinator)}).
 						WithSpec(
 							PodSpec().
 								WithServiceAccountName("coordinator").
