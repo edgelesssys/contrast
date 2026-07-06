@@ -4,18 +4,23 @@
 {
   lib,
   source,
+  buildCargoSbom,
   withSeccomp ? true,
   withAgentPolicy ? true,
   withStandardOCIRuntime ? false,
   withInitData ? true,
 }:
 
-(source.cargoNixPackage.workspaceMembers."kata-agent".build.override {
+let
   features =
     lib.optional withSeccomp "seccomp"
     ++ lib.optional withAgentPolicy "agent-policy"
     ++ lib.optional withStandardOCIRuntime "standard-oci-runtime"
     ++ lib.optional withInitData "init-data";
+in
+
+(source.cargoNixPackage.workspaceMembers."kata-agent".build.override {
+  inherit features;
   runTests = true;
   # The test framework's anyhow assertions stringify backtraces; suppress to
   # match crane's default of no backtrace.
@@ -32,6 +37,12 @@
 }).overrideAttrs
   (prev: {
     pname = "kata-agent";
+    passthru = (prev.passthru or { }) // {
+      bombonVendoredSbom = buildCargoSbom {
+        inherit (source) cargoNixPackage;
+        member = "kata-agent";
+      };
+    };
     meta = (prev.meta or { }) // {
       description = ''The Kata agent is a long running process that runs inside the Virtual Machine (VM) (also known as the "pod" or "sandbox").'';
       license = lib.licenses.asl20;
