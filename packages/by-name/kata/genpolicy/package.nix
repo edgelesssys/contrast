@@ -4,6 +4,7 @@
 {
   lib,
   source,
+  buildCargoSbom,
   stdenvNoCC,
   applyPatches,
 }:
@@ -14,6 +15,11 @@
   (prev: {
     pname = "genpolicy";
     passthru = (prev.passthru or { }) // rec {
+      bombonVendoredSbom = buildCargoSbom {
+        inherit (source) cargoNixPackage;
+        member = "genpolicy";
+      };
+
       settings-base = stdenvNoCC.mkDerivation {
         name = "genpolicy-${source.version}-settings";
         inherit (source) src;
