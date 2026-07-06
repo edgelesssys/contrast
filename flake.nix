@@ -21,6 +21,10 @@
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    crate2nix = {
+      url = "github:edgelesssys/crate2nix/3597241ae1fb786945725ef72a6b439da717793a";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -72,6 +76,9 @@
 
         defaultOverlays = set: [
           (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
+          (final: _prev: {
+            crate2nix = self.inputs.crate2nix.packages.${final.stdenv.hostPlatform.system}.default;
+          })
           (_final: _prev: { runtimePkgs = self.legacyPackages.x86_64-linux.${set}; })
           (import ./overlays/nixpkgs.nix)
           (import ./overlays/contrast.nix)
