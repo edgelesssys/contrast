@@ -4,6 +4,7 @@
 {
   lib,
   buildGoModule,
+  buildGoModuleSbom,
   contrast,
   reference-values,
 }:
@@ -56,6 +57,8 @@ buildGoModule (finalAttrs: {
   postInstall = ''
     mv "$out/bin/nodeinstaller" "$out/bin/node-installer"
   '';
+
+  passthru.bombonVendoredSbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
 
   meta = lib.contrast.ourMeta { mainProgram = "node-installer"; };
 })

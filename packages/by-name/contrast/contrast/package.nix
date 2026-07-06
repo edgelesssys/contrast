@@ -4,6 +4,7 @@
 {
   lib,
   buildGoModule,
+  buildGoModuleSbom,
   reference-values,
 }:
 
@@ -70,6 +71,8 @@ buildGoModule (finalAttrs: {
 
   tags = [ "contrast_unstable_api" ];
 
+  passthru.bombonVendoredSbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
+
   preCheck = ''
     export CGO_ENABLED=1
   '';
@@ -90,4 +93,6 @@ buildGoModule (finalAttrs: {
   # Skip fixup as binaries are already stripped and we don't
   # need any other fixup, saving some seconds.
   dontFixup = true;
+
+  meta = lib.contrast.ourMeta { };
 })

@@ -1,7 +1,11 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{ lib, buildGoModule }:
+{
+  lib,
+  buildGoModule,
+  buildGoModuleSbom,
+}:
 
 buildGoModule (finalAttrs: {
   pname = "service-mesh";
@@ -50,6 +54,8 @@ buildGoModule (finalAttrs: {
     go test -race ./...
     runHook postCheck
   '';
+
+  passthru.bombonVendoredSbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
 
   meta = lib.contrast.ourMeta { mainProgram = "service-mesh"; };
 })
