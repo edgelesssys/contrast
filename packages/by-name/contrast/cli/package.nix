@@ -4,6 +4,7 @@
 {
   lib,
   buildGoModule,
+  buildGoModuleSbom,
   contrast,
   kata,
   installShellFiles,
@@ -101,6 +102,12 @@ buildGoModule (finalAttrs: {
   # Skip fixup as binaries are already stripped and we don't
   # need any other fixup, saving some seconds.
   dontFixup = true;
+
+  # The cli embeds assets installed in both pre- and postConfigure, so cyclonedx-gomod must run after.
+  passthru.bombonVendoredSbom = buildGoModuleSbom {
+    package = finalAttrs.finalPackage;
+    preAnalyze = finalAttrs.preConfigure + finalAttrs.postConfigure;
+  };
 
   meta = lib.contrast.ourMeta { mainProgram = "contrast"; };
 })
