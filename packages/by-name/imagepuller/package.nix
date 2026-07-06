@@ -1,7 +1,11 @@
 # Copyright 2025 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{ lib, buildGoModule }:
+{
+  lib,
+  buildGoModule,
+  buildGoModuleSbom,
+}:
 
 buildGoModule (finalAttrs: {
   pname = "imagepuller";
@@ -34,6 +38,8 @@ buildGoModule (finalAttrs: {
     "-s"
     "-X main.version=v${finalAttrs.version}"
   ];
+
+  passthru.bombonVendoredSbom = buildGoModuleSbom { package = finalAttrs.finalPackage; };
 
   meta = lib.contrast.ourMeta { mainProgram = "imagepuller"; };
 })

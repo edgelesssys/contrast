@@ -4,6 +4,7 @@
 {
   lib,
   buildGoModule,
+  buildGoModuleSbom,
   runCommand,
   kata,
 }:
@@ -82,6 +83,12 @@ buildGoModule (finalAttrs: {
     go test -race ./...
     runHook postCheck
   '';
+
+  # The policy package embeds deny-with-message.rego, installed in prePatch, so cyclonedx-gomod needs to run after.
+  passthru.bombonVendoredSbom = buildGoModuleSbom {
+    package = finalAttrs.finalPackage;
+    preAnalyze = finalAttrs.prePatch;
+  };
 
   meta = lib.contrast.ourMeta { mainProgram = "initdata-processor"; };
 })
