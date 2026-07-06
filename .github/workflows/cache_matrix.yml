@@ -23,11 +23,16 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Build base matrix
+      - name: Build base matrix and SBOMs
         run: |
-          attr=".#legacyPackages.x86_64-linux.base.matrix"
-          if nix build --dry-run "$attr" 2>&1 | grep -q "will be built"; then
-            nix build --no-link --keep-going "$attr"
+          attrs=(
+            ".#legacyPackages.x86_64-linux.base.matrix"
+            ".#legacyPackages.x86_64-linux.base.sbom.cli"
+            ".#legacyPackages.x86_64-linux.base.sbom.runtimeConfidential"
+            ".#legacyPackages.x86_64-linux.base.sbom.runtimeNonConfidential"
+          )
+          if nix build --dry-run "${attrs[@]}" 2>&1 | grep -q "will be built"; then
+            nix build --no-link --keep-going "${attrs[@]}"
           else
             echo "Nothing to build. Cache already up to date."
           fi
