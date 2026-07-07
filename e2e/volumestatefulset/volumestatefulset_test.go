@@ -30,7 +30,12 @@ func TestVolumeStatefulSet(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
+	// We have two resource sets for testing volumes: VolumeStatefulSet and MySQL. The former is
+	// designed for testing, while the latter is a demo artifact we include in releases. The
+	// functional tests below mostly use the VolumeStatefulSet, but we include MySQL and some basic
+	// checks as a smoke test.
 	resources := kuberesource.VolumeStatefulSet()
+	resources = append(resources, kuberesource.MySQL()...)
 
 	coordinator := kuberesource.CoordinatorBundle()
 
@@ -94,6 +99,32 @@ func TestVolumeStatefulSet(t *testing.T) {
 		stdOut, stdErr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, pods[0].Name, []string{"cat", filePath})
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
 		require.Equal("test\n", stdOut)
+	})
+
+	t.Run("MySQL demo works", func(t *testing.T) {
+		const (
+			mysqlBackend = "mysql-backend"
+			mysqlClient  = "mysql-client"
+		)
+
+		require := require.New(t)
+
+		// The MySQL server runs initialization on first boot if the volume is empty, which takes
+		// a considerable amount of time. Combined with a medium sized image and docker hubs slow
+		// pull bandwidth, it can take quite some time until the server comes up.
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(5*time.Minute))
+		defer cancel()
+
+		require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, mysqlBackend))
+		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, mysqlClient))
+
+		pods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, mysqlClient)
+		require.NoError(err)
+		require.Len(pods, 1)
+		command := []string{"/bin/sh", "-c", `mysql -h 127.137.0.1 -u root -D my_db -e "SELECT * FROM my_table;"`}
+		stdout, stderr, err := ct.Kubeclient.ExecRetry(ctx, ct.Namespace, pods[0].Name, mysqlClient, command, time.Second)
+		require.NoErrorf(err, "mysql command failed - stderr:\n%s", stderr)
+		require.Contains(stdout, "uuid")
 	})
 }
 
