@@ -713,7 +713,7 @@ func MySQL() []any {
 								WithContainers(
 									Container().
 										WithName("mysql-backend").
-										WithImage("docker.io/library/mysql:9.1.0@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6").
+										WithImage("docker.io/library/mysql:9.7.1@sha256:ad88e1c86cbf12ef52d0a0360cd4b774d22956c5ee9c565645fb019d7aacb6c3").
 										WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
 										WithPorts(
 											ContainerPort().
@@ -728,7 +728,7 @@ func MySQL() []any {
 										).
 										WithResources(
 											ResourceRequirements().
-												WithMemoryLimitAndRequest(2000),
+												WithMemoryLimitAndRequest(3000),
 										),
 								).
 								WithVolumes(
@@ -785,12 +785,12 @@ done
 								WithContainers(
 									Container().
 										WithName("mysql-client").
-										WithImage("docker.io/library/mysql:9.1.0@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6").
+										WithImage("docker.io/library/mysql:9.7.1@sha256:ad88e1c86cbf12ef52d0a0360cd4b774d22956c5ee9c565645fb019d7aacb6c3").
 										WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
 										WithCommand("/bin/sh", "-c", clientCmd).
 										WithResources(
 											ResourceRequirements().
-												WithMemoryLimitAndRequest(2000),
+												WithMemoryLimitAndRequest(3000),
 										).
 										WithVolumeMounts(
 											VolumeMount().
