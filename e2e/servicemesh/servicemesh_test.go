@@ -117,9 +117,9 @@ func TestIngressEgress(t *testing.T) {
 
 		c := kubeclient.NewForTest(t)
 
-		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "web")
+		webPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "web")
 		require.NoError(err)
-		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "web")
+		require.Len(webPods, 1, "pod not found: %s/%s", ct.Namespace, "web")
 
 		emojiConnection := net.JoinHostPort(c.FirstPodIP(ctx, t, ct.Namespace, "emoji"), "8801")
 
@@ -129,11 +129,13 @@ func TestIngressEgress(t *testing.T) {
 		// because we're running the commands on a pod with enabled proxy.
 
 		argv := []string{"curl", "-sS", "--cacert", "/contrast/tls-config/mesh-ca.pem", fmt.Sprintf("https://%s/metrics", emojiConnection)}
-		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
+		stdout, stderr, err := c.Exec(ctx, ct.Namespace, webPods[0].Name, argv)
 		require.Error(err, "Expected call without client certificate to fail.\nstdout: %s\nstderr: %q", stdout, stderr)
 
+		ctxForCurl, cancel := context.WithTimeout(ctx, 20*time.Second)
+		t.Cleanup(cancel)
 		argv = append(argv, "--cert", "/contrast/tls-config/certChain.pem", "--key", "/contrast/tls-config/key.pem")
-		stdout, stderr, err = c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
+		stdout, stderr, err = c.ExecRetry(ctxForCurl, ct.Namespace, webPods[0].Name, "web-svc", argv, 5*time.Second)
 		require.NoError(err, "Expected call with client certificate to succeed.\nstdout: %s\nstderr: %q", stdout, stderr)
 	})
 
@@ -146,12 +148,14 @@ func TestIngressEgress(t *testing.T) {
 
 		c := kubeclient.NewForTest(t)
 
-		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "voting")
+		votingPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "voting")
 		require.NoError(err)
-		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "voting")
+		require.Len(votingPods, 1, "pod not found: %s/%s", ct.Namespace, "voting")
 
+		ctxForCurl, cancel := context.WithTimeout(ctx, 20*time.Second)
+		t.Cleanup(cancel)
 		argv := []string{"curl", "-fsS", net.JoinHostPort(c.FirstPodIP(ctx, t, ct.Namespace, "emoji"), "9901") + "/stats/prometheus"}
-		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
+		stdout, stderr, err := c.ExecRetry(ctxForCurl, ct.Namespace, votingPods[0].Name, "voting-svc", argv, 5*time.Second)
 		require.NoError(err, "Expected Service Mesh admin interface to be reachable.\nstdout: %s\nstderr: %q", stdout, stderr)
 	})
 

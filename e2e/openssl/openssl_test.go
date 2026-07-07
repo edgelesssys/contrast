@@ -98,8 +98,10 @@ func TestOpenSSL(t *testing.T) {
 			_ = ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), "port-forwarder-coordinator-metrics", metav1.DeleteOptions{})
 		})
 
+		ctxForMetrics, cancel := context.WithTimeout(ctx, 20*time.Second)
+		t.Cleanup(cancel)
 		argv := []string{"/bin/sh", "-c", "curl --fail " + net.JoinHostPort(coordinatorPods[0].Status.PodIP, "9102") + "/metrics"}
-		_, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
+		_, stderr, err := ct.Kubeclient.ExecRetry(ctxForMetrics, ct.Namespace, frontendPods[0].Name, "openssl-frontend", argv, 5*time.Second)
 		require.NoError(err, "stderr: %q", stderr)
 
 		for _, endpoint := range []string{"/probe/startup", "/probe/liveness", "/probe/readiness"} {

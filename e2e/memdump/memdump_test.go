@@ -81,8 +81,10 @@ func TestMemDump(t *testing.T) {
 		require.Len(senderPods, 1, "pod not found: %s/%s", ct.Namespace, senderDeployment)
 
 		// Send canary string from sender to listener via socat over TCP, encrypted via Contrast Service Mesh
+		ctxForSocat, cancel := context.WithTimeout(ctx, 20*time.Second)
+		t.Cleanup(cancel)
 		argv := []string{"/bin/sh", "-c", "printf %s '" + canaryString + "' | socat - TCP:127.137.0.1:8000"}
-		_, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, senderPods[0].Name, argv)
+		_, stderr, err := ct.Kubeclient.ExecRetry(ctxForSocat, ct.Namespace, senderPods[0].Name, "sender", argv, 5*time.Second)
 		require.NoError(err, "stderr: %q", stderr)
 
 		listenerPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, listenerDeployment)
