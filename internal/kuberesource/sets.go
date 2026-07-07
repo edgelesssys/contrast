@@ -791,7 +791,17 @@ done
 										WithResources(
 											ResourceRequirements().
 												WithMemoryLimitAndRequest(2000),
+										).
+										WithVolumeMounts(
+											VolumeMount().
+												WithName("dummy").
+												WithMountPath("/var/lib/mysql"),
 										),
+								).
+								WithVolumes(
+									applycorev1.Volume().
+										WithName("dummy").
+										WithEmptyDir(applycorev1.EmptyDirVolumeSource().WithMedium(corev1.StorageMediumMemory)),
 								),
 						),
 				),
