@@ -5,6 +5,10 @@ inputs:
   version:
     description: Release tag to test against, e.g. v1.2.3
     required: true
+  s3_base_url:
+    description: If set, fetch release artifacts from this base HTTPS URL in S3 instead of from the Github release.
+    required: false
+    default: ''
   container_registry:
     description: Container registry
     required: true
@@ -148,6 +152,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github_token }}
         VERSION: ${{ inputs.version }}
+        S3_BASE_URL: ${{ inputs.s3_base_url }}
         PLATFORM_NAME: ${{ inputs.platform_name }}
         NODE_INSTALLER_TARGET_CONF: ${{ inputs.node_installer_target_conf }}
         CLI_ARCH: ${{ inputs.cli_arch }}
@@ -160,9 +165,14 @@ runs:
         if [[ "${CLI_ARCH}" == "aarch64-darwin" ]]; then
           use_loadbalancer="true"
         fi
+        source_args=()
+        if [[ -n "${S3_BASE_URL}" ]]; then
+          source_args+=(--s3-base-url "${S3_BASE_URL}")
+        fi
         nix shell -L ".#base.contrast.e2e" --command release.test \
           -test.v \
           --tag "${VERSION}" \
+          "${source_args[@]}" \
           --platform "${PLATFORM_NAME}" \
           --node-installer-target-conf "${NODE_INSTALLER_TARGET_CONF}" \
           --bin-name "contrast-${CLI_ARCH}" \

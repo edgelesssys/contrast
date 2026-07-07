@@ -15,6 +15,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -46,6 +47,7 @@ var (
 	owner                   = flag.String("owner", "edgelesssys", "Github repository owner")
 	repo                    = flag.String("repo", "contrast", "Github repository")
 	tag                     = flag.String("tag", "", "tag name of the release to download")
+	s3BaseURL               = flag.String("s3-base-url", "", `if set, fetch artifacts from this public S3 base URL (e.g. https://contrast-public.s3.eu-central-1.amazonaws.com/pre-releases/v1.2.3/123/1/) instead of from a Github release`)
 	keep                    = flag.Bool("keep", false, "don't delete test resources and deployment")
 	platformStr             = flag.String("platform", "", "Deployment platform")
 	nodeInstallerTargetConf = flag.String("node-installer-target-conf", "", "Node installer target configuration")
@@ -54,7 +56,7 @@ var (
 	binName                 = flag.String("bin-name", "contrast-x86_64-linux", "name of the contrast CLI binary in the release archive to test")
 )
 
-// TestRelease downloads a release from Github, sets up the coordinator, installs the demo
+// TestRelease downloads a release from Github or S3, sets up the coordinator, installs the demo
 // deployment and runs some simple smoke tests.
 func TestRelease(t *testing.T) {
 	testStart := time.Now()
@@ -324,25 +326,41 @@ func (c *contrast) Run(ctx context.Context, t *testing.T, timeout time.Duration,
 	}), args[0]+" needs to succeed for subsequent tests to run")
 }
 
-// fetchRelease downloads the release corresponding to the global tag variable and returns the directory.
+// fetchRelease downloads the release artifacts into a fresh directory and returns that directory.
 func fetchRelease(ctx context.Context, t *testing.T) string {
-	require := require.New(t)
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
+
+	dir := releaseDir(t)
+
+	if *s3BaseURL != "" {
+		fetchReleaseFromS3(ctx, t, dir)
+	} else {
+		fetchReleaseFromGithub(ctx, t, dir)
+	}
+
+	return dir
+}
+
+// releaseDir creates the directory that release artifacts are downloaded into.
+// With --keep, a persistent temp directory is used so it survives the test.
+func releaseDir(t *testing.T) string {
+	if *keep {
+		dir, err := os.MkdirTemp("", "releasetest-") //nolint:usetesting
+		require.NoError(t, err)
+		t.Logf("Created test directory %s", dir)
+		return dir
+	}
+	return t.TempDir()
+}
+
+// fetchReleaseFromGithub downloads all assets of the release corresponding to the global tag variable into dir.
+func fetchReleaseFromGithub(ctx context.Context, t *testing.T, dir string) {
+	require := require.New(t)
 
 	token := os.Getenv(tokenEnvVar)
 	require.NotEmpty(token, "environment variable %q must contain a Github access token", tokenEnvVar)
 	gh := github.NewClient(nil).WithAuthToken(token)
-
-	var dir string
-	if *keep {
-		var err error
-		dir, err = os.MkdirTemp("", "releasetest-")
-		require.NoError(err)
-		t.Logf("Created test directory %s", dir)
-	} else {
-		dir = t.TempDir()
-	}
 
 	// Find our target release. There is GetReleaseByTag, but we may be looking for a draft release.
 	var release *github.RepositoryRelease
@@ -383,8 +401,47 @@ func fetchRelease(ctx context.Context, t *testing.T) string {
 		require.NoError(err)
 		f.Close()
 	}
+}
 
-	return dir
+// fetchReleaseFromS3 downloads the artifacts the test needs from the public S3 bucket into dir.
+// The bucket cannot be listed anonymously, so we fetch a preconfigured list of required files.
+func fetchReleaseFromS3(ctx context.Context, t *testing.T, dir string) {
+	require := require.New(t)
+
+	for _, name := range requiredArtifacts() {
+		fileURL, err := url.JoinPath(*s3BaseURL, name)
+		require.NoError(err, "building URL for artifact %q", name)
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fileURL, nil)
+		require.NoError(err)
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(err, "fetching artifact %q from %q", name, fileURL)
+
+		func() {
+			defer resp.Body.Close()
+			require.Equal(http.StatusOK, resp.StatusCode, "fetching artifact %q from %q returned unexpected status", name, fileURL)
+
+			f, err := os.OpenFile(path.Join(dir, name), os.O_CREATE|os.O_RDWR, 0o777)
+			require.NoError(err)
+			defer f.Close()
+			_, err = io.Copy(f, resp.Body)
+			require.NoError(err)
+		}()
+	}
+}
+
+// requiredArtifacts returns the artifact filenames this test run needs.
+func requiredArtifacts() []string {
+	files := []string{
+		*binName,
+		"coordinator.yml",
+		"emojivoto-demo.yml",
+		fmt.Sprintf("runtime-%s.yml", strings.ToLower(*platformStr)),
+	}
+	if *nodeInstallerTargetConf != "" && *nodeInstallerTargetConf != "none" {
+		files = append(files, fmt.Sprintf("node-installer-target-config-%s.yml", *nodeInstallerTargetConf))
+	}
+	return files
 }
 
 func ghRespInfo(resp *github.Response) string {
