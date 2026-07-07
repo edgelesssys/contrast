@@ -165,8 +165,7 @@ jobs:
       group: e2e-release-${{ matrix.platform.name }}-${{ github.run_id }}
       cancel-in-progress: false
     permissions:
-      # Job needs content:write to see draft releases.
-      contents: write
+      contents: read
       packages: read
       # Needed for GH OIDC -> GCP WIF federation on the darwin entries.
       id-token: write
@@ -179,6 +178,7 @@ jobs:
       - uses: ./.github/actions/release_e2e_test
         with:
           version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          s3_base_url: ${{ needs.release-x86_64-linux.outputs.ARTIFACTS_URL }}
           container_registry: ${{ env.container_registry }}
           platform_name: ${{ matrix.platform.name }}
           node_installer_target_conf: ${{ matrix.platform.node-installer-target-conf }}

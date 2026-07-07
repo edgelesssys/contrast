@@ -193,7 +193,7 @@ e2e-ci target platforms="all" post="false" set="testcase-default" debug_shell="f
         echo "Posted comment to PR #$pr_number"
     fi
 
-e2e-release version platform=default_platform set=default_set: soft-clean k8s-log-collector
+e2e-release source platform=default_platform set=default_set: soft-clean k8s-log-collector
     #!/usr/bin/env bash
     set -euo pipefail
     nix build .#{{ set }}.scripts.get-logs
@@ -201,8 +201,15 @@ e2e-release version platform=default_platform set=default_set: soft-clean k8s-lo
     # get-logs start waits until the namespace file is created, then spawns self-cleaning background tasks and exits.
     nix run .#{{ set }}.scripts.get-logs start ./{{ workspace_dir }}/just.namespace &
     trap "kubectl delete -f ./{{ workspace_dir }}/log-collector.yaml; rm -f ./{{ workspace_dir }}/just.namespace" EXIT
+
+    # Decide the artifact source from the argument: an https:// URL is fetched from S3, anything else is treated as a Github release tag.
+    if [[ "{{ source }}" == https://* ]]; then
+        source_args=(--s3-base-url "{{ source }}")
+    else
+        source_args=(--tag "{{ source }}")
+    fi
     nix shell .#{{ set }}.contrast.e2e --command release.test -test.v \
-            --tag {{ version }} \
+            "${source_args[@]}" \
             --platform {{ platform }} \
             --node-installer-target-conf ${node_installer_target_conf_type} \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
