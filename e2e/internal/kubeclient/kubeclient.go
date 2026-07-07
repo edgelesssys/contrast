@@ -17,7 +17,9 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -232,6 +234,23 @@ func (c *Kubeclient) ExecDeployment(ctx context.Context, namespace, deployment s
 	}
 	c.log.Debug("executing command in deployment pod", "namespace", namespace, "deployment", deployment)
 	return c.Exec(ctx, namespace, pods[0].Name, argv)
+}
+
+// ExecRetry executes the command in the container periodically until it succeeds or the context expires.
+func (c *Kubeclient) ExecRetry(ctx context.Context, namespace, pod, container string, argv []string, interval time.Duration) (
+	stdout string, stderr string, err error,
+) {
+	retrier := retry.NewIntervalRetrier(retry.DoerFunc(func(ctx context.Context) error {
+		stdout, stderr, err = c.ExecContainer(ctx, namespace, pod, container, argv)
+		if err != nil {
+			c.log.Debug("executing command in container failed", "namespace", namespace, "pod", pod, "container", container, "error", err)
+		}
+		return err
+	}), interval, retry.Always)
+
+	// Override the last error with the retrier error, but keep stdout and stderr.
+	err = retrier.Do(ctx)
+	return
 }
 
 // LogDebugInfo collects pod information from the cluster and writes it to the logger.

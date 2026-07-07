@@ -108,7 +108,9 @@ func TestPolicy(t *testing.T) {
 		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
 
 		// get the attestation failures before removing a policy
-		initialFailures := getFailures(ctx, t, ct)
+		ctxForMetrics, cancel := context.WithTimeout(ctx, 20*time.Second)
+		t.Cleanup(cancel)
+		initialFailures := getFailures(ctxForMetrics, t, ct)
 
 		t.Log("Initial failures:", initialFailures)
 
@@ -168,7 +170,10 @@ func TestPolicy(t *testing.T) {
 		// The container may be running, but it's hard to tell whether it already had a chance to
 		// connect to the Coordinator. Thus, retry for some time until an attestation failure happens.
 		require.EventuallyWithT(func(t *assert.CollectT) {
-			newFailures := getFailures(ctx, t, ct)
+			// Set a timeout low enough to not trigger a retry, since we're in an Eventually.
+			ctxForMetrics, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			newFailures := getFailures(ctxForMetrics, t, ct)
 			assert.Greater(t, newFailures, initialFailures, "pod not covered by manifest should cause attestation failure")
 		}, 1*time.Minute, time.Second)
 	})
@@ -231,7 +236,7 @@ func getFailures(ctx context.Context, t require.TestingT, ct *contrasttest.Contr
 	backendPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, opensslBackend)
 	require.NoError(err)
 	require.NotEmpty(backendPods, "pod not found: %s/%s", ct.Namespace, opensslBackend)
-	metricsString, _, err := ct.Kubeclient.Exec(ctx, ct.Namespace, backendPods[0].Name, []string{"curl", coordIP + ":9102/metrics"})
+	metricsString, _, err := ct.Kubeclient.ExecRetry(ctx, ct.Namespace, backendPods[0].Name, "openssl-backend", []string{"curl", coordIP + ":9102/metrics"}, 5*time.Second)
 	require.NoError(err)
 
 	// parse the logs
