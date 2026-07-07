@@ -729,6 +729,16 @@ func MySQL() []any {
 										WithResources(
 											ResourceRequirements().
 												WithMemoryLimitAndRequest(3000),
+										).
+										WithReadinessProbe(
+											applycorev1.Probe().
+												WithExec(
+													applycorev1.ExecAction().WithCommand(
+														"sh", "-c", "mysqladmin ping -h 127.0.0.1 -u root --silent",
+													),
+												).
+												WithInitialDelaySeconds(5).
+												WithPeriodSeconds(5),
 										),
 								).
 								WithVolumes(
@@ -764,6 +774,7 @@ mysql -h 127.137.0.1 -u root -D my_db -e "CREATE TABLE my_table (id INT NOT NULL
 while true; do
 	mysql -h 127.137.0.1 -u root -D my_db -e "INSERT INTO my_table (uuid) VALUES (UUID());"
 	mysql -h 127.137.0.1 -u root -D my_db -e "SELECT * FROM my_table;"
+	touch /done
 	sleep 5;
 done
 `
@@ -796,6 +807,16 @@ done
 											VolumeMount().
 												WithName("dummy").
 												WithMountPath("/var/lib/mysql"),
+										).
+										WithReadinessProbe(
+											applycorev1.Probe().
+												WithExec(
+													applycorev1.ExecAction().WithCommand(
+														"sh", "-c", "test -f /done",
+													),
+												).
+												WithInitialDelaySeconds(5).
+												WithPeriodSeconds(5),
 										),
 								).
 								WithVolumes(
