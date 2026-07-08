@@ -263,19 +263,47 @@ func TestProxyFallback(t *testing.T) {
 			errHosts: map[string]error{proxyHost: errors.New("dial tcp: connection refused")},
 			body:     []byte("crl-bytes"),
 		}
-		client := newHostGetterClient(getter, proxyBase)
+		client, _ := newHostGetterClient(getter, proxyBase)
 
 		_, body, err := client.Get(directCRL)
 		assert.NoError(err)
 		assert.Equal([]byte("crl-bytes"), body)
 		assert.Equal(1, getter.hits[proxyHost])
 		assert.Equal(1, getter.hits[kdsHost])
-		assert.True(client.proxyUnreachable.Load())
+		assert.True(client.proxyInCooldown())
 
 		_, _, err = client.Get(directCRL)
 		assert.NoError(err)
 		assert.Equal(1, getter.hits[proxyHost])
 		assert.Equal(2, getter.hits[kdsHost])
+	})
+
+	t.Run("proxy is tried again after the cooldown", func(t *testing.T) {
+		assert := assert.New(t)
+		getter := &fakeHostGetter{
+			hits:     map[string]int{},
+			errHosts: map[string]error{proxyHost: errors.New("dial tcp: connection refused")},
+			body:     []byte("crl-bytes"),
+		}
+		client, testClock := newHostGetterClient(getter, proxyBase)
+
+		_, _, err := client.Get(directCRL)
+		assert.NoError(err)
+		assert.Equal(1, getter.hits[proxyHost])
+		assert.True(client.proxyInCooldown())
+
+		testClock.Step(proxyRetryCooldown - time.Second)
+		_, _, err = client.Get(directCRL)
+		assert.NoError(err)
+		assert.Equal(1, getter.hits[proxyHost])
+
+		delete(getter.errHosts, proxyHost)
+		testClock.Step(2 * time.Second)
+		_, body, err := client.Get(directCRL)
+		assert.NoError(err)
+		assert.Equal([]byte("crl-bytes"), body)
+		assert.Equal(2, getter.hits[proxyHost])
+		assert.False(client.proxyInCooldown())
 	})
 
 	t.Run("HTTP status from proxy is honored, no fallback", func(t *testing.T) {
@@ -284,24 +312,26 @@ func TestProxyFallback(t *testing.T) {
 			hits:     map[string]int{},
 			errHosts: map[string]error{proxyHost: &httpError{code: 404, status: "404 Not Found"}},
 		}
-		client := newHostGetterClient(getter, proxyBase)
+		client, _ := newHostGetterClient(getter, proxyBase)
 
 		_, _, err := client.Get(directCRL)
 		assert.Error(err)
 		assert.Equal(1, getter.hits[proxyHost])
 		assert.Equal(0, getter.hits[kdsHost]) // upstream not contacted
-		assert.False(client.proxyUnreachable.Load())
+		assert.False(client.proxyInCooldown())
 	})
 }
 
-func newHostGetterClient(getter *fakeHostGetter, collateralProxyBase string) *CachedHTTPSGetter {
+func newHostGetterClient(getter *fakeHostGetter, collateralProxyBase string) (*CachedHTTPSGetter, *testingclock.FakeClock) {
+	testClock := testingclock.NewFakeClock(time.Now())
 	return &CachedHTTPSGetter{
 		ContextHTTPSGetter:  getter,
 		gcTicker:            NeverGCTicker,
+		clock:               testClock,
 		cache:               memstore.New[string, []byte](),
 		logger:              slog.Default(),
 		collateralProxyBase: collateralProxyBase,
-	}
+	}, testClock
 }
 
 // fakeHostGetter records hits and returns a configured error per upstream host.

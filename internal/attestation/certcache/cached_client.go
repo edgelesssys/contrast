@@ -25,6 +25,8 @@ const (
 	retryInterval = 5 * time.Second
 	// retryAttemptsProxy is the number of times we attempt to use the proxy before falling back to upstream.
 	retryAttemptsProxy = 5
+	// proxyRetryCooldown is how long we fall back to direct upstream fetching, before trying the proxy again.
+	proxyRetryCooldown = 2 * time.Minute
 )
 
 var (
@@ -47,11 +49,12 @@ type CachedHTTPSGetter struct {
 	logger *slog.Logger
 
 	gcTicker clock.Ticker
+	clock    clock.PassiveClock
 	cache    store
 
 	collateralProxyBase string
 
-	proxyUnreachable atomic.Bool
+	proxyRetryAfter atomic.Int64
 }
 
 // NewCachedHTTPSGetter returns a new CachedHTTPSGetter.
@@ -61,6 +64,7 @@ func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger, collat
 		logger:              log,
 		cache:               s,
 		gcTicker:            ticker,
+		clock:               clock.RealClock{},
 		collateralProxyBase: strings.TrimRight(collateralProxy, "/"),
 	}
 	return c
@@ -83,7 +87,7 @@ func (c *CachedHTTPSGetter) redirectToProxy(rawURL string) string {
 
 // fetch issues the GET request, routing it through the collateral-proxy if configured.
 func (c *CachedHTTPSGetter) fetch(ctx context.Context, url string) (map[string][]string, []byte, error) {
-	if c.collateralProxyBase == "" || c.proxyUnreachable.Load() {
+	if c.collateralProxyBase == "" || c.proxyInCooldown() {
 		return c.ContextHTTPSGetter.GetContext(ctx, url)
 	}
 
@@ -91,16 +95,22 @@ func (c *CachedHTTPSGetter) fetch(ctx context.Context, url string) (map[string][
 	header, body, err := c.ContextHTTPSGetter.GetContext(proxyCtx, c.redirectToProxy(url))
 	cancel()
 	if err == nil {
+		// The proxy recovered (or was reachable all along); clear any pending cooldown.
+		c.proxyRetryAfter.Store(0)
 		return header, body, nil
 	}
 	var httpErr *httpError
 	if errors.As(err, &httpErr) {
 		return nil, nil, err
 	}
-	if c.proxyUnreachable.CompareAndSwap(false, true) {
-		c.logger.Warn("collateral proxy not reachable, falling back to direct upstream fetching", "url", url, "error", err)
-	}
+	c.proxyRetryAfter.Store(c.clock.Now().Add(proxyRetryCooldown).UnixNano())
+	c.logger.Warn("collateral proxy not reachable, falling back to direct upstream fetching", "url", url, "error", err, "cooldown", proxyRetryCooldown)
 	return c.ContextHTTPSGetter.GetContext(ctx, url)
+}
+
+func (c *CachedHTTPSGetter) proxyInCooldown() bool {
+	retryAfter := c.proxyRetryAfter.Load()
+	return retryAfter != 0 && c.clock.Now().UnixNano() < retryAfter
 }
 
 // Get makes a GET request to the given URL.
