@@ -36,6 +36,7 @@ import (
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 
+	"github.com/distribution/reference"
 	"github.com/spf13/cobra"
 )
 
@@ -521,9 +522,13 @@ func calculatePodMemory(spec *applycorev1.PodSpecApplyConfiguration, podLayers *
 	}
 	podMemory := max(containerMemory, initContainerMemory)
 	for _, image := range images {
-		index, ok := podLayers.Index[image]
+		imageRef, err := reference.ParseNormalizedNamed(image)
+		if err != nil {
+			return 0, fmt.Errorf("parsing image reference %s: %w", image, err)
+		}
+		index, ok := podLayers.Index[imageRef.String()]
 		if !ok {
-			return 0, fmt.Errorf("no layer information for image %s", image)
+			return 0, fmt.Errorf("no layer information for image %s", imageRef.String())
 		}
 		for _, layer := range index.Layers {
 			podMemory += int64(layer.CompressedSize)
