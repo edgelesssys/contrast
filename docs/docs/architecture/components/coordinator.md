@@ -27,13 +27,13 @@ For example, a manifest with hash `a591a6d40bf420404a011733cfb7b190d62c65bf0bcda
 Starting from the signed latest manifest, the Coordinator retrieves all referenced content by hash and verifies that the content hashes match.
 The entire manifest history thus forms a Merkle tree, chaining back to the signed latest manifest.
 
-The `ConfigMap`s used to store manifests and initdata documents are owned by the Contrast Coordinator `StatefulSet`.
-When that resource is removed from the cluster, the history will be removed with it.
-If you need to clear the history without removing the Coordinator, you can do so with the following command:
+If you need to manually clear the Coordinator's history, you can do so with the following command:
 
 ```sh
 kubectl delete configmap --selector app.kubernetes.io/managed-by=contrast.edgeless.systems
 ```
+
+Restart the Coordinator afterward to start with a fresh history.
 
 ## State
 

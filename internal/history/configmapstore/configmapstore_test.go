@@ -10,38 +10,19 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
-
-func coordinatorPod() *corev1.Pod {
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "coordinator-0",
-			Namespace: "test",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Kind: "StatefulSet",
-					Name: "coordinator",
-					UID:  "00000000-0000-0000-0000-000000000000",
-				},
-			},
-		},
-	}
-}
 
 func TestGetSet(t *testing.T) {
 	require := require.New(t)
 
-	t.Setenv("HOSTNAME", "coordinator-0")
-	s, err := New(fake.NewClientset(coordinatorPod()), "test", slog.Default())
-	require.NoError(err)
+	s := New(fake.NewClientset(), "test", slog.Default())
 
 	key := "foo/bar"
 	val1 := []byte("val1")
 	val2 := []byte("val2")
 
-	_, err = s.Get("invalid-key")
+	_, err := s.Get("invalid-key")
 	require.ErrorContains(err, "invalid key")
 
 	x, err := s.Get(key)
@@ -66,9 +47,7 @@ func TestGetSet(t *testing.T) {
 func TestHas(t *testing.T) {
 	require := require.New(t)
 
-	t.Setenv("HOSTNAME", "coordinator-0")
-	s, err := New(fake.NewClientset(coordinatorPod()), "test", slog.Default())
-	require.NoError(err)
+	s := New(fake.NewClientset(), "test", slog.Default())
 
 	key := "foo/bar"
 	val := []byte("val")
@@ -83,9 +62,7 @@ func TestHas(t *testing.T) {
 func TestCompareAndSwap(t *testing.T) {
 	require := require.New(t)
 
-	t.Setenv("HOSTNAME", "coordinator-0")
-	s, err := New(fake.NewClientset(coordinatorPod()), "test", slog.Default())
-	require.NoError(err)
+	s := New(fake.NewClientset(), "test", slog.Default())
 
 	key := "foo/bar"
 	val1 := []byte("val1")
@@ -116,15 +93,13 @@ func TestCompareAndSwap(t *testing.T) {
 func TestWatch(t *testing.T) {
 	require := require.New(t)
 
-	t.Setenv("HOSTNAME", "coordinator-0")
-	s, err := New(fake.NewClientset(coordinatorPod()), "test", slog.Default())
-	require.NoError(err)
+	s := New(fake.NewClientset(), "test", slog.Default())
 
 	key := "foo/bar"
 	val1 := []byte("val1")
 	val2 := []byte("val2")
 
-	_, _, err = s.Watch("invalid-key")
+	_, _, err := s.Watch("invalid-key")
 	require.ErrorContains(err, "invalid key")
 
 	ch, cancel, err := s.Watch(key)
