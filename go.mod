@@ -13,6 +13,7 @@ require (
 	github.com/containerd/ttrpc v1.2.8
 	github.com/coreos/go-iptables v0.8.0
 	github.com/coreos/go-systemd/v22 v22.7.0
+	github.com/distribution/reference v0.6.0
 	github.com/elazarl/goproxy v1.8.2
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/google/go-containerregistry v0.21.2

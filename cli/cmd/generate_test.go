@@ -183,7 +183,7 @@ func getHandler(t *testing.T, name string) string {
 func TestCalculatePodMemory(t *testing.T) {
 	layersCache := &genpolicy.LayersCache{
 		Index: map[string]genpolicy.ImageLayerIndex{
-			"some-image": {
+			"docker.io/library/some-image": {
 				ImageRef: "some-image",
 				Layers: []genpolicy.ImageLayerIndexEntry{
 					{
@@ -192,7 +192,7 @@ func TestCalculatePodMemory(t *testing.T) {
 					},
 				},
 			},
-			"other-image": {
+			"ghcr.io/other/image": {
 				ImageRef: "other-image",
 				Layers: []genpolicy.ImageLayerIndexEntry{
 					{
@@ -248,7 +248,7 @@ func TestCalculatePodMemory(t *testing.T) {
 							kuberesource.Container().
 								WithImage("some-image"),
 							kuberesource.Container().
-								WithImage("other-image"),
+								WithImage("ghcr.io/other/image"),
 						),
 				),
 			want: 70,
