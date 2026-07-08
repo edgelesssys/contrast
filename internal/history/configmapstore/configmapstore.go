@@ -95,7 +95,7 @@ func (s *ConfigMapStore) Set(key string, value []byte) error {
 		return err
 	}
 	if errors.IsNotFound(err) {
-		cm = s.newEntry(cmName, key, value)
+		cm = newEntry(s.namespace, cmName, key, value)
 		_, err := s.client.CoreV1().ConfigMaps(s.namespace).Create(ctx, cm, metav1.CreateOptions{})
 		return err
 	}
@@ -119,7 +119,7 @@ func (s *ConfigMapStore) CompareAndSwap(key string, oldVal, newVal []byte) error
 	}
 	// Treat non-existing config map as empty to allow initial set.
 	if errors.IsNotFound(err) {
-		cm = s.newEntry(cmName, key, newVal)
+		cm = newEntry(s.namespace, cmName, key, newVal)
 		_, err := s.client.CoreV1().ConfigMaps(s.namespace).Create(ctx, cm, metav1.CreateOptions{})
 		return err
 	}
@@ -195,7 +195,7 @@ func RecoverConfigMaps(manifests [][]byte, policies [][]byte, latestTransitionHa
 		if err != nil {
 			return err
 		}
-		hist = append(hist, kuberesource.ConfigMap(cmName, "").WithBinaryData(map[string][]byte{hashStr: content}))
+		hist = append(hist, newEntry("", cmName, hashStr, content))
 		return nil
 	}
 	for _, m := range manifests {
@@ -223,17 +223,21 @@ func RecoverConfigMaps(manifests [][]byte, policies [][]byte, latestTransitionHa
 	if err != nil {
 		return nil, fmt.Errorf("creating config map for latest transition: %w", err)
 	}
-	cm := kuberesource.ConfigMap(cmName, "").WithBinaryData(map[string][]byte{"latest": latest.MarshalBinary()})
+	cm := newEntry("", cmName, "latest", latest.MarshalBinary())
 	return append(hist, cm), nil
 }
 
-func (s *ConfigMapStore) newEntry(cmName, key string, value []byte) *corev1.ConfigMap {
+func newEntry(namespace, cmName, key string, value []byte) *corev1.ConfigMap {
 	labels := kuberesource.ContrastLabels(appName, appComponent)
 	labels[kuberesource.KubernetesAppManagedByLabel] = "contrast.edgeless.systems"
 	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cmName,
-			Namespace: s.namespace,
+			Namespace: namespace,
 			Labels:    labels,
 		},
 		BinaryData: map[string][]byte{filepath.Base(key): value},
