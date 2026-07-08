@@ -56,8 +56,13 @@ In this scenario, you assume that the Contrast Coordinator has a vulnerability a
 The Coordinator has access to all Contrast secrets, by design, which implies that all secrets need to be assumed compromised, too.
 
 Since the existing secrets can't be trusted anymore, the only remediation is to create an entirely new Coordinator.
-For that, first delete the existing Coordinator `StatefulSet`.
-This should automatically clear the Coordinator's state in cluster `ConfigMaps`.
+For that, first delete the existing Coordinator `StatefulSet` and its `ConfigMap` store.
+
+```sh
+kubectl delete statefulset coordinator
+kubectl delete configmap --selector app.kubernetes.io/managed-by=contrast.edgeless.systems
+```
+
 Then, apply the new Coordinator from the release containing the fix and set it up with a manifest.
 
 Naturally, the new Coordinator shouldn't be configured with a manifest that would allow a vulnerable Coordinator.

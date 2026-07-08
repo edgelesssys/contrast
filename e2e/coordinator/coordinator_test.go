@@ -22,12 +22,15 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
+	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 func TestCoordinator(t *testing.T) {
@@ -53,16 +56,17 @@ func TestCoordinator(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		t.Cleanup(cancel)
 
-		unstructured, err := kuberesource.ResourcesToUnstructured(resources)
-		require.NoError(err)
-
-		// Delete whole statefulset so the owned configmap store is also deleted.
-		require.NoError(ct.Kubeclient.Delete(ctx, unstructured...))
-		// Wait until all objects are deleted before applying the resources again,
-		// otherwise some resources may be deleted after being reapplied.
-		require.NoError(ct.Kubeclient.WaitForDeletion(ctx, unstructured...))
-		require.True(t.Run("apply resources after deleting them", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
-
+		// Delete the Coordinator history.
+		// This is the documented procedure, if changes are needed here make sure to reflect that
+		// in the docs.
+		deleteOpts := metav1.DeleteOptions{
+			PropagationPolicy: toPtr(metav1.DeletePropagationForeground),
+		}
+		listOpts := metav1.ListOptions{
+			LabelSelector: labels.Set(map[string]string{kuberesource.KubernetesAppManagedByLabel: "contrast.edgeless.systems"}).AsSelector().String(),
+		}
+		require.NoError(ct.Kubeclient.Client.CoreV1().ConfigMaps(ct.Namespace).DeleteCollection(ctx, deleteOpts, listOpts))
+		require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 		require.NoError(ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace))
 
 		require.ErrorContains(ct.RunRecover(ctx), "no state to recover from")
@@ -233,6 +237,10 @@ func TestCoordinator(t *testing.T) {
 		require.Error(err)
 		require.Nil(state)
 	})
+}
+
+func toPtr[A any](a A) *A {
+	return &a
 }
 
 func TestMain(m *testing.M) {

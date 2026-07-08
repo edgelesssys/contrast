@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -22,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 )
@@ -39,35 +37,16 @@ const (
 type ConfigMapStore struct {
 	client    kubernetes.Interface
 	namespace string
-	uid       types.UID
 	logger    *slog.Logger
 }
 
 // New creates a new [ConfigMapStore] instance with the given Kubernetes client.
-func New(client kubernetes.Interface, namespace string, log *slog.Logger) (*ConfigMapStore, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	self, err := client.CoreV1().Pods(namespace).Get(ctx, os.Getenv("HOSTNAME"), metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	ownerRefs := self.GetOwnerReferences()
-	var statefulset metav1.OwnerReference
-	for _, ownerRef := range ownerRefs {
-		if ownerRef.Kind == "StatefulSet" && ownerRef.Name == "coordinator" {
-			statefulset = ownerRef
-			break
-		}
-	}
-	if statefulset.UID == "" {
-		return nil, fmt.Errorf("coordinator statefulset not found")
-	}
+func New(client kubernetes.Interface, namespace string, log *slog.Logger) *ConfigMapStore {
 	return &ConfigMapStore{
 		client:    client,
-		namespace: self.Namespace,
-		uid:       statefulset.UID,
+		namespace: namespace,
 		logger:    log,
-	}, nil
+	}
 }
 
 // Get the value for key.
@@ -256,14 +235,6 @@ func (s *ConfigMapStore) newEntry(cmName, key string, value []byte) *corev1.Conf
 			Name:      cmName,
 			Namespace: s.namespace,
 			Labels:    labels,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: "apps/v1",
-					Kind:       "StatefulSet",
-					Name:       "coordinator",
-					UID:        s.uid,
-				},
-			},
 		},
 		BinaryData: map[string][]byte{filepath.Base(key): value},
 	}
