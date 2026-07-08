@@ -5,8 +5,10 @@ package configmapstore
 
 import (
 	"log/slog"
+	"regexp"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -150,4 +152,31 @@ func TestObjectName(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRecoverConfigMaps(t *testing.T) {
+	require := require.New(t)
+	manifests := [][]byte{{}}
+	policies := [][]byte{{}}
+
+	cms, err := RecoverConfigMaps(manifests, policies, make([]byte, 32), make([]byte, 64))
+	require.NoError(err)
+	// A policy, a manifest, a transition and a latest transition.
+	require.Len(cms, 4)
+
+	configmapNamesRE := regexp.MustCompile("^contrast-store-((policies|manifests|transitions)-[0-9a-f]{64}|transitions-latest)$")
+
+	for _, a := range cms {
+		cm, ok := a.(*corev1.ConfigMap)
+		require.Truef(ok, "unexpected configmap type: %T", a)
+		require.Regexp(configmapNamesRE, cm.GetName())
+		require.Contains(cm.GetLabels(), kuberesource.KubernetesAppManagedByLabel)
+	}
+
+	// Ensure that the resources are fully specified, including TypeMeta.
+	encoded, err := kuberesource.EncodeResources(cms...)
+	require.NoError(err)
+	decoded, err := kuberesource.UnmarshalApplyConfigurations(encoded)
+	require.NoError(err)
+	require.Len(decoded, len(cms))
 }
