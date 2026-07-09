@@ -24,8 +24,6 @@ port-forwarder: (push "port-forwarder")
 
 service-mesh-proxy: (push "service-mesh-proxy")
 
-collateral-proxy: (push "collateral-proxy")
-
 initializer: (push "initializer")
 
 memdump: (push "memdump")
@@ -450,33 +448,30 @@ wait-for-workload target=default_deploy_target set=default_set:
         ;;
     esac
 
-# Provision the collateral-proxy singleton in "default".
-collateral-proxy-bootstrap set=default_set storage_class="": collateral-proxy
+# Provision the collateral-proxy singleton in "default" from the published release manifest.
+collateral-proxy-bootstrap:
     #!/usr/bin/env bash
     set -euo pipefail
-    sc="{{ storage_class }}"
-    if [[ -z "$sc" ]]; then
-        sc=$(kubectl get sc -l ci.contrast.edgeless.systems/is-default-class=true -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+    manifest=$(curl -fsSL https://github.com/edgelesssys/collateral-proxy/releases/latest/download/collateral-proxy.yml)
+    # These clusters have no Kubernetes default StorageClass, so inject the labeled one into the StatefulSet's volumeClaimTemplates.
+    storageClass=$(kubectl get storageclass -l ci.contrast.edgeless.systems/is-default-class=true -o "jsonpath={.items[*]['metadata.name']}")
+    if [[ -n "$storageClass" ]]; then
+        manifest=$(env sc="$storageClass" yq '(select(.kind == "StatefulSet").spec.volumeClaimTemplates[].spec.storageClassName) = strenv(sc)' <<<"$manifest")
     fi
-    args=(--image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace default)
-    if [[ -n "$sc" ]]; then
-        args+=(--storage-class "$sc")
-    fi
-    nix shell .#{{ set }}.contrast.resourcegen --command resourcegen "${args[@]}" collateral-proxy \
-        | kubectl apply --server-side --force-conflicts -f -
+    kubectl -n default apply --server-side --force-conflicts -f - <<<"$manifest"
     kubectl -n default rollout status statefulset/collateral-proxy --timeout=120s
 
 # Wipe the existing collateral-proxy and bootstrap a fresh one.
-collateral-proxy-redeploy set=default_set storage_class="":
+collateral-proxy-redeploy:
     #!/usr/bin/env bash
     set -euo pipefail
     kubectl -n default delete --ignore-not-found --wait=true \
         statefulset/collateral-proxy svc/collateral-proxy pvc/state-collateral-proxy-0
-    just collateral-proxy-bootstrap "{{ set }}" "{{ storage_class }}"
+    just collateral-proxy-bootstrap
 
 # Print the collateral-proxy /metrics endpoint.
 collateral-proxy-stats:
-    kubectl -n default exec statefulset/collateral-proxy -- wget -qO- http://127.0.0.1/metrics
+    kubectl get --raw "/api/v1/namespaces/default/services/collateral-proxy:80/proxy/metrics"
 
 request-fifo-ticket duration="":
     #!/usr/bin/env bash
