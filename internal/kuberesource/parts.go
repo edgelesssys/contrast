@@ -640,57 +640,6 @@ func GetPodCPUCount(spec *applycorev1.PodSpecApplyConfiguration) uint64 {
 	return uint64(totalCPUs)
 }
 
-// CollateralProxy returns the resources for an in-cluster read-through caching forward proxy for responses from AMD KDS, Intel PCS, and NVIDIA RIM endpoints.
-func CollateralProxy(namespace, storageClassName string) []any {
-	const (
-		name     = "collateral-proxy"
-		port     = int32(80)
-		stateDir = "/var/lib/collateral-proxy"
-		stateVol = "state"
-	)
-
-	pvcSpec := applycorev1.PersistentVolumeClaimSpec().
-		WithAccessModes(corev1.ReadWriteOnce).
-		WithResources(applycorev1.VolumeResourceRequirements().
-			WithRequests(corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("1Gi")}))
-	if storageClassName != "" {
-		pvcSpec = pvcSpec.WithStorageClassName(storageClassName)
-	}
-
-	mem := corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("256Mi")}
-	statefulSet := StatefulSet(name, namespace).
-		WithLabels(ContrastLabels(name, name)).
-		WithSpec(StatefulSetSpec().
-			WithReplicas(1).
-			WithServiceName(name).
-			WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, name))).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(SelectorLabels(name, name)).
-				WithSpec(PodSpec().
-					WithContainers(applycorev1.Container().
-						WithName(name).
-						WithImage("ghcr.io/edgelesssys/contrast/collateral-proxy:latest").
-						WithArgs(fmt.Sprintf("-addr=:%d", port), "-state-dir="+stateDir).
-						WithPorts(applycorev1.ContainerPort().
-							WithName("proxy").
-							WithContainerPort(port)).
-						WithVolumeMounts(applycorev1.VolumeMount().
-							WithName(stateVol).
-							WithMountPath(stateDir)).
-						WithReadinessProbe(applycorev1.Probe().
-							WithHTTPGet(applycorev1.HTTPGetAction().
-								WithPath("/healthz").
-								WithPort(intstr.FromInt32(port))).
-							WithPeriodSeconds(5)).
-						WithResources(applycorev1.ResourceRequirements().
-							WithRequests(mem).
-							WithLimits(mem))))).
-			WithVolumeClaimTemplates(applycorev1.PersistentVolumeClaim(stateVol, "").
-				WithSpec(pvcSpec)))
-
-	return []any{statefulSet, ServiceForStatefulSet(statefulSet)}
-}
-
 // ContrastLabels should be applied to top-level resources.
 // In addition to name and component, it also labels part-of and version with compile-time constants.
 func ContrastLabels(name, component string) map[string]string {
