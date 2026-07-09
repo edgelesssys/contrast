@@ -51,14 +51,14 @@ func TestIngressEgress(t *testing.T) {
 	serviceMeshAnnotations := map[string]string{
 		kuberesource.SmEgressConfigAnnotationKey: "dummy#127.137.0.2:8200#coordinator:8200",
 	}
-	resources = kuberesource.PatchReplaceServiceMesh(resources, serviceMeshAnnotations, kuberesource.HasNameLabel("voting-svc"))
+	resources = kuberesource.PatchReplaceServiceMesh(resources, serviceMeshAnnotations, kuberesource.HasNameLabel("voting"))
 
 	// Open service mesh admin port in emoji pod for the "admin interface is available" test.
 	serviceMeshAnnotations = map[string]string{
 		kuberesource.SmIngressConfigAnnotationKey: "envoy#9901#true",
 	}
-	resources = kuberesource.PatchReplaceServiceMesh(resources, serviceMeshAnnotations, kuberesource.HasNameLabel("emoji-svc"))
-	resources = kuberesource.PatchServiceMeshAdminInterface(resources, 9901, kuberesource.HasNameLabel("emoji-svc"))
+	resources = kuberesource.PatchReplaceServiceMesh(resources, serviceMeshAnnotations, kuberesource.HasNameLabel("emoji"))
+	resources = kuberesource.PatchServiceMeshAdminInterface(resources, 9901, kuberesource.HasNameLabel("emoji"))
 
 	resources = kuberesource.AddPortForwarders(resources)
 
