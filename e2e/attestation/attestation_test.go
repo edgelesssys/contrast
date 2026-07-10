@@ -352,6 +352,7 @@ func TestAttestation(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, ct.Kubeclient.Delete(t.Context(), unstructured...))
 		require.NoError(t, ct.Kubeclient.WaitForDeletion(t.Context(), unstructured...))
+		require.NoError(t, ct.Kubeclient.DeleteHistory(t.Context(), ct.Namespace))
 
 		// Change the guest policy. By default, the minimum required ABIMinor version is 0
 		// (read from packages/by-name/contrast/reference-values/snpGuestPolicyQEMU.json).
