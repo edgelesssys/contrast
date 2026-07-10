@@ -29,8 +29,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 func TestCoordinator(t *testing.T) {
@@ -59,13 +57,7 @@ func TestCoordinator(t *testing.T) {
 		// Delete the Coordinator history.
 		// This is the documented procedure, if changes are needed here make sure to reflect that
 		// in the docs.
-		deleteOpts := metav1.DeleteOptions{
-			PropagationPolicy: toPtr(metav1.DeletePropagationForeground),
-		}
-		listOpts := metav1.ListOptions{
-			LabelSelector: labels.Set(map[string]string{kuberesource.KubernetesAppManagedByLabel: "contrast.edgeless.systems"}).AsSelector().String(),
-		}
-		require.NoError(ct.Kubeclient.Client.CoreV1().ConfigMaps(ct.Namespace).DeleteCollection(ctx, deleteOpts, listOpts))
+		require.NoError(ct.Kubeclient.DeleteHistory(ctx, ct.Namespace))
 		require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 		require.NoError(ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace))
 
@@ -237,10 +229,6 @@ func TestCoordinator(t *testing.T) {
 		require.Error(err)
 		require.Nil(state)
 	})
-}
-
-func toPtr[A any](a A) *A {
-	return &a
 }
 
 func TestMain(m *testing.M) {
