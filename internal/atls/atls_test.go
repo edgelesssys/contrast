@@ -183,6 +183,10 @@ func (c *contextValidator) Validate(ctx context.Context, _ asn1.ObjectIdentifier
 	}
 }
 
+func (c *contextValidator) String() string {
+	return "contextValidator"
+}
+
 // TestContextPassdown ensures that the context argument of verifyEmbeddedReport is properly passed down to the validators.
 func TestContextPassdown(t *testing.T) {
 	validator := &contextValidator{make(chan error)}

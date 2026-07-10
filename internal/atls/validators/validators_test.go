@@ -21,6 +21,11 @@ func TestAny(t *testing.T) {
 		err        error
 	}{
 		"vacuous truth": {err: ErrOIDNotSupported},
+		"single validator passes through": {
+			validators: []*stubValidator{{err: assert.AnError}},
+			numTried:   1,
+			err:        assert.AnError,
+		},
 		"OID not supported": {
 			validators: []*stubValidator{{err: ErrOIDNotSupported}, {err: ErrOIDNotSupported}},
 			numTried:   2,
@@ -101,8 +106,52 @@ func TestWithFixedOID(t *testing.T) {
 	require.True(expectedOID.Equal(s.oid))
 }
 
+func TestNames(t *testing.T) {
+	for name, tc := range map[string]struct {
+		v        Validator
+		wantName string
+	}{
+		"plain": {
+			v:        &stubValidator{name: "foo"},
+			wantName: "foo",
+		},
+		"Any": {
+			v:        Any(&stubValidator{name: "foo"}, &stubValidator{name: "bar"}),
+			wantName: "Any(foo, bar)",
+		},
+		"Any-0": {
+			v:        Any(),
+			wantName: "<no validator>",
+		},
+		"Any-1": {
+			v:        Any(&stubValidator{name: "foo"}),
+			wantName: "foo",
+		},
+		"WithFixedOID": {
+			v:        WithFixedOID(asn1.ObjectIdentifier{1, 2, 3}, &stubValidator{name: "foo"}),
+			wantName: "foo",
+		},
+		"Nested": {
+			v: Any(
+				Any(&stubValidator{name: "foo"}, &stubValidator{name: "bar"}),
+				WithFixedOID(asn1.ObjectIdentifier{1, 2, 3}, &stubValidator{name: "baz"}),
+			),
+			wantName: "Any(Any(foo, bar), baz)",
+		},
+		"Named": {
+			v:        Named("bar", &stubValidator{name: "foo"}),
+			wantName: "bar",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.wantName, tc.v.String())
+		})
+	}
+}
+
 type stubValidator struct {
-	err error
+	err  error
+	name string
 
 	// saved arguments to Validate
 	oid        asn1.ObjectIdentifier
@@ -120,3 +169,15 @@ func (s *stubValidator) Validate(_ context.Context, oid asn1.ObjectIdentifier, d
 	s.reportData = rd
 	return s.err
 }
+
+func (s *stubValidator) String() string {
+	return s.name
+}
+
+var (
+	_ Validator = ValidatorFunc(nil)
+	_ Validator = (*anyOf)(nil)
+	_ Validator = (*named)(nil)
+	_ Validator = (*withFixedOID)(nil)
+	_ Validator = (*noValidator)(nil)
+)

@@ -263,7 +263,7 @@ func verifyEmbeddedReport(ctx context.Context, validator validators.Validator, c
 		}
 		// Otherwise, we'll keep track of the error and continue with the next validator.
 		foundMatchingValidator = true
-		retErr = errors.Join(retErr, fmt.Errorf(" validator %s failed: %w", validatorName(validator), validationErr))
+		retErr = errors.Join(retErr, fmt.Errorf(" validator %s failed: %w", validator.String(), validationErr))
 	}
 
 	if !foundExtension {
@@ -494,11 +494,4 @@ func getNonce(chi *tls.ClientHelloInfo) ([]byte, error) {
 // Getter returns an ASN.1 Object Identifier.
 type Getter interface {
 	OID() asn1.ObjectIdentifier
-}
-
-func validatorName(v any) string {
-	if s, ok := v.(fmt.Stringer); ok {
-		return s.String()
-	}
-	return fmt.Sprintf("%T", v)
 }
