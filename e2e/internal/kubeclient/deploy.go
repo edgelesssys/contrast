@@ -14,12 +14,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
@@ -412,6 +414,17 @@ func (c *Kubeclient) WaitForDeletion(ctx context.Context, objs ...*unstructured.
 		c.log.Info("object deleted", "namespace", obj.GetNamespace(), "kind", obj.GetKind(), "name", obj.GetName())
 	}
 	return nil
+}
+
+// DeleteHistory deletes the ConfigMaps storing Coordinator history.
+func (c *Kubeclient) DeleteHistory(ctx context.Context, namespace string) error {
+	deleteOpts := metav1.DeleteOptions{
+		PropagationPolicy: toPtr(metav1.DeletePropagationForeground),
+	}
+	listOpts := metav1.ListOptions{
+		LabelSelector: labels.Set(map[string]string{kuberesource.KubernetesAppManagedByLabel: "contrast.edgeless.systems"}).AsSelector().String(),
+	}
+	return c.Client.CoreV1().ConfigMaps(namespace).DeleteCollection(ctx, deleteOpts, listOpts)
 }
 
 // ScaleDeployment scales a deployment to the given number of replicas.
