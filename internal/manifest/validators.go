@@ -95,7 +95,13 @@ func coordinatorValidator(validatorFactory validatorFactory, coordPolicyHashes [
 		allHashes = append(allHashes, b)
 	}
 
-	return validators.ValidatorFunc(func(ctx context.Context, oid asn1.ObjectIdentifier, attDoc []byte, reportData []byte) error {
+	// TODO(burgerdev): if Validators returned the report directly we would not need to do this wrapping.
+	v, err := validatorFactory(log, kdsGetter, attestation.ReportSetterFunc(func(attestation.Report) {}))
+	if err != nil {
+		return nil, fmt.Errorf("constructing manifest validator: %w", err)
+	}
+	name := fmt.Sprintf("%s with policy hashes %v", v.String(), coordPolicyHashes)
+	return validators.Named(name, validators.ValidatorFunc(func(ctx context.Context, oid asn1.ObjectIdentifier, attDoc []byte, reportData []byte) error {
 		// We're creating the validator here to make execution reentrant and thread-safe. This way,
 		// the validators and the captured report variable are not shared. Constructing the
 		// validators is anyway orders of magnitude faster than doing the validation.
@@ -118,5 +124,5 @@ func coordinatorValidator(validatorFactory validatorFactory, coordPolicyHashes [
 			return fmt.Errorf("%w: got %x, want %v", ErrWrongCoordinatorPolicyHash, report.HostData(), coordPolicyHashes)
 		}
 		return nil
-	}), nil
+	})), nil
 }

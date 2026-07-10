@@ -87,13 +87,27 @@ func TestCoordinatorValidator(t *testing.T) {
 		}
 
 		v, err := coordinatorValidator(badFactory, nil, nil, nil)
+		require.ErrorIs(err, assert.AnError)
+		require.Nil(v)
+	})
+
+	t.Run("bad validator", func(t *testing.T) {
+		require := require.New(t)
+
+		badFactory := func(*slog.Logger, *certcache.CachedHTTPSGetter, attestation.ReportSetter) (validators.Validator, error) {
+			return validators.ValidatorFunc(func(context.Context, asn1.ObjectIdentifier, []byte, []byte) error {
+				return assert.AnError
+			}), nil
+		}
+
+		v, err := coordinatorValidator(badFactory, nil, nil, nil)
 		require.NoError(err)
 		require.NotNil(v)
 
 		require.ErrorIs(v.Validate(t.Context(), nil, nil, nil), assert.AnError)
 	})
 
-	t.Run("bad validator", func(t *testing.T) {
+	t.Run("report setter not called", func(t *testing.T) {
 		require := require.New(t)
 
 		badValidatorFactory := func(*slog.Logger, *certcache.CachedHTTPSGetter, attestation.ReportSetter) (validators.Validator, error) {
@@ -108,6 +122,45 @@ func TestCoordinatorValidator(t *testing.T) {
 
 		require.ErrorIs(v.Validate(t.Context(), nil, nil, nil), ErrBadValidator)
 	})
+}
+
+func TestValidatorNaming(t *testing.T) {
+	require := require.New(t)
+	manifest := newTestManifestSNP()
+	manifest.ReferenceValues.TDX = newTestManifestTDX().ReferenceValues.TDX
+
+	coordinatorValidator, err := manifest.CoordinatorValidator(slog.Default(), nil)
+	require.NoError(err)
+	validator, err := manifest.Validator(slog.Default(), nil, attestation.ReportSetterFunc(func(attestation.Report) {}))
+	require.NoError(err)
+
+	for name, tc := range map[string]struct {
+		v              validators.Validator
+		wantSubstrings []string
+	}{
+		"CoordinatorValidator": {
+			v: coordinatorValidator,
+			wantSubstrings: []string{
+				"snp-0-MILAN",
+				"tdx-0",
+				"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+			},
+		},
+		"Validator": {
+			v: validator,
+			wantSubstrings: []string{
+				"snp-0-MILAN",
+				"tdx-0",
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			name := tc.v.String()
+			for _, wantSubstring := range tc.wantSubstrings {
+				assert.Contains(t, name, wantSubstring)
+			}
+		})
+	}
 }
 
 type stubReport struct {
