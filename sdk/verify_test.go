@@ -237,3 +237,7 @@ type stubValidator struct {
 func (v *stubValidator) Validate(context.Context, asn1.ObjectIdentifier, []byte, []byte) error {
 	return v.err
 }
+
+func (v *stubValidator) String() string {
+	return "stubValidator"
+}
