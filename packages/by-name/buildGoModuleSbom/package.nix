@@ -50,6 +50,8 @@ lib.throwIfNot (package.proxyVendor or false)
     git -c user.email=sbom@contrast -c user.name=sbom add -A
     git -c user.email=sbom@contrast -c user.name=sbom \
       -c commit.gpgsign=false commit -q -m sbom
+    # Tag HEAD with the real release version so cyclonedx-gomod reports it instead of a v0.0.0-<commit> pseudo-version
+    git -c user.email=sbom@contrast -c user.name=sbom tag -a -m sbom "v${lib.fileContents ../../../version.txt}"
     popd >/dev/null
 
     pushd src/${moduleRoot} >/dev/null

@@ -1,0 +1,51 @@
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0320" # yaml-rust
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "GHSA-2f9f-gq7v-9h6m" # thrift
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "GHSA-w9wp-h8wv-79jx" # opentelemetry_sdk
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0387" # opentelemetry_api
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0123" # opentelemetry-jaeger
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "GO-2026-5932" # golang.org/x/crypto/openpgp
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0384" # instant
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0388" # derivative
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0436" # paste
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0173" # proc-macro-error2
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0185" # quinn-proto
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0190" # anyhow
+reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0204" # crossbeam-epoch
+reason = "Baseline: present at vuln-scanning introduction."

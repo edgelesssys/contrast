@@ -1,0 +1,56 @@
+name: vulnerability scan
+
+on:
+  workflow_call:
+    secrets:
+      GITHUB_TOKEN_IN:
+        required: false
+      CACHIX_AUTH_TOKEN:
+        required: true
+  workflow_dispatch: {}
+
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        sbom:
+          - cli
+          - runtimeConfidential
+          - runtimeNonConfidential
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      # Required to publish findings to the GitHub Security tab.
+      security-events: write
+    env:
+      SET: base
+      SBOM: ${{ matrix.sbom }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Build SBOM
+        id: sbom
+        run: |
+          path=$(nix build --no-link --print-out-paths ".#${SET}.sbom.${SBOM}")
+          echo "path=${path}" >> "$GITHUB_OUTPUT"
+      - name: Scan SBOM for known vulnerabilities
+        env:
+          SBOM_PATH: ${{ steps.sbom.outputs.path }}
+        run: |
+          nix run ".#${SET}.scripts.vuln-scan" -- \
+            "${SBOM_PATH}" \
+            "${GITHUB_WORKSPACE}/sarif-${SBOM}"
+      - name: Upload results to the Security tab
+        # Publish findings even when the scan failed. Guard on SARIF existing.
+        if: ${{ !cancelled() && hashFiles(format('sarif-{0}/*.sarif', matrix.sbom)) != '' }}
+        uses: github/codeql-action/upload-sarif@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d # v3
+        with:
+          sarif_file: sarif-${{ matrix.sbom }}
+          category: vuln-scan-${{ matrix.sbom }}

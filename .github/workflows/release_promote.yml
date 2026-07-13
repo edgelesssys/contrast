@@ -84,6 +84,7 @@ jobs:
           expected=(
             "release-requirement: Build and push artifacts, create nightly draft release"
             "release-requirement: Build aarch64-darwin CLI"
+            "release-requirement: dependency vulnerability scan"
             "release-requirement: e2e nightly / Metal-QEMU-SNP "
             "release-requirement: e2e nightly / Metal-QEMU-TDX "
             "release-requirement: e2e nightly / Metal-QEMU-SNP-GPU "
