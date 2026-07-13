@@ -120,6 +120,16 @@ jobs:
     with:
       url: ${{ needs.release-x86_64-linux.outputs.ARTIFACTS_URL }}
 
+  vuln-scan:
+    name: "release-requirement: dependency vulnerability scan"
+    uses: ./.github/workflows/vuln_scan.yml
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+    permissions:
+      contents: read
+      security-events: write
+
   nightly:
     name: "release-requirement: e2e nightly"
     uses: ./.github/workflows/e2e_nightly.yml

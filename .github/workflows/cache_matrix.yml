@@ -37,6 +37,16 @@ jobs:
             echo "Nothing to build. Cache already up to date."
           fi
 
+  vuln-scan:
+    needs: linux
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/vuln_scan.yml
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
   darwin:
     # Runs after the linux job so the x86_64-linux runtime closure can be substituted here.
     needs: linux

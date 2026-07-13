@@ -128,6 +128,16 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+  vuln-scan:
+    name: "release-requirement: dependency vulnerability scan"
+    uses: ./.github/workflows/vuln_scan.yml
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+    permissions:
+      contents: read
+      security-events: write
+
   nightly:
     name: "release-requirement: e2e nightly"
     uses: ./.github/workflows/e2e_nightly.yml
@@ -256,7 +266,7 @@ jobs:
 
   publish:
     name: Publish release
-    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, test]
+    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, test, vuln-scan]
     runs-on: ubuntu-24.04
     environment: release-publish
     permissions:
