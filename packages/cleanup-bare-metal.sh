@@ -98,6 +98,9 @@ for runtimeClass in "${unusedRuntimeClasses[@]}"; do
   yq -i -p toml -o toml "del(.proxy_plugins[\"${SNAPSHOTTER}-${runtimeClass}\"])" "${configFile}" 2>/dev/null || true
 done
 
+# Clean up potential leftovers in the default namespace.
+kubectl delete configmaps --selector app.kubernetes.io/managed-by=contrast.edgeless.systems || true
+
 echo "Cleanup finished"
 
 if nsenter -t 1 -m sh -c "command -v k3s >/dev/null 2>&1"; then
