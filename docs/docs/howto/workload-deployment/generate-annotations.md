@@ -34,6 +34,7 @@ contrast generate --reference-values metal-qemu-snp resources/
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
 They will have to be filled in manually.
 Find a detailed description of the meaning of these values and how to acquire them in the [`MinimumTCB` section of the manifest documentation](../../architecture/components/manifest.md#snp-minimum-tcb).
+It's also recommended to populate the [`AllowedChipIDs`] field to protect against [relay attacks].
 
 </TabItem>
 <TabItem value="metal-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
@@ -53,6 +54,7 @@ See the [multi-runtime class documentation](../multi-runtime-class.md) for detai
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
 They will have to be filled in manually.
 Find a detailed description of the meaning of these values and how to acquire them in the [`MinimumTCB` section of the manifest documentation](../../architecture/components/manifest.md#snp-minimum-tcb).
+It's also recommended to populate the [`AllowedChipIDs`] field to protect against [relay attacks].
 
 </TabItem>
 <TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
@@ -64,6 +66,7 @@ contrast generate --reference-values metal-qemu-tdx resources/
 On bare-metal TDX, `contrast generate` is unable to fill in the `MrSeam` value as it depends on your platform configuration.
 It will have to be filled in manually.
 Find a detailed description of the meaning of this value and how to acquire it in the [`TDXReferenceValues` section of the manifest documentation](../../architecture/components/manifest.md#tdx-mr-seam).
+It's also recommended to populate the [`AllowedPIIDs`] field to protect against [relay attacks].
 
 </TabItem>
 <TabItem value="metal-qemu-tdx-gpu" label="Bare metal (TDX, with GPU support)">
@@ -83,9 +86,14 @@ See the [multi-runtime class documentation](../multi-runtime-class.md) for detai
 On bare-metal TDX, `contrast generate` is unable to fill in the `MrSeam` value as it depends on your platform configuration.
 It will have to be filled in manually.
 Find a detailed description of the meaning of this value and how to acquire it in the [`TDXReferenceValues` section of the manifest documentation](../../architecture/components/manifest.md#tdx-mr-seam).
+It's also recommended to populate the [`AllowedPIIDs`] field to protect against [relay attacks].
 
 </TabItem>
 </Tabs>
+
+[`AllowedChipIDs`]: ../../architecture/components/manifest.md#snp-allowed-chip-ids
+[`AllowedPIIDs`]: ../../architecture/components/manifest.md#tdx-allowed-piids
+[relay attacks]: ../../architecture/attestation/overview.md#relay-attacks
 
 The `generate` command needs to pull the container images to derive policies.
 Running `generate` for the first time can take a while, especially if the images are large.
