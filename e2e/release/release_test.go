@@ -111,6 +111,9 @@ func TestRelease(t *testing.T) {
 				t.Logf("deleting resource %s: %v", resource.GetName(), err)
 			}
 		}
+		if err := k.DeleteHistory(ctx, "default"); err != nil {
+			t.Logf("deleting ConfigMap store: %v", err)
+		}
 	})
 
 	// Write namespaces to trigger log collection.
