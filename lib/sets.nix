@@ -4,9 +4,6 @@
 { lib }:
 
 rec {
-  # maxCombineDepth bounds how many sets may be combined at once via the `+` syntax.
-  maxCombineDepth = 3;
-
   # nonEmptySubsets returns every non-empty subset of the given list.
   nonEmptySubsets =
     list:
@@ -22,13 +19,9 @@ rec {
         lib.imap0 (i: x: map (p: [ x ] ++ p) (permutations (lib.take i list ++ lib.drop (i + 1) list))) list
       );
 
-  # canonicalName joins a subset of set names into a single, stable name by sorting the names alphabetically and separating them with "+".
-  # Every permutation of the same set names therefore maps to the same canonical name.
-  canonicalName = subset: lib.concatStringsSep "+" (lib.sort builtins.lessThan subset);
-
-  # combinableSubsets returns all setNames that may be used as the flake entry point, i.e. non-empty and no deeper than maxCombineDepth.
-  combinableSubsets =
-    setNames: builtins.filter (s: builtins.length s <= maxCombineDepth) (nonEmptySubsets setNames);
+  # orderedCombinations returns every non-empty ordered arrangement of distinct set names: all permutations of all non-empty subsets.
+  # Order is significant, so "a+b" and "b+a" are distinct combinations that get applied in the order given.
+  orderedCombinations = setNames: lib.concatMap permutations (nonEmptySubsets setNames);
 
   # mkSet instantiates nixpkgs for the given system with the given overlays.
   mkSet =
@@ -72,7 +65,7 @@ rec {
     ];
 
   # mkSets builds the full attrset of package sets discovered under overlays/sets.
-  # For each combinable subset it builds the canonicalName set and then exposes it under every permutation of the subset's names joined with "+".
+  # For every ordered combination of the available sets it builds one set, named by joining the set names with "+", applying the set overlays in that order.
   mkSets =
     {
       nixpkgs,
@@ -82,27 +75,18 @@ rec {
     let
       setsDir = self + "/overlays/sets";
       setNames = map (lib.removeSuffix ".nix") (builtins.attrNames (builtins.readDir setsDir));
-      # mkCanonicalSet builds the package set for a single subset of set names by layering the corresponding set overlays on top of the default overlays.
-      mkCanonicalSet =
-        s:
+      # mkOrderedSet builds the package set for a single ordered combination of set names by layering the corresponding set overlays on top of the default overlays.
+      mkOrderedSet =
+        p:
         mkSet { inherit nixpkgs system; } (
-          (defaultOverlays { inherit self; } (canonicalName s)) ++ map (n: import (setsDir + "/${n}.nix")) s
+          (defaultOverlays { inherit self; } (lib.concatStringsSep "+" p))
+          ++ map (n: import (setsDir + "/${n}.nix")) p
         );
-      subsets = combinableSubsets setNames;
-      canonicalSets = builtins.listToAttrs (
-        map (s: {
-          name = canonicalName s;
-          value = mkCanonicalSet s;
-        }) subsets
-      );
     in
     builtins.listToAttrs (
-      lib.concatMap (
-        s:
-        map (p: {
-          name = lib.concatStringsSep "+" p;
-          value = canonicalSets.${canonicalName s};
-        }) (permutations s)
-      ) subsets
+      map (p: {
+        name = lib.concatStringsSep "+" p;
+        value = mkOrderedSet p;
+      }) (orderedCombinations setNames)
     );
 }
