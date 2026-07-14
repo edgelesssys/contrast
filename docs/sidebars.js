@@ -150,6 +150,11 @@ const sidebars = {
         },
         {
           type: "doc",
+          label: "Caching attestation collateral",
+          id: "howto/collateral-proxy",
+        },
+        {
+          type: "doc",
           label: "Manifest update",
           id: "howto/manifest-update",
         },

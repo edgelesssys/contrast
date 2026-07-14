@@ -37,6 +37,7 @@ cmdline
 config
 configmap
 containerd
+cooldown
 CPUs?
 CRDs?
 CRIs?
@@ -105,6 +106,7 @@ Kustomization
 leaderboard
 libcryptsetup
 lima
+liveness
 Logstash
 loopback
 Mbps
