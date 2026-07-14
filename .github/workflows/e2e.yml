@@ -58,8 +58,8 @@ jobs:
       SET: >-
         ${{
           (inputs.set != '' && inputs.set) ||
-          (inputs.test-name == 'badaml-sandbox' && 'badaml-sandbox') ||
-          (inputs.test-name == 'badaml-vuln' && 'badaml-vuln') ||
+          (inputs.test-name == 'badaml-sandbox' && 'badaml') ||
+          (inputs.test-name == 'badaml-vuln' && 'badaml+no-aml-sandbox') ||
           'base'
         }}
     steps:
