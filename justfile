@@ -90,8 +90,8 @@ e2e target=default_deploy_target platform=default_platform set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     declare -A required_sets=(
-        [badaml-vuln]=badaml-vuln
-        [badaml-sandbox]=badaml-sandbox
+        [badaml-vuln]=badaml+no-aml-sandbox
+        [badaml-sandbox]=badaml
     )
     declare -A required_debug=(
         [badaml-vuln]=true

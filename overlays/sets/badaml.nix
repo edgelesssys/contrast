@@ -1,14 +1,17 @@
 # Copyright 2026 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
+# badaml sets up the BadAML attack. On its own the guest's AML sandbox stays
+# enabled (its default), so the attack is mitigated. Combine it with the
+# no-aml-sandbox set (i.e. `badaml+no-aml-sandbox`) to disable the sandbox and
+# leave the guest vulnerable to the attack.
+
 _final: prev: {
   contrastPkgs = prev.contrastPkgs.overrideScope (
     contrastPkgsFinal: contrastPkgsPrev: {
       kata = contrastPkgsPrev.kata.overrideScope (
         _kataFinal: kataPrev: {
           kernel-uvm = kataPrev.kernel-uvm.override {
-            # Deactivate the AML sandbox so the guest is vulnerable to BadAML attack.
-            withAMLSandbox = false;
             # Enable ACPI debug logging to make it easier to verify that the attack is working,
             # or debug it if it isn't.
             withACPIDebug = true;
