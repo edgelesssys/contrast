@@ -187,4 +187,17 @@
       Cmd = [ "${pkgs.strongswan}/libexec/ipsec/charon" ];
     };
   };
+
+  large-compressed = contrastPkgs.buildOciImage {
+    name = "large-compressed";
+    tag = "latest";
+    copyToRoot = with pkgs; [
+      busybox
+      (runCommand "large-file" { } ''
+        mkdir -p $out
+        # Resulting image will be ~2GiB, since we copy the file to root and to the nix store.
+        # Compressed image will only be ~20MiB.
+        dd if=/dev/zero of=$out/large-file bs=1M count=1000'')
+    ];
+  };
 }

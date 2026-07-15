@@ -34,6 +34,8 @@ k8s-log-collector: (push "k8s-log-collector")
 
 strongswan: (push "strongswan")
 
+large-compressed: (push "large-compressed")
+
 # Download all logs (pod logs + host journal). Deploys the log-collector if not already running.
 download-logs set=default_set:
     #!/usr/bin/env bash
@@ -106,7 +108,7 @@ e2e target=default_deploy_target platform=default_platform set=default_set:
     echo "Using set=$RESOLVED_SET, debug=$RESOLVED_DEBUG for test '{{ target }}'"
     set="$RESOLVED_SET" debug="$RESOLVED_DEBUG" just _e2e {{ target }} {{ platform }}
 
-_e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell k8s-log-collector strongswan (node-installer platform)
+_e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell k8s-log-collector strongswan large-compressed (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ {{ target }} == "gpu" ]] ; then

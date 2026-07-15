@@ -488,8 +488,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 				}
 				spec.WithResources(
 					kuberesource.ResourceRequirements().
-						// Double because the /run directory only has 50% of VM memory available
-						WithMemoryLimitAndRequest(2 * podMemory / 1024 / 1024),
+						WithMemoryLimitAndRequest(podMemory / 1024 / 1024),
 				)
 			}
 			return meta, spec, nil
