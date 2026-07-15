@@ -32,19 +32,20 @@ const (
 
 var containerMemoryLimits = map[string]map[MemoryProfile]int64{
 	"contrast-initializer": {
-		// In v1.18.0, the initializer image was 50MiB compressed, 160MiB uncompressed.
-		// Double that because only 50% of the VM memory are available for /run.
-		MemoryProfileFull: 420,
+		// In v1.23.0, the initializer image was 61MiB compressed, 177MiB uncompressed.
+		MemoryProfileFull: 300,
 		// The container's cgroup memory.peak is at about 5MiB.
 		MemoryProfileRuntimeOnly: 20,
 	},
 	"contrast-service-mesh": {
-		MemoryProfileFull: 400,
+		// In v1.23.0, the service mesh image was 89MiB compressed, 268MiB uncompressed.
+		MemoryProfileFull: 500,
 		// When running the emojivoto deployment, the container's cgroup memory.peak is at about 20MiB.
 		MemoryProfileRuntimeOnly: 100,
 	},
 	"contrast-debug-shell": {
-		MemoryProfileFull: 1000,
+		// In v1.23.0, the debugshell image was 115MiB compressed, 287MiB uncompressed.
+		MemoryProfileFull: 650,
 		// Leave enough memory for debugging tasks.
 		MemoryProfileRuntimeOnly: 200,
 	},
@@ -371,10 +372,8 @@ func Coordinator(namespace string) *CoordinatorConfig {
 										).
 										WithResources(
 											ResourceRequirements().
-												// As of v1.18.0, the Coordinator is roughly 200MiB unpacked.
-												// Double that to account for only 50% of VM memory being available
-												// for /run.
-												WithMemoryLimitAndRequest(400),
+												// As of v1.23.0, the Coordinator is roughly 270MiB unpacked.
+												WithMemoryLimitAndRequest(300),
 										),
 								).
 								WithAffinity(
