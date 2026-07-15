@@ -106,7 +106,7 @@ in
       options = [
         "nodev"
         "nosuid"
-        "size=50%"
+        "size=100%"
       ];
       neededForBoot = true;
     };

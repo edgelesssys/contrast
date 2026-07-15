@@ -59,7 +59,7 @@ func TestImageStore(t *testing.T) {
 		resources = append(resources, testPod(tc.name, tc.annotation))
 	}
 
-	resources = append(resources, postgresPod())
+	resources = append(resources, largeCompressedPod())
 
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	resources = kuberesource.AddPortForwarders(resources)
@@ -118,17 +118,17 @@ func TestImageStore(t *testing.T) {
 				// Usually, K8s adjusts the available memory to either be the maximum of (sequential) init containers,
 				// or the sum of (concurrent) normal and sidecar containers
 				minimumMemory := max(initContainerMemory, containerMemory)
-				// Only 50% of the allocated memory is available in /run. Half of the calculated pod memory should then
-				// accommodate for the container limits as defined above, plus additional memory to pull the images.
-				require.Greater(podMemory/2, minimumMemory, "pod memory should be greater than the container limits")
+				// The calculated pod memory should accommodate for the container limits as defined above,
+				// plus additional memory to pull the images.
+				require.Greater(podMemory, minimumMemory, "pod memory should be greater than the container limits")
 
 				defaultMemory := platforms.DefaultMemoryInMebiBytes(platform) * 1024 * 1024
 				totalMemory := defaultMemory + podMemory
-				// When the imagestore is disabled, the expectedKibiBytes are (the total VM memory in KiB - internal VM overhead) / 2
+				// When the imagestore is disabled, the expectedKibiBytes are (the total VM memory in KiB - internal VM overhead)
 				// For more information on the internal VM overhead, see https://github.com/edgelesssys/contrast/pull/1196
 				vmOverheadBytes := 99 * 1024 * 1024
 				vmOverheadBytes += swiotlbSizeBytes(totalMemory)
-				expectedKibiBytes = ((totalMemory - vmOverheadBytes) / 1024) / 2
+				expectedKibiBytes = (totalMemory - vmOverheadBytes) / 1024
 			case "":
 				size := resource.MustParse("10Gi")
 				expectedKibiBytes = int(size.Value()) / 1024
@@ -162,23 +162,22 @@ func TestImageStore(t *testing.T) {
 	}
 
 	t.Run("large image with pod resource limits", func(t *testing.T) {
-		// Increase timeout, as pulling the image may take a while.
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(5*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		t.Cleanup(cancel)
 
 		require = req.New(t)
 
-		// The uncompressed and compressed postgres image layers together are ~815Mi.
+		// The uncompressed test image is about 2GiB.
 		// The largest VM memory when not using auto-memory limits can be calculated as:
 		//   - default memory (GPU): 1024Mi
 		//   - debugshell memory limit: 1000Mi
 		//   - container memory limit: 10Mi
-		// The available memory for image pulling is then (1024+1000+10) / 2 = 1017Mi.
-		// The debugshell image is ~500-600Mi, which leaves ~400-500Mi for pulling the postgres image,
+		// The available memory for image pulling is then at most 1024+1000+10 = 2034M.
+		// The debugshell image is ~400Mi, which leaves ~1600Mi for pulling the test image,
 		// so the pod wouldn't be able to start.
 		// This test verifies that the added pod memory limit during generate is enough to pull the image
 		// when the imagestore is disbabled. If the pod comes up, the test passes.
-		require.NoError(ct.Kubeclient.WaitForPod(ctx, ct.Namespace, "postgres"))
+		require.NoError(ct.Kubeclient.WaitForPod(ctx, ct.Namespace, "large-compressed"))
 	})
 }
 
@@ -255,30 +254,20 @@ func testPod(name, annotation string) any {
 		)
 }
 
-func postgresPod() any {
-	return kuberesource.Pod("postgres", "").
+func largeCompressedPod() any {
+	return kuberesource.Pod("large-compressed", "").
 		WithAnnotations(map[string]string{kuberesource.ImageStoreSizeAnnotationKey: "0"}).
 		WithSpec(
 			kuberesource.PodSpec().
 				WithContainers(
 					kuberesource.Container().
-						WithName("postgres").
-						WithImage("docker.io/library/postgres@sha256:4aabea78cf39b90e834caf3af7d602a18565f6fe2508705c8d01aa63245c2e20").
-						WithCommand("/bin/bash", "-c", "sleep infinity").
+						WithName("large-compressed").
+						WithImage("ghcr.io/edgelesssys/contrast/large-compressed:latest").
+						WithCommand("/bin/sh", "-c", "sleep infinity").
 						WithResources(
 							kuberesource.ResourceRequirements().
 								WithMemoryLimitAndRequest(10),
-						).
-						WithVolumeMounts(
-							kuberesource.VolumeMount().
-								WithName("postgres-data").
-								WithMountPath("/var/lib/postgresql"),
 						),
-				).
-				WithVolumes(
-					kuberesource.Volume().
-						WithName("postgres-data").
-						WithEmptyDir(kuberesource.EmptyDirVolumeSource().Inner()),
 				),
 		)
 }
