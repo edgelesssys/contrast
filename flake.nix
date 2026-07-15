@@ -26,7 +26,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     bombon = {
-      url = "github:edgelesssys/bombon/8f0412a597fcb64b418be74ca402e58b37e95dd2";
+      url = "github:edgelesssys/bombon/8e8ebc8d1c38e5364bd5222c385c82a492de618a";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

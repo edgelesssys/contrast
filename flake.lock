@@ -7,17 +7,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1783417988,
-        "narHash": "sha256-o4FeB8HaKwQYL8RMVwfGIM+x0gjv/Xn1va4/qBuH41g=",
+        "lastModified": 1783595640,
+        "narHash": "sha256-ZOJCOR43+yXa8pkOkH09+dM/Fv0ngSe+S0s5PZnPyV8=",
         "owner": "edgelesssys",
         "repo": "bombon",
-        "rev": "8f0412a597fcb64b418be74ca402e58b37e95dd2",
+        "rev": "8e8ebc8d1c38e5364bd5222c385c82a492de618a",
         "type": "github"
       },
       "original": {
         "owner": "edgelesssys",
         "repo": "bombon",
-        "rev": "8f0412a597fcb64b418be74ca402e58b37e95dd2",
+        "rev": "8e8ebc8d1c38e5364bd5222c385c82a492de618a",
         "type": "github"
       }
     },
