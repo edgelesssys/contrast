@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 type RetryHTTPSGetter struct {
 	client   *http.Client
 	interval time.Duration
+	logger   *slog.Logger
 
 	clock clock.WithTicker
 }
@@ -31,10 +33,11 @@ type RetryHTTPSGetter struct {
 //
 // The getter will use the given client to do individual requests, and the requests will be spaced
 // with the given interval.
-func NewRetryHTTPSGetter(client *http.Client, interval time.Duration) *RetryHTTPSGetter {
+func NewRetryHTTPSGetter(client *http.Client, interval time.Duration, log *slog.Logger) *RetryHTTPSGetter {
 	return &RetryHTTPSGetter{
 		client:   client,
 		interval: interval,
+		logger:   log,
 		clock:    clock.RealClock{},
 	}
 }
@@ -46,6 +49,9 @@ func (g *RetryHTTPSGetter) GetContext(ctx context.Context, url string) (headers 
 	doer := retry.DoerFunc(func(ctx context.Context) error {
 		var err error
 		headers, body, err = g.fetchOnce(ctx, url)
+		if err != nil {
+			g.logger.Debug("Failed to fetch URL", "url", url, "error", err)
+		}
 		return err
 	})
 

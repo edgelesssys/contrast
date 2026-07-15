@@ -5,6 +5,7 @@ package certcache
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -109,6 +110,7 @@ func TestRetryHTTPSGetter(t *testing.T) {
 			getter := &RetryHTTPSGetter{
 				client:   srv.Client(),
 				interval: time.Second,
+				logger:   slog.Default(),
 				clock:    clock,
 			}
 

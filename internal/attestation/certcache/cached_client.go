@@ -60,7 +60,7 @@ type CachedHTTPSGetter struct {
 // NewCachedHTTPSGetter returns a new CachedHTTPSGetter.
 func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger, collateralProxy string) *CachedHTTPSGetter {
 	c := &CachedHTTPSGetter{
-		ContextHTTPSGetter:  NewRetryHTTPSGetter(http.DefaultClient, retryInterval),
+		ContextHTTPSGetter:  NewRetryHTTPSGetter(http.DefaultClient, retryInterval, log),
 		logger:              log,
 		cache:               s,
 		gcTicker:            ticker,
