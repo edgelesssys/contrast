@@ -170,10 +170,10 @@ func TestImageStore(t *testing.T) {
 		// The uncompressed test image is about 2GiB.
 		// The largest VM memory when not using auto-memory limits can be calculated as:
 		//   - default memory (GPU): 1024Mi
-		//   - debugshell memory limit: 1000Mi
+		//   - debugshell memory limit: 650Mi
 		//   - container memory limit: 10Mi
-		// The available memory for image pulling is then at most 1024+1000+10 = 2034M.
-		// The debugshell image is ~400Mi, which leaves ~1600Mi for pulling the test image,
+		// The available memory for image pulling is then at most 1024+1000+10 = 1684Mi.
+		// The debugshell image is ~400Mi, which leaves ~1300Mi for pulling the test image,
 		// so the pod wouldn't be able to start.
 		// This test verifies that the added pod memory limit during generate is enough to pull the image
 		// when the imagestore is disbabled. If the pod comes up, the test passes.
