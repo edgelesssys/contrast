@@ -18,6 +18,7 @@ let
         imageName="$1"
         containerlookup="''${2:-/dev/null}"
         layersCache="''${3:-$(mktemp)}"
+        echo "$(date '+%Y/%m/%d %H:%M:%S') Pushing ${name} ($(du -shL ${dir} | cut -f1)) to $imageName:${tag}" >&2
         hash=$(crane push "${dir}" "$imageName:${tag}")
         printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "${name}" "$hash" >> "$containerlookup"
         if [ ! -f "$layersCache" ]; then
