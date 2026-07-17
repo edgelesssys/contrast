@@ -12,7 +12,6 @@ on:
       - "!docs/**"
       - "!rfc/**"
       - "!tools/vale/**"
-  workflow_dispatch:
 
 # Cancel old runs of this workflow for this pull request if new commits are pushed.
 concurrency:
@@ -20,28 +19,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  plan:
+    name: Determine relevant tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+      any: ${{ steps.select.outputs.any }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          # Need the base commit in history to diff the PR against it.
+          fetch-depth: 25
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Select relevant e2e tests
+        id: select
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          arg="${BASE_SHA}"
+
+          matrix=$(nix run ".#base.scripts.select-e2e-tests" -- "${arg}")
+          echo "${matrix}" | jq
+
+          echo "matrix={\"include\":${matrix}}" >> "$GITHUB_OUTPUT"
+          if [[ "${matrix}" == "[]" ]]; then
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          fi
+
   test_matrix:
+    needs: plan
+    if: needs.plan.outputs.any == 'true'
     strategy:
-      matrix:
-        include:
-          - platform: Metal-QEMU-SNP
-            runner: SNP
-            self-hosted: true
-            test: openssl
-          - platform: Metal-QEMU-SNP-GPU
-            runner: SNP-GPU
-            self-hosted: true
-            test: gpu
-          - platform: Metal-QEMU-TDX
-            runner: TDX
-            self-hosted: true
-            test: openssl
-          - platform: Metal-QEMU-TDX-GPU
-            runner: TDX-GPU
-            self-hosted: true
-            test: gpu
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
       fail-fast: false
-    name: "${{ matrix.platform }}"
+    name: "${{ matrix.platform }} / ${{ matrix.test }}"
     uses: ./.github/workflows/e2e.yml
     with:
       skip-undeploy: false
