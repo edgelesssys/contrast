@@ -1,6 +1,13 @@
 // Copyright 2026 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// test-if: path:overlays/sets/badaml.nix
+// test-if: path:overlays/sets/no-aml-sandbox.nix
+// test-if: path:packages/by-name/kata/kernel-uvm
+// test-if: path:packages/by-name/qemu-wrapped
+// test-if: path:packages/by-name/badaml-payload
+// test-if: path:e2e/badaml-vuln
+
 //go:build e2e
 
 package badamlsandbox

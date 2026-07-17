@@ -1,6 +1,9 @@
 // Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// test-if: nix:containers.collateral-proxy
+// test-if: path:internal/attestation/certcache
+
 //go:build e2e
 
 package kdspcsdowntime

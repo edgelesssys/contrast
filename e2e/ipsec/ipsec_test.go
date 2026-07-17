@@ -1,6 +1,8 @@
 // Copyright 2026 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// test-if: nix:containers.strongswan
+
 //go:build e2e
 
 package ipsec

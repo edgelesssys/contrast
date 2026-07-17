@@ -1,6 +1,8 @@
 // Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// test-if: path:packages/by-name/kata
+
 //go:build e2e
 
 package containerddigestpinning

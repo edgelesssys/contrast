@@ -1,6 +1,8 @@
 // Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// test-if: nix:imagestore
+
 //go:build e2e
 
 package imagestore

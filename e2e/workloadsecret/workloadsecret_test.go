@@ -1,6 +1,9 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// test-if: path:coordinator
+// test-if: path:internal/seedengine
+
 //go:build e2e
 
 package workloadsecret
