@@ -133,6 +133,11 @@
       options = [ "--strict" ];
       includes = [ "renovate.json5" ];
     };
+    select-e2e-tests = {
+      command = "${lib.getExe pkgs.contrastPkgs.scripts.select-e2e-tests}";
+      options = [ "check" ];
+      includes = [ "e2e/**/*.go" ];
+    };
     stylua = {
       command = "${lib.getExe pkgs.stylua}";
       includes = [ "*.lua" ];

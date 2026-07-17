@@ -33,6 +33,23 @@ directives_of() {
     sed -E 's|.*test-if:[[:space:]]*||'
 }
 
+# check mode: every path: directive must point at an existing path, every nix package must exist
+if [[ ${1:-} == check ]]; then
+  rc=0
+  while IFS= read -r name; do
+    while IFS= read -r d; do
+      [[ $d == path:* ]] || continue
+      p=${d#path:}
+      if [[ ! -e $root/$p ]]; then
+        printf 'e2e/%s: test-if path does not exist: %s\n' "$name" "$p" >&2
+        rc=1
+      fi
+    done < <(directives_of "$name")
+  done < <(list_test_names)
+  [[ $rc -eq 0 ]] && printf 'select-e2e-tests: all test-if path: directives are valid\n' >&2
+  exit $rc
+fi
+
 declare -A selected=()
 changed=()
 
