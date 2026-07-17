@@ -1,6 +1,9 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// test-if: path:internal/grpc/dialer
+// test-if: path:cli/genpolicy
+
 //go:build e2e
 
 // proxy ensures that HTTP_PROXY environment variables are respected by the Contrast CLI.

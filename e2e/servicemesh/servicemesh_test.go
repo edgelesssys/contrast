@@ -1,6 +1,8 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// test-if: path:service-mesh
+
 //go:build e2e
 
 package servicemesh

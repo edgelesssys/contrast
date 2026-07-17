@@ -1,6 +1,9 @@
 // Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// test-if: path:nodeinstaller
+// test-if: path:internal/manifest/runtimehandler.go
+
 //go:build e2e
 
 package multiruntimeclass

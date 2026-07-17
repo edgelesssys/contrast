@@ -1,6 +1,8 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// test-if: nix:containers.memdump
+
 //go:build e2e
 
 package memdump

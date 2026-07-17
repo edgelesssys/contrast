@@ -1,6 +1,9 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// test-if: path:coordinator
+// test-if: path:internal/seedengine
+
 //go:build e2e
 
 package vault
