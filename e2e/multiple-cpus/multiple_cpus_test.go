@@ -1,6 +1,7 @@
 // Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// runs-on: Metal-QEMU-SNP,Metal-QEMU-TDX-GPU
 // test-if: path:cli/verifier
 
 //go:build e2e
