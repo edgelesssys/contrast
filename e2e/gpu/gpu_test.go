@@ -1,6 +1,8 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
+// runs-on: Metal-QEMU-SNP-GPU,Metal-QEMU-TDX-GPU
+
 //go:build e2e
 
 package gpu

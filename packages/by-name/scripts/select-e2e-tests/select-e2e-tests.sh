@@ -33,6 +33,25 @@ directives_of() {
     sed -E 's|.*test-if:[[:space:]]*||'
 }
 
+# runs-on directives for platforms to run this test on
+runs_on_of() {
+  local files
+  shopt -s nullglob
+  files=("$root/e2e/$1"/*.go)
+  shopt -u nullglob
+  [[ ${#files[@]} -gt 0 ]] || return 0
+  { grep -hoE '//[[:space:]]*runs-on:[[:space:]]*[^[:space:]]+' "${files[@]}" || true; } |
+    sed -E 's|.*runs-on:[[:space:]]*||' | tr ',' '\n'
+}
+
+declare -A known_platforms=(
+  ["Metal-QEMU-SNP"]=1
+  ["Metal-QEMU-TDX"]=1
+  ["Metal-QEMU-SNP-GPU"]=1
+  ["Metal-QEMU-TDX-GPU"]=1
+)
+default_platforms=(Metal-QEMU-SNP Metal-QEMU-TDX)
+
 # check mode: every path: directive must point at an existing path, every nix package must exist
 if [[ ${1:-} == check ]]; then
   rc=0
@@ -45,8 +64,15 @@ if [[ ${1:-} == check ]]; then
         rc=1
       fi
     done < <(directives_of "$name")
+    while IFS= read -r plat; do
+      [[ -n $plat ]] || continue
+      if [[ -z ${known_platforms[$plat]:-} ]]; then
+        printf 'e2e/%s: runs-on references unknown platform: %s\n' "$name" "$plat" >&2
+        rc=1
+      fi
+    done < <(runs_on_of "$name")
   done < <(list_test_names)
-  [[ $rc -eq 0 ]] && printf 'select-e2e-tests: all test-if path: directives are valid\n' >&2
+  [[ $rc -eq 0 ]] && printf 'select-e2e-tests: all test-if path: and runs-on: directives are valid\n' >&2
   exit $rc
 fi
 
@@ -109,15 +135,17 @@ else
   done < <(list_test_names)
 fi
 
-# gpu and multi-runtime-class only do anything on GPU hosts, every other test runs on non-GPU.
+# Each test runs on the platforms from its runs-on: directive, or on the default non-GPU set.
 for test in "${!selected[@]}"; do
-  if [[ $test == gpu || $test == multi-runtime-class ]]; then
-    printf '%s\tMetal-QEMU-SNP-GPU\tSNP-GPU\n' "$test"
-    printf '%s\tMetal-QEMU-TDX-GPU\tTDX-GPU\n' "$test"
-  else
-    printf '%s\tMetal-QEMU-SNP\tSNP\n' "$test"
-    printf '%s\tMetal-QEMU-TDX\tTDX\n' "$test"
-  fi
+  platforms=()
+  while IFS= read -r plat; do
+    [[ -n $plat ]] && platforms+=("$plat")
+  done < <(runs_on_of "$test")
+  [[ ${#platforms[@]} -eq 0 ]] && platforms=("${default_platforms[@]}")
+
+  for plat in "${platforms[@]}"; do
+    printf '%s\t%s\t%s\n' "$test" "$plat" "${plat#Metal-QEMU-}"
+  done
 done | LC_ALL=C sort | jq -Rsc '
   [ split("\n")[] | select(length > 0) | split("\t")
     | { test: .[0], platform: .[1], runner: .[2], "self-hosted": true } ]
