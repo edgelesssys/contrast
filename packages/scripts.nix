@@ -481,7 +481,6 @@
           tail -n +2 |
           cut -d' ' -f1
       )
-      ctr --address "$address" --namespace k8s.io content prune references
     '';
   };
 
