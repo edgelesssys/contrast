@@ -50,7 +50,7 @@ jobs:
       - name: Upload results to the Security tab
         # Publish findings even when the scan failed. Guard on SARIF existing.
         if: ${{ !cancelled() && hashFiles(format('sarif-{0}/*.sarif', matrix.sbom)) != '' }}
-        uses: github/codeql-action/upload-sarif@641a925cfafe92d0fdf8b239ba4053e3f8d99d6d # v3
+        uses: github/codeql-action/upload-sarif@b7351df727350dca84cb9d725d57dcf5bc82ba26 # v3.37.1
         with:
           sarif_file: sarif-${{ matrix.sbom }}
           category: vuln-scan-${{ matrix.sbom }}
