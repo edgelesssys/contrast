@@ -58,6 +58,8 @@
       #   - pgpu_resource_keys: allow the GB100/B200 and GH100/H100 PCIe GPU resource names.
       #   - pause_container_image: use our mirrored pause image instead of the MCR one.
       #   - ReadStreamRequest = true: allow reading container stdout/stderr (e.g. for `kubectl logs`).
+      #   - emptydir_type = "shared-fs": emptyDir volumes are host-shared via virtio-fs, we setup LUKS ourselves.
+      #   - CopyFileRequest: also allow copies into the per-sandbox shared dir, which shared-fs emptyDir bind-mounts need.
       settings = applyPatches {
         src = settings-base;
         patches = [ ./genpolicy_settings_prod.patch ];

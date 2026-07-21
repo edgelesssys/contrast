@@ -35,5 +35,12 @@ func extraRuntimeConfig(config Config, platform platforms.Platform) Config {
 	config.Agent["kata"]["reconnect_timeout_ms"] = 60000
 	config.Agent["kata"]["create_container_timeout"] = 120
 
+	// The upstream config ships a guest_extension_images entry for the coco extension image.
+	// We use our own, self-contained image.
+	delete(config.Hypervisor["qemu"], "guest_extension_images")
+
+	config.Hypervisor["qemu"]["overhead_memory"] = platforms.DefaultMemoryInMebiBytes(platform)
+	config.Hypervisor["qemu"]["overhead_vcpus"] = 1.0
+
 	return config
 }

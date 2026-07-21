@@ -5,27 +5,28 @@ Subject: [PATCH] agent: remove initdata processing
 
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
- src/agent/src/main.rs | 26 --------------------------
- 1 file changed, 26 deletions(-)
+ src/agent/src/main.rs | 27 ---------------------------
+ 1 file changed, 27 deletions(-)
 
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 50f396ebb3852535e81f26574e0c5ab83ecc37ee..8f7ca9733a7c04d38af83cebf453e73ce5acd00c 100644
+index a362396b6f29d26ce3d3b8e9ec2bf343f94cf156..3cfeeb431beccb639652ca8eee9e811bf862961d 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
-@@ -409,32 +409,6 @@ async fn start_sandbox(
+@@ -411,33 +411,6 @@ async fn start_sandbox(
      let (tx, rx) = tokio::sync::oneshot::channel();
      sandbox.lock().await.sender = Some(tx);
  
 -    let initdata_return_value = initdata::initialize_initdata(logger).await?;
 -
 -    let gc_procs = config.guest_components_procs;
--    if !attestation_binaries_available(logger, &gc_procs) {
+-    let launch_plan = build_coco_launch_plan(config, &initdata_return_value, gc_procs)?;
+-    if !attestation_components_available(logger, &launch_plan) {
 -        warn!(
 -            logger,
 -            "attestation binaries requested for launch not available"
 -        );
 -    } else {
--        init_attestation_components(logger, config, &initdata_return_value).await?;
+-        init_attestation_components(logger, &launch_plan).await?;
 -    }
 -
 -    // if policy is given via initdata, use it
