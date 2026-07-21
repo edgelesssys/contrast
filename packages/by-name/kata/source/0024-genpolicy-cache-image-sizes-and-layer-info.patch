@@ -6,8 +6,8 @@ Subject: [PATCH] genpolicy: cache image sizes and layer info
 ---
  src/tools/genpolicy/src/layers_cache.rs       | 33 +++++++---
  src/tools/genpolicy/src/registry.rs           | 53 ++++++++++++---
- .../genpolicy/src/registry_containerd.rs      | 64 +++++++++++++------
- 3 files changed, 114 insertions(+), 36 deletions(-)
+ .../genpolicy/src/registry_containerd.rs      | 65 ++++++++++++++-----
+ 3 files changed, 115 insertions(+), 36 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/layers_cache.rs b/src/tools/genpolicy/src/layers_cache.rs
 index 15db565c4caeb22b6d482ceb0d5215d572d3fc78..b97847c80c55a8921ec09c2c7e3c963a111f99cb 100644
@@ -86,7 +86,7 @@ index 15db565c4caeb22b6d482ceb0d5215d572d3fc78..b97847c80c55a8921ec09c2c7e3c963a
  
      pub fn persist(&self) {
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f59e4e99b 100644
+index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d246b47e51 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -72,6 +72,28 @@ pub struct ImageLayer {
@@ -118,7 +118,7 @@ index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f
  }
  
  /// See https://docs.docker.com/reference/dockerfile/#volume.
-@@ -527,7 +549,7 @@ async fn get_image_layers(
+@@ -533,7 +555,7 @@ async fn get_image_layers(
  ) -> Result<Vec<ImageLayer>> {
      let mut layer_index = 0;
      let mut layers = Vec::new();
@@ -127,7 +127,7 @@ index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f
      for layer in &manifest.layers {
          if layer
              .media_type
-@@ -535,15 +557,20 @@ async fn get_image_layers(
+@@ -541,15 +563,20 @@ async fn get_image_layers(
              || layer.media_type.eq(manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE)
          {
              if layer_index < config_layer.rootfs.diff_ids.len() {
@@ -151,7 +151,7 @@ index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f
                  layers.push(imageLayer);
              } else {
                  return Err(anyhow!("Too many Docker gzip layers"));
-@@ -553,6 +580,11 @@ async fn get_image_layers(
+@@ -559,6 +586,11 @@ async fn get_image_layers(
          }
      }
  
@@ -163,7 +163,7 @@ index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f
      Ok(layers)
  }
  
-@@ -578,7 +610,7 @@ async fn get_users_from_layer(
+@@ -584,7 +616,7 @@ async fn get_users_from_layer(
      let mut compressed_path = decompressed_path.clone();
      compressed_path.set_extension("gz");
  
@@ -172,7 +172,7 @@ index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f
          client,
          reference,
          layer_digest,
-@@ -587,7 +619,8 @@ async fn get_users_from_layer(
+@@ -593,7 +625,8 @@ async fn get_users_from_layer(
      )
      .await
      {
@@ -182,7 +182,7 @@ index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f
      };
  
      match get_users_from_decompressed_layer(&decompressed_path) {
-@@ -598,6 +631,7 @@ async fn get_users_from_layer(
+@@ -604,6 +637,7 @@ async fn get_users_from_layer(
          Ok((passwd, group)) => {
              let layer = ImageLayer {
                  diff_id: diff_id.to_string(),
@@ -190,7 +190,7 @@ index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f
                  passwd,
                  group,
              };
-@@ -613,7 +647,7 @@ async fn create_decompressed_layer_file(
+@@ -619,7 +653,7 @@ async fn create_decompressed_layer_file(
      layer_digest: &str,
      decompressed_path: &Path,
      compressed_path: &Path,
@@ -199,7 +199,7 @@ index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f
      info!(
          "create_decompressed_layer_file: pulling layer {:?}",
          layer_digest
-@@ -636,10 +670,11 @@ async fn create_decompressed_layer_file(
+@@ -642,10 +676,11 @@ async fn create_decompressed_layer_file(
          .truncate(true)
          .open(decompressed_path)?;
      let mut gz_decoder = flate2::read::GzDecoder::new(compressed_file);
@@ -214,7 +214,7 @@ index 60c7599842c9d3b0600077c24e6e354ffc6352c5..326631ff8f4879244b107f259e71084f
  
  pub fn get_users_from_decompressed_layer(path: &Path) -> Result<(String, String)> {
 diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
-index e8c267ff0fdacbf6dd759f1d35b8e42f03d37e31..818dbb7aa68d4a3f478e9dd08dc718128a39de4f 100644
+index 1c25a1850b7c0b850ec17e3b3f5da48202c0a42e..db487573871b6f86eef5880738872a613dd49b4d 100644
 --- a/src/tools/genpolicy/src/registry_containerd.rs
 +++ b/src/tools/genpolicy/src/registry_containerd.rs
 @@ -7,7 +7,8 @@
@@ -227,27 +227,28 @@ index e8c267ff0fdacbf6dd759f1d35b8e42f03d37e31..818dbb7aa68d4a3f478e9dd08dc71812
  };
  use crate::utils::Config;
  
-@@ -75,10 +76,15 @@ impl Container {
-         if config.settings.cluster_config.guest_pull && (v1_policy || !is_pause_container) {
-             info!("Guest pull is enabled, skipping passwd/group file parsing");
-         } else {
--            let image_layers =
--                get_image_layers(&config.layers_cache, &manifest, &config_layer, &ctrd_client)
--                    .await
--                    .unwrap();
-+            let image_layers = get_image_layers(
-+                &config.layers_cache,
-+                image_ref_str,
-+                &manifest,
-+                &config_layer,
-+                &ctrd_client,
-+            )
-+            .await
-+            .unwrap();
+@@ -68,10 +69,16 @@ impl Container {
+         let mut passwd = String::new();
+         let mut group = String::new();
  
-             // Find the last layer with an /etc/* file, respecting whiteouts.
-             info!("Parsing users and groups in image layers");
-@@ -286,30 +292,38 @@ pub fn build_auth(reference: &Reference) -> Option<AuthConfig> {
+-        let image_layers =
+-            get_image_layers(&config.layers_cache, &manifest, &config_layer, &ctrd_client)
+-                .await
+-                .unwrap();
++
++        let image_layers = get_image_layers(
++            &config.layers_cache,
++            image_ref_str,
++            &manifest,
++            &config_layer,
++            &ctrd_client,
++        )
++        .await
++        .unwrap();
+ 
+         // Find the last layer with an /etc/* file, respecting whiteouts.
+         info!("Parsing users and groups in image layers");
+@@ -278,30 +285,38 @@ pub fn build_auth(reference: &Reference) -> Option<AuthConfig> {
  
  pub async fn get_image_layers(
      layers_cache: &ImageLayersCache,
@@ -288,7 +289,7 @@ index e8c267ff0fdacbf6dd759f1d35b8e42f03d37e31..818dbb7aa68d4a3f478e9dd08dc71812
              } else {
                  return Err(anyhow!("Too many Docker gzip layers"));
              }
-@@ -317,6 +331,11 @@ pub async fn get_image_layers(
+@@ -309,6 +324,11 @@ pub async fn get_image_layers(
          }
      }
  
@@ -300,7 +301,7 @@ index e8c267ff0fdacbf6dd759f1d35b8e42f03d37e31..818dbb7aa68d4a3f478e9dd08dc71812
      Ok(layersVec)
  }
  
-@@ -342,15 +361,22 @@ async fn get_users_from_layer(
+@@ -334,15 +354,22 @@ async fn get_users_from_layer(
      compressed_path.set_extension("gz");
  
      // go find verity hash if not found in cache
@@ -331,7 +332,7 @@ index e8c267ff0fdacbf6dd759f1d35b8e42f03d37e31..818dbb7aa68d4a3f478e9dd08dc71812
  
      match get_users_from_decompressed_layer(&decompressed_path) {
          Err(e) => {
-@@ -360,6 +386,7 @@ async fn get_users_from_layer(
+@@ -352,6 +379,7 @@ async fn get_users_from_layer(
          Ok((passwd, group)) => {
              let layer = ImageLayer {
                  diff_id: diff_id.to_string(),
@@ -339,7 +340,7 @@ index e8c267ff0fdacbf6dd759f1d35b8e42f03d37e31..818dbb7aa68d4a3f478e9dd08dc71812
                  passwd,
                  group,
              };
-@@ -374,7 +401,7 @@ async fn create_decompressed_layer_file(
+@@ -366,7 +394,7 @@ async fn create_decompressed_layer_file(
      layer_digest: &str,
      decompressed_path: &Path,
      compressed_path: &Path,
@@ -348,7 +349,7 @@ index e8c267ff0fdacbf6dd759f1d35b8e42f03d37e31..818dbb7aa68d4a3f478e9dd08dc71812
      info!("Pulling layer {layer_digest}");
      let mut file = tokio::fs::File::create(&compressed_path)
          .await
-@@ -412,8 +439,9 @@ async fn create_decompressed_layer_file(
+@@ -404,8 +432,9 @@ async fn create_decompressed_layer_file(
          .truncate(true)
          .open(decompressed_path)?;
      let mut gz_decoder = flate2::read::GzDecoder::new(compressed_file);
