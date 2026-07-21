@@ -5,15 +5,15 @@ Subject: [PATCH] agent: use custom implementation for secure mounting
 
 Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 ---
- src/agent/src/confidential_data_hub/mod.rs | 35 ++++++++++++++++++----
+ src/agent/src/confidential_data_hub/mod.rs | 37 +++++++++++++++++++---
  src/agent/src/rpc.rs                       |  6 +---
- 2 files changed, 31 insertions(+), 10 deletions(-)
+ 2 files changed, 33 insertions(+), 10 deletions(-)
 
 diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
-index 64db843a5953e7176420274bc65b99974534e407..bf2ec55251ef3013726bc2b24a8c69b423e78ec0 100644
+index 6792e08db3be0b2debdeceede473f6083e689c7d..86b96cbbf293dbb82f11e13285744be70e357c21 100644
 --- a/src/agent/src/confidential_data_hub/mod.rs
 +++ b/src/agent/src/confidential_data_hub/mod.rs
-@@ -297,12 +297,37 @@ pub async fn secure_mount(
+@@ -298,12 +298,39 @@ pub async fn secure_mount(
      flags: Vec<String>,
      mount_point: &str,
  ) -> Result<()> {
@@ -37,7 +37,9 @@ index 64db843a5953e7176420274bc65b99974534e407..bf2ec55251ef3013726bc2b24a8c69b4
 +    flags: Vec<String>,
 +    mount_point: &str,
 +) -> Result<()> {
-+    let client = ttrpc::asynchronous::Client::connect("unix:///run/guest-services/securemount.socket")?;
++    let client =
++        ttrpc::asynchronous::Client::connect("unix:///run/guest-services/securemount.socket")
++            .await?;
 +    let secure_mount_client =
 +        confidential_data_hub_ttrpc_async::SecureMountServiceClient::new(client.clone());
 +    let req = confidential_data_hub::SecureMountRequest {
@@ -57,10 +59,10 @@ index 64db843a5953e7176420274bc65b99974534e407..bf2ec55251ef3013726bc2b24a8c69b4
      Ok(())
  }
 diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
-index 06cadc21eec5d4ae91c9de8421470722a9173323..5eb49c5099a1c54cfe5436131bb904bb0512b9b4 100644
+index 279a8f152838d7f5a228d33be7098534989547a3..694a9ece2504f3e840e8a6c9d26ba9edc13c0495 100644
 --- a/src/agent/src/rpc.rs
 +++ b/src/agent/src/rpc.rs
-@@ -120,7 +120,7 @@ use kata_types::k8s;
+@@ -122,7 +122,7 @@ use kata_types::k8s;
  
  pub const CONTAINER_BASE: &str = "/run/kata-containers";
  const MODPROBE_PATH: &str = "/sbin/modprobe";
@@ -69,7 +71,7 @@ index 06cadc21eec5d4ae91c9de8421470722a9173323..5eb49c5099a1c54cfe5436131bb904bb
  /// the iptables seriers binaries could appear either in /sbin
  /// or /usr/sbin, we need to check both of them
  const USR_IPTABLES_SAVE: &str = "/usr/sbin/iptables-save";
-@@ -2504,10 +2504,6 @@ pub(crate) async fn cdh_secure_mount(
+@@ -2602,10 +2602,6 @@ pub(crate) async fn cdh_secure_mount(
      mount_point: &str,
      mkfs_opts: &str,
  ) -> Result<()> {

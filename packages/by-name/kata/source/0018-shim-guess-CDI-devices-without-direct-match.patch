@@ -9,7 +9,7 @@ Subject: [PATCH] shim: guess CDI devices without direct match
  2 files changed, 65 insertions(+), 5 deletions(-)
 
 diff --git a/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go b/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go
-index 0b1373063464dcf4f49cf05ea1f8cf63a003683b..ef28bec488fef8cc0be75715601f49dbda4debca 100644
+index bf35cad66cae0345ac505d917a4988fb63941247..25b62f2c8d64cef10545998dc480bd32a5683b40 100644
 --- a/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go
 +++ b/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go
 @@ -7,6 +7,7 @@ package containerdshim
@@ -19,8 +19,8 @@ index 0b1373063464dcf4f49cf05ea1f8cf63a003683b..ef28bec488fef8cc0be75715601f49db
 +	"errors"
  	"fmt"
  	"net"
- 	"strings"
-@@ -64,17 +65,34 @@ func coldPlugWithAPI(ctx context.Context, s *service, ociSpec *specs.Spec) error
+ 	"os"
+@@ -82,17 +83,34 @@ func coldPlugWithAPI(ctx context.Context, s *service, ociSpec *specs.Spec) error
  	if err != nil {
  		return err
  	}
@@ -61,10 +61,10 @@ index 0b1373063464dcf4f49cf05ea1f8cf63a003683b..ef28bec488fef8cc0be75715601f49db
  }
  
 diff --git a/src/runtime/pkg/device/config/config.go b/src/runtime/pkg/device/config/config.go
-index 489cf5e4dc749f6e22f206e57055ceb21aa2692b..7cd35363907549afd9c7b55c15570eef92cb6724 100644
+index 904670f4d4773b5cb274e301af46d2bda4acf7db..c8b1b89c42fee81c22a65582b000a052aff75b40 100644
 --- a/src/runtime/pkg/device/config/config.go
 +++ b/src/runtime/pkg/device/config/config.go
-@@ -748,3 +748,45 @@ func injectDevices(cdiSpecDirs []string, spec *specs.Spec, devices []string) err
+@@ -754,3 +754,45 @@ func injectDevices(cdiSpecDirs []string, spec *specs.Spec, devices []string) err
  
  	return nil
  }

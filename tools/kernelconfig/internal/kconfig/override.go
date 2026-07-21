@@ -26,6 +26,10 @@ func OverrideConfig(baseConfig []byte, isGPU bool) (*Config, error) {
 	config.Set("CONFIG_ATA_PIIX", "y")
 	config.Set("CONFIG_DMIID", "y")
 
+	// Our VMs use ACPI-based PCI hotplug, which claims the QEMU bridge slots first.
+	// The redundant SHPC driver then fails its pci_hp_register with -EBUSY ("Slot initialization failed").
+	config.Unset("CONFIG_HOTPLUG_PCI_SHPC")
+
 	if isGPU {
 		// Disable module signing to make the build reproducible.
 		config.Set("CONFIG_MODULE_SIG", "n")

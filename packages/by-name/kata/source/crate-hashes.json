@@ -2,6 +2,7 @@
   "git+https://github.com/cloud-hypervisor/cloud-hypervisor?tag=v51.0#api_client@0.1.0": "07jghgszi146libnxgyy6nhkpbyndpp9wmr3jc3fl8y4my1i1p25",
   "git+https://github.com/firecracker-microvm/micro-http?rev=5c2254d6cf4f32a668d0d8e57ba20bebad9d4fba#micro_http@0.1.0": "0r7dj5hi356k4hg87bpdbbpc6379lmylap3j26b25rxn0k7rvsax",
   "git+https://github.com/ibm-s390-linux/s390-tools?rev=4942504a9a2977d49989a5e5b7c1c8e07dc0fa41#s390_pv_core@0.11.0": "1zac4qqhhsfkdqg2ca54rprsh6xh88wbz3zj59d9pq059a0zjviz",
-  "git+https://github.com/kata-containers/cgroups-rs?rev=v0.3.5#0.3.5": "0zff8yq63m3zcag06cgyn66lmd82hf1zwhvckxzs0bmry9jgb804",
-  "git+https://github.com/microsoft/regorus?rev=898643129e3652efd43e596f978d99f85e770235#0.9.1": "1ws0bf8lr4diha5bz2v7l01lmygp0gz0rp0na4sd6k14pzvalc7r"
+  "git+https://github.com/microsoft/regorus?rev=898643129e3652efd43e596f978d99f85e770235#0.9.1": "1ws0bf8lr4diha5bz2v7l01lmygp0gz0rp0na4sd6k14pzvalc7r",
+  "git+https://github.com/stratis-storage/devicemapper-rs?rev=078e70ceecf0d08eb0c800626827c9bc0a9a8adc#devicemapper-sys@0.3.3": "12vmwaiand4jff38qkk2yvqsb3aspf0sl92w3j0v1l62p1dgnhrz",
+  "git+https://github.com/stratis-storage/devicemapper-rs?rev=078e70ceecf0d08eb0c800626827c9bc0a9a8adc#devicemapper@0.34.7": "12vmwaiand4jff38qkk2yvqsb3aspf0sl92w3j0v1l62p1dgnhrz"
 }

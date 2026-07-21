@@ -12,10 +12,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 9 insertions(+), 63 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 91dc3c5146deca2b07c7d7c30d6136a496c764ba..ea73fc37eb638cf66853e36d80ea011410e3dada 100644
+index 8ad88b1eb0556dc9ee0fc0d9def3c23969ab31c4..032973f528712794907bb753fa2fda53c7afd5d9 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -201,18 +201,6 @@
+@@ -217,18 +217,6 @@
                  "rprivate",
                  "ro"
              ]
@@ -35,10 +35,10 @@ index 91dc3c5146deca2b07c7d7c30d6136a496c764ba..ea73fc37eb638cf66853e36d80ea0114
      },
      "devices": {
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 13e096bc89a96e86bde5d5133e0f2c2b501e9c4a..4a686e68df8a5a75fae758f944b074257a42303a 100644
+index 19394aa0528ee11051a13006cf25cc143eba8ae5..50fd839fe16eec1c9ed05ac54ebd4af64c315adb 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -416,46 +416,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+@@ -501,46 +501,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
          });
      }
  }
@@ -86,18 +86,18 @@ index 13e096bc89a96e86bde5d5133e0f2c2b501e9c4a..4a686e68df8a5a75fae758f944b07425
 -    });
 -}
 diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
-index 501e8951bae926d53015ed1b63db32876e0eb242..ddf32d5c6d9e81db9ddc9183bcbbb63e2b705203 100644
+index c7d18c777f17684cd19384eb662bf4388b5030cd..84f7d1949560af32c6956f348f05a456dd9a546d 100644
 --- a/src/tools/genpolicy/src/settings.rs
 +++ b/src/tools/genpolicy/src/settings.rs
-@@ -37,7 +37,6 @@ pub struct Volumes {
-     pub emptyDir_encrypted: EmptyDirVolume,
+@@ -38,7 +38,6 @@ pub struct Volumes {
+     pub emptyDir_plain: EmptyDirVolume,
      pub emptyDir_memory: EmptyDirVolume,
      pub configMap: ConfigMapVolume,
 -    pub image_volume: ImageVolume,
  }
  
  /// EmptyDir volume settings loaded from genpolicy-settings.json.
-@@ -67,7 +66,7 @@ pub struct ConfigMapVolume {
+@@ -68,7 +67,7 @@ pub struct ConfigMapVolume {
  
  /// Container image volume settings loaded from genpolicy-settings.json.
  #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -107,7 +107,7 @@ index 501e8951bae926d53015ed1b63db32876e0eb242..ddf32d5c6d9e81db9ddc9183bcbbb63e
      pub mount_source: String,
      pub driver: String,
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 448904acd2f360dc66d9a992aee547476d760947..3687419c081f628b646f2fe40e7911b48167303e 100644
+index ed3e24e4128b99a07bb3d536156ba87618b231c9..93b223fff68c3f3ff05fe3ad14b3e03b293abc82 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -27,6 +27,7 @@ use crate::utils::Config;
@@ -118,7 +118,7 @@ index 448904acd2f360dc66d9a992aee547476d760947..3687419c081f628b646f2fe40e7911b4
  use log::debug;
  use protocols::agent;
  use serde::{Deserialize, Serialize};
-@@ -301,6 +302,7 @@ pub fn get_container_mounts_and_storages(
+@@ -299,6 +300,7 @@ pub fn get_container_mounts_and_storages(
      settings: &settings::Settings,
      podSpec: &pod::PodSpec,
  ) {
@@ -126,7 +126,7 @@ index 448904acd2f360dc66d9a992aee547476d760947..3687419c081f628b646f2fe40e7911b4
      if let Some(volumes) = &podSpec.volumes {
          if let Some(volume_mounts) = &container.volumeMounts {
              for volume in volumes {
-@@ -314,19 +316,19 @@ pub fn get_container_mounts_and_storages(
+@@ -312,19 +314,19 @@ pub fn get_container_mounts_and_storages(
                              volume_mount,
                              &podSpec.securityContext,
                          );
