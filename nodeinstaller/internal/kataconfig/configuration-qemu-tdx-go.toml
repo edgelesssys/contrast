@@ -71,7 +71,7 @@ kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
 # Optional dm-verity parameters (comma-separated key=value list):
 # root_hash=...,salt=...,data_blocks=...,data_block_size=...,hash_block_size=...
 # These are used by the runtime to assemble dm-verity kernel params.
-kernel_verity_params = "root_hash=c1b7e41bcb256b64df44bd5bccd1d05517e581136719caaa7731cbec2eebdde3,salt=4ce0ac520506b38fb03281ccbc18300d439007c67d6f5ed7cbf23b8a692640c5,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
+kernel_verity_params = "root_hash=c7a3264aed8c2ad1c941e10abb67b13beb2ea4c0f409823c221ed2486d531fb8,salt=9db451d042414547fec0d23dd848e7dacee249411308489232bd55b1634d80b2,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
@@ -688,7 +688,7 @@ vfio_mode = "guest-kernel"
 
 # If enabled, the runtime will not create Kubernetes emptyDir mounts on the guest filesystem. Instead, emptyDir mounts will
 # be created on the host and shared via virtio-fs. This is potentially slower, but allows sharing of files from host to guest.
-disable_guest_empty_dir = false
+disable_guest_empty_dir = true
 
 # Specifies how Kubernetes emptyDir volumes are handled.
 # Options:
@@ -699,6 +699,9 @@ disable_guest_empty_dir = false
 #
 #   - block-encrypted
 #     Plugs a block device to be encrypted in the guest.
+#
+#   - block-plain
+#     Plugs a block device to be mounted directly in the guest.
 #
 emptydir_mode = "block-encrypted"
 

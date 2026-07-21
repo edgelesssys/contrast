@@ -1,8 +1,8 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index ea73fc37eb638cf66853e36d80ea011410e3dada..9b336eb71bff0011c5c39169043166b44b50245b 100644
+index 032973f528712794907bb753fa2fda53c7afd5d9..55a6227045d59a943da834f9e88003e65a459562 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -211,7 +211,9 @@
+@@ -227,7 +227,9 @@
                  "gpu_anno_value_regex": "^nvidia\\.com/gpu=[0-9]+$",
                  "gpu_gk_device_type": "vfio-pci-gk",
                  "pgpu_resource_keys": [
@@ -13,7 +13,7 @@ index ea73fc37eb638cf66853e36d80ea011410e3dada..9b336eb71bff0011c5c39169043166b4
                  ]
              }
          }
-@@ -320,10 +322,10 @@
+@@ -336,10 +338,10 @@
          "enable_configmap_secret_storages": false
      },
      "cluster_config": {
@@ -21,12 +21,12 @@ index ea73fc37eb638cf66853e36d80ea011410e3dada..9b336eb71bff0011c5c39169043166b4
 +        "pause_container_image": "ghcr.io/edgelesssys/kubernetes/pause:3.6",
          "guest_pull": true,
          "pause_container_id_policy": "v1",
--        "encrypted_emptydir": true,
-+        "encrypted_emptydir": false,
+-        "emptydir_type": "block-encrypted",
++        "emptydir_type": "shared-fs",
          "cgroup_mount_extras_allowed": [
              "nsdelegate",
              "memory_recursiveprot"
-@@ -346,7 +348,8 @@
+@@ -362,7 +364,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
@@ -36,7 +36,13 @@ index ea73fc37eb638cf66853e36d80ea011410e3dada..9b336eb71bff0011c5c39169043166b4
              ]
          },
          "UpdateInterfaceRequest": {
-@@ -363,7 +366,9 @@
+@@ -375,11 +378,14 @@
+             ]
+         },
+         "CopyFileRequest": [
+-            "$(sfprefix)"
++            "$(sfprefix)",
++            "^$(cpath)/sandbox-[a-z0-9]{16}-"
          ],
          "ExecProcessRequest": {
              "allowed_commands": [],
@@ -47,7 +53,7 @@ index ea73fc37eb638cf66853e36d80ea011410e3dada..9b336eb71bff0011c5c39169043166b4
          },
          "UpdateRoutesRequest": {
              "forbidden_device_names": [
-@@ -388,8 +393,8 @@
+@@ -404,8 +410,8 @@
          },
          "CloseStdinRequest": false,
          "GetDiagnosticDataRequest": false,

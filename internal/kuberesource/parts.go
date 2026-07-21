@@ -373,7 +373,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 										WithResources(
 											ResourceRequirements().
 												// As of v1.23.0, the Coordinator is roughly 270MiB unpacked.
-												WithMemoryLimitAndRequest(300),
+												WithMemoryLimitAndRequest(400),
 										),
 								).
 								WithAffinity(

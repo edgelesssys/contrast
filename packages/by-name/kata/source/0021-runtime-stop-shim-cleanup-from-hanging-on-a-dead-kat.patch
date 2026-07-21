@@ -41,10 +41,10 @@ Signed-off-by: Spyros Seimenis <sse@edgeless.systems>
  5 files changed, 50 insertions(+), 5 deletions(-)
 
 diff --git a/src/runtime/pkg/containerd-shim-v2/service.go b/src/runtime/pkg/containerd-shim-v2/service.go
-index b07cd10c1900b485bb6ff5de36d41f43d94be2b8..c93ebc277d75c057a205dc8cfc4be6aaea901235 100644
+index a3c6b097d11878b24d23c6da993dfa8257eaf36a..c9fad70d0540a3667cc237e2af97ef90c03d90b1 100644
 --- a/src/runtime/pkg/containerd-shim-v2/service.go
 +++ b/src/runtime/pkg/containerd-shim-v2/service.go
-@@ -518,7 +518,12 @@ func (s *service) Start(ctx context.Context, r *taskAPI.StartRequest) (_ *taskAP
+@@ -533,7 +533,12 @@ func (s *service) Start(ctx context.Context, r *taskAPI.StartRequest) (_ *taskAP
  func (s *service) Delete(ctx context.Context, r *taskAPI.DeleteRequest) (_ *taskAPI.DeleteResponse, err error) {
  	shimLog.WithField("container", r.ID).Debug("Delete() start")
  	defer shimLog.WithField("container", r.ID).Debug("Delete() end")
@@ -90,7 +90,7 @@ index a3d213a0625d52110bf8d6e64961dff65ce4b49f..3759d3283cef59aed65d54503f7961f2
  		return err
  	}
 diff --git a/src/runtime/virtcontainers/api.go b/src/runtime/virtcontainers/api.go
-index 6cda1db3dbdf523fef1b792ee79fd0eba2421a0e..47ec82820c47112f81ba4b7c4ea0fd204c70246d 100644
+index 0bd1d650b9a5ef2855cc77cf13b1e31008b297fb..41996ac2b21f6bcc28f883096fa057422ba8c469 100644
 --- a/src/runtime/virtcontainers/api.go
 +++ b/src/runtime/virtcontainers/api.go
 @@ -7,6 +7,8 @@ package virtcontainers
@@ -116,10 +116,10 @@ index 6cda1db3dbdf523fef1b792ee79fd0eba2421a0e..47ec82820c47112f81ba4b7c4ea0fd20
  	}
  	defer s.Release(ctx)
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index 49706c8c2df0685ad7a6c91f2c54d5e7d8f352c9..4892350e5f311fdb3c51ccf08cb8bc2ee2d6cbd2 100644
+index facbe46d008d3f3a20050d4f708012c22e20fd49..492217b96b5e957d74d839d440d9c0e66a648dc1 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
-@@ -2401,8 +2401,25 @@ func (k *kataAgent) connect(ctx context.Context) error {
+@@ -2388,8 +2388,25 @@ func (k *kataAgent) connect(ctx context.Context) error {
  		return nil
  	}
  

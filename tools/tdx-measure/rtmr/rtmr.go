@@ -168,16 +168,16 @@ func CalcRtmr0(firmware []byte, gpu GPUModel, legacySerial bool) ([48]byte, erro
 	// into the matching hash set below.
 	acpiHashes := []string{
 		// Default (virtio-serial-pci + virtconsole) topology.
-		"fe2b18cedec78d5c5badd19ccce1bea1c92b5fd6d0a6c54d57e7963d14e888a5e8f614eb1e947ff55468c2ba4290bce8",
-		"13532425fd25e97766f29d820a2b7a2cbe9286ce547d53e949853d90c41be8dceeaaccac3b6f6f1eff4c0e2ad6e26842",
-		"11223fd2a2149fa13b0b56c370c8dd959110c187aa43538d696334c9873481481d7d494c93d0c0152eae6c582a84b642",
+		"a98ebc08f45482c21c329b93a51b926a299c4c366d4e79d6ba586e4a8c92a66e9d593b176ffdf32476f0dd81bb68f95b",
+		"6cd5eb8fa5c659b3ac4172a1c678aa1bba3118e107dcc5cdea0deec83b50e152703822396ef3422fd020bbf0ffdc3491",
+		"764a603f33825a43eff061cf6154516d8304eb420a08c06b7e3d7a956932b82efa591701b1854a1fb75a8deb54b2aefc",
 	}
 	legacySerialAcpiHashes := []string{
 		// Legacy-serial topology, used when kata sets use_legacy_serial=true
 		// (debug set) so OVMF's DEBUG_ON_SERIAL_PORT output reaches the host.
-		"4d3ac24226505a1d67298ebdff26bf8b3fad7146167c95e78d27462b967ced2b83e6ce15301d59e46c4e66467123e406",
-		"ef0250494da05f5e612b4d7fcde126ab242b39094775c0cda009d1aac6376c73491b54b10b883a21ca0df173070966d9",
-		"e47cc3001ee38d2d4a2a9c1f689f220443753516300c335f9f7b82bdcd835d9ab8b2d918c20639f48f239fb4a7206490",
+		"1714c92f524640a6763417944c2c0e59b81b8560c94e8f8cb3e0b30c895c2eb90b6fd380dce3e4b89b8356766c7eacee",
+		"0d00216b9fcdff6a6dfb7bb92b8ccf35b6804d5d195f2b9dd34fbecd0585433cf567a520f3cefb45a792469f859430b2",
+		"05e27a7651b031e69216a487d39aba403766b546bba04b2bebfdc5bc160275a75249cfe147a753b799b5023a17124da4",
 	}
 	var configHashes []string
 	if gpu == GPUModelNone {

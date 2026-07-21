@@ -12,10 +12,10 @@ attestation.
  1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index d2db5a0bb9905142a162ccc8589424169bace11c..7d8b2a3a2f7be02b853ba0c6036491eb3326b618 100644
+index 1603e913e96c4e97e390177c8bb4ca78a5c2f3c1..85dd0de2ad1517766f0f2f5a94bd70f0ec342dc1 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
-@@ -190,7 +190,18 @@ func (q *qemuAmd64) cpuModel() string {
+@@ -242,7 +242,18 @@ func (q *qemuAmd64) cpuModel() string {
  	protection, err := availableGuestProtection()
  	if err == nil {
  		if protection == snpProtection && q.snpGuest {

@@ -19,10 +19,10 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  7 files changed, 5 insertions(+), 36 deletions(-)
 
 diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
-index f40bed3b1fafaf6ffac5c7e6f19982d2c9754bb5..d2011893df27b0538fa76b21b0328222ac9fc63a 100644
+index 5cfa967683cc05a8070d81b53638b8c74dc00f5f..6aba06f3046cda09d18cea977be3f3e7c1e68518 100644
 --- a/src/libs/kata-types/src/config/hypervisor/mod.rs
 +++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
-@@ -508,11 +508,6 @@ impl BootInfo {
+@@ -527,11 +527,6 @@ impl BootInfo {
          validate_path!(self.image, "guest boot image file {} is invalid: {}")?;
          validate_path!(self.initrd, "guest initrd image file {} is invalid: {}")?;
          validate_path!(self.firmware, "firmware image file {} is invalid: {}")?;
@@ -65,10 +65,10 @@ index 406d75c08a0db0369d1243bd1d8eacf8426c593b..aad7a0b0513d5e4ea953520dbb725bdc
      }
  
 diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-index 9850a4cd4cedc2b549c83bf6cc25e7d126816301..f248988a34639ba825ad6e48b72c1613cac7e47d 100644
+index b4a22b97765c5788602fadd4ced9d92dc9cac3a4..411e7401023dace4c71a18c2296edd22125f27de 100644
 --- a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
 +++ b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-@@ -491,11 +491,10 @@ impl VirtSandbox {
+@@ -646,11 +646,10 @@ impl VirtSandbox {
          let boot_info = self.hypervisor.hypervisor_config().await.boot_info;
          let security_info = self.hypervisor.hypervisor_config().await.security_info;
  
@@ -110,10 +110,10 @@ index 1e21e4867cd1a8efe63bdce10bc34224100b78a3..594fee62464e0f62a9a0cbafd283c7dd
  
  	if err := conf.CheckTemplateConfig(); err != nil {
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 81e6a55d9029930cdc35e9429670430ee4a6b65b..a97580439d8c82b6b0750f1d56b29d02cbaec117 100644
+index b21ef94bba6f1dd76cd3d14ba18bc601c1b87ca4..86707d4e7ef094970ac0d54ac37ca13e4868c352 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
-@@ -845,25 +845,12 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu
+@@ -980,25 +980,12 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu
  		return nil, nil, nil, err
  	}
  
@@ -139,5 +139,5 @@ index 81e6a55d9029930cdc35e9429670430ee4a6b65b..a97580439d8c82b6b0750f1d56b29d02
 -	}
 +	kernel.InitrdPath = q.config.InitrdPath
  
- 	if q.config.IOMMU {
- 		devices, err = q.arch.appendIOMMU(devices)
+ 	for _, extra := range q.config.GuestExtensionImages {
+ 		if extra.Path == "" {
