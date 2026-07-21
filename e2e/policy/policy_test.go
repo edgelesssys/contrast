@@ -26,6 +26,7 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -219,6 +220,60 @@ func TestPolicy(t *testing.T) {
 	})
 }
 
+func TestImageSubstitution(t *testing.T) {
+	const deploymentName = "openssl-frontend"
+
+	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
+	require.NoError(t, err)
+	ct := contrasttest.New(t)
+
+	runtimeHandler, err := manifest.RuntimeHandler(platform)
+	require.NoError(t, err)
+
+	coordinatorBundle := kuberesource.CoordinatorBundle()
+	resources := kuberesource.OpenSSL()
+	resources = append(resources, coordinatorBundle...)
+	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+	resources = kuberesource.AddPortForwarders(resources)
+
+	ct.Init(t, resources)
+
+	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
+
+	for name, tc := range map[string]struct {
+		image string
+	}{
+		"no digest": {image: "ghcr.io/edgelesssys/contrast/openssl:v1.15.0-pre"},
+		"different digest": {
+			// This image was pushed manually with a slightly modified rootfs to produce a different digest.
+			image: "ghcr.io/edgelesssys/contrast/openssl-modified:latest@sha256:d0ad7e0789f6ab78cbcf778bb2317b55131a5b816cb4d569302bc2eebea9cbb4",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
+			t.Cleanup(cancel)
+
+			deploy, err := ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Get(ctx, deploymentName, metav1.GetOptions{})
+			require.NoError(err)
+
+			deploy.Spec.Template.Spec.Containers[0].Image = tc.image
+
+			deploy, err = ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Update(ctx, deploy, metav1.UpdateOptions{})
+			require.NoError(err)
+
+			require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
+
+			condition := &containerBlockedByPolicyCondition{
+				selector: labels.SelectorFromSet(deploy.Spec.Template.Labels),
+			}
+			require.NoError(ct.Kubeclient.WaitForPodCondition(ctx, ct.Namespace, condition))
+		})
+	}
+}
+
 func TestMain(m *testing.M) {
 	contrasttest.RegisterFlags()
 	flag.Parse()
@@ -289,4 +344,32 @@ func (c *initContainerRunningCondition) Check(lister kubeclient.PodLister) (bool
 
 func (c *initContainerRunningCondition) String() string {
 	return fmt.Sprintf("PodCondition(pod %s has a running initContainer)", c.name)
+}
+
+type containerBlockedByPolicyCondition struct {
+	selector labels.Selector
+}
+
+func (c *containerBlockedByPolicyCondition) Check(lister kubeclient.PodLister) (bool, error) {
+	const policyBlockingIndicator = "is blocked by policy"
+
+	pods, err := lister.List(c.selector)
+	if err != nil {
+		return false, err
+	}
+	for _, pod := range pods {
+		for _, container := range append(pod.Status.ContainerStatuses, pod.Status.InitContainerStatuses...) {
+			if container.State.Waiting != nil && strings.Contains(container.State.Waiting.Message, policyBlockingIndicator) {
+				return true, nil
+			}
+			if container.State.Terminated != nil && strings.Contains(container.State.Terminated.Message, policyBlockingIndicator) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+func (c *containerBlockedByPolicyCondition) String() string {
+	return fmt.Sprintf("PodCondition(a pod matching %s has a container failing policy checks)", c.selector)
 }
