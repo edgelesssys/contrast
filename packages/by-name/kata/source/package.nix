@@ -8,6 +8,7 @@
   callPackage,
   protobuf,
   pkg-config,
+  pkgs,
   openssl,
   libseccomp,
   lvm2,
@@ -182,6 +183,17 @@ rec {
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757
       ./0026-genpolicy-unconditionally-skip-guest-pull-security-c.patch
     ];
+
+    nativeBuildInputs = with pkgs; [
+      open-policy-agent
+    ];
+
+    postPatch = ''
+      echo "running unit tests for rules.rego" >&2
+      testdir=$(mktemp -d)
+      cp src/tools/genpolicy/rules.rego ${./rules_test.rego} "$testdir"
+      opa test "$testdir"
+    '';
   };
 
   cargoNixPackage = callPackage ./Cargo.nix {
