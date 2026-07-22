@@ -9,7 +9,7 @@ require (
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.21.0
-	google.golang.org/grpc v1.79.3
+	google.golang.org/grpc v1.82.1
 )
 
 require (
