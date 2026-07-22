@@ -64,7 +64,7 @@ func TestPatchContainerdConfig(t *testing.T) {
 			conf.EnableDebug()
 			runtimeFragment, err := ContrastRuntime(runtimeBaseDir, tc.platform)
 			require.NoError(err)
-			conf.AddRuntime(runtimeHandler, runtimeFragment)
+			require.NoError(conf.AddRuntime(runtimeHandler, runtimeFragment))
 			require.NoError(conf.Write())
 
 			configData, err := os.ReadFile(configPath)
@@ -165,33 +165,103 @@ func TestConfig(t *testing.T) {
 		}
 	})
 	t.Run("AddRuntime", func(t *testing.T) {
-		assert := assert.New(t)
-
-		cfg := Config{
-			config: config{Version: 2},
-		}
-		runtimeName := "my-runtime"
+		const runtimeName = "my-runtime"
 		runtime := Runtime{
 			Type: "io.containerd.runc.v2",
 			Path: "/opt/my-runtime/bin/containerd-runtime",
 		}
-		cfg.AddRuntime(runtimeName, runtime)
 
-		expected := Config{
-			config: config{
-				Version: 2,
-				Plugins: map[string]any{
-					criFQDN(2): map[string]any{
-						"containerd": map[string]any{
-							"runtimes": map[string]any{
-								runtimeName: runtime,
+		for name, tc := range map[string]struct {
+			input     Config
+			expected  Config
+			expectErr bool
+		}{
+			"no version": {
+				input: Config{
+					config: config{},
+				},
+				expectErr: true,
+			},
+			"v1": {
+				input: Config{
+					config: config{Version: 1},
+				},
+				expectErr: true,
+			},
+			"v2": {
+				input: Config{
+					config: config{Version: 2},
+				},
+				expected: Config{
+					config: config{
+						Version: 2,
+						Plugins: map[string]any{
+							"io.containerd.grpc.v1.cri": map[string]any{
+								"containerd": map[string]any{
+									"runtimes": map[string]any{
+										runtimeName: runtime,
+									},
+								},
 							},
 						},
 					},
 				},
 			},
+			"v3": {
+				input: Config{
+					config: config{Version: 3},
+				},
+				expected: Config{
+					config: config{
+						Version: 3,
+						Plugins: map[string]any{
+							"io.containerd.cri.v1.runtime": map[string]any{
+								"containerd": map[string]any{
+									"runtimes": map[string]any{
+										runtimeName: runtime,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"v4": {
+				input: Config{
+					config: config{Version: 4},
+				},
+				expected: Config{
+					config: config{
+						Version: 4,
+						Plugins: map[string]any{
+							"io.containerd.cri.v1.runtime": map[string]any{
+								"containerd": map[string]any{
+									"runtimes": map[string]any{
+										runtimeName: runtime,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"v5": {
+				input: Config{
+					config: config{Version: 5},
+				},
+				expectErr: true,
+			},
+		} {
+			t.Run(name, func(t *testing.T) {
+				assert := assert.New(t)
+				err := tc.input.AddRuntime(runtimeName, runtime)
+				if tc.expectErr {
+					assert.Error(err)
+					return
+				}
+				assert.Equal(tc.expected, tc.input)
+			})
 		}
-		assert.Equal(expected.config, cfg.config)
 	})
 	t.Run("EnableDebug", func(t *testing.T) {
 		assert := assert.New(t)

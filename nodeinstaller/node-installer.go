@@ -107,7 +107,9 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime fragment: %w", err)
 	}
-	containerdConf.AddRuntime(runtimeHandler, containerdRuntime)
+	if err := containerdConf.AddRuntime(runtimeHandler, containerdRuntime); err != nil {
+		return fmt.Errorf("adding runtime to containerd config: %w", err)
+	}
 	if err := containerdConf.Write(); err != nil {
 		return fmt.Errorf("writing containerd config %q: %w", targetConf.ContainerdConfigPath(), err)
 	}

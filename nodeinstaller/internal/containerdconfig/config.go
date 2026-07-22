@@ -57,9 +57,14 @@ func FromPath(path string) (*Config, error) {
 }
 
 // AddRuntime adds a runtime to the containerd config.
-func (c *Config) AddRuntime(handler string, runtime Runtime) {
-	runtimes := ensureMapPath(&c.config.Plugins, criFQDN(c.config.Version), "containerd", "runtimes")
+func (c *Config) AddRuntime(handler string, runtime Runtime) error {
+	fqdn, err := criFQDN(c.config.Version)
+	if err != nil {
+		return err
+	}
+	runtimes := ensureMapPath(&c.config.Plugins, fqdn, "containerd", "runtimes")
 	runtimes[handler] = runtime
+	return nil
 }
 
 // EnableDebug enables debug logging in the containerd config.
@@ -166,12 +171,14 @@ func ContrastRuntime(baseDir string, platform platforms.Platform) (Runtime, erro
 }
 
 // criFQDN is the fully qualified domain name of the CRI service, which depends on the containerd config version.
-func criFQDN(v int) string {
+func criFQDN(v int) (string, error) {
 	switch v {
-	case 3:
-		return "io.containerd.cri.v1.runtime"
+	case 3, 4:
+		return "io.containerd.cri.v1.runtime", nil
+	case 2:
+		return "io.containerd.grpc.v1.cri", nil
 	default:
-		return "io.containerd.grpc.v1.cri"
+		return "", fmt.Errorf("unsupported containerd config version: %d", v)
 	}
 }
 
