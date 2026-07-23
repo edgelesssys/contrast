@@ -35,14 +35,33 @@ osv-scanner scan source \
   --format=table \
   -L "$relabeled" || exitcode=$?
 
+# vulnix downloads the NVD feeds from nvd.nist.gov on every run. Reuse a persistent cache dir when one is provided
+# Additionally, retry transient failures. Exit code 2 means "vulnerabilities found".
 vulnix_json="$workdir/vulnix.json"
-vulnix --closure --json --whitelist "$VULNIX_WHITELIST" "$sbom" >"$vulnix_json" || exitcode=$?
-jq -r 'if length == 0 then "vulnix: no advisories"
-       else (.[] | "vulnix: \(.name) affected by \(.affected_by | join(", "))") end' \
-  "$vulnix_json"
-if [[ -n $sarifdir ]]; then
-  jq --arg sbom "file://$relabeled" -f "$VULNIX_SARIF_JQ" "$vulnix_json" >"$workdir/vulnix.sarif" &&
-    mv "$workdir/vulnix.sarif" "$sarifdir/vulnix.sarif"
+vulnix_args=(--closure --json --whitelist "$VULNIX_WHITELIST")
+[[ -n ${VULNIX_CACHE_DIR:-} ]] && vulnix_args+=(--cache-dir "$VULNIX_CACHE_DIR")
+
+vx_rc=0
+for attempt in 1 2 3; do
+  vx_rc=0
+  vulnix "${vulnix_args[@]}" "$sbom" >"$vulnix_json" || vx_rc=$?
+  [[ $vx_rc -eq 0 || $vx_rc -eq 2 ]] && break
+  echo "vulnix: exit $vx_rc (NVD download/network issue?); retry $attempt/3 after backoff" >&2
+  sleep $((attempt * 20))
+done
+
+if [[ $vx_rc -eq 0 || $vx_rc -eq 2 ]]; then
+  jq -r 'if length == 0 then "vulnix: no advisories"
+         else (.[] | "vulnix: \(.name) affected by \(.affected_by | join(", "))") end' \
+    "$vulnix_json"
+  if [[ -n $sarifdir ]]; then
+    jq --arg sbom "file://$relabeled" -f "$VULNIX_SARIF_JQ" "$vulnix_json" >"$workdir/vulnix.sarif" &&
+      mv "$workdir/vulnix.sarif" "$sarifdir/vulnix.sarif"
+  fi
+  [[ $vx_rc -eq 0 ]] || exitcode=$vx_rc
+else
+  echo "vulnix: could not reach NVD after 3 attempts (exit $vx_rc)" >&2
+  exitcode=$vx_rc
 fi
 
 exit "$exitcode"
