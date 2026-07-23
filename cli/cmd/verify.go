@@ -87,7 +87,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	resp, err := getCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, flags.collateralProxyURL, log)
+	resp, err := getCoordinatorState(cmd.Context(), kdsDir, mnfst, flags.coordinator, flags.collateralProxyURL, log)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
 	}
@@ -206,11 +206,7 @@ func writeFilelist(dir string, filelist map[string][]byte) error {
 }
 
 // getCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
-func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint, collateralProxy string, log *slog.Logger) (sdk.CoordinatorState, error) {
-	var m manifest.Manifest
-	if err := json.Unmarshal(manifestBytes, &m); err != nil {
-		return sdk.CoordinatorState{}, fmt.Errorf("unmarshalling manifest: %w", err)
-	}
+func getCoordinatorState(ctx context.Context, kdsDir string, m manifest.Manifest, endpoint, collateralProxy string, log *slog.Logger) (sdk.CoordinatorState, error) {
 	if err := m.Validate(); err != nil {
 		return sdk.CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
 	}
