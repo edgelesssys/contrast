@@ -148,6 +148,7 @@ RTMRs?
 runtime
 runtimes?
 safeguardable
+Sardar
 SBOM
 Scaleway
 serializable
