@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,7 +39,17 @@ const (
 	latestTransitionHashFilename = "latest-transition"
 	historyFilename              = "history.yml"
 	verifyDir                    = "verify"
+	// allowInsecureEnvVar gates insecure (non-CC) runtime support and matches the
+	// Coordinator's env var of the same name.
+	allowInsecureEnvVar = "CONTRAST_ALLOW_INSECURE"
 )
+
+// insecureRuntimesAllowed reports whether allowInsecureEnvVar is set to a value that parses as
+// true. Commands only declare the --INSECURE flag when this returns true.
+func insecureRuntimesAllowed() bool {
+	allowed, err := strconv.ParseBool(os.Getenv(allowInsecureEnvVar))
+	return err == nil && allowed
+}
 
 // ReleaseImageReplacements contains the image replacements used by contrast.
 //
