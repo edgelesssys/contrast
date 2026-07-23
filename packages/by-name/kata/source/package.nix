@@ -180,6 +180,12 @@ rec {
       # and make genpolicy expect the pod's total cold-plugged GPU devices and annotations on the pause container.
       # TODO(charludo): open upstream issue and PR.
       ./0026-runtime-annotate-the-sandbox-container-with-VFIO-met.patch
+
+      # Kata creates one pxb-pcie bridge per host NUMA node holding a GPU. When a numa_mapping groups several host nodes onto the same guest node,
+      # this emits duplicate "pxb-numa0" devices with the same bus number and the VM fails to launch. The map iteration order is also nondeterministic.
+      # This patch emits exactly one bridge per *guest* NUMA node, in a deterministic order, so guest NUMA boots reliably and produces a reproducible PCI topology.
+      # TODO(charludo): open upstream issue and PR.
+      ./0027-runtime-one-pxb-pcie-bridge-per-guest-NUMA-node.patch
     ];
   };
 
