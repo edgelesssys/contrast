@@ -1,0 +1,130 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Fri, 31 Jul 2026 07:16:31 +0200
+Subject: [PATCH] runtime: resolve guest PCI path for VFIO devices behind
+ pxb-pcie
+
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+---
+ src/runtime/virtcontainers/qemu_arch_base.go  | 15 ++++++++++
+ src/runtime/virtcontainers/types/pcipath.go   | 24 ++++++++++++++--
+ .../virtcontainers/types/pcipath_test.go      | 28 +++++++++++++++++++
+ 3 files changed, 64 insertions(+), 3 deletions(-)
+
+diff --git a/src/runtime/virtcontainers/qemu_arch_base.go b/src/runtime/virtcontainers/qemu_arch_base.go
+index c4b71952ebb1384fa63783e7b67f0ce6ef3acfb4..3eeedbc8301c5fe9389ba18df947171de78b6981 100644
+--- a/src/runtime/virtcontainers/qemu_arch_base.go
++++ b/src/runtime/virtcontainers/qemu_arch_base.go
+@@ -1012,6 +1012,7 @@ func (q *qemuArchBase) buildInitdataDevice(ctx context.Context, devices []govmmQ
+ func (q *qemuArchBase) qomGetPciPath(qemuID string, qmpCh *qmpChannel) (types.PciPath, error) {
+ 
+ 	var slots []types.PciSlot
++	var rootComplex uint8
+ 
+ 	devSlot, err := q.qomGetSlot(qemuID, qmpCh)
+ 	if err != nil {
+@@ -1044,6 +1045,16 @@ func (q *qemuArchBase) qomGetPciPath(qemuID string, qmpCh *qmpChannel) (types.Pc
+ 			break
+ 		}
+ 
++		// A pxb-pcie NUMA expander bridge creates its own root bus.
++		pxbDevID := busQOM[strings.LastIndex(busQOM, "/")+1:]
++		pxbDevPath := "/machine/peripheral/" + pxbDevID
++		if busNr, err := qmpCh.qmp.ExecQomGet(qmpCh.ctx, pxbDevPath, "bus_nr"); err == nil {
++			if busNrf, ok := busNr.(float64); ok {
++				rootComplex = uint8(int(busNrf))
++				break
++			}
++		}
++
+ 		// `bus` is the QOM path of the QOM bus object, but we need
+ 		// the PCI parent_bus which manages that bus.  There doesn't seem
+ 		// to be a way to get that other than to simply drop the last
+@@ -1063,5 +1074,9 @@ func (q *qemuArchBase) qomGetPciPath(qemuID string, qmpCh *qmpChannel) (types.Pc
+ 		slots = append([]types.PciSlot{parentSlot}, slots...)
+ 		parentPath = parentBus
+ 	}
++
++	if rootComplex != 0 {
++		return types.PciPathFromSlotsWithRootComplex(rootComplex, slots...)
++	}
+ 	return types.PciPathFromSlots(slots...)
+ }
+diff --git a/src/runtime/virtcontainers/types/pcipath.go b/src/runtime/virtcontainers/types/pcipath.go
+index 5b7b3db91a722d440cad8251af3e2e23a2c36cfa..fbb29f3e3fd5fcbc915d3cb6f9041530b01e033c 100644
+--- a/src/runtime/virtcontainers/types/pcipath.go
++++ b/src/runtime/virtcontainers/types/pcipath.go
+@@ -61,12 +61,19 @@ func (slot PciSlot) String() string {
+ // connected directly to the root bus, its PciPath is just "zz"
+ type PciPath struct {
+ 	slots []PciSlot
++
++	// rootComplex is the guest PCI bus number of a pxb-pcie expander root complex (>= 0x20, see busNrSpacing in createNUMAPCIeTopology).
++	// A pxb-pcie bridge creates its own root bus rather than sitting behind pcie.0, so a device under it can't be described by a chain from pcie.0 alone.
++	rootComplex uint8
+ }
+ 
+ func (p PciPath) String() string {
+-	tokens := make([]string, len(p.slots))
+-	for i, slot := range p.slots {
+-		tokens[i] = slot.String()
++	tokens := make([]string, 0, len(p.slots)+1)
++	if p.rootComplex != 0 {
++		tokens = append(tokens, fmt.Sprintf("%02x", p.rootComplex))
++	}
++	for _, slot := range p.slots {
++		tokens = append(tokens, slot.String())
+ 	}
+ 	return strings.Join(tokens, "/")
+ }
+@@ -106,3 +113,14 @@ func PciPathFromSlots(slots ...PciSlot) (PciPath, error) {
+ 	}
+ 	return PciPath{slots: slots}, nil
+ }
++
++// PciPathFromSlotsWithRootComplex builds a PciPath rooted at a pxb-pcie expander root complex.
++// rootComplex is the guest PCI bus number of the pxb-pcie bridge, slots is the slot chain from that root complex down to the device.
++func PciPathFromSlotsWithRootComplex(rootComplex uint8, slots ...PciSlot) (PciPath, error) {
++	p, err := PciPathFromSlots(slots...)
++	if err != nil {
++		return PciPath{}, err
++	}
++	p.rootComplex = rootComplex
++	return p, nil
++}
+diff --git a/src/runtime/virtcontainers/types/pcipath_test.go b/src/runtime/virtcontainers/types/pcipath_test.go
+index 9f730365728012435aceb0f3fdf3697bf7707f52..2040fb7101e105638aea263cd9001b8721b97116 100644
+--- a/src/runtime/virtcontainers/types/pcipath_test.go
++++ b/src/runtime/virtcontainers/types/pcipath_test.go
+@@ -108,3 +108,31 @@ func TestPciPath(t *testing.T) {
+ 	assert.Error(err)
+ 
+ }
++
++func TestPciPathRootComplex(t *testing.T) {
++	assert := assert.New(t)
++
++	slot0, err := PciSlotFromInt(0x00)
++	assert.NoError(err)
++	slot2, err := PciSlotFromInt(0x02)
++	assert.NoError(err)
++
++	// A device behind a pxb-pcie expander bridge (guest bus 0x20) renders its guest bus number as the leading "root complex" segment.
++	pcipath, err := PciPathFromSlotsWithRootComplex(0x20, slot0, slot2)
++	assert.NoError(err)
++	assert.False(pcipath.IsNil())
++	assert.Equal("20/00/02", pcipath.String())
++
++	// A second NUMA node's expander bridge lives at bus 0x40.
++	pcipath, err = PciPathFromSlotsWithRootComplex(0x40, slot2)
++	assert.NoError(err)
++	assert.Equal("40/02", pcipath.String())
++
++	// rootComplex 0 means the default pcie.0 root.
++	pcipath, err = PciPathFromSlotsWithRootComplex(0, slot0, slot2)
++	assert.NoError(err)
++	assert.Equal("00/02", pcipath.String())
++	plain, err := PciPathFromSlots(slot0, slot2)
++	assert.NoError(err)
++	assert.Equal(plain.String(), pcipath.String())
++}
