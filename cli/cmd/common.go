@@ -38,6 +38,9 @@ const (
 	latestTransitionHashFilename = "latest-transition"
 	historyFilename              = "history.yml"
 	verifyDir                    = "verify"
+	// allowInsecureEnvVar gates insecure (non-CC) runtime support and matches the
+	// Coordinator's env var of the same name.
+	allowInsecureEnvVar = "CONTRAST_ALLOW_INSECURE"
 )
 
 // ReleaseImageReplacements contains the image replacements used by contrast.
