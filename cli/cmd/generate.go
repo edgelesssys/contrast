@@ -94,7 +94,7 @@ subcommands.`,
 	cmd.Flags().Bool("calculate-pod-memory", false, "calculate pod memory based on image layer sizes and container resource limits")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
 	cmd.Flags().StringArray("insecure-registry", []string{}, "registries to access via plain HTTP instead of HTTPS (can be passed more than once)")
-	cmd.Flags().Bool("INSECURE", false, "allow generation for insecure (non-CC) runtimes (also requires the CONTRAST_ALLOW_INSECURE_RUNTIMES environment variable to be set)")
+	cmd.Flags().Bool("INSECURE", false, fmt.Sprintf("allow generation for insecure (non-CC) runtimes (also requires the %s environment variable to be set)", allowInsecureEnvVar))
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
 	must(cmd.MarkFlagFilename("manifest", "json"))
@@ -359,7 +359,7 @@ func patchCoordinatorAllowInsecure(resource any) {
 		return
 	}
 	if len(r.Spec.Template.Spec.Containers) > 0 {
-		r.Spec.Template.Spec.Containers[0].WithEnv(kuberesource.NewEnvVar("CONTRAST_ALLOW_INSECURE", "1"))
+		r.Spec.Template.Spec.Containers[0].WithEnv(kuberesource.NewEnvVar(allowInsecureEnvVar, "1"))
 	}
 }
 
@@ -660,8 +660,8 @@ func validateInsecurePlatforms(usedPlatforms kuberesource.PlatformCollection, al
 	if !allowInsecure {
 		return fmt.Errorf("insecure runtime platforms detected but --INSECURE flag not set")
 	}
-	if os.Getenv("CONTRAST_ALLOW_INSECURE_RUNTIMES") == "" {
-		return fmt.Errorf("insecure runtime platforms detected but CONTRAST_ALLOW_INSECURE_RUNTIMES environment variable not set")
+	if os.Getenv(allowInsecureEnvVar) == "" {
+		return fmt.Errorf("insecure runtime platforms detected but %s environment variable not set", allowInsecureEnvVar)
 	}
 	return nil
 }

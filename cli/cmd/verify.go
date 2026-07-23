@@ -49,7 +49,7 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 	addCollateralProxyFlag(cmd)
-	cmd.Flags().Bool("INSECURE", false, "allow verification of insecure (non-CC) deployments (also requires the CONTRAST_ALLOW_INSECURE_RUNTIMES environment variable to be set)")
+	cmd.Flags().Bool("INSECURE", false, fmt.Sprintf("allow verification of insecure (non-CC) deployments (also requires the %s environment variable to be set)", allowInsecureEnvVar))
 
 	return cmd
 }
@@ -79,8 +79,8 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		if !flags.allowInsecureRuntimes {
 			return fmt.Errorf("manifest contains insecure platforms but --INSECURE flag not set")
 		}
-		if os.Getenv("CONTRAST_ALLOW_INSECURE_RUNTIMES") == "" {
-			return fmt.Errorf("manifest contains insecure platforms but CONTRAST_ALLOW_INSECURE_RUNTIMES environment variable not set")
+		if os.Getenv(allowInsecureEnvVar) == "" {
+			return fmt.Errorf("manifest contains insecure platforms but %s environment variable not set", allowInsecureEnvVar)
 		}
 	}
 

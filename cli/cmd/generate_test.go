@@ -306,7 +306,7 @@ func TestValidateInsecurePlatforms(t *testing.T) {
 			allowInsecure:  true,
 			setEnv:         false,
 			wantErr:        true,
-			wantErrContain: "CONTRAST_ALLOW_INSECURE_RUNTIMES",
+			wantErrContain: "CONTRAST_ALLOW_INSECURE",
 		},
 		"insecure with flag and env": {
 			platforms:     []platforms.Platform{platforms.MetalQEMUInsecure},
@@ -325,9 +325,9 @@ func TestValidateInsecurePlatforms(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			if tc.setEnv {
-				t.Setenv("CONTRAST_ALLOW_INSECURE_RUNTIMES", "true")
+				t.Setenv("CONTRAST_ALLOW_INSECURE", "true")
 			} else {
-				os.Unsetenv("CONTRAST_ALLOW_INSECURE_RUNTIMES")
+				os.Unsetenv("CONTRAST_ALLOW_INSECURE")
 			}
 
 			collection := kuberesource.PlatformCollection{}
