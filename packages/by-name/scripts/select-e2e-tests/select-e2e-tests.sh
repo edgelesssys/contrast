@@ -117,8 +117,8 @@ else
     done < <(directives_of "$name")
   done < <(list_test_names)
   for attr in "${!nix_attrs[@]}"; do
-    b=$(nix eval --raw "git+file://$root?rev=$base_sha#base.$attr.drvPath" 2>/dev/null || true)
-    h=$(nix eval --raw "git+file://$root?rev=$head_sha#base.$attr.drvPath" 2>/dev/null || true)
+    b=$(nix eval --raw "git+file://$root?shallow=1&rev=$base_sha#base.$attr.drvPath" 2>/dev/null || true)
+    h=$(nix eval --raw "git+file://$root?shallow=1&rev=$head_sha#base.$attr.drvPath" 2>/dev/null || true)
     if [[ -z $b || -z $h ]]; then
       printf 'select-e2e-tests: warning: cannot evaluate nix:%s, assuming changed\n' "$attr" >&2
       nix_changed[$attr]=1
