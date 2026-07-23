@@ -87,7 +87,8 @@ information:
 1. Microcode patch level
 
 With those parameters, one can retrieve a certificate signing the VCEK from the
-AMD Key Distribution Service (KDS) by querying `https://kdsintf.amd.com/vcek/v1/{product_name}/{hwid}?{params}`
+AMD Key Distribution Service (KDS) by querying `https://kdsintf.amd.com/vcek/v1/{product_name}/{hwid}?{params}`,
+optionally proxied and cached by an in-cluster collateral proxy, see [Caching attestation collateral](../../howto/collateral-proxy.md).
 
 This VCEK certificate is signed by the AMD SEV CA certificate, which is signed by the AMD Root CA.
 
