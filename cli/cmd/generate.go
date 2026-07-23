@@ -94,7 +94,9 @@ subcommands.`,
 	cmd.Flags().Bool("calculate-pod-memory", false, "calculate pod memory based on image layer sizes and container resource limits")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
 	cmd.Flags().StringArray("insecure-registry", []string{}, "registries to access via plain HTTP instead of HTTPS (can be passed more than once)")
-	cmd.Flags().Bool("INSECURE", false, fmt.Sprintf("allow generation for insecure (non-CC) runtimes (also requires the %s environment variable to be set)", allowInsecureEnvVar))
+	if insecureRuntimesAllowed() {
+		cmd.Flags().Bool("INSECURE", false, "allow generation for insecure (non-CC) runtimes")
+	}
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
 	must(cmd.MarkFlagFilename("manifest", "json"))
@@ -658,10 +660,7 @@ func validateInsecurePlatforms(usedPlatforms kuberesource.PlatformCollection, al
 		return nil
 	}
 	if !allowInsecure {
-		return fmt.Errorf("insecure runtime platforms detected but --INSECURE flag not set")
-	}
-	if os.Getenv(allowInsecureEnvVar) == "" {
-		return fmt.Errorf("insecure runtime platforms detected but %s environment variable not set", allowInsecureEnvVar)
+		return fmt.Errorf("insecure runtime platforms detected but --INSECURE flag not set (the flag is only available with the %s environment variable set to true)", allowInsecureEnvVar)
 	}
 	return nil
 }
@@ -1117,9 +1116,12 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	allowInsecureRuntimes, err := cmd.Flags().GetBool("INSECURE")
-	if err != nil {
-		return nil, err
+	allowInsecureRuntimes := false
+	if cmd.Flags().Lookup("INSECURE") != nil {
+		allowInsecureRuntimes, err = cmd.Flags().GetBool("INSECURE")
+		if err != nil {
+			return nil, err
+		}
 	}
 	outputFile, err := cmd.Flags().GetString("output")
 	if err != nil {
