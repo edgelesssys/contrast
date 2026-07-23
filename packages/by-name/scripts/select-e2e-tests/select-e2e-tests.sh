@@ -22,14 +22,14 @@ list_test_names() {
   shopt -u nullglob
 }
 
-# test-if directives (path:... / nix:...) declared in test source.
+# test-if directives (path:... / nix:... / closure:...) declared in test source.
 directives_of() {
   local files
   shopt -s nullglob
   files=("$root/e2e/$1"/*.go)
   shopt -u nullglob
   [[ ${#files[@]} -gt 0 ]] || return 0
-  { grep -hoE '//[[:space:]]*test-if:[[:space:]]*(path|nix):[^[:space:]]+' "${files[@]}" || true; } |
+  { grep -hoE '//[[:space:]]*test-if:[[:space:]]*(path|nix|closure):[^[:space:]]+' "${files[@]}" || true; } |
     sed -E 's|.*test-if:[[:space:]]*||'
 }
 
@@ -52,17 +52,30 @@ declare -A known_platforms=(
 )
 default_platforms=(Metal-QEMU-SNP Metal-QEMU-TDX)
 
-# check mode: every path: directive must point at an existing path, every nix package must exist
+# check mode: every path: must point at an existing path, every closure: at a Go package, every nix package must exist.
 if [[ ${1:-} == check ]]; then
   rc=0
   while IFS= read -r name; do
     while IFS= read -r d; do
-      [[ $d == path:* ]] || continue
-      p=${d#path:}
-      if [[ ! -e $root/$p ]]; then
-        printf 'e2e/%s: test-if path does not exist: %s\n' "$name" "$p" >&2
-        rc=1
-      fi
+      case $d in
+      path:*)
+        p=${d#path:}
+        if [[ ! -e $root/$p ]]; then
+          printf 'e2e/%s: test-if path does not exist: %s\n' "$name" "$p" >&2
+          rc=1
+        fi
+        ;;
+      closure:*)
+        pkg=${d#closure:}
+        shopt -s nullglob
+        gofiles=("$root/$pkg"/*.go)
+        shopt -u nullglob
+        if [[ ! -d $root/$pkg || ${#gofiles[@]} -eq 0 ]]; then
+          printf 'e2e/%s: test-if closure is not a Go package: %s\n' "$name" "$pkg" >&2
+          rc=1
+        fi
+        ;;
+      esac
     done < <(directives_of "$name")
     while IFS= read -r plat; do
       [[ -n $plat ]] || continue
@@ -72,7 +85,7 @@ if [[ ${1:-} == check ]]; then
       fi
     done < <(runs_on_of "$name")
   done < <(list_test_names)
-  [[ $rc -eq 0 ]] && printf 'select-e2e-tests: all test-if path: and runs-on: directives are valid\n' >&2
+  [[ $rc -eq 0 ]] && printf 'select-e2e-tests: all test-if path:, closure: and runs-on: directives are valid\n' >&2
   exit $rc
 fi
 
@@ -114,6 +127,36 @@ else
     fi
   done
 
+  # Expand each closure: directive to the Go import closure of the package.
+  tags="contrast_unstable_api,e2e"
+  declare -A closure_pkgs=() closure_matched=()
+  while IFS= read -r name; do
+    while IFS= read -r d; do
+      [[ $d == closure:* ]] && closure_pkgs[${d#closure:}]=1
+    done < <(directives_of "$name")
+  done < <(list_test_names)
+  if [[ ${#closure_pkgs[@]} -gt 0 ]]; then
+    gomod=$(cd "$root" && GOWORK=off go list -m 2>/dev/null || true)
+    for pkg in "${!closure_pkgs[@]}"; do
+      mapfile -t dirs < <(
+        cd "$root" && go list -tags "$tags" -deps \
+          -f '{{ if ne .Module nil }}{{ if .Module.Main }}{{ .ImportPath }}{{ end }}{{ end }}' \
+          "./$pkg/..." 2>/dev/null | sed "s|^$gomod/||" | sort -u
+      )
+      if [[ ${#dirs[@]} -eq 0 ]]; then
+        printf 'select-e2e-tests: warning: cannot expand closure:%s, assuming changed\n' "$pkg" >&2
+        closure_matched[$pkg]=1
+        continue
+      fi
+      for dir in "${dirs[@]}"; do
+        path_matches "$dir" && {
+          closure_matched[$pkg]=1
+          break
+        }
+      done
+    done
+  fi
+
   while IFS= read -r name; do
     # Always run: openssl, gpu, and any test whose own e2e/<name>/ changed.
     if [[ $name == openssl || $name == gpu ]] || path_matches "e2e/$name"; then
@@ -127,6 +170,10 @@ else
         break
       } ;;
       nix:*) [[ -n ${nix_changed[${d#nix:}]:-} ]] && {
+        selected[$name]=1
+        break
+      } ;;
+      closure:*) [[ -n ${closure_matched[${d#closure:}]:-} ]] && {
         selected[$name]=1
         break
       } ;;
