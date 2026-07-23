@@ -822,10 +822,16 @@ func GPU(name string, gpuClass string, gpuQuantity int64) []any {
 										WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
 										WithCommand("/bin/sh", "-c", "sleep inf").
 										WithResources(
+											// 500Mi accounts for nvidia-smi and the guest pull overhead.
+											// Request/limit >=2 vCPUs so that a multi-socket guest NUMA topology has a vCPU on every node and boots.
 											ResourceRequirements().
-												WithMemoryLimitAndRequest(500). // This accounts for nvidia-smi and the guest pull overhead.
+												WithRequests(corev1.ResourceList{
+													corev1.ResourceMemory: *resource.NewQuantity(500*1024*1024, resource.BinarySI),
+													corev1.ResourceCPU:    resource.MustParse("2"),
+												}).
 												WithLimits(corev1.ResourceList{
 													corev1.ResourceName(gpuClass): *resource.NewQuantity(gpuQuantity, resource.DecimalExponent),
+													corev1.ResourceCPU:            resource.MustParse("2"),
 												}),
 										),
 									Container().

@@ -7,6 +7,7 @@
   libaio,
   dtc,
   libtasn1,
+  numactl,
   python3Packages,
   gpuSupport ? false,
 }:
@@ -14,6 +15,7 @@
   minimal = true;
   enableBlobs = true;
   uringSupport = false;
+  numaSupport = true;
   # Only build for x86_64.
   hostCpuOnly = true;
   hostCpuTargets = [ "x86_64-softmmu" ];
@@ -37,6 +39,13 @@
     ];
 
     nativeBuildInputs = previousAttrs.nativeBuildInputs ++ [ python3Packages.packaging ];
+
+    # numactl ships no pkg-config file, so QEMU's meson locates libnuma with cc.find_library('numa'), which fails in nix because NIX_LDFLAGS -L paths are not included.
+    postPatch = (previousAttrs.postPatch or "") + ''
+      substituteInPlace meson.build \
+        --replace-fail "cc.find_library('numa', has_headers: ['numa.h']," \
+                       "cc.find_library('numa', has_headers: ['numa.h'], dirs: ['${lib.getLib numactl}/lib'],"
+    '';
 
     patches = [
       ./0001-avoid-duplicate-definitions.patch

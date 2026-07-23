@@ -62,29 +62,33 @@ let
       ovmf,
       withGPU,
     }:
+    let
+      launch-digests = kata.calculateTdxLaunchDigests {
+        inherit os-image ovmf withGPU;
+        inherit (node-installer-image) withDebug;
+      };
+      mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
+      rtmr1 = builtins.readFile "${launch-digests}/rtmr1.hex";
+      rtmr2 = builtins.readFile "${launch-digests}/rtmr2.hex";
+      rtmr3 = builtins.readFile "${launch-digests}/rtmr3.hex";
+      # RTMR[0] is emitted as a newline-separated list of candidates, one per possible extra-pci-roots / pxb-pcie count.
+      rtmr0List = builtins.filter (s: s != "") (
+        lib.splitString "\n" (builtins.readFile "${launch-digests}/rtmr0.hex")
+      );
+    in
     {
-      tdx = [
-        (
-          let
-            launch-digests = kata.calculateTdxLaunchDigests {
-              inherit os-image ovmf withGPU;
-              inherit (node-installer-image) withDebug;
-            };
-          in
-          {
-            mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
-            rtmrs = [
-              (builtins.readFile "${launch-digests}/rtmr0.hex")
-              (builtins.readFile "${launch-digests}/rtmr1.hex")
-              (builtins.readFile "${launch-digests}/rtmr2.hex")
-              (builtins.readFile "${launch-digests}/rtmr3.hex")
-            ];
-            # CET (XFAM bits 11/12) is ignored during validation because it depends on host CPU support. see validateXfamIgnoringCET.
-            xfam = "e702060000000000";
-            memoryIntegrity = false;
-          }
-        )
-      ];
+      tdx = map (rtmr0: {
+        inherit mrTd;
+        rtmrs = [
+          rtmr0
+          rtmr1
+          rtmr2
+          rtmr3
+        ];
+        # CET (XFAM bits 11/12) is ignored during validation because it depends on host CPU support. see validateXfamIgnoringCET.
+        xfam = "e702060000000000";
+        memoryIntegrity = false;
+      }) rtmr0List;
     };
   tdxRefVals = tdxRefValsWith {
     inherit (node-installer-image) os-image;

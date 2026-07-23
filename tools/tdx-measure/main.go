@@ -129,6 +129,7 @@ func newRtMrCmd() *cobra.Command {
 	cmd.Flags().StringP("cmdline", "c", "", "kernel command line")
 	cmd.Flags().StringP("gpu-model", "g", "none", "GPU model used in the VM (none, h100, b200)")
 	cmd.Flags().Bool("legacy-serial", false, "VM uses -serial chardev:... instead of virtio-serial-pci (changes ACPI topology)")
+	cmd.Flags().Int("extra-pci-roots", 0, "number of extra PCI root buses / pxb-pcie bridges added by guest NUMA, measured into RTMR[0]")
 	return cmd
 }
 
@@ -157,7 +158,11 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		digest, err = rtmr.CalcRtmr0(firmware, gpuModel, legacySerial)
+		extraPCIRoots, err := cmd.Flags().GetInt("extra-pci-roots")
+		if err != nil {
+			return err
+		}
+		digest, err = rtmr.CalcRtmr0(firmware, gpuModel, legacySerial, extraPCIRoots)
 		if err != nil {
 			return fmt.Errorf("can't calculate RTMR 0: %w", err)
 		}

@@ -116,7 +116,7 @@ var (
 // the hardcoded ACPI hashes for a VM launched with -serial chardev:... are
 // used instead of the ones for a VM with virtio-serial-pci; the two topologies
 // produce different ACPI tables.
-func CalcRtmr0(firmware []byte, gpu GPUModel, legacySerial bool) ([48]byte, error) {
+func CalcRtmr0(firmware []byte, gpu GPUModel, legacySerial bool, extraPCIRoots int) ([48]byte, error) {
 	var rtmr Rtmr
 
 	// We don't measure the Hobs, the firmware verifies them instead.
@@ -127,6 +127,12 @@ func CalcRtmr0(firmware []byte, gpu GPUModel, legacySerial bool) ([48]byte, erro
 		return [48]byte{}, fmt.Errorf("can't find CFV section in firmware: %w", err)
 	}
 	rtmr.hashAndExtend(cvf)
+
+	if extraPCIRoots > 0 {
+		var buf [8]byte
+		binary.LittleEndian.PutUint64(buf[:], uint64(extraPCIRoots))
+		rtmr.extendVariableValue(buf[:])
+	}
 
 	// QEMU FW CFG.BootMenu
 	// This is a two byte little-endian number with values
