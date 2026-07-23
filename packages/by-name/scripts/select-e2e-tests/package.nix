@@ -7,6 +7,7 @@
   git,
   gnugrep,
   gnused,
+  go,
   jq,
   nix,
 }:
@@ -19,6 +20,7 @@ writeShellApplication {
     git
     gnugrep
     gnused
+    go
     jq
     nix
   ];
