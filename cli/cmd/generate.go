@@ -330,9 +330,7 @@ func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f fun
 
 func isContrastWorkload(resource any) (ret bool) {
 	kuberesource.MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if kuberesource.IsContrastPod(spec) {
-			ret = true
-		}
+		ret = kuberesource.IsContrastPod(spec)
 		return spec
 	})
 	return ret
