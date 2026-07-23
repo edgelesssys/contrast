@@ -287,7 +287,6 @@ func TestValidateInsecurePlatforms(t *testing.T) {
 	testCases := map[string]struct {
 		platforms      []platforms.Platform
 		allowInsecure  bool
-		setEnv         bool
 		wantErr        bool
 		wantErrContain string
 	}{
@@ -301,35 +300,20 @@ func TestValidateInsecurePlatforms(t *testing.T) {
 			wantErr:        true,
 			wantErrContain: "--INSECURE flag not set",
 		},
-		"insecure with flag but no env": {
-			platforms:      []platforms.Platform{platforms.MetalQEMUInsecure},
-			allowInsecure:  true,
-			setEnv:         false,
-			wantErr:        true,
-			wantErrContain: "CONTRAST_ALLOW_INSECURE",
-		},
-		"insecure with flag and env": {
+		"insecure with flag": {
 			platforms:     []platforms.Platform{platforms.MetalQEMUInsecure},
 			allowInsecure: true,
-			setEnv:        true,
 			wantErr:       false,
 		},
-		"mixed with flag and env": {
+		"mixed with flag": {
 			platforms:     []platforms.Platform{platforms.MetalQEMUSNP, platforms.MetalQEMUInsecure},
 			allowInsecure: true,
-			setEnv:        true,
 			wantErr:       false,
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			if tc.setEnv {
-				t.Setenv("CONTRAST_ALLOW_INSECURE", "true")
-			} else {
-				os.Unsetenv("CONTRAST_ALLOW_INSECURE")
-			}
-
 			collection := kuberesource.PlatformCollection{}
 			for _, p := range tc.platforms {
 				collection.Add(p)
@@ -342,6 +326,32 @@ func TestValidateInsecurePlatforms(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestInsecureRuntimesAllowed(t *testing.T) {
+	testCases := map[string]struct {
+		set   bool
+		value string
+		want  bool
+	}{
+		"unset":   {set: false, want: false},
+		"empty":   {set: true, value: "", want: false},
+		"true":    {set: true, value: "true", want: true},
+		"one":     {set: true, value: "1", want: true},
+		"false":   {set: true, value: "false", want: false},
+		"garbage": {set: true, value: "yes please", want: false},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv("CONTRAST_ALLOW_INSECURE", tc.value)
+			if !tc.set {
+				os.Unsetenv("CONTRAST_ALLOW_INSECURE")
+			}
+
+			assert.Equal(t, tc.want, insecureRuntimesAllowed())
 		})
 	}
 }
