@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -89,9 +90,10 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 					require.NoError(fs.WriteFile(path, []byte(content), 0o644))
 				}
 
-				h := &History{
-					store: aferostore.New(&fs),
-				}
+				h := NewWithStore(
+					slog.New(slog.DiscardHandler),
+					aferostore.New(&fs),
+				)
 
 				gotT, err := h.GetLatest(&tc.signingKey.PublicKey)
 
@@ -116,9 +118,10 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 					require.NoError(fs.WriteFile(path, []byte(content), 0o644))
 				}
 
-				h := &History{
-					store: aferostore.New(&fs),
-				}
+				h := NewWithStore(
+					slog.New(slog.DiscardHandler),
+					aferostore.New(&fs),
+				)
 
 				got, err := h.HasLatest()
 
@@ -138,9 +141,10 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 					require.NoError(fs.WriteFile(path, []byte(content), 0o644))
 				}
 
-				h := &History{
-					store: aferostore.New(&fs),
-				}
+				h := NewWithStore(
+					slog.New(slog.DiscardHandler),
+					aferostore.New(&fs),
+				)
 
 				gotT, err := h.GetLatestInsecure()
 
@@ -243,9 +247,10 @@ func TestHistory_SetLatest(t *testing.T) {
 				fs = afero.Afero{Fs: afero.NewReadOnlyFs(fs.Fs)}
 			}
 
-			h := &History{
-				store: aferostore.New(&fs),
-			}
+			h := NewWithStore(
+				slog.New(slog.DiscardHandler),
+				aferostore.New(&fs),
+			)
 
 			err := h.SetLatest(tc.oldT, tc.newT, tc.signingKey)
 
@@ -306,9 +311,10 @@ func TestHistory_GetTransition(t *testing.T) {
 				require.NoError(fs.WriteFile(path, []byte(content), 0o644))
 			}
 
-			h := &History{
-				store: aferostore.New(&fs),
-			}
+			h := NewWithStore(
+				slog.New(slog.DiscardHandler),
+				aferostore.New(&fs),
+			)
 
 			gotTransition, err := h.GetTransition(strToHash(require, tc.hash))
 
@@ -381,9 +387,10 @@ func TestHistory_SetTransition(t *testing.T) {
 				fs = afero.Afero{Fs: afero.NewReadOnlyFs(fs.Fs)}
 			}
 
-			h := &History{
-				store: aferostore.New(&fs),
-			}
+			h := NewWithStore(
+				slog.New(slog.DiscardHandler),
+				aferostore.New(&fs),
+			)
 
 			gotHash, err := h.SetTransition(&tc.transition)
 
@@ -455,9 +462,10 @@ func TestHistory_getCA(t *testing.T) {
 				require.NoError(fs.WriteFile(path, []byte(content), 0o644))
 			}
 
-			h := &History{
-				store: aferostore.New(&fs),
-			}
+			h := NewWithStore(
+				slog.New(slog.DiscardHandler),
+				aferostore.New(&fs),
+			)
 
 			hash := strToHash(require, tc.hash)
 
@@ -526,9 +534,10 @@ func TestHistory_setCA(t *testing.T) {
 				fs = afero.Afero{Fs: afero.NewReadOnlyFs(fs.Fs)}
 			}
 
-			h := &History{
-				store: aferostore.New(&fs),
-			}
+			h := NewWithStore(
+				slog.New(slog.DiscardHandler),
+				aferostore.New(&fs),
+			)
 
 			gotHash, err := h.setContentaddressed(tc.pathFmt, []byte(tc.data))
 
@@ -560,9 +569,10 @@ func TestHistory_setCA(t *testing.T) {
 }
 
 func TestHistory_SetGet(t *testing.T) {
-	h := &History{
-		store: aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
-	}
+	h := NewWithStore(
+		slog.New(slog.DiscardHandler),
+		aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
+	)
 
 	testCases := []string{
 		"hello",
@@ -641,9 +651,10 @@ func TestHistory_WatchLatestTransitions(t *testing.T) {
 func TestHistory_WalkTransitions(t *testing.T) {
 	t.Run("empty history", func(t *testing.T) {
 		require := require.New(t)
-		h := &History{
-			store: aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
-		}
+		h := NewWithStore(
+			slog.New(slog.DiscardHandler),
+			aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
+		)
 		doNotCall := func(_ [32]byte, _ *Transition) error {
 			require.Fail("closure should not be called without any transitions")
 			return nil
@@ -654,9 +665,10 @@ func TestHistory_WalkTransitions(t *testing.T) {
 
 	t.Run("walk transitions", func(t *testing.T) {
 		require := require.New(t)
-		h := &History{
-			store: aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
-		}
+		h := NewWithStore(
+			slog.New(slog.DiscardHandler),
+			aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
+		)
 		expectedTransitionChainSize := 42
 		var latestTransition [HashSize]byte
 
@@ -693,9 +705,10 @@ func TestHistory_WalkTransitions(t *testing.T) {
 
 	t.Run("failing consume func", func(t *testing.T) {
 		require := require.New(t)
-		h := &History{
-			store: aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
-		}
+		h := NewWithStore(
+			slog.New(slog.DiscardHandler),
+			aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()}),
+		)
 		var latestTransition [HashSize]byte
 
 		transition := &Transition{
@@ -712,6 +725,83 @@ func TestHistory_WalkTransitions(t *testing.T) {
 	})
 }
 
+func TestHistoryCache(t *testing.T) {
+	require := require.New(t)
+
+	fs := &afero.Afero{Fs: afero.NewMemMapFs()}
+	backingStore := aferostore.New(fs)
+	store := &cacheTestingStore{Store: backingStore}
+	h := NewWithStore(slog.New(slog.DiscardHandler), store)
+
+	// Build up store content.
+
+	policy := []byte("CreateContainerRequest := true")
+	policyHash, err := h.SetPolicy(policy)
+	require.NoError(err)
+
+	manifest := []byte(`{"some": "json"}`)
+	manifestHash, err := h.SetManifest(manifest)
+	require.NoError(err)
+
+	transition1 := &Transition{
+		ManifestHash: manifestHash,
+	}
+	transition1Hash, err := h.SetTransition(transition1)
+	require.NoError(err)
+
+	transition2 := &Transition{
+		ManifestHash:           manifestHash,
+		PreviousTransitionHash: transition1Hash,
+	}
+	transition2Hash, err := h.SetTransition(transition2)
+	require.NoError(err)
+
+	// None of these calls should have called Get.
+	require.Equal(0, store.getCount)
+
+	var visited [][HashSize]byte
+	require.NoError(h.WalkTransitions(transition2Hash, func(b [32]byte, _ *Transition) error {
+		visited = append(visited, b)
+		return nil
+	}))
+	require.Len(visited, 2)
+	require.Equal(0, store.getCount, "WalkTransitions did not serve cached results")
+
+	_, err = h.GetTransition(transition1Hash)
+	require.NoError(err)
+	require.Equal(0, store.getCount, "GetTransition did not serve cached results")
+
+	_, err = h.GetManifest(manifestHash)
+	require.NoError(err)
+	require.Equal(0, store.getCount, "GetManifest did not serve cached results")
+
+	_, err = h.GetPolicy(policyHash)
+	require.NoError(err)
+	require.Equal(0, store.getCount, "GetPolicy did not serve cached results")
+
+	// Bypass the history and set content directly.
+	otherPolicy := []byte("AllowRequestsFailingPolicy := true")
+	otherPolicyHash := Digest(otherPolicy)
+	require.NoError(backingStore.Set(fmt.Sprintf("policies/%x", otherPolicyHash), otherPolicy))
+
+	_, err = h.GetPolicy(otherPolicyHash)
+	require.NoError(err)
+	require.Equal(1, store.getCount, "GetPolicy did not request backend on cache miss")
+	_, err = h.GetPolicy(otherPolicyHash)
+	require.NoError(err)
+	require.Equal(1, store.getCount, "GetPolicy did not cache after cache miss")
+
+	// Invalid content should not reach the cache.
+	unrelatedHash := Digest([]byte("{}"))
+	require.NoError(backingStore.Set(fmt.Sprintf("manifests/%x", unrelatedHash), manifest))
+	_, err = h.GetManifest(unrelatedHash)
+	require.ErrorAs(err, &HashMismatchError{})
+	require.Equal(2, store.getCount, "GetPolicy did not request backend on cache miss")
+	_, err = h.GetManifest(unrelatedHash)
+	require.ErrorAs(err, &HashMismatchError{})
+	require.Equal(3, store.getCount, "GetPolicy cached bad content")
+}
+
 type fakeStore struct {
 	Store
 	latestTransitions chan []byte
@@ -719,6 +809,17 @@ type fakeStore struct {
 
 func (fs *fakeStore) Watch(_ string) (<-chan []byte, func(), error) {
 	return fs.latestTransitions, func() {}, nil
+}
+
+type cacheTestingStore struct {
+	Store
+
+	getCount int
+}
+
+func (s *cacheTestingStore) Get(key string) ([]byte, error) {
+	s.getCount++
+	return s.Store.Get(key)
 }
 
 func strToHash(require *require.Assertions, s string) [HashSize]byte {
