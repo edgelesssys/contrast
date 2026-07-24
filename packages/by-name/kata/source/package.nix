@@ -16,14 +16,14 @@
 }:
 
 rec {
-  version = "3.32.0";
+  version = "4.0.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = version;
-      hash = "sha256-dnbzjYDKeAp0wFQcO5VK71vkf7ubVK5Lh9R9jjuro28=";
+      hash = "sha256-rjQNqHaQugiRkS0rI0C9gFiQ/PStF6Czy4WcAG5SxkQ=";
     };
 
     patches = [
@@ -97,61 +97,51 @@ rec {
       # https://github.com/kata-containers/kata-containers/issues/11532
       ./0012-agent-use-custom-implementation-for-secure-mounting.patch
 
-      # Upstream expects guest pull to only use Nydus and applies workarounds that are not
-      # necessary with force_guest_pull. This patch removes the workaround.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757.
-      ./0013-genpolicy-don-t-apply-Nydus-workaround.patch
-
-      # We're using a dedicated initdata-processor job and don't want the Kata agent to manage
-      # initdata for us.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11532.
-      ./0014-agent-remove-initdata-processing.patch
-
       # In addition to the initdata device, we also require the imagepuller's auth config
       # to be passed to the VM in a similar manner.
-      ./0015-runtime-pass-imagepuller-config-device-to-vm.patch
+      ./0013-runtime-pass-imagepuller-config-device-to-vm.patch
 
       # Privatemode requires GPU sharing between containers of the same pod.
       # In the hook-based flow, this worked because all devices and libs were (accidentally) handed to all containers.
       # With the CDI-based flow, this no longer happens.
       # Instead, this patch ensures that if a container has NVIDIA_VISIBLE_DEVICES=all set as an env var,
       # that container receives ALL Nvidia GPU devices known to the pod.
-      ./0016-runtime-assign-GPU-devices-to-multiple-containers.patch
+      ./0014-runtime-assign-GPU-devices-to-multiple-containers.patch
 
       # With recent versions of the sandbox-device-plugin, a /dev/iommu device is added
       # to the container spec for GPU-enabled containers.
       # Since the same thing is done by the CTK within the PodVM, and we only want this
       # to influence VM creation, we remove this device from the container spec in the agent.
       # Upstream bug: https://github.com/kata-containers/kata-containers/issues/12246.
-      ./0017-runtime-remove-iommu-device.patch
+      ./0015-runtime-remove-iommu-device.patch
 
       # We are observing frequent pull failures from genpolicy due to the connection being reset by the registry.
       # This patch allows genpolicy to retry these failed pulls multiple times.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12300.
-      ./0018-genpolicy-retry-failed-image-pulls.patch
+      ./0016-genpolicy-retry-failed-image-pulls.patch
 
       # In clusters that don't use the sandbox-device-plugin's P_GPU_ALIAS, we will not be able to
       # look up the device via PodResources. This patch adds additional resolution logic for that
       # case, relaxing the matching requirement to just the name (without vendor and class).
       # This is unlikely to be fixed in Kata upstream, but rather in the NVIDIA components.
       # Upstream issue: https://github.com/NVIDIA/sandbox-device-plugin/issues/46
-      ./0019-shim-guess-CDI-devices-without-direct-match.patch
+      ./0017-shim-guess-CDI-devices-without-direct-match.patch
 
       # Enables the Kata runtime to set the SNP ID blocks for the CPU model it is running on
       # based on Pod annotations. This allows us to run Pods with multiple CPUs.
       # This patch relies on changes made by 0001-emulate-CPU-model-that-most-closely-matches-the-host.patch
       # together with being specific to our use case. There are no plans to upstream it.
-      ./0020-runtime-add-SNP-ID-block-from-Pod-annotations.patch
+      ./0018-runtime-add-SNP-ID-block-from-Pod-annotations.patch
 
       # We pass a custom config to the Kata agent via commandline argument to enable the debug console and customize logging.
       # The provided config should only be used as an override and not as a replacement, so the kernel cmdline is still respected
       # when we don't have any overrides.
-      ./0021-agent-use-config-file-as-override.patch
+      ./0019-agent-use-config-file-as-override.patch
 
       # Terminate the agent gracefully when it encounters problems with the policy. This allows
       # error messages to propagate to the runtime.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/13031.
-      ./0022-agent-don-t-abort-in-case-of-policy-problems.patch
+      ./0020-agent-don-t-abort-in-case-of-policy-problems.patch
 
       # Stop the kata shim's cleanup paths from hanging when the kata-agent
       # is unreachable. Without this, agent calls hang in commonDialer past
@@ -159,27 +149,33 @@ rec {
       # and accumulated leaks cascade through kubelet's Requires=containerd.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
       # TODO(sse): retire this carry once contrast migrates to runtime-rs.
-      ./0023-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
+      ./0021-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
 
       # Don't clean up the Kata cgroup when cleaning up a failed pod. It's unnecessary because it
       # will be cleaned up by containerd, and it may hide problems if the cleanup takes too long.
       # No upstream issue because this is unlikely to be accepted upstream as is, and developing a
       # full fix for all potential configurations is not a good investment of time.
       # TODO(burgerdev): drop patch after migrating to runtime-rs
-      ./0024-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
+      ./0022-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
 
       # Cache (un-)compressed image sizes and information to map image references to DiffIDs in the layers-cache.json.
       # For each image reference, compressed sizes are taken from the image manifest and are stored with a reference
       # to the corresponding DiffID. Entries with a DiffID key now also store the uncompressed size of the layer.
       # This allows us to calculate the pod memory requirements based on the image sizes.
-      ./0025-genpolicy-cache-image-sizes-and-layer-info.patch
+      ./0023-genpolicy-cache-image-sizes-and-layer-info.patch
 
       # Cold-plugged VFIO devices (GPUs) land in the pause container's CreateContainerRequest, but the cdi.k8s.io/vfio<n> annotation
       # is only added to workload containers. The agent policy requires the device and its annotation to both exist, so the sandbox request can
       # never be authorized and GPU pods fail with PermissionDenied. Annotate the sandbox container with the missing CDI metadata,
       # and make genpolicy expect the pod's total cold-plugged GPU devices and annotations on the pause container.
       # TODO(charludo): open upstream issue and PR.
-      ./0026-runtime-annotate-the-sandbox-container-with-VFIO-met.patch
+      ./0024-runtime-annotate-the-sandbox-container-with-VFIO-met.patch
+
+      # We use force_guest_pull, where the generated policy already matches at runtime and no securityContext is required.
+      # Until genpolicy can distinguish force_guest_pull from Nydus guest_pull, the check disabled in this patch will
+      # always fail wrongfully.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757
+      ./0025-genpolicy-unconditionally-skip-guest-pull-security-c.patch
     ];
   };
 

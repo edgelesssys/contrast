@@ -9,10 +9,10 @@ Subject: [PATCH] runtime: annotate the sandbox container with VFIO metadata
  2 files changed, 13 insertions(+), 8 deletions(-)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
-index bc5d39ebe6989f5d96a88c43ab9e047fbec0fcfb..869b6454ed4dbaf24c8745009afe9c5562c55b5c 100644
+index 60050cc9bb357501147256505df045334e0e1811..c495b2e60a4ca19421e2033c3b5130c2ae48e4a3 100644
 --- a/src/runtime/virtcontainers/container.go
 +++ b/src/runtime/virtcontainers/container.go
-@@ -1334,11 +1334,6 @@ type DeviceRelation struct {
+@@ -1351,11 +1351,6 @@ type DeviceRelation struct {
  // otherwise we do not know which GPU is which.
  func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error {
  
@@ -25,10 +25,10 @@ index bc5d39ebe6989f5d96a88c43ab9e047fbec0fcfb..869b6454ed4dbaf24c8745009afe9c55
  
  	if modeIsGK {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index ca62127d31c36a098c82e07128fb484f42ebd26b..d1bd2f9800226448da622042df6fb6e4bdb2d343 100644
+index bb306e2c6f778ae4b3dae5bcfaca398b1e5abfe4..f0296347708c790a87c87fc6d7c33c666716a3eb 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -772,9 +772,19 @@ impl AgentPolicy {
+@@ -771,9 +771,19 @@ impl AgentPolicy {
  
          // Generate expected device entries and annotation key-value pairs for VFIO devices
          let mut runtime_anno_patterns = BTreeMap::new();

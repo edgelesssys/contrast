@@ -9,7 +9,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  1 file changed, 22 insertions(+), 8 deletions(-)
 
 diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
-index 24879f81e9996d3646fc93d7f09d3ddfff42434b..943e24e2407c6db183944c98429f082a7999ce7a 100644
+index 6cf20244364926760c9bcaddcde517dd92e804ad..77f93f1686765e723f7357c9e392c6fcf513ca9e 100644
 --- a/src/agent/src/confidential_data_hub/mod.rs
 +++ b/src/agent/src/confidential_data_hub/mod.rs
 @@ -8,7 +8,7 @@
@@ -21,7 +21,7 @@ index 24879f81e9996d3646fc93d7f09d3ddfff42434b..943e24e2407c6db183944c98429f082a
  use anyhow::{bail, Context, Result};
  use derivative::Derivative;
  use protocols::{
-@@ -184,18 +184,32 @@ pub async fn pull_image(image: &str, bundle_path: PathBuf) -> Result<String> {
+@@ -186,18 +186,32 @@ pub async fn pull_image(image: &str, bundle_path: PathBuf) -> Result<String> {
      fs::create_dir_all(&bundle_path)?;
      info!(sl(), "pull image {image:?}, bundle path {bundle_path:?}");
  

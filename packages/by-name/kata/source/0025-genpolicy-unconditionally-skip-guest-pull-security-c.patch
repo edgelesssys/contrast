@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Wed, 22 Jul 2026 08:14:51 +0200
+Subject: [PATCH] genpolicy: unconditionally skip guest pull security context
+ check
+
+---
+ src/tools/genpolicy/src/policy.rs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index f0296347708c790a87c87fc6d7c33c666716a3eb..082ff434299447518642eb95c1f61b2f8e859099 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -884,7 +884,7 @@ impl AgentPolicy {
+         is_pause_container: bool,
+         process: &KataProcess,
+     ) {
+-        if is_pause_container || !self.config.settings.cluster_config.guest_pull {
++        if true {
+             return;
+         }
+ 

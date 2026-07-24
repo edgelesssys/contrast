@@ -11,10 +11,10 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 41 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
-index 0513293cb61c0ca4dad6e33b2d98ba5eda4084e5..bc5d39ebe6989f5d96a88c43ab9e047fbec0fcfb 100644
+index 9551620aac9407c653652c93c9ad6816c051c44e..60050cc9bb357501147256505df045334e0e1811 100644
 --- a/src/runtime/virtcontainers/container.go
 +++ b/src/runtime/virtcontainers/container.go
-@@ -1380,6 +1380,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+@@ -1397,6 +1397,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
  			for _, dev := range devs {
  				containerPaths = append(containerPaths, dev.ContainerPath)
  			}
@@ -29,7 +29,7 @@ index 0513293cb61c0ca4dad6e33b2d98ba5eda4084e5..bc5d39ebe6989f5d96a88c43ab9e047f
  		}
  
  		// Now that we have the index lets connect the /dev/vfio/<num>
-@@ -1400,6 +1408,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+@@ -1417,6 +1425,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
  				}
  				return err
  			}
@@ -45,10 +45,10 @@ index 0513293cb61c0ca4dad6e33b2d98ba5eda4084e5..bc5d39ebe6989f5d96a88c43ab9e047f
  
  	}
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index c1f2b6b3a85e30d8e7153829911adc6684eead9e..c6b8d4afe124d462748e78190cfd9a7f44ea59b3 100644
+index 041598f966a22225926d1a1e29153702348cd58a..303ce5066c4ebc0a48a12d86e2e9176681f69f95 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -1221,6 +1221,17 @@ impl Container {
+@@ -1231,6 +1231,17 @@ impl Container {
          let limits = self.resources.as_ref()?.limits.as_ref()?;
          sum_limits_by_keys(limits, pgpu_resource_keys)
      }
@@ -67,10 +67,10 @@ index c1f2b6b3a85e30d8e7153829911adc6684eead9e..c6b8d4afe124d462748e78190cfd9a7f
  
  fn compress_default_capabilities(
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index ffb4921af60ff66f9ce360c8a704cec81b54f73b..ca62127d31c36a098c82e07128fb484f42ebd26b 100644
+index 2247a87462252bcbfd6a9232ede5a034cb6fa3be..bb306e2c6f778ae4b3dae5bcfaca398b1e5abfe4 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -825,6 +825,20 @@ impl AgentPolicy {
+@@ -824,6 +824,20 @@ impl AgentPolicy {
                  "^io\\.kubernetes\\.container\\.terminationMessagePolicy$".to_string(),
                  "^(File|FallbackToLogsOnError)$".to_string(),
              );

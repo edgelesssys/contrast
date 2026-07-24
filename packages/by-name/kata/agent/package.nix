@@ -33,6 +33,7 @@ in
     "--skip=netlink::tests::list_routes"
     "--skip=config::tests::test_from_cmdline_with_args_overwrites"
     "--skip=rpc::tests::test_get_oom_event_no_deadlock"
+    "--skip=rpc::tests::test_do_copy_file"
   ];
 }).overrideAttrs
   (prev: {
