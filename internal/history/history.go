@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"hash"
 	"log/slog"
+	"sync"
 )
 
 const (
@@ -24,9 +25,16 @@ const (
 var hashFun func() hash.Hash = sha256.New
 
 // History is the history of the Coordinator.
+//
+// It uses a backing KV store to persist policies, manifests and transitions. All but the latest
+// transition are stored in a content-addressed scheme, and the History keeps a local cache to
+// speed up content retrieval.
 type History struct {
 	store Store
 	log   *slog.Logger
+
+	cache   map[[HashSize]byte][]byte
+	cacheMu sync.RWMutex
 }
 
 // NewWithStore creates a new History with the given storage backend.
@@ -34,6 +42,7 @@ func NewWithStore(log *slog.Logger, store Store) *History {
 	h := &History{
 		store: store,
 		log:   log,
+		cache: make(map[[HashSize]byte][]byte),
 	}
 	return h
 }
@@ -176,6 +185,10 @@ func (h *History) WalkTransitions(transitionHash [HashSize]byte, consume func([H
 }
 
 func (h *History) getContentaddressed(pathFmt string, hash [HashSize]byte) ([]byte, error) {
+	if data, ok := h.getFromCache(hash); ok {
+		return data, nil
+	}
+
 	hashStr := hex.EncodeToString(hash[:])
 	data, err := h.store.Get(fmt.Sprintf(pathFmt, hashStr))
 	if err != nil {
@@ -185,6 +198,8 @@ func (h *History) getContentaddressed(pathFmt string, hash [HashSize]byte) ([]by
 	if !bytes.Equal(hash[:], dataHash[:]) {
 		return nil, HashMismatchError{Expected: hash[:], Actual: dataHash[:]}
 	}
+
+	h.addToCache(hash, data)
 	return data, nil
 }
 
@@ -194,7 +209,28 @@ func (h *History) setContentaddressed(pathFmt string, data []byte) ([HashSize]by
 	if err := h.store.Set(fmt.Sprintf(pathFmt, hashStr), data); err != nil {
 		return [HashSize]byte{}, err
 	}
+	h.addToCache(hash, data)
 	return hash, nil
+}
+
+func (h *History) getFromCache(hash [HashSize]byte) ([]byte, bool) {
+	h.cacheMu.RLock()
+	defer h.cacheMu.RUnlock()
+	data, ok := h.cache[hash]
+	if !ok {
+		return nil, false
+	}
+	cloned := make([]byte, len(data))
+	copy(cloned, data)
+	return cloned, true
+}
+
+func (h *History) addToCache(hash [HashSize]byte, data []byte) {
+	h.cacheMu.Lock()
+	defer h.cacheMu.Unlock()
+	cloned := make([]byte, len(data))
+	copy(cloned, data)
+	h.cache[hash] = cloned
 }
 
 // Digest calculates the Digest of a given slice in the same way as used for (Latest)Transitions..
