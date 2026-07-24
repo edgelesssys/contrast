@@ -1,0 +1,26 @@
+From b299a70f152f35501a7b5e9ab831907cdb808351 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <charlotte.hartmann@edgeless.systems>
+Date: Fri, 24 Jul 2026 10:00:00 +0100
+Subject: [PATCH] QemuFwCfgCacheInit: Skip measuring extra PCI roots
+
+Kata adds one pxb-pcie root bus per guest NUMA node that holds a passed-through GPU.
+Measuring this into RTMR[0] makes the measurement depend on per-boot GPU/NUMA placement.
+
+Signed-off-by: Charlotte Hartmann Paludo <charlotte.hartmann@edgeless.systems>
+---
+ OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c b/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c
+index 5985961..7bd5e60 100644
+--- a/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c
++++ b/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c
+@@ -85,7 +85,7 @@ STATIC CONST CACHE_FW_CFG_STRCUT  mCacheFwCfgList[] = {
+   { QEMU_FW_CFG_FILE_DIR,           FALSE, QemuFwCfgItemFileDir,          0                                  },
+   { E820_FWCFG_FILE,                FALSE, INVALID_FW_CFG_ITEM,           0                                  },
+   { SYSTEM_STATES_FWCFG_FILE,       FALSE, INVALID_FW_CFG_ITEM,           0                                  },
+-  { EXTRA_PCI_ROOTS_FWCFG_FILE,     TRUE,  INVALID_FW_CFG_ITEM,           EXTRA_PCI_ROOTS_FWCFG_SIZE         },
++  { EXTRA_PCI_ROOTS_FWCFG_FILE,     FALSE, INVALID_FW_CFG_ITEM,           EXTRA_PCI_ROOTS_FWCFG_SIZE         },
+   { BOOT_MENU_FWCFG_NAME,           TRUE,  QemuFwCfgItemBootMenu,         BOOT_MENU_FWCFG_SIZE               },
+   { BOOT_MENU_WAIT_TIME_FWCFG_FILE, TRUE,  INVALID_FW_CFG_ITEM,           BOOT_MENU_WAIT_TIME_FWCFG_SIZE     },
+   { RESERVED_MEMORY_END_FWCFG_FILE, TRUE,  INVALID_FW_CFG_ITEM,           RESERVED_MEMORY_END_FWCFG_SIZE     },

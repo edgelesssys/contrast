@@ -52,6 +52,12 @@ edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
     # this branch, as it's only relevant for the TDX-GPU runtime as of now, which
     # uses `withACPIVerificationInsecure`.
     ./0005-QemuFwCfgCacheInit-Skip-measuring-PCI-root-port-size.patch
+
+    # Skip the measurement of the non-critical `etc/extra-pci-roots` fw_cfg value, which
+    # holds the number of extra PCI root buses. Guest NUMA adds one pxb-pcie root bus per
+    # guest NUMA node holding a GPU, so this count varies with GPU/NUMA placement,
+    # making RTMR[0] GPU placement-dependent.
+    ./0006-QemuFwCfgCacheInit-Skip-measuring-extra-PCI-roots.patch
   ];
 
   hardeningDisable = [
