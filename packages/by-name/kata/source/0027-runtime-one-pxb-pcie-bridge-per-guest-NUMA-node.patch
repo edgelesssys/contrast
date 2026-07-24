@@ -1,12 +1,38 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
-Date: Thu, 23 Jul 2026 17:11:39 +0200
+Date: Wed, 29 Jul 2026 10:30:59 +0200
 Subject: [PATCH] runtime: one pxb-pcie bridge per guest NUMA node
 
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 ---
+ src/runtime/pkg/govmm/qemu/qemu.go | 11 +++++--
  src/runtime/virtcontainers/qemu.go | 53 +++++++++++++++++++-----------
- 1 file changed, 34 insertions(+), 19 deletions(-)
+ 2 files changed, 43 insertions(+), 21 deletions(-)
 
+diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
+index c0b7d1022eb708170a8a3a219842681f16fc01e5..2cbf95e68268c7c5ce8f5bf7dd3e39eda5138494 100644
+--- a/src/runtime/pkg/govmm/qemu/qemu.go
++++ b/src/runtime/pkg/govmm/qemu/qemu.go
+@@ -1809,10 +1809,17 @@ type PXBPCIeDevice struct {
+ }
+ 
+ // QemuParams returns the QEMU parameters for a pxb-pcie device.
+-func (dev PXBPCIeDevice) QemuParams(_ *Config) []string {
++func (dev PXBPCIeDevice) QemuParams(config *Config) []string {
++	params := fmt.Sprintf("pxb-pcie,id=%s", dev.ID)
++	// A pxb-pcie must plug directly into the machine root complex, not into another pxb-pcie's bus.
++	// Otherwise, QEMU places the second pxb-pcie onto the first's expander bus and fails to realize it.
++	if hasPCIeRoot(config) {
++		params += ",bus=pcie.0"
++	}
++	params += fmt.Sprintf(",bus_nr=%d,numa_node=%d", dev.BusNr, dev.NUMANode)
+ 	return []string{
+ 		"-device",
+-		fmt.Sprintf("pxb-pcie,id=%s,bus_nr=%d,numa_node=%d", dev.ID, dev.BusNr, dev.NUMANode),
++		params,
+ 	}
+ }
+ 
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
 index 075847e3d409e8cc5533fbe94879ab0a58a55f38..c1954893dbbe2de554b8465e511fdbd7bfe50f1c 100644
 --- a/src/runtime/virtcontainers/qemu.go
