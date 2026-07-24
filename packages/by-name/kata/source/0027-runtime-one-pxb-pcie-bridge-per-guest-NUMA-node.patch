@@ -1,0 +1,100 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Thu, 23 Jul 2026 17:11:39 +0200
+Subject: [PATCH] runtime: one pxb-pcie bridge per guest NUMA node
+
+---
+ src/runtime/virtcontainers/qemu.go | 53 +++++++++++++++++++-----------
+ 1 file changed, 34 insertions(+), 19 deletions(-)
+
+diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
+index 075847e3d409e8cc5533fbe94879ab0a58a55f38..c1954893dbbe2de554b8465e511fdbd7bfe50f1c 100644
+--- a/src/runtime/virtcontainers/qemu.go
++++ b/src/runtime/virtcontainers/qemu.go
+@@ -22,6 +22,7 @@ import (
+ 	"path/filepath"
+ 	"regexp"
+ 	goruntime "runtime"
++	"sort"
+ 	"strconv"
+ 	"strings"
+ 	"sync"
+@@ -3179,16 +3180,30 @@ func (q *qemu) createNUMAPCIeTopology(devices []govmmQemu.Device, hypervisorConf
+ 		return q.arch.appendPCIeRootPortDevice(devices, totalPorts)
+ 	}
+ 
+-	// Create a pxb-pcie + root ports per NUMA node that has devices.
+-	var rpIndex uint32
++	// Create one pxb-pcie bridge per GUEST NUMA node. Several host nodes may collapse onto a single guest node,
++	// and each guest node must get exactly one bridge with a unique ID and bus number.
+ 	const busNrSpacing uint8 = 0x20
+ 
+-	for hostNode, devCount := range numaDevCount {
++	guestToHostNodes := make(map[uint32][]int)
++	for hostNode := range numaDevCount {
+ 		guestNode, ok := coveredHostNodes[hostNode]
+ 		if !ok {
+ 			q.Logger().WithField("host-numa", hostNode).Warn("VFIO device on uncovered NUMA node; skipping pxb-pcie")
+ 			continue
+ 		}
++		guestToHostNodes[guestNode] = append(guestToHostNodes[guestNode], hostNode)
++	}
++
++	guestNodes := make([]int, 0, len(guestToHostNodes))
++	for guestNode := range guestToHostNodes {
++		guestNodes = append(guestNodes, int(guestNode))
++	}
++	sort.Ints(guestNodes)
++
++	for _, gn := range guestNodes {
++		guestNode := uint32(gn)
++		hostNodes := guestToHostNodes[guestNode]
++		sort.Ints(hostNodes)
+ 
+ 		pxbID := fmt.Sprintf("pxb-numa%d", guestNode)
+ 		busNr := busNrSpacing * uint8(guestNode+1)
+@@ -3199,28 +3214,28 @@ func (q *qemu) createNUMAPCIeTopology(devices []govmmQemu.Device, hypervisorConf
+ 			NUMANode: int(guestNode),
+ 		})
+ 
+-		// Create root ports on this pxb bus for the VFIO devices.
+-		var rpIDs []string
+-		for i := 0; i < devCount; i++ {
+-			rpID := fmt.Sprintf("rp-numa%d-%d", guestNode, i)
+-			rpIDs = append(rpIDs, rpID)
+-			devices = append(devices, govmmQemu.PCIeRootPortDevice{
+-				ID:      rpID,
+-				Bus:     pxbID,
+-				Chassis: fmt.Sprintf("%d", 10+guestNode),
+-				Slot:    fmt.Sprintf("%d", i),
+-			})
+-			rpIndex++
++		slot := 0
++		for _, hostNode := range hostNodes {
++			var rpIDs []string
++			for i := 0; i < numaDevCount[hostNode]; i++ {
++				rpID := fmt.Sprintf("rp-numa%d-%d", guestNode, slot)
++				rpIDs = append(rpIDs, rpID)
++				devices = append(devices, govmmQemu.PCIeRootPortDevice{
++					ID:      rpID,
++					Bus:     pxbID,
++					Chassis: fmt.Sprintf("%d", 10+guestNode),
++					Slot:    fmt.Sprintf("%d", slot),
++				})
++				slot++
++			}
++			config.NUMARootPorts[hostNode] = rpIDs
+ 		}
+ 
+-		config.NUMARootPorts[hostNode] = rpIDs
+-
+ 		q.Logger().WithFields(logrus.Fields{
+ 			"pxb-id":     pxbID,
+ 			"bus-nr":     busNr,
+ 			"guest-numa": guestNode,
+-			"host-numa":  hostNode,
+-			"root-ports": rpIDs,
++			"host-nodes": hostNodes,
+ 		}).Info("Created pxb-pcie with root ports for NUMA VFIO placement")
+ 	}
+ 

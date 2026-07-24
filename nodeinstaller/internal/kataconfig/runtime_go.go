@@ -41,6 +41,8 @@ func extraRuntimeConfig(config Config, platform platforms.Platform) Config {
 		config.Runtime["create_container_timeout"] = 600
 		config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
 		config.Runtime["pod_resource_api_sock"] = "/var/lib/kubelet/pod-resources/kubelet.sock"
+
+		config.Hypervisor["qemu"]["enable_numa"] = true
 	}
 
 	return config
