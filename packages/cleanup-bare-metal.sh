@@ -18,7 +18,7 @@ fi
 echo "Using containerd config file: ${configFile}"
 
 configVersion=$(yq -p toml -o yaml '.version' "${configFile}")
-if [[ ${configVersion} != "2" && ${configVersion} != "3" ]]; then
+if [[ ${configVersion} != "2" && ${configVersion} != "3" && ${configVersion} != "4" ]]; then
   echo "Unsupported containerd config version: ${configVersion}. Exiting."
   exit 1
 fi
@@ -90,7 +90,7 @@ for runtimeClass in "${unusedRuntimeClasses[@]}"; do
   "2")
     yq -i -p toml -o toml "del(.plugins[\"io.containerd.grpc.v1.cri\"].containerd.runtimes[\"${runtimeClass}\"])" "${configFile}" || true
     ;;
-  "3")
+  "3" | "4")
     yq -i -p toml -o toml "del(.plugins[\"io.containerd.cri.v1.runtime\"].containerd.runtimes[\"${runtimeClass}\"])" "${configFile}" || true
     ;;
   esac
