@@ -53,12 +53,22 @@
       #   # Now, edit /tmp/b/genpolicy-settings.json according to your needs.
       #   cd ..
       #   git diff --no-ext-diff --full-index --no-prefix a/genpolicy-settings.json b/genpolicy-settings.json >$CONTRAST/packages/by-name/kata/genpolicy/genpolicy_settings_dev.patch
+      #
+      # genpolicy_settings_prod.patch changes explanations:
+      #   - pgpu_resource_keys: allow the GB100/B200 and GH100/H100 PCIe GPU resource names.
+      #   - pause_container_image: use our mirrored pause image instead of the MCR one.
+      #   - ReadStreamRequest = true: allow reading container stdout/stderr (e.g. for `kubectl logs`).
       settings = applyPatches {
         src = settings-base;
         patches = [ ./genpolicy_settings_prod.patch ];
       };
 
       # Settings that allow exec into CVM pods - not safe for production use!
+      #
+      # genpolicy_settings_dev.patch additional changes explanations:
+      #   - ExecProcessRequest.regex = [".*"]: allow exec of any command (e.g. `kubectl exec`).
+      #   - WriteStreamRequest = true: allow writing to container stdin for interactive exec.
+      #   - env regex "^CONTRAST_...": allow our debug environment variables.
       settings-dev = applyPatches {
         src = settings-base;
         patches = [ ./genpolicy_settings_dev.patch ];
