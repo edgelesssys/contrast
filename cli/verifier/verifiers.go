@@ -19,6 +19,7 @@ func AllVerifiersBeforeGenerate(cmd *cobra.Command) []Verifier {
 		&ServiceMeshEgressNotEmpty{},
 		&RuntimeClassesExist{Command: cmd},
 		&CPUCountValid{},
+		&GPUCountValid{},
 	}
 }
 

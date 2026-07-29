@@ -612,6 +612,43 @@ func GetCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) 
 	return 0
 }
 
+// GetGPUCount returns the number of GPUs requested in resources (the sum of all nvidia.com/* limits).
+func GetGPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) int64 {
+	var count int64
+	if resources != nil && resources.Limits != nil {
+		for name, quantity := range *resources.Limits {
+			if strings.HasPrefix(string(name), "nvidia.com/") {
+				count += quantity.Value()
+			}
+		}
+	}
+	return count
+}
+
+// GetPodGPUCount computes the total number of GPUs required by a pod.
+func GetPodGPUCount(spec *applycorev1.PodSpecApplyConfiguration) uint64 {
+	var regularContainersGPU int64
+	for _, container := range spec.Containers {
+		regularContainersGPU += GetGPUCount(container.Resources)
+	}
+	var maxInitContainerGPU int64
+	for _, container := range spec.InitContainers {
+		gpuCount := GetGPUCount(container.Resources)
+		// Sidecar containers remain running alongside the actual application, keeping their GPUs attached.
+		if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+			regularContainersGPU += gpuCount
+		} else {
+			if gpuCount > maxInitContainerGPU {
+				maxInitContainerGPU = gpuCount
+			}
+		}
+	}
+	podLevelGPU := GetGPUCount(spec.Resources)
+
+	// Pod resources are added to the maximum of regular containers and init containers.
+	return uint64(max(regularContainersGPU, maxInitContainerGPU) + podLevelGPU)
+}
+
 // GetPodCPUCount computes the total CPU count (in whole CPUs) required by a pod, adding hypervisor overhead.
 func GetPodCPUCount(spec *applycorev1.PodSpecApplyConfiguration) uint64 {
 	var regularContainersCPU int64
