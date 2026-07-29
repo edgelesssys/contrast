@@ -30,8 +30,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/distribution/reference v0.6.0 h1:0IXCQ5g4/QMHHkarYzh5l+u8T3t73zM5QvfrDyIgxBk=
 github.com/distribution/reference v0.6.0/go.mod h1:BbU0aIcezP1/5jX/8MP0YiH4SdvB5Y4f/wlDRiLyi3E=
-github.com/edgelesssys/go-sev-guest v0.0.0-20260625102846-50db367a5686 h1:otyw8ZDXu+rjayooly5LrgDru6PXjJQ8xzXe3x8reWA=
-github.com/edgelesssys/go-sev-guest v0.0.0-20260625102846-50db367a5686/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
+github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5 h1:X8Zl2fYL+GEFYwOVSqS//yeiGsApDDHsAkxcIAdy1hc=
+github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
 github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249 h1:Tx0olMH9+rqQgXfX8dIzIDN8UadjSJeTev6t4Qcx+J8=
 github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249/go.mod h1:uHy3VaNXNXhl0fiPxKqTxieeouqQmW6A0EfLcaeCYBk=
 github.com/elazarl/goproxy v1.8.2 h1:keGt9KHFAnrXFEctQuOF9NRxKFCXtd5cQg5PrBdeVW4=

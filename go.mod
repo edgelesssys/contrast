@@ -5,7 +5,7 @@ go 1.25.6
 // Upstream is poorly maintained, use edgelesssys fork instead.
 replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249
 
-replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20260625102846-50db367a5686
+replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5
 
 require (
 	filippo.io/keygen v1.0.0
