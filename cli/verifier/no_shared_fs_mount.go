@@ -70,7 +70,7 @@ func isSupportedVolume(volume applycorev1.VolumeApplyConfiguration) bool {
 		return true
 	}
 	if volume.EmptyDir != nil {
-		return true
+		return volume.EmptyDir.Medium != nil && *volume.EmptyDir.Medium == v1.StorageMediumMemory
 	}
 	if volume.Ephemeral != nil {
 		e := volume.Ephemeral
