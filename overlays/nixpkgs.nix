@@ -92,4 +92,16 @@ final: prev:
       vendorHash = "sha256-t+u3rJNbe8JcfWBb+jMaZuTcSWYmhMiCeKbI2noVaCo=";
     }
   );
+
+  unbound = prev.unbound.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "1.25.2";
+      src = final.fetchFromGitHub {
+        owner = "NLnetLabs";
+        repo = "unbound";
+        tag = "release-${finalAttrs.version}";
+        hash = "sha256-zt0JpVmct7w6ay+p8CdH6SGt/rL/v//e7K3MT8KZfOY=";
+      };
+    }
+  );
 }
