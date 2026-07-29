@@ -139,6 +139,30 @@ spec:
           mountPath: /tmp
 `
 
+const ephemeralVolumeWrongMode = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  volumes:
+    - name: vol
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
+  containers:
+    - name: test
+      image: bash
+      volumeMounts:
+        - name: asdf
+          mountPath: /tmp
+`
+
 func TestVerifyNoSharedFSMount(t *testing.T) {
 	testCases := map[string]struct {
 		k8sObjectYAML string
@@ -167,6 +191,9 @@ func TestVerifyNoSharedFSMount(t *testing.T) {
 		},
 		"non cc pod with bad volume": {
 			k8sObjectYAML: nonCCPodWithHostPath,
+		},
+		"ephemeral volume wrong mode": {
+			k8sObjectYAML: ephemeralVolumeWrongMode,
 		},
 	}
 
