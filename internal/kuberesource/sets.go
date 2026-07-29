@@ -994,7 +994,7 @@ seal "transit" {
 									),
 								).WithVolumes(
 								Volume().WithName("logs").WithEmptyDir(
-									applycorev1.EmptyDirVolumeSource(),
+									applycorev1.EmptyDirVolumeSource().WithMedium(corev1.StorageMediumMemory),
 								),
 							),
 						),
