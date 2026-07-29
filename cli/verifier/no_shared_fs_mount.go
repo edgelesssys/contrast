@@ -9,6 +9,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 
+	v1 "k8s.io/api/core/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
@@ -72,6 +73,13 @@ func isSupportedVolume(volume applycorev1.VolumeApplyConfiguration) bool {
 		return true
 	}
 	if volume.Ephemeral != nil {
+		e := volume.Ephemeral
+		if e.VolumeClaimTemplate == nil ||
+			e.VolumeClaimTemplate.Spec == nil ||
+			e.VolumeClaimTemplate.Spec.VolumeMode == nil ||
+			*e.VolumeClaimTemplate.Spec.VolumeMode != v1.PersistentVolumeBlock {
+			return false
+		}
 		return true
 	}
 	if volume.Projected != nil {
