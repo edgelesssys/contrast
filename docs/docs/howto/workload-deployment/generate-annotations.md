@@ -178,7 +178,8 @@ spec:
         - mountPath: /contrast
           name: contrast-secrets
   volumes:
-    - emptyDir: {}
+    - emptyDir:
+        medium: Memory
       name: contrast-secrets
 ```
 
