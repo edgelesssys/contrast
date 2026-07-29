@@ -27,5 +27,6 @@ spec:
               memory: 200Mi
       volumes:
         - name: data
-          emptyDir: {}
+          emptyDir:
+            medium: Memory
       runtimeClassName: contrast-cc
