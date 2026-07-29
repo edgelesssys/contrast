@@ -29,7 +29,8 @@ spec:
               memory: 800Mi
       volumes:
         - name: prometheus
-          emptyDir: {}
+          emptyDir:
+            medium: Memory
       runtimeClassName: contrast-cc
 ---
 apiVersion: v1
