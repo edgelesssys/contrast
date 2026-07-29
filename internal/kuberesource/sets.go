@@ -994,7 +994,7 @@ seal "transit" {
 									),
 								).WithVolumes(
 								Volume().WithName("logs").WithEmptyDir(
-									applycorev1.EmptyDirVolumeSource(),
+									applycorev1.EmptyDirVolumeSource().WithMedium(corev1.StorageMediumMemory),
 								),
 							),
 						),
@@ -1033,8 +1033,8 @@ seal "transit" {
 						WithSpec(
 							PodSpec().
 								WithVolumes(
-									Volume().WithName("logs").WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
-									Volume().WithName("file").WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+									Volume().WithName("logs").WithEmptyDir(applycorev1.EmptyDirVolumeSource().WithMedium(corev1.StorageMediumMemory)),
+									Volume().WithName("file").WithEmptyDir(applycorev1.EmptyDirVolumeSource().WithMedium(corev1.StorageMediumMemory)),
 								).
 								WithContainers(
 									Container().
