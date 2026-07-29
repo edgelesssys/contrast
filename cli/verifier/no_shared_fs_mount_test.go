@@ -29,6 +29,25 @@ spec:
           mountPath: /tmp
 `
 
+const podWithEmptyDirMemory = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  runtimeClassName: contrast-cc
+  volumes:
+    - name: asdf
+      emptyDir:
+        medium: Memory
+  containers:
+    - name: test
+      image: bash
+      volumeMounts:
+        - name: asdf
+          mountPath: /tmp
+`
+
 const podWithUnreferencedHostPath = `
 apiVersion: v1
 kind: Pod
@@ -169,7 +188,11 @@ func TestVerifyNoSharedFSMount(t *testing.T) {
 		wantErr       bool
 	}{
 		"unproblematic yaml": {
+			k8sObjectYAML: podWithEmptyDirMemory,
+		},
+		"wrong emptyDir mode": {
 			k8sObjectYAML: podWithEmptyVolume,
+			wantErr:       true,
 		},
 		"yaml with unreferenced problematic volume": {
 			k8sObjectYAML: podWithUnreferencedHostPath,
