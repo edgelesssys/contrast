@@ -9,12 +9,19 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
+	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
 	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
 	"github.com/edgelesssys/contrast/imagepuller/internal/test/registry"
+	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
+	gcrremote "github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
@@ -310,4 +317,92 @@ func (s *fakeStore) DeleteLayer(id string) error {
 	}
 	delete(s.layers, id)
 	return nil
+}
+
+// TestRetry ensures that dial timeouts are retried.
+func TestRetry(t *testing.T) {
+	require := require.New(t)
+	ctx := t.Context()
+	log := slog.New(slog.DiscardHandler)
+
+	// 192.0.2.1 is not routable, packets should be dropped.
+	// https://datatracker.ietf.org/doc/html/rfc5737
+	img := "192.0.2.1/foo:latest"
+	ref, err := name.NewTag(img)
+	require.NoError(err)
+
+	// Now configure the gcr method as close to the ImagePullerService as possible.
+	// First, the HTTP transport, but with a dialer that returns a timeout on first try.
+	authConfig := &auth.Config{
+		Registries: map[string]auth.Registry{
+			".": {InsecureSkipVerify: true},
+		},
+	}
+	_, rt, err := authConfig.AuthTransportFor(img, log)
+	require.NoError(err)
+
+	tr, ok := rt.(*http.Transport)
+	require.True(ok)
+	originalDialer := tr.DialContext
+	var failed bool
+	tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if failed {
+			// Marker error to check whether dialing was retried.
+			return nil, assert.AnError
+		}
+		failed = true
+		// Simulate dial timeout by setting a deadline in the past.
+		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(-time.Hour))
+		defer cancel()
+		return originalDialer(ctx, network, addr)
+	}
+
+	// Second, the backoff strategy. We don't want to wait forever in the unit test, so just use a
+	// short non-exponential backoff with two attempts.
+	backOff := transport.Backoff{
+		Duration: time.Microsecond,
+		Steps:    2,
+	}
+
+	// Third, the retry predicate without any modifications.
+	s := &ImagePullerService{
+		Logger: log,
+	}
+	retryTransport := transport.NewRetry(tr, transport.WithRetryBackoff(backOff), transport.WithRetryPredicate(s.retryPredicate))
+
+	_, err = gcrremote.Head(ref, gcrremote.WithContext(ctx), gcrremote.WithTransport(retryTransport))
+	require.ErrorIs(err, assert.AnError)
+}
+
+func TestPredicate(t *testing.T) {
+	for name, tc := range map[string]struct {
+		err       error
+		wantRetry bool
+	}{
+		"no error":          {},
+		"deadline exceeded": {err: context.DeadlineExceeded},
+		"i/o timeout":       {err: &timeoutError{}, wantRetry: true},
+		"unrelated":         {err: assert.AnError},
+		"temporary":         {err: &net.DNSError{IsTemporary: true}, wantRetry: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			s := &ImagePullerService{
+				Logger: slog.New(slog.DiscardHandler),
+			}
+
+			got := s.retryPredicate(tc.err)
+			require.Equal(t, tc.wantRetry, got)
+		})
+	}
+}
+
+// From Go src/net/net.go, since not exported.
+type timeoutError struct{}
+
+func (e *timeoutError) Error() string   { return "i/o timeout" }
+func (e *timeoutError) Timeout() bool   { return true }
+func (e *timeoutError) Temporary() bool { return true }
+
+func (e *timeoutError) Is(err error) bool {
+	return err == context.DeadlineExceeded
 }

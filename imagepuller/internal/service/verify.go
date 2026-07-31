@@ -10,6 +10,8 @@ import (
 	"io"
 	"log/slog"
 	"slices"
+	"strings"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
@@ -24,6 +26,43 @@ var (
 	errMissingPlatform     = errors.New("obtaining image digest for linux/amd64: platform missing from image index")
 )
 
+// retryBackoff is chosen such that the pull can succeed even if dialing times out for up to a minute.
+// TODO(burgerdev): figure out why the network is slow to begin with.
+var retryBackoff = transport.Backoff{
+	Duration: 5 * time.Second,
+	Jitter:   0.1,
+	Steps:    12,
+}
+
+// retryPredicate fixes the default retry predicate of the transport package for dial timeouts.
+//
+// It returns true if an error looks transient and could be retried, such as dial timeouts. It
+// never returns true for the proper context.DeadlineExceeded error, since it comes from the
+// caller and should be respected.
+func (s *ImagePullerService) retryPredicate(err error) (ret bool) {
+	if err == nil {
+		return false
+	}
+	defer func() {
+		s.Logger.Warn("Failed remote call", "error", err, "retriable", ret)
+	}()
+
+	if errors.Is(err, context.DeadlineExceeded) {
+		// There are at least two errors that enter this block, context.DeadlineExceeded and
+		// net.errTimeout. The latter is returned when net.Dial-like functions time out, for
+		// historical reasons. To make it compatible with the context package, errTimeout
+		// implements Is(DeadlineExceeded), which forces us to look closer into this error and
+		// decide whether it's an external deadline, or the internal dial deadline.
+		return strings.Contains(err.Error(), "i/o timeout")
+	}
+
+	if te, ok := err.(interface{ Temporary() bool }); ok && te.Temporary() {
+		return true
+	}
+
+	return false
+}
+
 func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Logger, imageURL string) (gcr.Image, error) {
 	ref, err := name.NewDigest(imageURL)
 	if err != nil {
@@ -35,7 +74,7 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 		return nil, fmt.Errorf("obtaining authenticator and transport for %s: %w", imageURL, err)
 	}
 
-	tr := transport.NewRetry(transportConfig)
+	tr := transport.NewRetry(transportConfig, transport.WithRetryBackoff(retryBackoff), transport.WithRetryPredicate(s.retryPredicate))
 
 	desc, err := s.Remote.Head(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(*authenticator))
 	if err != nil {
