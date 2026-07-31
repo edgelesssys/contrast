@@ -121,7 +121,7 @@ jobs:
       url: ${{ needs.release-x86_64-linux.outputs.ARTIFACTS_URL }}
 
   vuln-scan:
-    name: "release-requirement: dependency vulnerability scan"
+    name: "dependency vulnerability scan"
     uses: ./.github/workflows/vuln_scan.yml
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
