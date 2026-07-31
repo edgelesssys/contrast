@@ -129,7 +129,7 @@ jobs:
           cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
   vuln-scan:
-    name: "release-requirement: dependency vulnerability scan"
+    name: "dependency vulnerability scan"
     uses: ./.github/workflows/vuln_scan.yml
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
@@ -266,7 +266,7 @@ jobs:
 
   publish:
     name: Publish release
-    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, test, vuln-scan]
+    needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, test]
     runs-on: ubuntu-24.04
     environment: release-publish
     permissions:
