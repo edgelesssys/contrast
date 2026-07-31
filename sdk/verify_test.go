@@ -14,10 +14,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
-	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -30,12 +30,12 @@ func attestationHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	var req httpapi.AttestationRequest
+	var req apitypes.AttestationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	resp := &httpapi.AttestationResponse{
+	resp := &apitypes.AttestationResponse{
 		Version: constants.Version,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
@@ -110,26 +110,26 @@ func TestValidateAttestation(t *testing.T) {
 	testOID := asn1.ObjectIdentifier{1, 2, 3}
 	for name, tc := range map[string]struct {
 		nonce       []byte
-		resp        *httpapi.AttestationResponse
+		resp        *apitypes.AttestationResponse
 		validateErr error
 		wantErr     string
 	}{
 		"success": {
 			nonce: testNonce,
-			resp: &httpapi.AttestationResponse{
+			resp: &apitypes.AttestationResponse{
 				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
-				CoordinatorState: httpapi.CoordinatorState{
+				CoordinatorState: apitypes.CoordinatorState{
 					Manifests: [][]byte{testManifest},
 				},
 			},
 		},
 		"no manifests": {
 			nonce: testNonce,
-			resp: &httpapi.AttestationResponse{
+			resp: &apitypes.AttestationResponse{
 				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
-				CoordinatorState:  httpapi.CoordinatorState{},
+				CoordinatorState:  apitypes.CoordinatorState{},
 			},
 			wantErr: "coordinator state does not include manifests",
 		},
@@ -138,10 +138,10 @@ func TestValidateAttestation(t *testing.T) {
 		},
 		"failed validation": {
 			nonce: testNonce,
-			resp: &httpapi.AttestationResponse{
+			resp: &apitypes.AttestationResponse{
 				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
-				CoordinatorState: httpapi.CoordinatorState{
+				CoordinatorState: apitypes.CoordinatorState{
 					Manifests: [][]byte{testManifest},
 				},
 			},

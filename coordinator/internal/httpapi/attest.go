@@ -13,11 +13,11 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/coordinator/internal/userapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/constants"
-	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
 )
 
@@ -41,7 +41,7 @@ type AttestationHandler struct {
 	StateGuard StateGuard
 }
 
-func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*httpapi.AttestationResponse, int, error) {
+func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*apitypes.AttestationResponse, int, error) {
 	// state knows the latest transition
 	state, err := h.StateGuard.GetState(ctx)
 	switch {
@@ -59,7 +59,7 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ht
 	}
 
 	ca := state.CA()
-	coordinatorState := &httpapi.CoordinatorState{
+	coordinatorState := &apitypes.CoordinatorState{
 		Manifests: manifests,
 		RootCA:    ca.GetRootCACert(),
 		MeshCA:    ca.GetMeshCACert(),
@@ -69,13 +69,13 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ht
 	}
 
 	transitionHash := state.LatestTransition().TransitionHash
-	reportData := httpapi.ConstructReportData(nonce, transitionHash[:], coordinatorState)
+	reportData := apitypes.ConstructReportData(nonce, transitionHash[:], coordinatorState)
 	attestation, err := h.Issuer.Issue(ctx, reportData)
 	if err != nil {
 		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingAttestation, err)
 	}
 
-	resp := &httpapi.AttestationResponse{
+	resp := &apitypes.AttestationResponse{
 		Version:           constants.Version,
 		AttestationType:   h.Issuer.OID(),
 		RawAttestationDoc: attestation,
@@ -116,7 +116,7 @@ func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req httpapi.AttestationRequest
+	var req apitypes.AttestationRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, err)
 		return
@@ -148,7 +148,7 @@ func writeJSONError(w http.ResponseWriter, status int, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	apiErr := &httpapi.AttestationError{
+	apiErr := &apitypes.AttestationError{
 		Version: constants.Version,
 		Err:     err.Error(),
 	}

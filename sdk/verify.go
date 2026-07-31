@@ -14,12 +14,12 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/history"
-	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/afero"
 )
@@ -100,7 +100,7 @@ func (c Client) GetAttestation(ctx context.Context, url string, nonce []byte) ([
 	if len(nonce) != cryptohelpers.RNGLengthDefault {
 		return nil, fmt.Errorf("bad nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
-	body, err := json.Marshal(&httpapi.AttestationRequest{Nonce: nonce})
+	body, err := json.Marshal(&apitypes.AttestationRequest{Nonce: nonce})
 	if err != nil {
 		return nil, fmt.Errorf("creating request body: %w", err)
 	}
@@ -122,7 +122,7 @@ func (c Client) GetAttestation(ctx context.Context, url string, nonce []byte) ([
 			return nil, fmt.Errorf("reading response (status code %d): %w", httpResp.StatusCode, err)
 		}
 		details := httpResp.Status
-		var resp httpapi.AttestationError
+		var resp apitypes.AttestationError
 		if err := json.Unmarshal(errBody, &resp); err == nil {
 			details = resp.Err
 		} else {
@@ -153,7 +153,7 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 		return nil, fmt.Errorf("wrong nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
 
-	resp, err := httpapi.UnmarshalAttestationResponse(attestation)
+	resp, err := apitypes.UnmarshalAttestationResponse(attestation)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling attestation document: %w", err)
 	}
@@ -183,7 +183,7 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 
 	transitions := history.BuildTransitionChain(resp.Manifests)
 	transitionDigest := transitions[len(transitions)-1].Digest()
-	reportData := httpapi.ConstructReportData(nonce, transitionDigest[:], &resp.CoordinatorState)
+	reportData := apitypes.ConstructReportData(nonce, transitionDigest[:], &resp.CoordinatorState)
 
 	if err := validator.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)

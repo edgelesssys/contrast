@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/coordinator/internal/httpapi"
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
 	"github.com/edgelesssys/contrast/coordinator/internal/peerdiscovery"
@@ -33,7 +34,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/history/configmapstore"
-	commonhttpapi "github.com/edgelesssys/contrast/internal/httpapi"
 	loggerpkg "github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -173,7 +173,7 @@ func run() (retErr error) {
 		mux := http.NewServeMux()
 		mux.Handle("/attest", &h)
 
-		httpAPIServer.Addr = ":" + commonhttpapi.Port
+		httpAPIServer.Addr = ":" + apitypes.Port
 		httpAPIServer.Handler = mux
 		if err := httpAPIServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Starting verify http server", "err", err)

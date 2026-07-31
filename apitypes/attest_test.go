@@ -1,7 +1,7 @@
 // Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-package httpapi
+package apitypes
 
 import (
 	"encoding/json"

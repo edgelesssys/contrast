@@ -25,11 +25,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
-	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -399,7 +399,7 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 		return fmt.Errorf("generating nonce: %w", err)
 	}
 	var serializedAttestation []byte
-	err = ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", httpapi.Port, func(addr string) error {
+	err = ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", apitypes.Port, func(addr string) error {
 		url := fmt.Sprintf("http://%s/attest", addr)
 		resp, err := client.GetAttestation(ctx, url, nonce)
 		if err != nil {
