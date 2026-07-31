@@ -14,12 +14,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/coordinator/internal/userapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/constants"
-	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +30,7 @@ var nonce = make([]byte, 32)
 
 func TestAttestationHandler(t *testing.T) {
 	testCases := map[string]struct {
-		request *httpapi.AttestationRequest
+		request *apitypes.AttestationRequest
 		method  string
 
 		malformedBody   bool
@@ -44,7 +44,7 @@ func TestAttestationHandler(t *testing.T) {
 		expErr    error
 	}{
 		"invalid nonce length": {
-			request:   &httpapi.AttestationRequest{Nonce: []byte{1, 2, 3}},
+			request:   &apitypes.AttestationRequest{Nonce: []byte{1, 2, 3}},
 			expStatus: http.StatusBadRequest,
 			expErr:    errNonceLength,
 		},
@@ -53,7 +53,7 @@ func TestAttestationHandler(t *testing.T) {
 			expStatus: http.StatusMethodNotAllowed,
 		},
 		"no body": {
-			request:   &httpapi.AttestationRequest{},
+			request:   &apitypes.AttestationRequest{},
 			expStatus: http.StatusBadRequest,
 			expErr:    errNonceLength,
 		},
@@ -67,48 +67,48 @@ func TestAttestationHandler(t *testing.T) {
 			expErr:        errNonceLength,
 		},
 		"no Content-Type": {
-			request:         &httpapi.AttestationRequest{Nonce: nonce},
+			request:         &apitypes.AttestationRequest{Nonce: nonce},
 			skipContentType: true,
 			expStatus:       http.StatusBadRequest,
 		},
 		"wrong Content-Type": {
-			request:     &httpapi.AttestationRequest{Nonce: nonce},
+			request:     &apitypes.AttestationRequest{Nonce: nonce},
 			contentType: "text/html",
 			expStatus:   http.StatusUnsupportedMediaType,
 			expErr:      errContentType,
 		},
 		"no state": {
-			request:   &httpapi.AttestationRequest{Nonce: nonce},
+			request:   &apitypes.AttestationRequest{Nonce: nonce},
 			guard:     &stubGuard{getStateErr: stateguard.ErrNoState},
 			expStatus: http.StatusPreconditionFailed,
 			expErr:    userapi.ErrNoManifest,
 		},
 		"stale state": {
-			request:   &httpapi.AttestationRequest{Nonce: nonce},
+			request:   &apitypes.AttestationRequest{Nonce: nonce},
 			guard:     &stubGuard{getStateErr: stateguard.ErrStaleState},
 			expStatus: http.StatusPreconditionFailed,
 			expErr:    userapi.ErrNeedsRecovery,
 		},
 		"unknown error during GetState": {
-			request:   &httpapi.AttestationRequest{Nonce: nonce},
+			request:   &apitypes.AttestationRequest{Nonce: nonce},
 			guard:     &stubGuard{getStateErr: assert.AnError},
 			expStatus: http.StatusInternalServerError,
 			expErr:    errGettingState,
 		},
 		"unknown error during GetHistory": {
-			request:   &httpapi.AttestationRequest{Nonce: nonce},
+			request:   &apitypes.AttestationRequest{Nonce: nonce},
 			guard:     &stubGuard{getHistoryErr: assert.AnError},
 			expStatus: http.StatusInternalServerError,
 			expErr:    errGettingHistory,
 		},
 		"unable to get attestation": {
-			request:   &httpapi.AttestationRequest{Nonce: nonce},
+			request:   &apitypes.AttestationRequest{Nonce: nonce},
 			issuer:    &stubIssuer{issueErr: assert.AnError},
 			expStatus: http.StatusInternalServerError,
 			expErr:    errGettingAttestation,
 		},
 		"success": {
-			request:   &httpapi.AttestationRequest{Nonce: nonce},
+			request:   &apitypes.AttestationRequest{Nonce: nonce},
 			expStatus: http.StatusOK,
 		},
 	}
@@ -166,11 +166,11 @@ func TestAttestationHandler(t *testing.T) {
 			require.Equal(tc.expStatus, res.StatusCode)
 
 			if tc.expErr != nil {
-				var apiErr httpapi.AttestationError
+				var apiErr apitypes.AttestationError
 				require.NoError(json.NewDecoder(res.Body).Decode(&apiErr))
 				require.Contains(apiErr.Err, tc.expErr.Error())
 			} else if res.StatusCode == http.StatusOK {
-				var resp httpapi.AttestationResponse
+				var resp apitypes.AttestationResponse
 				require.NoError(json.NewDecoder(res.Body).Decode(&resp))
 				require.Equal(constants.Version, resp.Version)
 				require.Equal(expectedOID, resp.AttestationType)

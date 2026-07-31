@@ -47,6 +47,7 @@ buildGoModule {
           (fileset.intersection (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
             fileset.unions (
               lib.map toRootPath [
+                "apitypes"
                 "e2e"
                 "internal"
                 "cli"

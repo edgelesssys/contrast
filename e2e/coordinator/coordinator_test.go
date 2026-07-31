@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 // test-if: path:coordinator
-// test-if: path:internal/httpapi
+// test-if: path:apitypes
 
 //go:build e2e
 
@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
-	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -204,7 +204,7 @@ func TestCoordinator(t *testing.T) {
 
 		nonce := [32]byte{}
 		var report []byte
-		require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator-ready", httpapi.Port, func(addr string) error {
+		require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator-ready", apitypes.Port, func(addr string) error {
 			r, err := client.GetAttestation(ctx, fmt.Sprintf("http://%s/attest", addr), nonce[:])
 			if err != nil {
 				return err
@@ -218,7 +218,7 @@ func TestCoordinator(t *testing.T) {
 		require.Equal(manifestBytesExpected, state.Manifests[0])
 
 		// Test backwards compatibility of AttestationType.
-		var resp httpapi.AttestationResponse
+		var resp apitypes.AttestationResponse
 		require.NoError(json.NewDecoder(bytes.NewReader(report)).Decode(&resp))
 		resp.AttestationType = nil
 		reportWithoutType, err := json.Marshal(resp)

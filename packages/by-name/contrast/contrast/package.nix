@@ -44,6 +44,7 @@ buildGoModule (finalAttrs: {
         (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
         (fileset.intersection (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           fileset.unions [
+            (path.append root "apitypes")
             (path.append root "internal")
             (path.append root "coordinator")
             (path.append root "initializer")
