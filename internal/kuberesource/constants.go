@@ -55,7 +55,7 @@ const (
 
 const (
 	// TDXEnabledNodeLabel is the node-feature-discovery label that marks a node as TDX-capable.
-	TDXEnabledNodeLabel = "feature.node.kubernetes.io/tdx.enabled"
+	TDXEnabledNodeLabel = "feature.node.kubernetes.io/cpu-security.tdx.enabled"
 
 	// MainRunnerNodeLabel restricts pods to the bare-metal nodes of our CI runner.
 	MainRunnerNodeLabel = "ci.contrast.edgeless.systems/main-runner"
