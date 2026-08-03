@@ -49,3 +49,7 @@ reason = "Baseline: present at vuln-scanning introduction."
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0204" # crossbeam-epoch
 reason = "Baseline: present at vuln-scanning introduction."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0221" # event-listener
+reason = "wait for kata 4.1.0" # TODO(charludo): remove after kata 4.1.0 update
