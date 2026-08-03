@@ -66,10 +66,9 @@ jobs:
         run: |
           GPU_OPERATOR_VERSION=$(jq -r '."gpu-operator".currentValue' ./tools/bm-maintenance/versions.json)
           OPTS=(--version "$GPU_OPERATOR_VERSION")
-          if [[ "${PLATFORM_NAME}" == "Metal-QEMU-TDX-GPU" ]]; then
-            OPTS+=(--blackwell)
+          if [[ "${PLATFORM_NAME}" != "Metal-QEMU-TDX-GPU" ]]; then
+            nix run ".#${SET}.scripts.upgrade-gpu-operator" -- "${OPTS[@]}"
           fi
-          nix run ".#${SET}.scripts.upgrade-gpu-operator" -- "${OPTS[@]}"
       - name: Report success
         id: report
         run: echo "result=success" >> "$GITHUB_OUTPUT"
