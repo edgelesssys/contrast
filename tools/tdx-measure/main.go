@@ -127,7 +127,7 @@ func newRtMrCmd() *cobra.Command {
 		panic(err)
 	}
 	cmd.Flags().StringP("cmdline", "c", "", "kernel command line")
-	cmd.Flags().StringP("gpu-model", "g", "none", "GPU model used in the VM (none, h100, b200)")
+	cmd.Flags().StringP("gpu-model", "g", "none", "GPU model used in the VM (none, h100, b200, b300)")
 	cmd.Flags().Bool("legacy-serial", false, "VM uses -serial chardev:... instead of virtio-serial-pci (changes ACPI topology)")
 	return cmd
 }
