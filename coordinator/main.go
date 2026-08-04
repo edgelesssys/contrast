@@ -173,6 +173,7 @@ func run() (retErr error) {
 		mux := http.NewServeMux()
 		mux.Handle("/attest", &h)
 		mux.Handle("/capabilities", &httpapi.CapabilitiesHandler{})
+		mux.Handle("/v1/manifest", &httpapi.SetManifestHandler{UserAPI: userapiService})
 
 		httpAPIServer.Addr = ":" + apitypes.Port
 		httpAPIServer.Handler = mux
