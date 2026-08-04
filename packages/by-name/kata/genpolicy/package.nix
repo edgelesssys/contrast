@@ -55,7 +55,7 @@
       #   git diff --no-ext-diff --full-index --no-prefix a/genpolicy-settings.json b/genpolicy-settings.json >$CONTRAST/packages/by-name/kata/genpolicy/genpolicy_settings_dev.patch
       #
       # genpolicy_settings_prod.patch changes explanations:
-      #   - pgpu_resource_keys: allow the GB100/B200 and GH100/H100 PCIe GPU resource names.
+      #   - pgpu_resource_keys: allow the B200, B300, and H100 model-specific GPU resource names.
       #   - pause_container_image: use our mirrored pause image instead of the MCR one.
       #   - ReadStreamRequest = true: allow reading container stdout/stderr (e.g. for `kubectl logs`).
       settings = applyPatches {
