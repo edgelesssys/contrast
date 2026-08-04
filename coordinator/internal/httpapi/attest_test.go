@@ -169,6 +169,7 @@ func TestAttestationHandler(t *testing.T) {
 				var apiErr apitypes.AttestationError
 				require.NoError(json.NewDecoder(res.Body).Decode(&apiErr))
 				require.Contains(apiErr.Err, tc.expErr.Error())
+				require.Equal(tc.expStatus, apiErr.StatusCode)
 			} else if res.StatusCode == http.StatusOK {
 				var resp apitypes.AttestationResponse
 				require.NoError(json.NewDecoder(res.Body).Decode(&resp))
