@@ -1,19 +1,20 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 032973f528712794907bb753fa2fda53c7afd5d9..775234b46b8caf9d469f7fb19979ea3cdf9e47cf 100644
+index 032973f528712794907bb753fa2fda53c7afd5d9..7e60ba61f61c6ea9785573ce2a2a3c4b49bc1a8f 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -227,7 +227,9 @@
+@@ -227,7 +227,10 @@
                  "gpu_anno_value_regex": "^nvidia\\.com/gpu=[0-9]+$",
                  "gpu_gk_device_type": "vfio-pci-gk",
                  "pgpu_resource_keys": [
 -                    "nvidia.com/pgpu"
 +                    "nvidia.com/pgpu",
 +                    "nvidia.com/GB100_B200",
++                    "nvidia.com/GB110_B300_SXM6_AC",
 +                    "nvidia.com/GH100_H100_PCIE"
                  ]
              }
          }
-@@ -336,7 +338,7 @@
+@@ -336,7 +339,7 @@
          "enable_configmap_secret_storages": false
      },
      "cluster_config": {
@@ -22,7 +23,7 @@ index 032973f528712794907bb753fa2fda53c7afd5d9..775234b46b8caf9d469f7fb19979ea3c
          "guest_pull": true,
          "pause_container_id_policy": "v1",
          "emptydir_type": "block-encrypted",
-@@ -404,7 +406,7 @@
+@@ -404,7 +407,7 @@
          },
          "CloseStdinRequest": false,
          "GetDiagnosticDataRequest": false,
