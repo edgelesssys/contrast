@@ -269,8 +269,24 @@ populate target=default_deploy_target platform=default_platform set=default_set:
         dmesgFlag="--add-dmesg"
     fi
     gpuFlags=()
-    if [[ {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
-        gpuFlags=("--gpu-class" "nvidia.com/GB100_B200")
+    if [[ "{{ platform }}" == *-GPU ]]; then
+        gpuClass=$(kubectl get nodes -o json | jq -er '
+            [
+                .items[].status.allocatable
+                | to_entries[]
+                | select(.value != "0")
+                | .key
+                | select(
+                    . == "nvidia.com/GB100_B200"
+                    or . == "nvidia.com/GB110_B300_SXM6_AC"
+                    or . == "nvidia.com/GH100_H100_PCIE"
+                    or . == "nvidia.com/pgpu"
+                )
+            ]
+            | unique
+            | first // error("no supported GPU resource is allocatable")
+        ')
+        gpuFlags=("--gpu-class" "$gpuClass")
     fi
     storageClassFlags=()
     storageClass=$(kubectl get storageclass -l ci.contrast.edgeless.systems/is-default-class=true -o "jsonpath={.items[*]['metadata.name']}")
