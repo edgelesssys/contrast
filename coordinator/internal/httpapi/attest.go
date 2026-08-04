@@ -9,8 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
-	"mime"
 	"net/http"
 
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
@@ -22,7 +20,6 @@ import (
 )
 
 var (
-	errContentType        = errors.New("invalid Content-Type")
 	errNonceLength        = errors.New("invalid nonce length")
 	errGettingState       = errors.New("getting state")
 	errGettingHistory     = errors.New("getting history")
@@ -92,14 +89,7 @@ func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentType := r.Header.Get("Content-Type")
-	mediaType, _, err := mime.ParseMediaType(contentType)
-	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, err)
-		return
-	}
-	if mediaType != "application/json" {
-		writeJSONError(w, http.StatusUnsupportedMediaType, errContentType)
+	if !checkMediaType(w, r) {
 		return
 	}
 
@@ -140,22 +130,5 @@ func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	enc.SetEscapeHTML(false)
 	if err := enc.Encode(resp); err != nil {
 		writeJSONError(w, http.StatusInternalServerError, err)
-	}
-}
-
-func writeJSONError(w http.ResponseWriter, status int, err error) {
-	log.Print(err.Error())
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	apiErr := &apitypesv1.AttestationError{
-		Version:    constants.Version,
-		StatusCode: status,
-		Code:       errorCode(err, status),
-		Err:        err.Error(),
-	}
-	if errEncode := json.NewEncoder(w).Encode(apiErr); errEncode != nil {
-		log.Printf("encoding error response %v failed: %v", err, errEncode)
 	}
 }
