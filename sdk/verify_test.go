@@ -87,13 +87,14 @@ func TestGetAttestation(t *testing.T) {
 			t.Cleanup(srv.Close)
 
 			client := New().
+				WithBaseURL(srv.URL).
 				WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), t.TempDir()))
 
 			if srv.TLS != nil {
 				client = client.WithHTTPClient(srv.Client())
 			}
 
-			att, err := client.GetAttestation(t.Context(), srv.URL, tc.nonce)
+			att, err := client.GetAttestation(t.Context(), tc.nonce)
 			if tc.wantErr != "" {
 				assert.ErrorContains(err, tc.wantErr)
 				assert.Nil(att)

@@ -205,7 +205,7 @@ func TestCoordinator(t *testing.T) {
 		nonce := [32]byte{}
 		var report []byte
 		require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator-ready", apitypes.Port, func(addr string) error {
-			r, err := client.GetAttestation(ctx, fmt.Sprintf("http://%s/attest", addr), nonce[:])
+			r, err := client.WithBaseURL(fmt.Sprintf("http://%s", addr)).GetAttestation(ctx, nonce[:])
 			if err != nil {
 				return err
 			}

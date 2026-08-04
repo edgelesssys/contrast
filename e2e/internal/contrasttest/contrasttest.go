@@ -400,8 +400,7 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 	}
 	var serializedAttestation []byte
 	err = ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", apitypes.Port, func(addr string) error {
-		url := fmt.Sprintf("http://%s/attest", addr)
-		resp, err := client.GetAttestation(ctx, url, nonce)
+		resp, err := client.WithBaseURL(fmt.Sprintf("http://%s", addr)).GetAttestation(ctx, nonce)
 		if err != nil {
 			return fmt.Errorf("getting attestation: %w", err)
 		}
