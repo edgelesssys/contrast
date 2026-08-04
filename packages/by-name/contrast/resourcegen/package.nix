@@ -8,7 +8,7 @@
   reference-values,
 }:
 
-buildGoModule (_finalAttrs: {
+buildGoModule (finalAttrs: {
   pname = "${contrast.pname}-resourcegen";
   inherit (contrast)
     version
@@ -63,6 +63,7 @@ buildGoModule (_finalAttrs: {
 
   ldflags = [
     "-s"
+    "-X github.com/edgelesssys/contrast/internal/constants.Version=v${finalAttrs.version}"
   ];
 
   tags = [ "contrast_unstable_api" ];
