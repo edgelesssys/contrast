@@ -29,6 +29,8 @@ const (
 	GPUModelH100
 	// GPUModelB200 indicates that an NVIDIA B200 GPU is used.
 	GPUModelB200
+	// GPUModelB300 indicates that an NVIDIA B300 GPU is used.
+	GPUModelB300
 )
 
 // GPUModelFromString converts a string representation of a GPU model to the corresponding [GPUModel] type.
@@ -41,6 +43,8 @@ func GPUModelFromString(s string) (GPUModel, error) {
 		return GPUModelH100, nil
 	case "b200":
 		return GPUModelB200, nil
+	case "b300":
+		return GPUModelB300, nil
 	default:
 		return GPUModelNone, fmt.Errorf("unknown GPU model: %s", s)
 	}
