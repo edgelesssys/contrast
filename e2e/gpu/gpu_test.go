@@ -11,6 +11,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"maps"
 	"os"
 	"path"
 	"regexp"
@@ -34,6 +35,14 @@ const (
 	nvidiaLibPath     = "/usr/local/nvidia/lib64"
 )
 
+var expectedGPUModels = map[corev1.ResourceName]string{
+	"nvidia.com/GB100_B200":         "B200",
+	"nvidia.com/GB110_B300_SXM6_AC": "B300",
+	"nvidia.com/GH100_H100_PCIE":    "H100",
+	// TODO(msanft): remove when the GPU operator is updated in all clusters.
+	"nvidia.com/pgpu": "H100",
+}
+
 // TestGPU runs e2e tests on an GPU-enabled Contrast.
 func TestGPU(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
@@ -43,32 +52,17 @@ func TestGPU(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
-	var gpuName, gpuClass string
-	switch platform {
-	case platforms.MetalQEMUTDXGPU:
-		gpuName = "NVIDIA B200"
-		gpuClass = "nvidia.com/GB100_B200"
-	case platforms.MetalQEMUSNPGPU:
-		gpuName = "NVIDIA H100 PCIe"
-		gpuClass = "nvidia.com/pgpu"
-	default:
-		t.Errorf("platform %s does not support GPU tests", platform)
-	}
+	require.True(t, platforms.IsGPU(platform), "platform %s does not support GPU tests", platform)
 
-	deploymentName := gpuDeploymentName
-	expectedGPUAmount := int64(1)
-
-	// Check how many GPUs are available on nodes to determine if we should test multi-GPU
 	nodes, err := ct.Kubeclient.Client.CoreV1().Nodes().List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
-	for _, node := range nodes.Items {
-		if pgpuQuantity, ok := node.Status.Allocatable[corev1.ResourceName(gpuClass)]; ok {
-			if pgpuQuantity.Value() > 1 {
-				deploymentName = gpuDeploymentName + "-multi-gpu"
-				expectedGPUAmount = 2
-				break
-			}
-		}
+	gpuClass, expectedGPUModel, expectedGPUAmount, err := gpuConfigFromNodes(nodes.Items)
+	require.NoError(t, err)
+	t.Logf("Using GPU resource %s (%s) with quantity %d", gpuClass, expectedGPUModel, expectedGPUAmount)
+
+	deploymentName := gpuDeploymentName
+	if expectedGPUAmount > 1 {
+		deploymentName += "-multi-gpu"
 	}
 
 	resources := kuberesource.GPU(deploymentName, gpuClass, expectedGPUAmount)
@@ -220,7 +214,8 @@ func TestGPU(t *testing.T) {
 
 			require.Len(gpuLines, int(expectedGPUAmount), "expected %d GPUs, got %d:\n%s", expectedGPUAmount, len(gpuLines), stdout)
 			for i, line := range gpuLines {
-				require.Contains(line, gpuName, "GPU %d should be %s", i, gpuName)
+				require.Regexp(`^GPU [0-9]+: NVIDIA .+ \(UUID: GPU-[^)]+\)$`, line, "GPU %d has unexpected nvidia-smi output", i)
+				require.Contains(line, expectedGPUModel, "GPU %d should be an NVIDIA %s", i, expectedGPUModel)
 			}
 		})
 	}
@@ -243,6 +238,39 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	os.Exit(m.Run())
+}
+
+// gpuConfigFromNodes determines the GPU resource and model advertised by the
+// sandbox device plugin and whether the test can exercise multi-GPU
+// passthrough with 2 GPUs.
+func gpuConfigFromNodes(nodes []corev1.Node) (string, string, int64, error) {
+	gpuClasses := slices.Collect(maps.Keys(expectedGPUModels))
+	slices.Sort(gpuClasses)
+	for _, gpuClass := range gpuClasses {
+		var maxQuantity int64
+		for _, node := range nodes {
+			quantity, ok := node.Status.Allocatable[gpuClass]
+			if ok && quantity.Value() > maxQuantity {
+				maxQuantity = quantity.Value()
+			}
+		}
+		if maxQuantity > 0 {
+			return string(gpuClass), expectedGPUModels[gpuClass], min(maxQuantity, int64(2)), nil
+		}
+	}
+
+	// No supported class found, so build useful diagnostics.
+	var advertised []string
+	for _, node := range nodes {
+		for resourceName, quantity := range node.Status.Allocatable {
+			if strings.HasPrefix(resourceName.String(), "nvidia.com/") && quantity.Value() > 0 {
+				advertised = append(advertised, resourceName.String())
+			}
+		}
+	}
+	slices.Sort(advertised)
+	advertised = slices.Compact(advertised)
+	return "", "", 0, fmt.Errorf("no supported GPU resource found; advertised NVIDIA resources: %v", advertised)
 }
 
 // shouldHaveGPU decides whether a container should have received a GPU mount.
