@@ -20,9 +20,8 @@ let
   kernel = "${os-image}/bzImage";
   initrd = "${os-image}/initrd";
   cmdline = kata.cmdline.make { inherit os-image withDebug; };
-  # Hardcode this to the B200 for now, since we only have a testing system with this GPU.
-  # When we get more heterogenous test systems, or when TDX-GPU goes into production use,
-  # this needs to be made configurable.
+  # Hardcode this to the B200 for now, since the calculator only
+  # distinguishes between GPU and non-GPU.
   gpuFlag = lib.optionalString withGPU "-g b200";
   # The nodeinstaller sets use_legacy_serial=true when withDebug is enabled so
   # OVMF's DEBUG_ON_SERIAL_PORT output reaches the host. That drops
