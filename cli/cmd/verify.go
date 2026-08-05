@@ -49,6 +49,9 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 	addCollateralProxyFlag(cmd)
+	if insecureRuntimesAllowed() {
+		cmd.Flags().Bool("INSECURE", false, "allow verification of insecure (non-CC) deployments")
+	}
 
 	return cmd
 }
@@ -70,13 +73,21 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read manifest file: %w", err)
 	}
 
+	var mnfst manifest.Manifest
+	if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
+		return fmt.Errorf("unmarshalling manifest: %w", err)
+	}
+	if mnfst.HasInsecurePlatforms() && !flags.allowInsecureRuntimes {
+		return fmt.Errorf("manifest contains insecure platforms but --INSECURE flag not set (the flag is only available with the %s environment variable set to true)", allowInsecureEnvVar)
+	}
+
 	kdsDir, err := cachedir("kds")
 	if err != nil {
 		return fmt.Errorf("getting cache dir: %w", err)
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	resp, err := getCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, flags.collateralProxyURL, log)
+	resp, err := getCoordinatorState(cmd.Context(), kdsDir, mnfst, flags.coordinator, flags.collateralProxyURL, log)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
 	}
@@ -131,10 +142,11 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 }
 
 type verifyFlags struct {
-	manifestPath       string
-	coordinator        string
-	workspaceDir       string
-	collateralProxyURL string
+	manifestPath          string
+	coordinator           string
+	workspaceDir          string
+	collateralProxyURL    string
+	allowInsecureRuntimes bool
 }
 
 func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
@@ -154,6 +166,13 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	allowInsecureRuntimes := false
+	if cmd.Flags().Lookup("INSECURE") != nil {
+		allowInsecureRuntimes, err = cmd.Flags().GetBool("INSECURE")
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	if workspaceDir != "" {
 		// Prepend default path with workspaceDir
@@ -163,10 +182,11 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	}
 
 	return &verifyFlags{
-		manifestPath:       manifestPath,
-		coordinator:        coordinator,
-		workspaceDir:       workspaceDir,
-		collateralProxyURL: collateralProxyURL,
+		manifestPath:          manifestPath,
+		coordinator:           coordinator,
+		workspaceDir:          workspaceDir,
+		collateralProxyURL:    collateralProxyURL,
+		allowInsecureRuntimes: allowInsecureRuntimes,
 	}, nil
 }
 
@@ -186,11 +206,7 @@ func writeFilelist(dir string, filelist map[string][]byte) error {
 }
 
 // getCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
-func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint, collateralProxy string, log *slog.Logger) (sdk.CoordinatorState, error) {
-	var m manifest.Manifest
-	if err := json.Unmarshal(manifestBytes, &m); err != nil {
-		return sdk.CoordinatorState{}, fmt.Errorf("unmarshalling manifest: %w", err)
-	}
+func getCoordinatorState(ctx context.Context, kdsDir string, m manifest.Manifest, endpoint, collateralProxy string, log *slog.Logger) (sdk.CoordinatorState, error) {
 	if err := m.Validate(); err != nil {
 		return sdk.CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
 	}

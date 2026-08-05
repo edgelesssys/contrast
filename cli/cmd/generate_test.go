@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"os"
 	"testing"
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
@@ -79,6 +80,40 @@ spec:
 			},
 			want: []platforms.Platform{platforms.MetalQEMUSNP, platforms.MetalQEMUTDX},
 		},
+		"single insecure": {
+			yaml: map[string]string{
+				"file1.yaml": `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: p1
+spec:
+  runtimeClassName: contrast-insecure-metal-qemu
+`,
+			},
+			want: []platforms.Platform{platforms.MetalQEMUInsecure},
+		},
+		"mixed cc and insecure": {
+			yaml: map[string]string{
+				"file1.yaml": `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: p1
+spec:
+  runtimeClassName: contrast-cc-metal-qemu-snp
+`,
+				"file2.yaml": `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: p2
+spec:
+  runtimeClassName: contrast-insecure-metal-qemu
+`,
+			},
+			want: []platforms.Platform{platforms.MetalQEMUSNP, platforms.MetalQEMUInsecure},
+		},
 	}
 
 	for name, tc := range testCases {
@@ -101,33 +136,67 @@ spec:
 }
 
 func TestPatchRuntimeClassName(t *testing.T) {
-	defaultHandler := "contrast-cc-metal-qemu-snp"
+	ccHandler := "contrast-cc-metal-qemu-snp"
+	insecureHandler := "contrast-insecure-metal-qemu"
 
 	testCases := map[string]struct {
-		initial       string
-		want          string
-		updateHandler bool
+		defaultHandler string
+		initial        string
+		want           string
+		updateHandler  bool
+		wantErr        bool
 	}{
 		"no runtime class": {
-			initial: "",
-			want:    "",
+			defaultHandler: ccHandler,
+			initial:        "",
+			want:           "",
 		},
 		"irrelevant class": {
-			initial: "runc",
-			want:    "runc",
+			defaultHandler: ccHandler,
+			initial:        "runc",
+			want:           "runc",
 		},
 		"generic kata": {
-			initial: "kata-cc-isolation",
-			want:    defaultHandler,
+			defaultHandler: ccHandler,
+			initial:        "kata-cc-isolation",
+			want:           ccHandler,
 		},
 		"generic contrast": {
-			initial: "contrast-cc",
-			want:    defaultHandler,
+			defaultHandler: ccHandler,
+			initial:        "contrast-cc",
+			want:           ccHandler,
 		},
 		"specific contrast-cc-metal-qemu-tdx": {
-			initial:       "contrast-cc-metal-qemu-tdx",
-			want:          "contrast-cc-metal-qemu-tdx",
-			updateHandler: true,
+			defaultHandler: ccHandler,
+			initial:        "contrast-cc-metal-qemu-tdx",
+			want:           "contrast-cc-metal-qemu-tdx",
+			updateHandler:  true,
+		},
+		"generic contrast-insecure with insecure handler": {
+			defaultHandler: insecureHandler,
+			initial:        "contrast-insecure",
+			want:           insecureHandler,
+		},
+		"generic contrast-insecure with cc handler errors": {
+			defaultHandler: ccHandler,
+			initial:        "contrast-insecure",
+			wantErr:        true,
+		},
+		"generic contrast-cc with insecure handler errors": {
+			defaultHandler: insecureHandler,
+			initial:        "contrast-cc",
+			wantErr:        true,
+		},
+		"generic kata with insecure handler errors": {
+			defaultHandler: insecureHandler,
+			initial:        "kata-cc-isolation",
+			wantErr:        true,
+		},
+		"specific contrast-insecure-metal-qemu": {
+			defaultHandler: ccHandler,
+			initial:        "contrast-insecure-metal-qemu",
+			want:           "contrast-insecure-metal-qemu",
+			updateHandler:  true,
 		},
 	}
 
@@ -143,12 +212,16 @@ func TestPatchRuntimeClassName(t *testing.T) {
 				tc.want = getHandler(t, tc.want)
 			}
 
-			patch := patchRuntimeClassName(tc.want)
+			patch := patchRuntimeClassName(tc.defaultHandler)
 			spec := applycorev1.PodSpec()
 			if tc.initial != "" {
 				spec.WithRuntimeClassName(tc.initial)
 			}
 			_, err := patch(spec)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			if tc.want == "" {
 				assert.Nil(t, spec.RuntimeClassName)
@@ -160,11 +233,127 @@ func TestPatchRuntimeClassName(t *testing.T) {
 	}
 
 	t.Run("nil spec returns nil", func(t *testing.T) {
-		patch := patchRuntimeClassName(defaultHandler)
+		patch := patchRuntimeClassName(ccHandler)
 		result, err := patch(nil)
 		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
+}
+
+func TestIsContrastWorkload(t *testing.T) {
+	testCases := map[string]struct {
+		runtimeClass string
+		want         bool
+	}{
+		"no runtime class": {
+			runtimeClass: "",
+			want:         false,
+		},
+		"non-contrast runtime class": {
+			runtimeClass: "foobar",
+			want:         false,
+		},
+		"contrast-cc": {
+			runtimeClass: "contrast-cc",
+			want:         true,
+		},
+		"contrast-cc-metal-qemu-snp": {
+			runtimeClass: "contrast-cc-metal-qemu-snp",
+			want:         true,
+		},
+		"contrast-insecure": {
+			runtimeClass: "contrast-insecure",
+			want:         true,
+		},
+		"contrast-insecure-metal-qemu": {
+			runtimeClass: "contrast-insecure-metal-qemu",
+			want:         true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			spec := applycorev1.PodSpec()
+			if tc.runtimeClass != "" {
+				spec.WithRuntimeClassName(tc.runtimeClass)
+			}
+			pod := applycorev1.Pod("test", "default").WithSpec(spec)
+			assert.Equal(t, tc.want, isContrastWorkload(pod))
+		})
+	}
+}
+
+func TestValidateInsecurePlatforms(t *testing.T) {
+	testCases := map[string]struct {
+		platforms      []platforms.Platform
+		allowInsecure  bool
+		wantErr        bool
+		wantErrContain string
+	}{
+		"no insecure platforms": {
+			platforms: []platforms.Platform{platforms.MetalQEMUSNP},
+			wantErr:   false,
+		},
+		"insecure without flag": {
+			platforms:      []platforms.Platform{platforms.MetalQEMUInsecure},
+			allowInsecure:  false,
+			wantErr:        true,
+			wantErrContain: "--INSECURE flag not set",
+		},
+		"insecure with flag": {
+			platforms:     []platforms.Platform{platforms.MetalQEMUInsecure},
+			allowInsecure: true,
+			wantErr:       false,
+		},
+		"mixed with flag": {
+			platforms:     []platforms.Platform{platforms.MetalQEMUSNP, platforms.MetalQEMUInsecure},
+			allowInsecure: true,
+			wantErr:       false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			collection := kuberesource.PlatformCollection{}
+			for _, p := range tc.platforms {
+				collection.Add(p)
+			}
+
+			err := validateInsecurePlatforms(collection, tc.allowInsecure)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErrContain)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestInsecureRuntimesAllowed(t *testing.T) {
+	testCases := map[string]struct {
+		set   bool
+		value string
+		want  bool
+	}{
+		"unset":   {set: false, want: false},
+		"empty":   {set: true, value: "", want: false},
+		"true":    {set: true, value: "true", want: true},
+		"one":     {set: true, value: "1", want: true},
+		"false":   {set: true, value: "false", want: false},
+		"garbage": {set: true, value: "yes please", want: false},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv("CONTRAST_ALLOW_INSECURE", tc.value)
+			if !tc.set {
+				os.Unsetenv("CONTRAST_ALLOW_INSECURE")
+			}
+
+			assert.Equal(t, tc.want, insecureRuntimesAllowed())
+		})
+	}
 }
 
 func getHandler(t *testing.T, name string) string {
