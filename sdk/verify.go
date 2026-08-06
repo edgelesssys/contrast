@@ -19,12 +19,10 @@ import (
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/sdk/apiv1"
 	"github.com/edgelesssys/contrast/sdk/internal/transport"
 	"github.com/spf13/afero"
 )
-
-// attestPath is the path of the Coordinator's attestation endpoint, which is unversioned.
-const attestPath = "/attest"
 
 // Client is used to interact with a Contrast deployment.
 type Client struct {
@@ -121,18 +119,22 @@ func (c *Client) WithCollateralProxy(proxyURL string) *Client {
 
 // GetAttestation requests attestation evidence from the Coordinator's HTTP API.
 //
-// It's served at the /attest path relative to the Client's base URL. The endpoint is not
-// versioned, so this method doesn't negotiate an API version.
-//
 // The nonce needs to be exactly 32 bytes, which should come from a CSPRNG.
 func (c Client) GetAttestation(ctx context.Context, nonce []byte) ([]byte, error) {
-	if len(nonce) != cryptohelpers.RNGLengthDefault {
-		return nil, fmt.Errorf("bad nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
+	version, err := c.NegotiateAPIVersion(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return c.transport.DoJSON(ctx, http.MethodPost, attestPath, &apitypes.AttestationRequest{Nonce: nonce})
+
+	switch version {
+	case apiv1.Version:
+		return c.V1().GetAttestation(ctx, nonce)
+	default:
+		return nil, fmt.Errorf("GetAttestation is not implemented for API version %q", version)
+	}
 }
 
-// ValidateAttestation validates the Coordinator state returned by the http://coordinator:1314/attest endpoint.
+// ValidateAttestation validates the Coordinator state returned by [Client.GetAttestation].
 //
 // The input for this function should be the nonce passed into GetAttestation and the byte slice
 // returned by it.

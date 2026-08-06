@@ -171,6 +171,8 @@ func run() (retErr error) {
 		}
 
 		mux := http.NewServeMux()
+		mux.Handle("/v1/attest", &h)
+		// Legacy alias, from before the API was versioned. Kept so that older clients keep working.
 		mux.Handle("/attest", &h)
 		mux.Handle("/capabilities", &httpapi.CapabilitiesHandler{})
 
