@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Fri, 31 Jul 2026 07:17:37 +0200
+Subject: [PATCH] agent: walk pxb-pcie NUMA PCI paths from the correct root bus
+
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+---
+ src/agent/src/device/mod.rs | 33 ++++++++++++++++++++++++++++++++-
+ 1 file changed, 32 insertions(+), 1 deletion(-)
+
+diff --git a/src/agent/src/device/mod.rs b/src/agent/src/device/mod.rs
+index 6a036c9a11f7d84f20fe236b6e9c6b6eccadccc2..0fe37e41417065060ee6c084d5c45dfd2d30dd23 100644
+--- a/src/agent/src/device/mod.rs
++++ b/src/agent/src/device/mod.rs
+@@ -901,7 +901,14 @@ fn get_next_bus_from_bridge(devpath: &PathBuf) -> Result<String> {
+ // provided.
+ #[instrument]
+ pub fn pcipath_to_sysfs(root_bus_sysfs: &str, pcipath: &pci::Path) -> Result<String> {
+-    let mut bus = "0000:00".to_string();
++    // Start the walk on the root bus of the given root complex. For the default root complex this is 0000:00,
++    // but a pxb-pcie NUMA expander bridge has its own root bus (e.g. root_bus_sysfs ".../pci0000:40" -> bus 0000:40).
++    let mut bus = root_bus_sysfs
++        .rsplit('/')
++        .next()
++        .and_then(|name| name.strip_prefix("pci"))
++        .unwrap_or("0000:00")
++        .to_string();
+     let mut relpath = String::new();
+ 
+     if pcipath.is_empty() {
+@@ -1993,6 +2000,30 @@ mod tests {
+         assert_eq!(relpath.unwrap(), "/0000:00:02.0/0000:01:03.0/0000:02:04.0");
+     }
+ 
++    #[test]
++    fn test_pcipath_to_sysfs_pxb_root() {
++        // A pxb-pcie NUMA expander bridge has its own root bus, so the walk must start at that bus, not the default 0000:00.
++        let testdir = tempdir().expect("failed to create tmpdir");
++        let root = testdir.path().join("pci0000:40");
++        fs::create_dir_all(&root).unwrap();
++        let rootpath = root.to_str().unwrap();
++
++        let path0 = pci::Path::from_str("00").unwrap();
++        let path00 = pci::Path::from_str("00/00").unwrap();
++
++        // Single element: the device sits directly on the pxb root bus 0000:40.
++        assert_eq!(pcipath_to_sysfs(rootpath, &path0).unwrap(), "/0000:40:00.0");
++        // Two elements need 0000:40:00.0 to be a bridge to the next bus.
++        assert!(pcipath_to_sysfs(rootpath, &path00).is_err());
++
++        let bridgepath = format!("{rootpath}/0000:40:00.0");
++        fs::create_dir_all(format!("{bridgepath}/pci_bus/0000:41")).unwrap();
++        assert_eq!(
++            pcipath_to_sysfs(rootpath, &path00).unwrap(),
++            "/0000:40:00.0/0000:41:00.0"
++        );
++    }
++
+     #[test]
+     fn test_pcipath_to_sysfs_fallback_child_device_scan() {
+         let testdir = tempdir().expect("failed to create tmpdir");

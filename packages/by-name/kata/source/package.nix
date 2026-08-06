@@ -181,6 +181,22 @@ rec {
       # always fail wrongfully.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757
       ./0026-genpolicy-unconditionally-skip-guest-pull-security-c.patch
+
+      # A GPU on a NUMA node is cold-plugged behind a pxb-pcie expander bridge, which creates its own root bus.
+      # Upstream's qomGetPciPath walks the QOM tree expecting to reach pcie.0 and instead hits the pxb host bridge (no `addr` property),
+      # so the guest PCI path can't be resolved and the device is skipped. The patch recognizes the pxb root bus via its `bus_nr` and emits it
+      # as the path's root complex.
+      # TODO(charludo): open upstream issue and PR.
+      ./0027-runtime-resolve-guest-PCI-path-for-VFIO-devices-behi.patch
+
+      # Upstream's genpolicy VFIO_PCI_ADDRESS_REGEX only accepts a two-segment guest PCI path (bus/device),
+      # but a GPU behind a pxb-pcie NUMA bridge resolves to a three-segment path (root_complex/bus/device).
+      ./0028-genpolicy-allow-pxb-pcie-NUMA-guest-PCI-paths-in-VFI.patch
+
+      # The guest agent's pcipath_to_sysfs hardcoded the PCI walk to start at bus 0000:00, so a GPU behind a pxb-pcie NUMA bridge (see above)
+      # fails to resolve. Start the walk at the root complex's bus.
+      # TODO(charludo): open upstream issue and PR.
+      ./0029-agent-walk-pxb-pcie-NUMA-PCI-paths-from-the-correct-.patch
     ];
   };
 
