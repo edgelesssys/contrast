@@ -56,6 +56,15 @@ func badAttestationHandler(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte(`{"version": "12345", "error": "my error"}`))
 }
 
+// coordinatorMux serves the capabilities endpoint, so that the Client can negotiate an API
+// version, and routes everything else to the given attestation handler.
+func coordinatorMux(attest http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle(capabilitiesPath, capabilitiesHandler([]string{apiv1.Version}))
+	mux.Handle("/", attest)
+	return mux
+}
+
 func TestGetAttestation(t *testing.T) {
 	for name, tc := range map[string]struct {
 		nonce     []byte
@@ -88,7 +97,7 @@ func TestGetAttestation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			srv := tc.getServer(tc.handler)
+			srv := tc.getServer(coordinatorMux(tc.handler))
 			t.Cleanup(srv.Close)
 
 			client := New(srv.URL).
@@ -106,6 +115,36 @@ func TestGetAttestation(t *testing.T) {
 			}
 			assert.NoError(err)
 			assert.NotNil(att)
+		})
+	}
+}
+
+func TestGetAttestationPath(t *testing.T) {
+	for name, pinned := range map[string]bool{
+		"negotiated": false,
+		"pinned":     true,
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			var gotPath string
+			srv := httptest.NewServer(coordinatorMux(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotPath = r.URL.Path
+				attestationHandler(w, r)
+			})))
+			t.Cleanup(srv.Close)
+
+			client := New(srv.URL)
+			nonce := make([]byte, 32)
+
+			var err error
+			if pinned {
+				_, err = client.V1().GetAttestation(t.Context(), nonce)
+			} else {
+				_, err = client.GetAttestation(t.Context(), nonce)
+			}
+			require.NoError(err)
+			require.Equal(apiv1.AttestPath, gotPath)
 		})
 	}
 }

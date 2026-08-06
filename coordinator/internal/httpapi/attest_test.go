@@ -207,6 +207,44 @@ func TestAttestationReportDataBindsCapabilities(t *testing.T) {
 	require.NotEqual(reportDataFor(nil), reportDataFor(capabilitiesDigest[:]))
 }
 
+// TestAttestationHandlerPaths ensures the handler is reachable both at the versioned path and
+// at the unversioned one it was served at before the API was versioned.
+func TestAttestationHandlerPaths(t *testing.T) {
+	for _, path := range []string{"/v1/attest", "/attest"} {
+		t.Run(path, func(t *testing.T) {
+			require := require.New(t)
+
+			meshKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
+			rootKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[2])
+			ca, err := ca.New(rootKey, meshKey)
+			require.NoError(err)
+
+			handler := &AttestationHandler{
+				StateGuard: &stubGuard{ca: ca},
+				Issuer:     &stubIssuer{oid: asn1.ObjectIdentifier{1, 2, 3}},
+			}
+			mux := http.NewServeMux()
+			mux.Handle("/v1/attest", handler)
+			mux.Handle("/attest", handler)
+
+			body, err := json.Marshal(&apitypesv1.AttestationRequest{Nonce: nonce})
+			require.NoError(err)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, path, bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			mux.ServeHTTP(rec, req)
+			res := rec.Result()
+			defer res.Body.Close()
+
+			require.Equal(http.StatusOK, res.StatusCode)
+			var resp apitypesv1.AttestationResponse
+			require.NoError(json.NewDecoder(res.Body).Decode(&resp))
+			require.NotEmpty(resp.RawAttestationDoc)
+		})
+	}
+}
+
 type stubIssuer struct {
 	oid           asn1.ObjectIdentifier
 	issueErr      error

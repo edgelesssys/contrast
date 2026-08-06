@@ -166,8 +166,19 @@ func run() (retErr error) {
 
 	eg.Go(func() error {
 		capabilities := httpapi.NewCapabilitiesHandler()
+		capabilitiesDigest := capabilities.Digest()
+
+		v1 := func(endpoint http.Handler) http.Handler {
+			return &httpapi.APIVersionGate{Version: 1, StateGuard: meshAuth, Next: endpoint}
+		}
 
 		mux := http.NewServeMux()
+		mux.Handle("/v1/attest", v1(&httpapi.AttestationHandler{
+			Issuer:             issuer,
+			StateGuard:         meshAuth,
+			CapabilitiesDigest: capabilitiesDigest[:],
+		}))
+		// Legacy alias, from before the API was versioned. Kept so that older clients keep working.
 		mux.Handle("/attest", &httpapi.APIVersionGate{Version: 0, StateGuard: meshAuth, Next: &httpapi.AttestationHandler{
 			Issuer:     issuer,
 			StateGuard: meshAuth,
