@@ -240,10 +240,11 @@ func TestValidateAttestation(t *testing.T) {
 			transitions := history.BuildTransitionChain(tc.resp.Manifests)
 			latestTransitionHash := transitions[len(transitions)-1].Digest()
 			expected := &CoordinatorState{
-				Manifests: tc.resp.Manifests,
-				Policies:  tc.resp.Policies,
-				RootCA:    tc.resp.RootCA,
-				MeshCA:    tc.resp.MeshCA,
+				Manifests:            tc.resp.Manifests,
+				Policies:             tc.resp.Policies,
+				RootCA:               tc.resp.RootCA,
+				MeshCA:               tc.resp.MeshCA,
+				LatestTransitionHash: latestTransitionHash[:],
 			}
 
 			assert.Equal(expected, state)
