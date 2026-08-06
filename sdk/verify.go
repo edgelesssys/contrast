@@ -43,6 +43,10 @@ type Client struct {
 	// negotiated caches the API version agreed on with the Coordinator.
 	negotiated *negotiation
 
+	// expectedManifest, if set, provides the reference values the Coordinator is validated
+	// against, instead of the manifest the Coordinator reports.
+	expectedManifest *manifest.Manifest
+
 	// validatorsFromManifestOverride is used by tests to replace the validators.
 	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error)
 }
@@ -111,6 +115,17 @@ func (c *Client) WithHTTPClient(httpClient *http.Client) *Client {
 	return c
 }
 
+// WithExpectedManifest makes [Client.ValidateAttestation] derive the Coordinator's reference
+// values from the given manifest, instead of from the manifest the Coordinator reports.
+//
+// Callers that know which manifest the Coordinator is supposed to run should set this. Without
+// it, validation only proves that the Coordinator runs *some* manifest it vouches for itself,
+// and the caller has to compare the returned manifest against its expectation.
+func (c *Client) WithExpectedManifest(m *manifest.Manifest) *Client {
+	c.expectedManifest = m
+	return c
+}
+
 // WithCollateralProxy routes the Client's attestation-collateral fetches (AMD KDS, Intel PCS, NVIDIA RIM)
 // through a caching proxy at the given base URL, falling back to direct upstream fetching when the proxy is unreachable.
 // An empty URL (the default) fetches directly upstream.
@@ -171,7 +186,11 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 	if c.validatorsFromManifestOverride != nil {
 		validatorsFromManifest = c.validatorsFromManifestOverride
 	}
-	validator, err := validatorsFromManifest(kdsGetter, &latestManifest, c.log)
+	referenceManifest := &latestManifest
+	if c.expectedManifest != nil {
+		referenceManifest = c.expectedManifest
+	}
+	validator, err := validatorsFromManifest(kdsGetter, referenceManifest, c.log)
 	if err != nil {
 		return nil, fmt.Errorf("getting validators: %w", err)
 	}
@@ -184,10 +203,11 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 	state := CoordinatorState{
-		Manifests: resp.Manifests,
-		Policies:  resp.Policies,
-		RootCA:    resp.RootCA,
-		MeshCA:    resp.MeshCA,
+		Manifests:            resp.Manifests,
+		Policies:             resp.Policies,
+		RootCA:               resp.RootCA,
+		MeshCA:               resp.MeshCA,
+		LatestTransitionHash: transitionDigest[:],
 	}
 	return &state, nil
 }
