@@ -576,6 +576,19 @@ func (ct *ContrastTest) withForwardedCollateralProxy(ctx context.Context, f func
 	})
 }
 
+// WithForwardedHTTPAPI forwards the coordinator's HTTP API port and calls f with the CLI flags that point a contrast subcommand at it.
+func (ct *ContrastTest) WithForwardedHTTPAPI(ctx context.Context, apiVersion string, f func(httpFlags []string) error) error {
+	return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", apitypes.Port, func(addr string) error {
+		// Go never uses a proxy for connections to localhost, see runAgainstCoordinator.
+		addr = strings.Replace(addr, "localhost", "0.0.0.0", 1)
+		flags := []string{"--experimental-http", "--experimental-http-url", "http://" + addr}
+		if apiVersion != "" {
+			flags = append(flags, "--experimental-http-version", apiVersion)
+		}
+		return f(flags)
+	})
+}
+
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
 func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
 	if err := ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace); err != nil {
