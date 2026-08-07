@@ -17,6 +17,7 @@ on:
           - coordinator
           - genpolicy-unsupported
           - gpu
+          - httpapi
           - imagepuller-auth
           - imagestore
           - ipsec
