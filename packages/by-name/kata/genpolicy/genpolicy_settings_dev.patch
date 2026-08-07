@@ -1,19 +1,20 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 032973f528712794907bb753fa2fda53c7afd5d9..b474b175dd51ef535f7adc08b6eb70422fcd504a 100644
+index 032973f528712794907bb753fa2fda53c7afd5d9..7e4021db2b3fc3ff224bd82f9d8dc2df909e38f5 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -227,7 +227,9 @@
+@@ -227,7 +227,10 @@
                  "gpu_anno_value_regex": "^nvidia\\.com/gpu=[0-9]+$",
                  "gpu_gk_device_type": "vfio-pci-gk",
                  "pgpu_resource_keys": [
 -                    "nvidia.com/pgpu"
 +                    "nvidia.com/pgpu",
 +                    "nvidia.com/GB100_B200",
++                    "nvidia.com/GB110_B300_SXM6_AC",
 +                    "nvidia.com/GH100_H100_PCIE"
                  ]
              }
          }
-@@ -336,7 +338,7 @@
+@@ -336,7 +339,7 @@
          "enable_configmap_secret_storages": false
      },
      "cluster_config": {
@@ -22,7 +23,7 @@ index 032973f528712794907bb753fa2fda53c7afd5d9..b474b175dd51ef535f7adc08b6eb7042
          "guest_pull": true,
          "pause_container_id_policy": "v1",
          "emptydir_type": "block-encrypted",
-@@ -362,7 +364,8 @@
+@@ -362,7 +365,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
@@ -32,7 +33,7 @@ index 032973f528712794907bb753fa2fda53c7afd5d9..b474b175dd51ef535f7adc08b6eb7042
              ]
          },
          "UpdateInterfaceRequest": {
-@@ -379,7 +382,9 @@
+@@ -379,7 +383,9 @@
          ],
          "ExecProcessRequest": {
              "allowed_commands": [],
@@ -43,7 +44,7 @@ index 032973f528712794907bb753fa2fda53c7afd5d9..b474b175dd51ef535f7adc08b6eb7042
          },
          "UpdateRoutesRequest": {
              "forbidden_device_names": [
-@@ -404,8 +409,8 @@
+@@ -404,8 +410,8 @@
          },
          "CloseStdinRequest": false,
          "GetDiagnosticDataRequest": false,

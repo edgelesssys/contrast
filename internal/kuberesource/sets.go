@@ -829,7 +829,7 @@ func GPU(name string, gpuClass string, gpuQuantity int64) []any {
 												}),
 										),
 									Container().
-										WithName("gpu-tester-indirect"). // This container indirectly shares the H100 through the NVIDIA_VISIBLE_DEVICES env var.
+										WithName("gpu-tester-indirect"). // This container indirectly shares the GPU through the NVIDIA_VISIBLE_DEVICES env var.
 										WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
 										WithCommand("/bin/sh", "-c", "sleep inf").
 										WithEnv(
