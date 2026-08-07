@@ -22,11 +22,9 @@ type AttestationRequest struct {
 }
 
 // AttestationError is returned by the /attest endpoint if the request was not successful.
-type AttestationError struct {
-	// Version is the Coordinator version.
-	Version string `json:"version"`
-	Err     string `json:"error"`
-}
+//
+// It is an alias of [APIError], which all Contrast HTTP API endpoints return on error.
+type AttestationError = APIError
 
 // AttestationResponse contains all fields required for application-level verification.
 type AttestationResponse struct {
