@@ -569,6 +569,39 @@
       '';
   };
 
+  # Usage: update-nvidia-driver [version]
+  # Without an argument, only the hashes of the currently pinned version are refreshed.
+  update-nvidia-driver = writeShellApplication {
+    name = "update-nvidia-driver";
+    runtimeInputs = with pkgs; [
+      git
+      gnused
+      nix
+      nix-update
+    ];
+    text = # bash
+      ''
+        driverFile="packages/by-name/nvidia-driver/driver.nix"
+        cd "$(git rev-parse --show-toplevel)"
+
+        if [[ $# -gt 0 ]]; then
+          echo "Pinning NVIDIA driver to $1" >&2
+          sed -i -E "s|^([[:space:]]*)version = \"[0-9.]+\";|\1version = \"$1\";|" "$driverFile"
+        fi
+
+        echo "Realising the kernel config the driver is built against" >&2
+        nix eval --raw .#legacyPackages.x86_64-linux.base.nvidia-driver.src.outputHash >/dev/null
+
+        echo "Updating sha256_64bit of the NVIDIA driver" >&2
+        nix-update --version=skip --override-filename="$driverFile" --flake \
+          legacyPackages.x86_64-linux.base.nvidia-driver
+
+        echo "Updating openSha256 of the NVIDIA open kernel modules" >&2
+        nix-update --version=skip --override-filename="$driverFile" --flake \
+          legacyPackages.x86_64-linux.base.nvidia-driver.open
+      '';
+  };
+
   nix-gc = writeShellApplication {
     name = "nix-gc";
     runtimeInputs = with pkgs; [ busybox ];

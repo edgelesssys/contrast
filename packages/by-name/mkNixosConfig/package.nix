@@ -14,7 +14,7 @@ let
     dir:
     lib.pipe (builtins.readDir dir) [
       (lib.filterAttrs (_filename: type: type == "regular"))
-      (lib.mapAttrsToList (filename: _type: "${dir}/${filename}"))
+      (lib.mapAttrsToList (filename: _type: dir + "/${filename}"))
     ];
 in
 
