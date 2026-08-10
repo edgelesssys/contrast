@@ -1,12 +1,16 @@
 name: vulnerability scan
 
 on:
+  schedule:
+    - cron: "45 2 * * *" # 02:45 UTC, every day
   workflow_call:
     secrets:
       GITHUB_TOKEN_IN:
         required: false
       CACHIX_AUTH_TOKEN:
         required: true
+      TEAMS_CI_WEBHOOK:
+        required: false
   workflow_dispatch: {}
 
 jobs:
@@ -61,3 +65,22 @@ jobs:
         with:
           sarif_file: sarif-${{ matrix.sbom }}
           category: vuln-scan-${{ matrix.sbom }}
+
+  notify:
+    name: "Notify about scan failures"
+    needs: scan
+    if: ${{ failure() && github.event_name == 'schedule' && github.run_attempt == 1 }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Notify teams channel
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          title: "Nightly vulnerability scan failed"
+          message: "Check the run for details."
+          additionalActions: '[{"type": "Action.OpenUrl", "title": "Security tab", "url": "${{ github.server_url }}/${{ github.repository }}/security/code-scanning"}]'
