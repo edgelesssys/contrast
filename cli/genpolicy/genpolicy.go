@@ -24,13 +24,14 @@ import (
 type Runner struct {
 	genpolicy embedbin.Installed
 
-	rulesPath    string
-	settingsPath string
-	cachePath    string
+	rulesPath          string
+	settingsPath       string
+	cachePath          string
+	insecureRegistries []string
 }
 
 // New creates a new Runner for the given configuration.
-func New(rulesPath, settingsPath, cachePath string, bin []byte) (*Runner, error) {
+func New(rulesPath, settingsPath, cachePath string, insecureRegistries []string, bin []byte) (*Runner, error) {
 	e := embedbin.New()
 	genpolicy, err := e.Install("", bin)
 	if err != nil {
@@ -41,10 +42,11 @@ func New(rulesPath, settingsPath, cachePath string, bin []byte) (*Runner, error)
 	}
 
 	runner := &Runner{
-		genpolicy:    genpolicy,
-		rulesPath:    rulesPath,
-		settingsPath: settingsPath,
-		cachePath:    cachePath,
+		genpolicy:          genpolicy,
+		rulesPath:          rulesPath,
+		settingsPath:       settingsPath,
+		cachePath:          cachePath,
+		insecureRegistries: insecureRegistries,
 	}
 
 	return runner, nil
@@ -61,6 +63,9 @@ func (r *Runner) Run(ctx context.Context, res any, extraPath string, needLayersC
 		"--layers-cache-file-path=" + r.cachePath,
 		"--config-file=" + extraPath,
 		"--base64-out",
+	}
+	for _, registry := range r.insecureRegistries {
+		args = append(args, "--insecure-registry="+registry)
 	}
 	genpolicy := exec.CommandContext(ctx, r.genpolicy.Path(), args...)
 	genpolicy.Cancel = func() error {
