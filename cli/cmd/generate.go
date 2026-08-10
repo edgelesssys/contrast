@@ -93,6 +93,7 @@ subcommands.`,
 	cmd.Flags().Bool("insecure-enable-debug-shell-access", false, "enable the debug shell service in the pod CVM to get access from container to guest VM")
 	cmd.Flags().Bool("calculate-pod-memory", false, "calculate pod memory based on image layer sizes and container resource limits")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
+	cmd.Flags().StringArray("insecure-registry", []string{}, "registries to access via plain HTTP instead of HTTPS (can be passed more than once)")
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
 	must(cmd.MarkFlagFilename("manifest", "json"))
@@ -205,6 +206,10 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
+
+	if len(flags.insecureRegistries) > 0 {
+		fmt.Fprintln(cmd.OutOrStdout(), "⚠️ Using insecure registries for policy generation!")
+	}
 
 	if err := generatePolicies(cmd.Context(), flags, fileMap, extraFile.Name(), log); err != nil {
 		return fmt.Errorf("generate policies: %w", err)
@@ -450,7 +455,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 		return fmt.Errorf("creating default policy.rego file: %w", err)
 	}
 
-	runner, err := genpolicy.New(flags.policyPath, flags.settingsPath, flags.genpolicyCachePath, cfg.Bin)
+	runner, err := genpolicy.New(flags.policyPath, flags.settingsPath, flags.genpolicyCachePath, flags.insecureRegistries, cfg.Bin)
 	if err != nil {
 		return fmt.Errorf("preparing genpolicy: %w", err)
 	}
@@ -960,6 +965,7 @@ type generateFlags struct {
 	injectImageStore         bool
 	insecureEnableDebugShell bool
 	calculatePodMemory       bool
+	insecureRegistries       []string
 	outputFile               string
 }
 
@@ -1065,6 +1071,10 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	insecureRegistries, err := cmd.Flags().GetStringArray("insecure-registry")
+	if err != nil {
+		return nil, err
+	}
 	outputFile, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return nil, err
@@ -1092,6 +1102,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		injectImageStore:         injectImageStore,
 		insecureEnableDebugShell: insecureEnableDebugShell,
 		calculatePodMemory:       calculatePodMemory,
+		insecureRegistries:       insecureRegistries,
 		outputFile:               outputFile,
 	}, nil
 }

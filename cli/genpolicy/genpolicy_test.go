@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
@@ -38,6 +39,9 @@ while [ $# -gt 0 ]; do
 	;;
 	--layers-cache-file-path=*)
 	  printf "%%s" "[]" >${1#--layers-cache-file-path=}
+	;;
+	--insecure-registry=*)
+	  printf "%%s" "${1#--insecure-registry=}" >>insecure_registries
 	;;
     --runtime-class-names*|--yaml-file*|--base64-out*)
 	;;
@@ -74,10 +78,12 @@ func TestRunner(t *testing.T) {
 	settingsPathFile := filepath.Join(d, "settings_path")
 	expectedExtraPath := "/extra.yml"
 	extraPathFile := filepath.Join(d, "extra_path")
+	expectedInsecureRegistries := []string{"registry1", "registry2"}
+	insecureRegistriesFile := filepath.Join(d, "insecure_registries")
 	cachePath := filepath.Join(d, "cache", "cache.json")
 	envFile := filepath.Join(d, "env_path")
 
-	r, err := New(expectedRulesPath, expectedSettingsPath, cachePath, genpolicyBin)
+	r, err := New(expectedRulesPath, expectedSettingsPath, cachePath, expectedInsecureRegistries, genpolicyBin)
 	require.NoError(err)
 
 	applyConfig, err := kuberesource.UnmarshalApplyConfigurations([]byte(podYAML))
@@ -97,6 +103,10 @@ func TestRunner(t *testing.T) {
 	extraPath, err := os.ReadFile(extraPathFile)
 	require.NoError(err)
 	assert.Equal(expectedExtraPath, string(extraPath))
+
+	insecureRegistries, err := os.ReadFile(insecureRegistriesFile)
+	require.NoError(err)
+	assert.Equal(strings.Join(expectedInsecureRegistries, ""), string(insecureRegistries))
 
 	yamlString, err := os.ReadFile(filepath.Join(d, "stdout.yaml"))
 	require.NoError(err)
