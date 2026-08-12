@@ -60,6 +60,7 @@ else
               agent
               image
               kernel-uvm
+              kernel-uvm-gpu
               runtime
               runtime-rs
               calculateSnpLaunchDigest

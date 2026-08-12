@@ -114,9 +114,10 @@ in
     # Not used directly, but required for kernel-specific driver builds.
     boot.kernelPackages = lib.recurseIntoAttrs (
       pkgs.linuxPackagesFor (
-        pkgs.contrastPkgs.kata.kernel-uvm.override {
-          withGPU = config.contrast.gpu.enable;
-        }
+        if config.contrast.gpu.enable then
+          pkgs.contrastPkgs.kata.kernel-uvm-gpu
+        else
+          pkgs.contrastPkgs.kata.kernel-uvm
       )
     );
 
