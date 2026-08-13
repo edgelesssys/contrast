@@ -91,7 +91,7 @@ func (c *CachedHTTPSGetter) fetch(ctx context.Context, url string) (map[string][
 		return c.ContextHTTPSGetter.GetContext(ctx, url)
 	}
 
-	proxyCtx, cancel := context.WithTimeout(ctx, retryAttemptsProxy*retryInterval)
+	proxyCtx, cancel := context.WithTimeout(ctx, c.proxyBudget(ctx))
 	header, body, err := c.ContextHTTPSGetter.GetContext(proxyCtx, c.redirectToProxy(url))
 	cancel()
 	if err == nil {
@@ -100,12 +100,30 @@ func (c *CachedHTTPSGetter) fetch(ctx context.Context, url string) (map[string][
 		return header, body, nil
 	}
 	var httpErr *httpError
-	if errors.As(err, &httpErr) {
+	if errors.As(err, &httpErr) && !transientStatus(httpErr.code) {
 		return nil, nil, err
 	}
 	c.proxyRetryAfter.Store(c.clock.Now().Add(proxyRetryCooldown).UnixNano())
-	c.logger.Warn("collateral proxy not reachable, falling back to direct upstream fetching", "url", url, "error", err, "cooldown", proxyRetryCooldown)
+	c.logger.Warn("collateral proxy unhealthy, falling back to direct upstream fetching", "url", url, "error", err, "cooldown", proxyRetryCooldown)
 	return c.ContextHTTPSGetter.GetContext(ctx, url)
+}
+
+// proxyBudget is the time to spend on the proxy attempt, capped to half of what the caller granted us.
+func (c *CachedHTTPSGetter) proxyBudget(ctx context.Context) time.Duration {
+	budget := time.Duration(retryAttemptsProxy) * retryInterval
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return budget
+	}
+	return min(budget, deadline.Sub(c.clock.Now())/2)
+}
+
+// transientStatus reports whether an HTTP status from the proxy indicates a temporary
+// condition on the proxy path, rather than an answer the vendor endpoint would repeat.
+//
+// Deliberately wider then [shouldRetry], which does not retry 429, but still needs to be served from cache.
+func transientStatus(code int) bool {
+	return code >= 500 || code == http.StatusTooManyRequests
 }
 
 func (c *CachedHTTPSGetter) proxyInCooldown() bool {

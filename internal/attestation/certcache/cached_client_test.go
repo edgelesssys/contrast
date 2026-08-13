@@ -7,9 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	neturl "net/url"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -28,7 +32,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestAlwaysRevalidate(t *testing.T) {
-	const proxy = "http://collateral-proxy.default.svc"
 	for _, tc := range []struct {
 		name string
 		url  string
@@ -36,14 +39,14 @@ func TestAlwaysRevalidate(t *testing.T) {
 	}{
 		// CRLs and TCB / QE-identity must always revalidate.
 		{"snp crl vendor", "https://kdsintf.amd.com/vcek/v1/Milan/crl", true},
-		{"snp crl proxy", proxy + "/vcek/v1/Milan/crl", true},
+		{"snp crl proxy", proxyBase + "/vcek/v1/Milan/crl", true},
 		{"tdx pckcrl vendor", "https://api.trustedservices.intel.com/sgx/certification/v4/pckcrl?ca=platform&encoding=der", true},
-		{"tdx pckcrl proxy", proxy + "/sgx/certification/v4/pckcrl?ca=platform&encoding=der", true},
-		{"tdx tcb proxy", proxy + "/tdx/certification/v4/tcb?fmspc=abc", true},
+		{"tdx pckcrl proxy", proxyBase + "/sgx/certification/v4/pckcrl?ca=platform&encoding=der", true},
+		{"tdx tcb proxy", proxyBase + "/tdx/certification/v4/tcb?fmspc=abc", true},
 		{"tdx root crl", "https://certificates.trustedservices.intel.com/IntelSGXRootCA.der", true},
 		// VCEK certificates are immutable and served cache-first.
 		{"vcek cert vendor", "https://kdsintf.amd.com/vcek/v1/Milan/abc123", false},
-		{"vcek cert proxy", proxy + "/vcek/v1/Milan/abc123", false},
+		{"vcek cert proxy", proxyBase + "/vcek/v1/Milan/abc123", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			assert.Equal(t, tc.want, alwaysRevalidate(tc.url))
@@ -52,16 +55,15 @@ func TestAlwaysRevalidate(t *testing.T) {
 }
 
 func TestRedirectToProxy(t *testing.T) {
-	const proxy = "http://collateral-proxy.default.svc"
-	c := &CachedHTTPSGetter{collateralProxyBase: proxy}
+	c := &CachedHTTPSGetter{collateralProxyBase: proxyBase}
 	assert.Equal(t,
-		proxy+"/IntelSGXRootCA.der",
+		proxyBase+"/IntelSGXRootCA.der",
 		c.redirectToProxy("https://certificates.trustedservices.intel.com/IntelSGXRootCA.der"))
 	assert.Equal(t,
-		proxy+"/vcek/v1/Milan/abc",
+		proxyBase+"/vcek/v1/Milan/abc",
 		c.redirectToProxy("https://kdsintf.amd.com/vcek/v1/Milan/abc"))
 	assert.Equal(t,
-		proxy+"/sgx/certification/v4/pckcrl?ca=platform&encoding=der",
+		proxyBase+"/sgx/certification/v4/pckcrl?ca=platform&encoding=der",
 		c.redirectToProxy("https://api.trustedservices.intel.com/sgx/certification/v4/pckcrl?ca=platform&encoding=der"))
 
 	// With no proxy configured, nothing is rewritten.
@@ -249,7 +251,6 @@ func TestContextCancellation(t *testing.T) {
 
 func TestProxyFallback(t *testing.T) {
 	const (
-		proxyBase = "http://collateral-proxy.default.svc"
 		proxyHost = "collateral-proxy.default.svc"
 		kdsHost   = "kdsintf.amd.com"
 	)
@@ -263,7 +264,7 @@ func TestProxyFallback(t *testing.T) {
 			errHosts: map[string]error{proxyHost: errors.New("dial tcp: connection refused")},
 			body:     []byte("crl-bytes"),
 		}
-		client, _ := newHostGetterClient(getter, proxyBase)
+		client, _ := newHostGetterClient(getter)
 
 		_, body, err := client.Get(directCRL)
 		assert.NoError(err)
@@ -285,7 +286,7 @@ func TestProxyFallback(t *testing.T) {
 			errHosts: map[string]error{proxyHost: errors.New("dial tcp: connection refused")},
 			body:     []byte("crl-bytes"),
 		}
-		client, testClock := newHostGetterClient(getter, proxyBase)
+		client, testClock := newHostGetterClient(getter)
 
 		_, _, err := client.Get(directCRL)
 		assert.NoError(err)
@@ -312,7 +313,7 @@ func TestProxyFallback(t *testing.T) {
 			hits:     map[string]int{},
 			errHosts: map[string]error{proxyHost: &httpError{code: 404, status: "404 Not Found"}},
 		}
-		client, _ := newHostGetterClient(getter, proxyBase)
+		client, _ := newHostGetterClient(getter)
 
 		_, _, err := client.Get(directCRL)
 		assert.Error(err)
@@ -320,9 +321,77 @@ func TestProxyFallback(t *testing.T) {
 		assert.Equal(0, getter.hits[kdsHost]) // upstream not contacted
 		assert.False(client.proxyInCooldown())
 	})
+
+	for _, code := range []int{http.StatusInternalServerError, http.StatusBadGateway, http.StatusTooManyRequests} {
+		t.Run(fmt.Sprintf("proxy answering %d falls back to upstream", code), func(t *testing.T) {
+			assert := assert.New(t)
+			getter := &fakeHostGetter{
+				hits:     map[string]int{},
+				errHosts: map[string]error{proxyHost: &httpError{code: code, status: http.StatusText(code)}},
+				body:     []byte("crl-bytes"),
+			}
+			client, _ := newHostGetterClient(getter)
+
+			_, body, err := client.Get(directCRL)
+			assert.NoError(err)
+			assert.Equal([]byte("crl-bytes"), body)
+			assert.Equal(1, getter.hits[proxyHost])
+			assert.Equal(1, getter.hits[kdsHost])
+			assert.True(client.proxyInCooldown())
+		})
+	}
+
+	t.Run("5XX survives the retrier's error wrapping", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer srv.Close()
+
+		g := NewRetryHTTPSGetter(srv.Client(), 50*time.Millisecond, slog.New(slog.DiscardHandler))
+		ctx, cancel := context.WithTimeout(t.Context(), 250*time.Millisecond)
+		defer cancel()
+		_, _, err := g.GetContext(ctx, srv.URL)
+
+		var httpErr *httpError
+		require.ErrorAs(t, err, &httpErr)
+		assert.True(t, transientStatus(httpErr.code))
+	})
+
+	t.Run("retrying the proxy leaves budget for the fallback", func(t *testing.T) {
+		proxySrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer proxySrv.Close()
+		var upstreamHits atomic.Int32
+		upstreamSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			upstreamHits.Add(1)
+			_, _ = w.Write([]byte("crl-bytes"))
+		}))
+		defer upstreamSrv.Close()
+
+		client := &CachedHTTPSGetter{
+			ContextHTTPSGetter:  NewRetryHTTPSGetter(proxySrv.Client(), 50*time.Millisecond, slog.New(slog.DiscardHandler)),
+			gcTicker:            NeverGCTicker,
+			clock:               clock.RealClock{},
+			cache:               memstore.New[string, []byte](),
+			logger:              slog.New(slog.DiscardHandler),
+			collateralProxyBase: proxySrv.URL,
+		}
+
+		// The caller's budget is shorter than what retrying the proxy would like to spend.
+		ctx, cancel := context.WithTimeout(t.Context(), 300*time.Millisecond)
+		defer cancel()
+		_, body, err := client.GetContext(ctx, upstreamSrv.URL+"/vcek/v1/Milan/crl")
+		require.NoError(t, err)
+		assert.Equal(t, []byte("crl-bytes"), body)
+		assert.Equal(t, int32(1), upstreamHits.Load())
+		assert.True(t, client.proxyInCooldown())
+	})
 }
 
-func newHostGetterClient(getter *fakeHostGetter, collateralProxyBase string) (*CachedHTTPSGetter, *testingclock.FakeClock) {
+const proxyBase = "http://collateral-proxy.default.svc"
+
+func newHostGetterClient(getter *fakeHostGetter) (*CachedHTTPSGetter, *testingclock.FakeClock) {
 	testClock := testingclock.NewFakeClock(time.Now())
 	return &CachedHTTPSGetter{
 		ContextHTTPSGetter:  getter,
@@ -330,7 +399,7 @@ func newHostGetterClient(getter *fakeHostGetter, collateralProxyBase string) (*C
 		clock:               testClock,
 		cache:               memstore.New[string, []byte](),
 		logger:              slog.Default(),
-		collateralProxyBase: collateralProxyBase,
+		collateralProxyBase: proxyBase,
 	}, testClock
 }
 
