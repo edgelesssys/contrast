@@ -18,6 +18,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -170,11 +171,14 @@ func TestValidateAttestation(t *testing.T) {
 			}
 			assert.NoError(err)
 
+			transitions := history.BuildTransitionChain(tc.resp.Manifests)
+			latestTransitionHash := transitions[len(transitions)-1].Digest()
 			expected := &CoordinatorState{
-				Manifests: tc.resp.Manifests,
-				Policies:  tc.resp.Policies,
-				RootCA:    tc.resp.RootCA,
-				MeshCA:    tc.resp.MeshCA,
+				Manifests:            tc.resp.Manifests,
+				Policies:             tc.resp.Policies,
+				RootCA:               tc.resp.RootCA,
+				MeshCA:               tc.resp.MeshCA,
+				LatestTransitionHash: latestTransitionHash[:],
 			}
 
 			assert.Equal(expected, state)
