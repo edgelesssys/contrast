@@ -19,6 +19,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -142,15 +143,18 @@ func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func writeJSONError(w http.ResponseWriter, status int, err error) {
+func writeJSONError(w http.ResponseWriter, statusCode int, err error) {
 	log.Print(err.Error())
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+	w.WriteHeader(statusCode)
 
-	apiErr := &apitypes.AttestationError{
-		Version: constants.Version,
-		Err:     err.Error(),
+	apiErr := &apitypes.APIError{
+		Version:    constants.Version,
+		StatusCode: statusCode,
+		// Unwrap gRPC status errors, so that clients don't see the gRPC framing of an
+		// error that didn't travel over gRPC. For other errors, this is err.Error().
+		Err: status.Convert(err).Message(),
 	}
 	if errEncode := json.NewEncoder(w).Encode(apiErr); errEncode != nil {
 		log.Printf("encoding error response %v failed: %v", err, errEncode)
