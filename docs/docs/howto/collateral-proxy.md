@@ -52,7 +52,7 @@ kubectl apply -f resources/
 With this flag, coordinators and initializers route their AMD KDS and Intel PCS collateral fetches through the proxy instead of contacting the vendor endpoints directly.
 Without the flag, components fetch collateral directly and the proxy isn't required.
 
-The proxy is a soft dependency: if a component can't reach it, the component logs a warning and falls back to fetching directly from the vendor endpoint, then retries the proxy after a short cooldown.
+The proxy is a soft dependency: if a component can't reach it, or it answers with a transient error (5XX, 429), the component logs a warning and falls back to fetching directly from the vendor endpoint, then retries the proxy after a short cooldown.
 
 ### Internal request flow
 
