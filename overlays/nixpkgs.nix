@@ -15,10 +15,10 @@ final: prev:
 
   go_1_26 = prev.go_1_26.overrideAttrs (
     finalAttrs: _prevAttrs: {
-      version = "1.26.5";
+      version = "1.26.6";
       src = final.fetchurl {
         url = "https://go.dev/dl/go${finalAttrs.version}.src.tar.gz";
-        hash = "sha256-SVvkvIcXasVnOS5bQRar2YRm0z17SdQedkzMaXay3EI=";
+        hash = "sha256-oHIcVMaIkBRI13rZs+x+p8R0cwdV/4kTgukuy5P/LLE=";
       };
     }
   );
@@ -26,6 +26,15 @@ final: prev:
   kubernetes-helm = prev.kubernetes-helm.overrideAttrs (_: {
     doCheck = false;
   });
+
+  # aiohttp pulled in via black has timing-sensitive tests that fail under parallel load on our CI builders
+  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+    (_pyFinal: pyPrev: {
+      aiohttp = pyPrev.aiohttp.overridePythonAttrs (_: {
+        doCheck = false;
+      });
+    })
+  ];
 
   erofs-utils = prev.erofs-utils.overrideAttrs (prevAttrs: {
     # The build environment sets SOURCE_DATE_EPOCH to 1980, but as mkfs.erofs
