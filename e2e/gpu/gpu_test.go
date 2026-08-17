@@ -43,6 +43,20 @@ var expectedGPUModels = map[corev1.ResourceName]string{
 	"nvidia.com/pgpu": "H100",
 }
 
+type gpuConfig struct {
+	resource corev1.ResourceName
+	model    string
+	quantity int64
+}
+
+func (c gpuConfig) deploymentName() string {
+	name := gpuDeploymentName + "-" + strings.ToLower(c.model)
+	if c.quantity > 1 {
+		name += "-multi-gpu"
+	}
+	return name
+}
+
 // TestGPU runs e2e tests on an GPU-enabled Contrast.
 func TestGPU(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
@@ -56,16 +70,14 @@ func TestGPU(t *testing.T) {
 
 	nodes, err := ct.Kubeclient.Client.CoreV1().Nodes().List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
-	gpuClass, expectedGPUModel, expectedGPUAmount, err := gpuConfigFromNodes(nodes.Items)
+	gpuConfigs, err := gpuConfigsFromNodes(nodes.Items)
 	require.NoError(t, err)
-	t.Logf("Using GPU resource %s (%s) with quantity %d", gpuClass, expectedGPUModel, expectedGPUAmount)
 
-	deploymentName := gpuDeploymentName
-	if expectedGPUAmount > 1 {
-		deploymentName += "-multi-gpu"
+	var resources []any
+	for _, config := range gpuConfigs {
+		t.Logf("Using GPU resource %s (%s) with quantity %d", config.resource, config.model, config.quantity)
+		resources = append(resources, kuberesource.GPU(config.deploymentName(), string(config.resource), config.quantity)...)
 	}
-
-	resources := kuberesource.GPU(deploymentName, gpuClass, expectedGPUAmount)
 
 	coordinator := kuberesource.CoordinatorBundle()
 
@@ -83,6 +95,18 @@ func TestGPU(t *testing.T) {
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+
+	for _, config := range gpuConfigs {
+		t.Run(config.model, func(t *testing.T) {
+			testGPUDeployment(t, ct, config)
+		})
+	}
+}
+
+func testGPUDeployment(t *testing.T, ct *contrasttest.ContrastTest, config gpuConfig) {
+	deploymentName := config.deploymentName()
+	expectedGPUModel := config.model
+	expectedGPUAmount := config.quantity
 
 	var pod corev1.Pod
 	require.True(t, t.Run("wait for GPU deployment", func(t *testing.T) {
@@ -240,13 +264,21 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// gpuConfigFromNodes determines the GPU resource and model advertised by the
+// gpuConfigsFromNodes determines the GPU resources and models advertised by the
 // sandbox device plugin and whether the test can exercise multi-GPU
-// passthrough with 2 GPUs.
-func gpuConfigFromNodes(nodes []corev1.Node) (string, string, int64, error) {
+// passthrough with 2 GPUs. Multiple resources for the same model, such as the
+// H100-specific resource and pgpu alias, are only tested once.
+func gpuConfigsFromNodes(nodes []corev1.Node) ([]gpuConfig, error) {
 	gpuClasses := slices.Collect(maps.Keys(expectedGPUModels))
 	slices.Sort(gpuClasses)
+	var configs []gpuConfig
+	testedModels := map[string]struct{}{}
 	for _, gpuClass := range gpuClasses {
+		model := expectedGPUModels[gpuClass]
+		if _, ok := testedModels[model]; ok {
+			continue
+		}
+
 		var maxQuantity int64
 		for _, node := range nodes {
 			quantity, ok := node.Status.Allocatable[gpuClass]
@@ -255,8 +287,16 @@ func gpuConfigFromNodes(nodes []corev1.Node) (string, string, int64, error) {
 			}
 		}
 		if maxQuantity > 0 {
-			return string(gpuClass), expectedGPUModels[gpuClass], min(maxQuantity, int64(2)), nil
+			configs = append(configs, gpuConfig{
+				resource: gpuClass,
+				model:    model,
+				quantity: min(maxQuantity, int64(2)),
+			})
+			testedModels[model] = struct{}{}
 		}
+	}
+	if len(configs) > 0 {
+		return configs, nil
 	}
 
 	// No supported class found, so build useful diagnostics.
@@ -270,7 +310,7 @@ func gpuConfigFromNodes(nodes []corev1.Node) (string, string, int64, error) {
 	}
 	slices.Sort(advertised)
 	advertised = slices.Compact(advertised)
-	return "", "", 0, fmt.Errorf("no supported GPU resource found; advertised NVIDIA resources: %v", advertised)
+	return nil, fmt.Errorf("no supported GPU resource found; advertised NVIDIA resources: %v", advertised)
 }
 
 // shouldHaveGPU decides whether a container should have received a GPU mount.
