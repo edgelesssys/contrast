@@ -74,9 +74,12 @@ func TestGPU(t *testing.T) {
 	require.NoError(t, err)
 
 	var resources []any
-	for _, config := range gpuConfigs {
+	for i, config := range gpuConfigs {
 		t.Logf("Using GPU resource %s (%s) with quantity %d", config.resource, config.model, config.quantity)
-		resources = append(resources, kuberesource.GPU(config.deploymentName(), string(config.resource), config.quantity)...)
+		// The hostpath CSI volume is node-local. Exercise the block-device
+		// regression once without preventing other GPU models from running on
+		// their respective nodes.
+		resources = append(resources, kuberesource.GPU(config.deploymentName(), string(config.resource), config.quantity, i == 0)...)
 	}
 
 	coordinator := kuberesource.CoordinatorBundle()
