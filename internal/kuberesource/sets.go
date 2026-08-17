@@ -804,7 +804,8 @@ done
 //
 // gpuClass must be a vendor/class pair, like nvidia.com/GB100_B200.
 // gpuQuantity is the number of GPUs.
-func GPU(name string, gpuClass string, gpuQuantity int64) []any {
+// withBlockDevice adds a block device to the non-GPU container as a regression test.
+func GPU(name string, gpuClass string, gpuQuantity int64, withBlockDevice bool) []any {
 	component := "gpu-test"
 	tester := Deployment(name, "").
 		WithSpec(
@@ -876,6 +877,16 @@ func GPU(name string, gpuClass string, gpuQuantity int64) []any {
 						),
 				),
 		)
+	if !withBlockDevice {
+		tester.Spec.Template.Spec.Volumes = nil
+		for i := range tester.Spec.Template.Spec.Containers {
+			container := &tester.Spec.Template.Spec.Containers[i]
+			if container.Name != nil && *container.Name == "no-gpu" {
+				container.VolumeDevices = nil
+				break
+			}
+		}
+	}
 
 	return []any{tester}
 }
