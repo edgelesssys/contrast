@@ -336,6 +336,11 @@ Add a file [`dev-docs/e2e/<host>/manifest.json`](../e2e) with the values for the
 If the runner is using k3s and the embedded mirror registry, add a corresponding configuration file at `dev-docs/e2e/<host>/contrast-imagepuller.toml`.
 Push the branch and run the `update_bm_tcb_specs` workflow on that branch.
 
+These values aren't set once and forgotten.
+Updating a TDX host's firmware regenerates the platform's SGX provisioning keys, which changes the PIID, so `AllowedPIIDs` goes stale and the platform has to be registered with Intel again before it can produce quotes at all.
+Replacing the TDX module changes `MrSeam`.
+Both are covered in the wiki under `infrastructure/firmware_upgrade.md`.
+
 ## Sync Server
 
 **This step only applies to servers owned by Edgeless Systems that don't have an application load balancer.**
