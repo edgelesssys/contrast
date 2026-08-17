@@ -407,6 +407,10 @@ Add a file [`dev-docs/e2e/<host>/manifest.json`](../e2e) with the values for the
 If the runner is using k3s and the embedded mirror registry, add a corresponding configuration file at `dev-docs/e2e/<host>/contrast-imagepuller.toml`.
 Push the branch and run the `update_bm_tcb_specs` workflow on that branch.
 
+These values will need to be updated after a host firmware upgrade or a TDX module change.
+Updating a TDX host's firmware regenerates the platform's SGX provisioning keys, which changes the PIID, so `AllowedPIIDs` goes stale and the platform has to be re-registered with Intel before it can produce quotes again.
+Replacing the TDX module changes `MrSeam`.
+
 ## Test run
 
 First, prepare the missing Kubernetes resources by running the `bm_maintenance` workflow from `main`.
