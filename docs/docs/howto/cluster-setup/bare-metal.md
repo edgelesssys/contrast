@@ -227,27 +227,17 @@ sed -n '/^# Install the GPU Operator$/,/^$/p' ../../../../packages/by-name/scrip
 helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
 
 # Install the GPU Operator
+# The Kata sandbox plugin defaults to the pgpu alias when P_GPU_ALIAS is unset.
+# An explicitly empty value disables the alias and exposes model-specific resources.
 helm install --wait --generate-name \
   -n gpu-operator --create-namespace \
   nvidia/gpu-operator \
-  --version=v25.10.1 \
+  --version=v26.3.3 \
   --set sandboxWorkloads.enabled=true \
   --set sandboxWorkloads.defaultWorkload=vm-passthrough \
-  --set kataManager.enabled=true \
-  --set kataManager.config.runtimeClasses=null \
-  --set kataManager.repository=nvcr.io/nvidia/cloud-native \
-  --set kataManager.image=k8s-kata-manager \
-  --set kataManager.version=v0.2.4 \
-  --set ccManager.enabled=true \
-  --set ccManager.defaultMode=on \
-  --set ccManager.repository=nvcr.io/nvidia/cloud-native \
-  --set ccManager.image=k8s-cc-manager \
-  --set ccManager.version=v0.2.0 \
-  --set sandboxDevicePlugin.repository=ghcr.io/nvidia \
-  --set sandboxDevicePlugin.image=nvidia-sandbox-device-plugin \
-  --set sandboxDevicePlugin.version=8e76fe81 \
-  --set 'sandboxDevicePlugin.env[0].name=P_GPU_ALIAS' \
-  --set 'sandboxDevicePlugin.env[0].value=pgpu' \
+  --set sandboxWorkloads.mode=kata \
+  --set 'kataSandboxDevicePlugin.env[0].name=P_GPU_ALIAS' \
+  --set 'kataSandboxDevicePlugin.env[0].value=' \
   --set nfd.enabled=true \
   --set nfd.nodefeaturerules=true
 ```
@@ -255,74 +245,53 @@ helm install --wait --generate-name \
 
 Refer to the [official installation instructions](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html) for details and further options.
 
-To enable support for Blackwell GPUs, some additional steps are necessary. For Hopper GPUs (for example the `NVIDIA H100 PCIe`), these steps can be skipped.
+Version 26.3 of the GPU operator supports Blackwell GPU detection and confidential-computing configuration without additional node feature or CC manager patches.
+For B300 GPUs, however, a small patch is necessary as the sandbox device plugin bundled with this release carries an outdated PCI database lacking the B300 device ID (`10de:3182`).
 
 <details>
-<summary>Enabling Support for Blackwell GPUs</summary>
+<summary>Enabling Support for B300 GPUs</summary>
 
-First, gather the Blackwell device ID:
-
-```sh
-lspci -nnk | grep '3D controller' -A3
-```
-
-Which yields output like this:
-
-```shell-session
-0000:18:00.0 3D controller [0302]: NVIDIA Corporation GB100 [B200] [10de:2901] (rev a1)
-        Subsystem: NVIDIA Corporation Device [10de:1999]
-        Kernel driver in use: vfio-pci
-        Kernel modules: nvidiafb, nouveau
-```
-
-In this case, the device ID is `2901`. The device ID then needs to be added to the list of supported GPUs:
+A complete current `pci.ids` exceeds the ConfigMap size limit, so retain only the NVIDIA vendor records and PCI class definitions before mounting the database into the sandbox device plugin:
 
 ```sh
-device_id="2901" # replace with your device ID
-current_ids=$(kubectl get daemonset nvidia-cc-manager -n gpu-operator -o jsonpath='{.spec.template.spec.containers[?(@.name=="nvidia-cc-manager")].env[?(@.name=="CC_CAPABLE_DEVICE_IDS")].value}')
-kubectl set env daemonset/nvidia-cc-manager -n gpu-operator -c nvidia-cc-manager CC_CAPABLE_DEVICE_IDS="${current_ids},0x${device_id}"
-```
+pci_ids_path=/path/to/current/pci.ids
+awk '
+  $1 == "10de" && $0 ~ /^[0-9a-f][0-9a-f][0-9a-f][0-9a-f]  / { nvidia = 1 }
+  nvidia && $0 ~ /^[0-9a-f][0-9a-f][0-9a-f][0-9a-f]  / && $1 != "10de" { nvidia = 0 }
+  nvidia { print }
+  $1 == "C" { classes = 1 }
+  classes { print }
+' "$pci_ids_path" |
+  kubectl create configmap nvidia-pci-ids \
+    -n gpu-operator \
+    --from-file=pci.ids=/dev/stdin \
+    --dry-run=client \
+    -o yaml |
+  kubectl apply -f -
 
-Then, the node feature rules need to be patched, so that the nodes with Blackwell GPUs are correctly recognized as nodes that can host GPU workloads.
-For the B200 GPU shown above, the following values should be used:
-
-- `GPU_NAME`: `NVIDIA B200`
-- `GPU_NAME_SHORT`: `B200`
-- `DEVICE_ID`: `2901`
-
-```sh
-kubectl patch nodefeaturerule nvidia-nfd-nodefeaturerules --type='json' -p='[
-  {
-    "op": "add",
-    "path": "/spec/rules/10",
-    "value": {
-      "name": "<GPU_NAME>",
-      "labels": {
-        "nvidia.com/gpu.<GPU_NAME_SHORT>": "true",
-        "nvidia.com/gpu.family": "blackwell"
-      },
-      "matchFeatures": [
-        {
-          "feature": "pci.device",
-          "matchExpressions": {
-            "device": {"op": "In", "value": ["<DEVICE_ID>"]},
-            "vendor": {"op": "In", "value": ["10de"]}
-          }
-        }
-      ]
-    }
-  },
-  {
-    "op": "add",
-    "path": "/spec/rules/11/matchAny/0/matchFeatures/0/matchExpressions/nvidia.com~1gpu.family/value/-",
-    "value": "blackwell"
-  },
-  {
-    "op": "add",
-    "path": "/spec/rules/11/matchAny/1/matchFeatures/0/matchExpressions/nvidia.com~1gpu.family/value/-",
-    "value": "blackwell"
-  }
-]'
+kubectl patch daemonset nvidia-kata-sandbox-device-plugin-daemonset \
+  -n gpu-operator \
+  --type=strategic \
+  --patch='spec:
+    template:
+      spec:
+        containers:
+          - name: nvidia-kata-sandbox-device-plugin-ctr
+            volumeMounts:
+              - name: nvidia-pci-ids
+                mountPath: /usr/share/misc
+                readOnly: true
+        volumes:
+          - name: nvidia-pci-ids
+            emptyDir: null
+            configMap:
+              name: nvidia-pci-ids
+              items:
+                - key: pci.ids
+                  path: pci.ids'
+kubectl rollout status daemonset/nvidia-kata-sandbox-device-plugin-daemonset \
+  -n gpu-operator \
+  --timeout=5m
 ```
 
 </details>
@@ -342,7 +311,7 @@ The above command should yield an output similar to the following, depending on 
 {
   "name": "node-name",
   "gpus": {
-    "nvidia.com/pgpu": "1"
+    "nvidia.com/GB100_B200": "8"
   }
 }
 ```
