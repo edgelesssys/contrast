@@ -7,7 +7,7 @@
   },
   "gpu-operator": {
     "depName": "gpu-operator",
-    "currentValue": "v25.10.1",
+    "currentValue": "v26.3.3",
     "datasource": "helm",
     "versioning": "semver",
     "registryUrl": "https://helm.ngc.nvidia.com/nvidia"
