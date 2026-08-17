@@ -347,6 +347,15 @@ The following command will print a JSON document, containing the hex-encoded PII
 cut -d, -f6 pckid_retrieval.csv | poe-gen-tool extract --type pm /dev/stdin
 ```
 
+:::warning
+
+The `PIID` is derived from the platform's SGX provisioning keys.
+Updating the platform firmware can regenerate those keys, which changes the `PIID` and requires the platform to be registered with Intel again.
+Until it's registered, Intel doesn't issue PCK certificates for the platform, so it can't produce quotes at all.
+After a firmware update, re-extract the `PIID` and update this list.
+
+:::
+
 ### `ReferenceValues.tdx.*.MemoryIntegrity` {#tdx-memory-integrity}
 
 The `MemoryIntegrity` field controls verification of the TDX memory integrity mode (see [TDX Module Spec], chapter 16).
