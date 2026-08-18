@@ -6,6 +6,7 @@
   stdenvNoCC,
   qemu-cc,
   source,
+  tdx-measure,
 }:
 
 {
