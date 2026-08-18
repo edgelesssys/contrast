@@ -24,3 +24,15 @@ func WriteBlob(outputDir, name string, data []byte) error {
 	}
 	return nil
 }
+
+// readBlob reads data from its validated fw_cfg path below blobsDir.
+func readBlob(blobsDir, name string) ([]byte, error) {
+	if !fs.ValidPath(name) {
+		return nil, fmt.Errorf("invalid fw_cfg blob name %q", name)
+	}
+	data, err := os.ReadFile(filepath.Join(blobsDir, filepath.FromSlash(name)))
+	if err != nil {
+		return nil, fmt.Errorf("reading ACPI blob %q: %w", name, err)
+	}
+	return data, nil
+}
