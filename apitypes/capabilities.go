@@ -12,5 +12,5 @@ const APIVersionV1 = "v1"
 // so they can decide whether, and at which version, to use the HTTP API instead of falling back to the gRPC API.
 type CapabilitiesResponse struct {
 	// APIVersions lists the HTTP API versions the Coordinator supports, e.g. ["v1"].
-	APIVersions []string `json:"apiVersions"`
+	APIVersions []string `json:"api_versions"`
 }
