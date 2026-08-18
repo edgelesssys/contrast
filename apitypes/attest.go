@@ -5,11 +5,10 @@ package apitypes
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/asn1"
 	"encoding/json"
 	"fmt"
-
-	"github.com/edgelesssys/contrast/internal/history"
 )
 
 // ReportDataSize is the size of the SNP/TDX REPORTDATA fields.
@@ -98,14 +97,14 @@ type CoordinatorState struct {
 // intended for use with application-level verification.
 func ConstructReportData(nonce []byte, transitionDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
 	// reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mesh-ca))
-	rootCADigest := history.Digest(state.RootCA)
-	meshCADigest := history.Digest(state.MeshCA)
+	rootCADigest := sha256.Sum256(state.RootCA)
+	meshCADigest := sha256.Sum256(state.MeshCA)
 
 	reportdata := append([]byte{}, nonce...)
 	reportdata = append(reportdata, transitionDigest...)
 	reportdata = append(reportdata, rootCADigest[:]...)
 	reportdata = append(reportdata, meshCADigest[:]...)
-	hash32 := history.Digest(reportdata)
+	hash32 := sha256.Sum256(reportdata)
 
 	var hash64 [64]byte
 	copy(hash64[:], hash32[:])
