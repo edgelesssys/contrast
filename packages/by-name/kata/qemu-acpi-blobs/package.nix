@@ -12,6 +12,7 @@
   stdenvNoCC,
   qemu-cc,
   source,
+  tdx-measure,
 }:
 
 # Generates OVMF-measured ACPI blobs for Kata's q35 topology with qtest.
@@ -153,4 +154,20 @@ let
       dontInstall = true;
     };
 in
-mkBlob { inherit vcpus legacySerial memoryMiB; }
+(mkBlob { inherit vcpus legacySerial memoryMiB; }).overrideAttrs (_old: {
+  passthru.tests.regression = tdx-measure.overrideAttrs (_oldTdxMeasure: {
+    pname = "qemu-acpi-blobs-test";
+    # Reference digests use one vCPU; memory does not affect qemu-cc ACPI.
+    ACPI_BLOBS_DEFAULT_DIR = mkBlob {
+      vcpus = 1;
+      legacySerial = false;
+      inherit memoryMiB;
+    };
+    ACPI_BLOBS_LEGACY_SERIAL_DIR = mkBlob {
+      vcpus = 1;
+      legacySerial = true;
+      inherit memoryMiB;
+    };
+    doCheck = true;
+  });
+})
