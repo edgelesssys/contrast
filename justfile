@@ -2,6 +2,7 @@ default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 default_platform := "${default_platform}"
 default_set := "${set}"
+default_registry := "${container_registry}"
 workspace_dir := "workspace"
 default_collateral_proxy := "http://collateral-proxy.default.svc"
 
@@ -9,12 +10,12 @@ default_collateral_proxy := "http://collateral-proxy.default.svc"
 default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (deploy target cli platform) set-manifest verify (wait-for-workload target)
 
 # Build and push a container image.
-push target set=default_set:
+push target set=default_set registry=default_registry:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p {{ workspace_dir }}
-    echo "Pushing container $container_registry/contrast/{{ target }}"
-    nix run -L .#{{ set }}.scripts.containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}" "{{ workspace_dir }}/just.containerlookup" "{{ workspace_dir }}/layers-cache.json"
+    echo "Pushing container {{ registry }}/contrast/{{ target }}"
+    nix run -L .#{{ set }}.scripts.containers.push-{{ target }} -- "{{ registry }}/contrast/{{ target }}" "{{ workspace_dir }}/just.containerlookup" "{{ workspace_dir }}/layers-cache.json"
 
 coordinator: (push "coordinator")
 
@@ -554,12 +555,38 @@ lint:
 unit:
     CGO_ENABLED=1 go test -tags=contrast_unstable_api -v -race ./...
 
-# Run the policy test suite.
-policy: initializer
+# Run a local registry needed for the policy test suite.
+policy-registry:
     #!/usr/bin/env bash
     set -euo pipefail
+    if curl -sf localhost:5000/v2/ > /dev/null; then
+        echo "Registry already running on port 5000."
+        exit 1
+    fi
+    mkdir -p ./{{ workspace_dir }}
+    echo "Setting up registry..."
+    crane registry serve --address localhost:5000 > ./{{ workspace_dir }}/registry.log 2>&1 &
+    PID=$!
+    trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null || true' EXIT
+    just push "initializer" "{{ default_set }}" "localhost:5000"
+    busybox="busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616"
+    crane copy $busybox localhost:5000/$busybox
+    printf "$busybox=localhost:5000/$busybox\n" >> ./{{ workspace_dir }}/just.containerlookup
+    crane copy ghcr.io/edgelesssys/kubernetes/pause:3.6 localhost:5000/kubernetes/pause:3.6
+    echo "Registry is ready."
+    tail -n 0 --pid $PID -f ./{{ workspace_dir }}/registry.log
+
+# Run the policy test suite.
+policy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! curl -sf localhost:5000/v2/ > /dev/null; then
+        echo "Registry not ready, please run 'just policy-registry' first."
+        exit 1
+    fi
+    mkdir -p ./{{ workspace_dir }}
     echo "Running policy tests..."
-    nix run -L .#base.policy-test -- --image-replacements ./{{ workspace_dir }}/just.containerlookup
+    nix run -L .#base.policy-test -- --image-replacements ./{{ workspace_dir }}/just.containerlookup --insecure-registry localhost:5000
 
 # Check links.
 check-links config="external":

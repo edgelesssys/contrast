@@ -5,6 +5,7 @@
   lib,
   buildGoModule,
   contrast,
+  kata,
 }:
 
 buildGoModule (_finalAttrs: {
@@ -35,13 +36,9 @@ buildGoModule (_finalAttrs: {
   modRoot = "policy-test";
 
   preConfigure = ''
-    # The preConfigure hook works on modRoot, but we want to run it in the repository root.
-    actualModRoot=$modRoot
-    modRoot=.
-    ${contrast.cli.preConfigure}
+    install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json policy-test/assets/genpolicy-settings-kata.json
     # Move postConfigure here as well, because the configurePhase already cd's into modRoot.
     ${contrast.cli.postConfigure}
-    modRoot=$actualModRoot
   '';
 
   env.CGO_ENABLED = 0;
