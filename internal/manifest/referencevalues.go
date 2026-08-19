@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	jsonpatch "github.com/evanphx/json-patch/v5"
@@ -147,7 +148,8 @@ func PatchesFromFiles(files []string) (ReferenceValuePatches, error) {
 }
 
 // Patch applies each patch in the given ReferenceValuePatches to r.
-// The json-patches can contain "test"-ops, most commonly for the Plaftorm and/or ProductName.
+// Patches rooted at /snp or /tdx apply to r; all others apply to each reference value.
+// The json-patches can contain "test"-ops, most commonly for the Platform and/or ProductName.
 // If application of a patch fails due to one of the "test"-ops failing, we interpret this
 // as the patch not being intended for the ReferenceValues under consideration.
 func (r *ReferenceValues) Patch(patches ReferenceValuePatches) error {
@@ -173,6 +175,25 @@ func (r *ReferenceValues) Patch(patches ReferenceValuePatches) error {
 		patch, err := jsonpatch.DecodePatch(refValPatch)
 		if err != nil {
 			return fmt.Errorf("decoding specs patch[%d]: %w", i, err)
+		}
+
+		applyToCollection := false
+		for j, operation := range patch {
+			path, err := operation.Path()
+			if err != nil {
+				return fmt.Errorf("decoding specs patch[%d] operation[%d] path: %w", i, j, err)
+			}
+			if path == "/snp" || strings.HasPrefix(path, "/snp/") ||
+				path == "/tdx" || strings.HasPrefix(path, "/tdx/") {
+				applyToCollection = true
+				break
+			}
+		}
+		if applyToCollection {
+			if err := applyPatch(r, patch); err != nil {
+				return fmt.Errorf("applying patch[%d] to reference values: %w", i, err)
+			}
+			continue
 		}
 
 		for j := range r.SNP {
