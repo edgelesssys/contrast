@@ -26,6 +26,9 @@ import (
 //go:embed assets/pod.yml
 var podYaml []byte
 
+//go:embed assets/genpolicy-settings-kata.json
+var genpolicySettings []byte
+
 func main() {
 	cmd := &cobra.Command{
 		Use:   "policy-test",
@@ -33,6 +36,7 @@ func main() {
 		RunE:  execute,
 	}
 	cmd.Flags().String("image-replacements", "", "path to the image replacements file")
+	cmd.Flags().String("insecure-registry", "", "insecure registry to use for generating policies")
 
 	cmd.SilenceUsage = true
 
@@ -55,6 +59,14 @@ func execute(c *cobra.Command, _ []string) error {
 
 	if err := os.WriteFile(filepath.Join(workDir, "pod.yml"), podYaml, 0o644); err != nil {
 		return fmt.Errorf("write pod.yml: %w", err)
+	}
+
+	// Patch the pause image in genpolicy-settings.json to use the insecure registry if specified.
+	if flags.insecureRegistry != "" {
+		genpolicySettings = bytes.ReplaceAll(genpolicySettings, []byte("ghcr.io/edgelesssys/kubernetes/pause"), []byte(flags.insecureRegistry+"/kubernetes/pause"))
+	}
+	if err := os.WriteFile(filepath.Join(workDir, "genpolicy-settings.json"), genpolicySettings, 0o644); err != nil {
+		return fmt.Errorf("write genpolicy-settings.json: %w", err)
 	}
 
 	policy, err := generatePolicy(c.Context(), workDir, flags)
@@ -121,8 +133,10 @@ func generatePolicy(ctx context.Context, workDir string, flags *flags) (string, 
 	args := []string{
 		"--workspace-dir=" + workDir,
 		"--reference-values=Metal-QEMU-SNP",
+		"--settings=" + filepath.Join(workDir, "genpolicy-settings.json"),
 		"--genpolicy-cache-path=" + filepath.Join(workDir, "layers-cache.json"),
 		"--image-replacements=" + flags.imageReplacementsFile,
+		"--insecure-registry=" + flags.insecureRegistry,
 		"--output=" + filepath.Join(workDir, "out.yml"),
 		filepath.Join(workDir, "pod.yml"),
 	}
@@ -183,6 +197,7 @@ func extractPolicy(yaml []byte) (string, error) {
 
 type flags struct {
 	imageReplacementsFile string
+	insecureRegistry      string
 }
 
 func parseFlags(cmd *cobra.Command) (*flags, error) {
@@ -190,7 +205,12 @@ func parseFlags(cmd *cobra.Command) (*flags, error) {
 	if err != nil {
 		return nil, err
 	}
+	insecureRegistry, err := cmd.Flags().GetString("insecure-registry")
+	if err != nil {
+		return nil, err
+	}
 	return &flags{
 		imageReplacementsFile: imageReplacementsFile,
+		insecureRegistry:      insecureRegistry,
 	}, nil
 }
