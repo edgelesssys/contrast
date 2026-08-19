@@ -570,6 +570,13 @@ lint:
 unit:
     CGO_ENABLED=1 go test -tags=contrast_unstable_api -v -race ./...
 
+# Run the policy test suite.
+policy: initializer
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Running policy tests..."
+    nix run -L .#base.policy-test -- --image-replacements ./{{ workspace_dir }}/just.containerlookup
+
 # Check links.
 check-links config="external":
     nix run .#base.nixpkgs.lychee -- --config tools/lychee/config-{{ config }}.toml .
