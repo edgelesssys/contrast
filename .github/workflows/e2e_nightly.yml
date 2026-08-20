@@ -76,6 +76,9 @@ jobs:
 
   tdx-gpu-maintenance:
     name: maintenance Metal-QEMU-TDX-GPU
+    # TODO(charludo): TEMPORARY, revert. TDX-GPU runner is unhealthy (nix-gc
+    # maintenance job times out), blocking the v1.23.1 release. Disabled 2026-08-20.
+    if: false
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -145,6 +148,9 @@ jobs:
 
   tdx-gpu:
     name: Metal-QEMU-TDX-GPU
+    # TODO(charludo): TEMPORARY, revert. TDX-GPU runner is unhealthy (nix-gc
+    # maintenance job times out), blocking the v1.23.1 release. Disabled 2026-08-20.
+    if: false
     needs: tdx-gpu-maintenance
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
@@ -259,9 +265,12 @@ jobs:
             entries+=("{\"title\": \"Metal-QEMU-SNP-DEV\", \"value\": \"$(str="${snp_dev[*]}"; echo "${str// /, }")\"}")
           fi
 
-          if [[ "${#tdx_gpu[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"Metal-QEMU-TDX-GPU\", \"value\": \"$(str="${tdx_gpu[*]}"; echo "${str// /, }")\"}")
-          fi
+          # TODO(charludo): TEMPORARY, revert together with the disabled tdx-gpu jobs.
+          # Their outputs are empty while disabled, which would report every TDX-GPU
+          # maintenance step as failed on every nightly.
+          # if [[ "${#tdx_gpu[@]}" -gt 0 ]]; then
+          #   entries+=("{\"title\": \"Metal-QEMU-TDX-GPU\", \"value\": \"$(str="${tdx_gpu[*]}"; echo "${str// /, }")\"}")
+          # fi
 
           if [[ "${#entries[@]}" -eq 0 ]]; then
             echo "No failures detected, nothing to notify."

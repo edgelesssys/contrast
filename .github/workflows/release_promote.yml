@@ -87,7 +87,10 @@ jobs:
             "release-requirement: e2e nightly / Metal-QEMU-SNP "
             "release-requirement: e2e nightly / Metal-QEMU-TDX "
             "release-requirement: e2e nightly / Metal-QEMU-SNP-GPU "
-            "release-requirement: e2e nightly / Metal-QEMU-TDX-GPU "
+            # TODO(charludo): TEMPORARY, revert. TDX-GPU runner is unhealthy (nix-gc
+            # maintenance job times out). Disabled 2026-08-20, so the job no longer
+            # appears in the nightly run and would be reported as missing here.
+            # "release-requirement: e2e nightly / Metal-QEMU-TDX-GPU "
             "release-requirement: e2e release on "
           )
           missing=()
