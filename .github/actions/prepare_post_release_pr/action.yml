@@ -26,7 +26,7 @@ inputs:
     required: true
   kind:
     description: >
-      Release kind, minor or patch. A patch skips the versioned docs snapshot, the post-release version bump, and the check that checkout_main_ref carries the released version.
+      Release kind, minor or patch. A patch skips the versioned docs snapshot and the post-release version bump, and only requires checkout_main_ref to be at or ahead of the released version.
     required: false
     default: minor
   github_token:
@@ -52,18 +52,35 @@ runs:
         ref: ${{ inputs.checkout_main_ref }}
         path: contrast-main
         persist-credentials: false
-    - name: Verify main version matches release
-      if: inputs.kind == 'minor'
+    - name: Verify main version
       shell: bash
       working-directory: contrast-main
       env:
         EXPECTED_VERSION: ${{ inputs.without_v }}
+        KIND: ${{ inputs.kind }}
       run: |
         actual=$(sed 's/-.*$//' version.txt)
-        if [[ "${actual}" != "${EXPECTED_VERSION}" ]]; then
-          echo "::error::checkout_main_ref version.txt base version is ${actual}, expected ${EXPECTED_VERSION}."
-          exit 1
-        fi
+        case "${KIND}" in
+          minor)
+            if [[ "${actual}" != "${EXPECTED_VERSION}" ]]; then
+              echo "::error::checkout_main_ref version.txt base version is ${actual}, expected ${EXPECTED_VERSION}."
+              exit 1
+            fi
+            ;;
+          patch)
+            # A patch is cut from release/*, while main has already moved on to the
+            # next minor, so only the ordering can be checked here.
+            oldest=$(printf '%s\n%s\n' "${actual}" "${EXPECTED_VERSION}" | sort -V | head -1)
+            if [[ "${oldest}" != "${EXPECTED_VERSION}" ]]; then
+              echo "::error::checkout_main_ref version.txt base version is ${actual}, expected at least ${EXPECTED_VERSION}."
+              exit 1
+            fi
+            ;;
+          *)
+            echo "::error::Unknown release kind ${KIND}, expected minor or patch."
+            exit 1
+            ;;
+        esac
     - uses: ./.github/actions/setup_nix
       with:
         githubToken: ${{ inputs.github_token }}
