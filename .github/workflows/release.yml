@@ -260,6 +260,7 @@ jobs:
           pr_branch_suffix: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           create_docs_release: ${{ inputs.kind == 'minor' }}
           bump_version: ${{ inputs.kind == 'minor' }}
+          verify_main_version: ${{ inputs.kind == 'minor' }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           nunki_ci_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
