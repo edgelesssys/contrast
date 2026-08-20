@@ -24,19 +24,11 @@ inputs:
   pr_branch_suffix:
     description: Suffix for the automated PR branch (automated/update-main-after-<suffix>)
     required: true
-  create_docs_release:
-    description: Whether to create a versioned docs snapshot
-    required: false
-    default: 'true'
-  bump_version:
-    description: Whether to bump the flake version post-release
-    required: false
-    default: 'true'
-  verify_main_version:
+  kind:
     description: >
-      Whether checkout_main_ref's version.txt must match the release version. On a patch, main is already a minor ahead and no ref carries the patch version.
+      Release kind, minor or patch. A patch skips the versioned docs snapshot, the post-release version bump, and the check that checkout_main_ref carries the released version.
     required: false
-    default: 'true'
+    default: minor
   github_token:
     description: GitHub token
     required: true
@@ -61,7 +53,7 @@ runs:
         path: contrast-main
         persist-credentials: false
     - name: Verify main version matches release
-      if: inputs.verify_main_version == 'true'
+      if: inputs.kind == 'minor'
       shell: bash
       working-directory: contrast-main
       env:
@@ -82,7 +74,7 @@ runs:
         git config --global user.name "edgelessci"
         git config --global user.email "edgelessci@users.noreply.github.com"
     - name: Create docs release
-      if: inputs.create_docs_release == 'true'
+      if: inputs.kind == 'minor'
       shell: bash
       working-directory: contrast-main/docs
       env:
@@ -149,7 +141,7 @@ runs:
         git clean -fx :/
         git reset --hard HEAD
     - name: Bump flake version to post release pre-version
-      if: inputs.bump_version == 'true'
+      if: inputs.kind == 'minor'
       id: bump
       uses: ./.github/actions/bump_version
       with:
