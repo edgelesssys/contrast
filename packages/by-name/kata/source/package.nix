@@ -6,9 +6,11 @@
   applyPatches,
   rustPlatform,
   callPackage,
+  lib,
+  stdenv,
+  open-policy-agent,
   protobuf,
   pkg-config,
-  pkgs,
   openssl,
   libseccomp,
   lvm2,
@@ -184,11 +186,10 @@ rec {
       ./0026-genpolicy-unconditionally-skip-guest-pull-security-c.patch
     ];
 
-    nativeBuildInputs = with pkgs; [
-      open-policy-agent
-    ];
+    # The rules.rego unit tests only run on linux, since open-policy-agent fails to build on darwin.
+    nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [ open-policy-agent ];
 
-    postPatch = ''
+    postPatch = lib.optionalString stdenv.hostPlatform.isLinux ''
       echo "running unit tests for rules.rego" >&2
       testdir=$(mktemp -d)
       cp src/tools/genpolicy/rules.rego ${./rules_test.rego} "$testdir"
