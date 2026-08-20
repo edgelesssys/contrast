@@ -152,7 +152,13 @@ jobs:
         env:
           IMAGE: ${{ inputs.image }}
         run: |
+          nodes=$(kubectl get nodes -l "ci.contrast.edgeless.systems/runner-host=${RUNNER_NAME}" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
+          if [[ -z "${nodes}" ]]; then
+            echo "::error::no node labeled ci.contrast.edgeless.systems/runner-host=${RUNNER_NAME}"
+            exit 1
+          fi
           sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/nix-gc.yml
+          sed -i "s#@@REPLACE_RUNNER@@#${RUNNER_NAME}#g" ./tools/bm-maintenance/nix-gc.yml
           kubectl apply -f ./tools/bm-maintenance/nix-gc.yml
       - name: Wait for nix garbage collection job
         id: update
