@@ -32,6 +32,11 @@ inputs:
     description: Whether to bump the flake version post-release
     required: false
     default: 'true'
+  verify_main_version:
+    description: >
+      Whether checkout_main_ref's version.txt must match the release version. On a patch, main is already a minor ahead and no ref carries the patch version.
+    required: false
+    default: 'true'
   github_token:
     description: GitHub token
     required: true
@@ -56,6 +61,7 @@ runs:
         path: contrast-main
         persist-credentials: false
     - name: Verify main version matches release
+      if: inputs.verify_main_version == 'true'
       shell: bash
       working-directory: contrast-main
       env:
