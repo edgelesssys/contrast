@@ -194,10 +194,12 @@ jobs:
             node-installer-target-conf: k3s
             linux-runner: TDX
             is-public: false
-          - name: Metal-QEMU-TDX-GPU
-            node-installer-target-conf: none
-            linux-runner: TDX-GPU
-            is-public: true
+            # TODO(charludo): TEMPORARY, revert. TDX-GPU runner is unhealthy (nix-gc
+            # maintenance job times out), blocking the v1.23.1 release. Disabled 2026-08-20.
+            # - name: Metal-QEMU-TDX-GPU
+            #   node-installer-target-conf: none
+            #   linux-runner: TDX-GPU
+            #   is-public: true
         cli-arch:
           - x86_64-linux
           - aarch64-darwin
