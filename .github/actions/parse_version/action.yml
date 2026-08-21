@@ -40,6 +40,9 @@ outputs:
   previous_minor_tag:
     description: Previous minor release tag, e.g. v1.1.0. Empty if minor is 0.
     value: ${{ steps.parse.outputs.previous_minor_tag }}
+  previous_patch_tag:
+    description: Previous patch release tag in the same minor series, e.g. v1.2.2. Empty if patch is 0.
+    value: ${{ steps.parse.outputs.previous_patch_tag }}
 
 runs:
   using: composite
@@ -69,5 +72,10 @@ runs:
             echo "previous_minor_tag=v${PART_MAJOR}.$((PART_MINOR - 1)).0"
           else
             echo "previous_minor_tag="
+          fi
+          if (( PART_PATCH > 0 )); then
+            echo "previous_patch_tag=v${PART_MAJOR}.${PART_MINOR}.$((PART_PATCH - 1))"
+          else
+            echo "previous_patch_tag="
           fi
         } | tee -a "$GITHUB_OUTPUT"

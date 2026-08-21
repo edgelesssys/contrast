@@ -49,7 +49,11 @@ jobs:
       NEXT_MINOR: ${{ steps.version-info.outputs.next_minor }}
       NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.next_minor_pre_without_v }}
       NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.next_patch_pre_without_v }}
-      PREVIOUS_MINOR_TAG: ${{ steps.version-info.outputs.previous_minor_tag }}
+      # A patch diffs against the previous patch in the same series, not the
+      # previous minor, which would replay the whole preceding minor release.
+      # Patch releases are verified to have Z > 0 below, so previous_patch_tag
+      # is always set when kind is patch.
+      PREVIOUS_TAG: ${{ inputs.kind == 'patch' && steps.version-info.outputs.previous_patch_tag || steps.version-info.outputs.previous_minor_tag }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -124,7 +128,7 @@ jobs:
           container_registry: ${{ env.container_registry }}
           commit_version_bump: 'true'
           next_patch_pre_without_v: ${{ needs.process-inputs.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
-          previous_tag: ${{ needs.process-inputs.outputs.PREVIOUS_MINOR_TAG }}
+          previous_tag: ${{ needs.process-inputs.outputs.PREVIOUS_TAG }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
@@ -288,7 +292,7 @@ jobs:
       - uses: ./.github/actions/regenerate_release_notes
         with:
           version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
-          previous_tag: ${{ needs.process-inputs.outputs.PREVIOUS_MINOR_TAG }}
+          previous_tag: ${{ needs.process-inputs.outputs.PREVIOUS_TAG }}
           github_token: ${{ github.token }}
       - name: Publish release
         env:
