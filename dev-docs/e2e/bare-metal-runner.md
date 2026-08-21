@@ -78,6 +78,14 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 
 These steps depend on the Kubernetes distribution used for this runner.
 
+Besides `ci.contrast.edgeless.systems/main-runner=true`, which several bare-metal nodes of a cluster may carry, the runner's own node needs a label with the runner name registered with GitHub (`dgx-007`, `olimar`, ...).
+The nix garbage collection job selects on it, because only the machine hosting the runner has the nix store it collects.
+Once the node has joined the cluster, apply the label with:
+
+```bash
+kubectl label node <node> ci.contrast.edgeless.systems/runner-host=<runner name>
+```
+
 ### K3s
 
 Add K3s configuration override

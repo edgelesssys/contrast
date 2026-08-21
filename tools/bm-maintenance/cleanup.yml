@@ -51,7 +51,7 @@ spec:
       name: cleanup-maintenance
     spec:
       nodeSelector:
-        ci.contrast.edgeless.systems/main-runner: "true"
+        kubernetes.io/hostname: "@@REPLACE_NODE@@"
       serviceAccountName: cleanup-sa
       hostPID: true
       containers:

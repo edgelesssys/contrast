@@ -14,7 +14,7 @@ spec:
       name: nix-garbage-collection
     spec:
       nodeSelector:
-        ci.contrast.edgeless.systems/main-runner: "true"
+        ci.contrast.edgeless.systems/runner-host: "@@REPLACE_RUNNER@@"
       hostPID: true
       containers:
         - name: nix-garbage-collection
