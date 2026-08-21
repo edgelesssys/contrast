@@ -22,11 +22,11 @@ This draft release can be promoted to actual release.
 
 6. Review and merge the auto generated update PR for `main`.
 
-7. Review the release notes. If label/title/description changes are necessary, change them on the original PR itself.
+7. Review the release notes. If label/title/description changes are necessary, change them on the original PR itself, then regenerate the notes on the draft (see [Editing the release notes](#editing-the-release-notes)).
 
 8. Approve the `Publish release` job in the GitHub Actions workflow run.
 
-9. Check that the publish job succeeds and confirm the release notes on GitHub were regenerated against the now-existing tag.
+9. Check that the publish job succeeds.
 
 ## Minor, manually
 
@@ -56,7 +56,7 @@ If you need to include new changes merged into main since the last successful ni
     gh workflow run release.yml --ref $(git rev-parse --abbrev-ref HEAD) -f kind=minor -f version="$REL_VER"
     ```
 
-6. Review the release notes. If label/title/description changes are necessary, change them on the PR itself, then regenerate. Ensure the release is based on the latest minor, not patch release. Test the binary artifact.
+6. Review the release notes and make any manual edits now (see [Editing the release notes](#editing-the-release-notes)). If label/title/description changes are necessary, change them on the PR itself, then regenerate. Ensure the release is based on the latest minor, not patch release. Test the binary artifact.
 
 7. Send Privatemode a message to review the release artifacts and wait for their feedback. The S3 link is in the `Pre-release artifacts` job summary of the `release.yml` run.
 
@@ -106,7 +106,7 @@ If you need to include new changes merged into main since the last successful ni
     gh workflow run release.yml --ref $(git rev-parse --abbrev-ref HEAD) -f kind=patch -f version="$REL_VER" --repo edgelesssys/contrast
     ```
 
-6. Review the release notes. If label/title/description changes are necessary, change them on the PR itself, then regenerate. Ensure the release is based on the latest patch release. Test the binary artifact.
+6. Review the release notes and make any manual edits now (see [Editing the release notes](#editing-the-release-notes)). If label/title/description changes are necessary, change them on the PR itself, then regenerate. Ensure the release is based on the latest patch release. Test the binary artifact.
 
 7. Send Privatemode a message to review the release artifacts and wait for their feedback. The S3 link is in the `Pre-release artifacts` job summary of the `release.yml` run.
 
@@ -117,3 +117,21 @@ If you need to include new changes merged into main since the last successful ni
 10. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
 
 11. Check that the release publish action succeeds.
+
+## Editing the release notes
+
+The notes are generated once, when the draft release is created.
+Whatever the draft says when you approve `Publish release` is what ships.
+
+Fix the labels and titles on the PRs, then hit _Generate release notes_ on the draft.
+Check the _Previous tag_ the UI picked: for a patch it must be the previous patch, so `v1.23.0` for `v1.23.1`.
+
+Edit the body by hand for anything that isn't auto generated, such as PRs from a GHSA temporary private fork.
+
+```markdown
+### :warning: Security fixes
+
+* Fixes [GHSA-xxxx-xxxx-xxxx](https://github.com/edgelesssys/contrast/security/advisories/GHSA-xxxx-xxxx-xxxx)
+```
+
+The link is dead until the GHSA is published, which is OK.

@@ -289,11 +289,6 @@ jobs:
           RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
         # release/* requires linear history so this push must be a fast-forward.
         run: git push origin "refs/tags/${VERSION}^{commit}:refs/heads/${RELEASE_BRANCH}"
-      - uses: ./.github/actions/regenerate_release_notes
-        with:
-          version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
-          previous_tag: ${{ needs.process-inputs.outputs.PREVIOUS_TAG }}
-          github_token: ${{ github.token }}
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
