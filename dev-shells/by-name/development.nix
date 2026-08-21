@@ -12,6 +12,7 @@
   gotools,
   just,
   kubectl,
+  kubernetes-helm,
   yq-go,
   # keep-sorted end
   mkShell,
@@ -35,6 +36,7 @@ mkShell {
     gotools
     just
     kubectl
+    kubernetes-helm
     yq-go
     # keep-sorted end
   ]
