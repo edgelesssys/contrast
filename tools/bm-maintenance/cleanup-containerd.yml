@@ -14,7 +14,7 @@ spec:
       name: containerd-cleanup-maintenance
     spec:
       nodeSelector:
-        ci.contrast.edgeless.systems/main-runner: "true"
+        kubernetes.io/hostname: "@@REPLACE_NODE@@"
       containers:
         - name: cleanup
           image: "@@REPLACE_IMAGE@@"

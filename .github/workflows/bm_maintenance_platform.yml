@@ -76,7 +76,7 @@ jobs:
   cleanup:
     name: "Cleanup ${{ inputs.platform-name }}"
     runs-on: ${{ inputs.runner }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     outputs:
       result: ${{ steps.update.outputs.result }}
     permissions:
@@ -86,18 +86,24 @@ jobs:
         with:
           persist-credentials: false
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      - name: Apply resources
+      - name: Clean up each node
+        id: update
         env:
           IMAGE: ${{ inputs.image }}
         run: |
           K3S_VERSION=$(jq -r '.k3s.currentValue' ./tools/bm-maintenance/versions.json)
-          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup.yml
-          sed -i "s#@@REPLACE_K3S_VERSION@@#${K3S_VERSION}#g" ./tools/bm-maintenance/cleanup.yml
-          kubectl apply -f ./tools/bm-maintenance/cleanup.yml
-      - name: Wait for cleanup job
-        id: update
-        run: |
-          kubectl wait -n maintenance-cleanup --for=condition=complete --timeout=600s job/cleanup-maintenance
+          nodes=$(kubectl get nodes -l ci.contrast.edgeless.systems/main-runner=true --field-selector spec.unschedulable=false -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
+          if [[ -z "${nodes}" ]]; then
+            echo "::error::no node labeled ci.contrast.edgeless.systems/main-runner=true"
+            exit 1
+          fi
+          while IFS= read -r node; do
+            kubectl delete job -n maintenance-cleanup cleanup-maintenance --ignore-not-found
+            sed -e "s#@@REPLACE_IMAGE@@#${IMAGE}#g" -e "s#@@REPLACE_K3S_VERSION@@#${K3S_VERSION}#g" -e "s#@@REPLACE_NODE@@#${node}#g" \
+              ./tools/bm-maintenance/cleanup.yml | kubectl apply -f -
+            kubectl wait -n maintenance-cleanup --for=condition=complete --timeout=600s job/cleanup-maintenance
+            kubectl logs -n maintenance-cleanup job/cleanup-maintenance || true
+          done <<< "${nodes}"
           echo "result=success" >> "$GITHUB_OUTPUT"
       - name: Collect logs and cleanup
         if: always()
@@ -108,7 +114,7 @@ jobs:
   cleanup-containerd:
     name: "Cleanup Containerd ${{ inputs.platform-name }}"
     runs-on: ${{ inputs.runner }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     outputs:
       result: ${{ steps.update.outputs.result }}
     permissions:
@@ -118,16 +124,23 @@ jobs:
         with:
           persist-credentials: false
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      - name: Apply resources
+      - name: Clean containerd on each node
+        id: update
         env:
           IMAGE: ${{ inputs.image }}
         run: |
-          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup-containerd.yml
-          kubectl apply -f ./tools/bm-maintenance/cleanup-containerd.yml
-      - name: Wait for cleanup job
-        id: update
-        run: |
-          kubectl wait -n maintenance-containerd-cleanup --for=condition=complete --timeout=600s job/containerd-cleanup-maintenance
+          nodes=$(kubectl get nodes -l ci.contrast.edgeless.systems/main-runner=true --field-selector spec.unschedulable=false -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
+          if [[ -z "${nodes}" ]]; then
+            echo "::error::no node labeled ci.contrast.edgeless.systems/main-runner=true"
+            exit 1
+          fi
+          while IFS= read -r node; do
+            kubectl delete job -n maintenance-containerd-cleanup containerd-cleanup-maintenance --ignore-not-found
+            sed -e "s#@@REPLACE_IMAGE@@#${IMAGE}#g" -e "s#@@REPLACE_NODE@@#${node}#g" \
+              ./tools/bm-maintenance/cleanup-containerd.yml | kubectl apply -f -
+            kubectl wait -n maintenance-containerd-cleanup --for=condition=complete --timeout=600s job/containerd-cleanup-maintenance
+            kubectl logs -n maintenance-containerd-cleanup job/containerd-cleanup-maintenance || true
+          done <<< "${nodes}"
           echo "result=success" >> "$GITHUB_OUTPUT"
       - name: Collect logs and cleanup
         if: always()
