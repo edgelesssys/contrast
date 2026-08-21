@@ -102,7 +102,6 @@ else
               cleanup-images
               cleanup-containerd
               nix-gc
-              upgrade-gpu-operator
               sev-snp-measure-consistency
               ;
           }
