@@ -284,10 +284,6 @@ jobs:
           RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
         # release/* requires linear history so this push must be a fast-forward.
         run: git push origin "refs/tags/${VERSION}^{commit}:refs/heads/${RELEASE_BRANCH}"
-      - name: Delete temporary working branch
-        env:
-          WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-        run: git push origin --delete "${WORKING_BRANCH}" || true
       - uses: ./.github/actions/regenerate_release_notes
         with:
           version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
@@ -299,6 +295,13 @@ jobs:
           VERSION: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
         run: |
           gh release edit "${VERSION}" --draft=false --repo "${{ github.repository }}"
+      # Must run after the release is published: while the release is a draft,
+      # this branch is its target_commitish, and GitHub rejects every edit to
+      # the release (including --draft=false) once the branch is gone.
+      - name: Delete temporary working branch
+        env:
+          WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+        run: git push origin --delete "${WORKING_BRANCH}" || true
 
   prepare-github-release:
     name: Create backport label and milestone
