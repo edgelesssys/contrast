@@ -3,20 +3,24 @@
 
 {
   writeShellApplication,
-  busybox,
+  coreutils,
+  gnugrep,
   jq,
   kubectl,
   kubernetes-helm,
+  yq-go,
 }:
 
 # Usage: upgrade-gpu-operator --version <version>
 writeShellApplication {
   name = "upgrade-gpu-operator";
   runtimeInputs = [
-    busybox
+    coreutils
+    gnugrep
     jq
     kubectl
     kubernetes-helm
+    yq-go
   ];
   text = builtins.readFile ./upgrade-gpu-operator.sh;
 }

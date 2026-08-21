@@ -33,6 +33,7 @@ jobs:
   update-resources:
     name: "Update resources ${{ inputs.platform-name }}"
     runs-on: ${{ inputs.runner }}
+    timeout-minutes: 30
     outputs:
       result: ${{ steps.report.outputs.result }}
     env:
