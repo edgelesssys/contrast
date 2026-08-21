@@ -46,6 +46,15 @@ Follow Intel's [TDX Enabling Guide](https://cc-enabling.trustedservices.intel.co
 When deciding to update the Intel TDX module, be aware that the latest module might be incompatible with your CPU or host firmware.
 Make sure to keep a backup of all files you're overwriting in this step until you're sure that the new module works correctly.
 
+:::warning
+
+Updating platform firmware can regenerate the platform's SGX provisioning keys, giving the platform a new PPID, QE ID and `PIID`.
+Intel doesn't issue PCK certificates for an unregistered platform, so the host can't produce attestation quotes and confidential VMs fail to start.
+
+After a firmware update, register the platform again using Intel's `PCKIDRetrievalTool`, then update the [`MrSeam`](../../architecture/components/manifest.md#tdx-mr-seam) and [`AllowedPIIDs`](../../architecture/components/manifest.md#tdx-allowed-piids) values in your manifest, since a firmware update can change both.
+
+:::
+
 </TabItem>
 </Tabs>
 
