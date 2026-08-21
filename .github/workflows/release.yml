@@ -248,9 +248,7 @@ jobs:
           without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
           next_minor_pre_without_v: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
           pr_branch_suffix: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-          create_docs_release: ${{ inputs.kind == 'minor' }}
-          bump_version: ${{ inputs.kind == 'minor' }}
-          verify_main_version: ${{ inputs.kind == 'minor' }}
+          kind: ${{ inputs.kind }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           nunki_ci_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
