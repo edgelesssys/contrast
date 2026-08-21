@@ -2,11 +2,3 @@ self-hosted-runner:
   labels:
     - SNP
     - TDX
-
-paths:
-  .github/workflows/e2e_nightly.yml:
-    ignore:
-      # TODO(charludo): TEMPORARY, revert together with the disabled TDX-GPU jobs.
-      # `if: false` is deliberate there: it keeps the job definitions and the
-      # `needs:` graph intact while the runner is unhealthy.
-      - 'constant expression "false" in condition'
