@@ -218,7 +218,8 @@ For a GPU-enabled Contrast cluster, you can then deploy the operator with the fo
 <!-- > sh $
 sed -n '/^# Add the NVIDIA Helm repository$/,/^$/p' ../../../../packages/by-name/scripts/upgrade-gpu-operator/upgrade-gpu-operator.sh
 sed -n '/^# Install the GPU Operator$/,/^$/p' ../../../../packages/by-name/scripts/upgrade-gpu-operator/upgrade-gpu-operator.sh |
-  sed '$d' | sed "s/\"\$GPU_OPERATOR_VERSION\"/$GPU_OPERATOR_VERSION/g"
+  sed '$d' | sed "s/\"\$GPU_OPERATOR_VERSION\"/$GPU_OPERATOR_VERSION/g" |
+  sed 's/"\$RELEASE"/gpu-operator/g'
 -->
 
 <!-- BEGIN mdsh -->
@@ -229,7 +230,7 @@ helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
 # Install the GPU Operator
 # The Kata sandbox plugin defaults to the pgpu alias when P_GPU_ALIAS is unset.
 # An explicitly empty value disables the alias and exposes model-specific resources.
-helm install --wait --generate-name \
+helm upgrade --install gpu-operator --wait \
   -n gpu-operator --create-namespace \
   nvidia/gpu-operator \
   --version=v26.3.3 \
