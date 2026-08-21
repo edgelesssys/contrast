@@ -71,18 +71,38 @@ helm upgrade --install "$RELEASE" --wait \
 
 # The API server drops any ClusterPolicy field the installed CRD doesn't declare,
 # without erroring, and the operator then reports itself ready having deployed no
-# device plugin. Assert the settings above actually survived, so a stale CRD fails
-# here instead of silently producing a GPU-less node.
-if ! kubectl get clusterpolicy -o json |
-  jq -e '.items[0].spec
-         | .sandboxWorkloads.mode == "kata"
-           and ([.kataSandboxDevicePlugin.env[]? | select(.name == "P_GPU_ALIAS")] | length == 1)' >/dev/null; then
-  echo "ERROR: the ClusterPolicy did not retain the kata sandbox device plugin settings." >&2
-  echo "This usually means clusterpolicies.nvidia.com is older than the chart being installed." >&2
-  echo -n "  CRD created: " >&2
-  kubectl get crd clusterpolicies.nvidia.com -o jsonpath='{.metadata.creationTimestamp}{"\n"}' >&2
-  kubectl get clusterpolicy -o json | jq '.items[0].spec | {sandboxWorkloads, kataSandboxDevicePlugin}' >&2
-  exit 1
+# device plugin. Check that the settings above actually reached the live object.
+clusterpolicy_matches_chart() {
+  kubectl get clusterpolicy -o json |
+    jq -e '.items[0].spec
+           | .sandboxWorkloads.mode == "kata"
+             and ([.kataSandboxDevicePlugin.env[]? | select(.name == "P_GPU_ALIAS")] | length == 1)' >/dev/null
+}
+
+if ! clusterpolicy_matches_chart; then
+  # Helm's three-way merge only patches fields that differ between the previously
+  # rendered manifest and the new one, so a ClusterPolicy that was pruned when it
+  # was first written matches neither revision and helm leaves it untouched. The
+  # CRD is current by this point, so re-applying what helm rendered converges it.
+  # Helm owns .metadata and .spec here and the operator only owns .status, so this
+  # doesn't contend with the operator.
+  echo "WARNING: the live ClusterPolicy doesn't match the chart, reconciling it." >&2
+  helm get manifest "$RELEASE" -n gpu-operator |
+    yq 'select(.kind == "ClusterPolicy")' |
+    kubectl apply -f -
+
+  if ! clusterpolicy_matches_chart; then
+    echo "ERROR: the ClusterPolicy still doesn't carry the kata sandbox device plugin settings." >&2
+    echo "The clusterpolicies.nvidia.com CRD is probably older than the chart being installed" >&2
+    echo "and is pruning them. Note that a CRD updated in place keeps its original" >&2
+    echo "creationTimestamp, so check the schema rather than the age:" >&2
+    kubectl get crd clusterpolicies.nvidia.com -o json |
+      jq '.spec.versions[0].schema.openAPIV3Schema.properties.spec.properties
+          | {has_kataSandboxDevicePlugin: has("kataSandboxDevicePlugin"),
+             has_sandboxWorkloads_mode: (.sandboxWorkloads.properties | has("mode"))}' >&2
+    kubectl get clusterpolicy -o json | jq '.items[0].spec | {sandboxWorkloads, kataSandboxDevicePlugin}' >&2
+    exit 1
+  fi
 fi
 
 # Bounded: an operator that never deploys a device plugin would otherwise spin here
