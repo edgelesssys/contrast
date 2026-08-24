@@ -103,7 +103,13 @@ jobs:
             kubectl delete job -n maintenance-cleanup cleanup-maintenance --ignore-not-found
             sed -e "s#@@REPLACE_IMAGE@@#${IMAGE}#g" -e "s#@@REPLACE_K3S_VERSION@@#${K3S_VERSION}#g" -e "s#@@REPLACE_NODE@@#${node}#g" \
               ./tools/bm-maintenance/cleanup.yml | kubectl apply -f -
-            kubectl wait -n maintenance-cleanup --for=condition=complete --timeout=600s job/cleanup-maintenance || failed=1
+            if ! kubectl wait -n maintenance-cleanup --for=condition=complete --timeout=600s job/cleanup-maintenance; then
+              failed=1
+              echo "::error::cleanup failed on ${node}"
+              kubectl get pods -n maintenance-cleanup -o wide || true
+              kubectl describe job -n maintenance-cleanup cleanup-maintenance || true
+              kubectl events -n maintenance-cleanup || true
+            fi
             kubectl logs -n maintenance-cleanup job/cleanup-maintenance || true
           done
           [[ ${failed} -eq 0 ]]
@@ -142,7 +148,13 @@ jobs:
             kubectl delete job -n maintenance-containerd-cleanup containerd-cleanup-maintenance --ignore-not-found
             sed -e "s#@@REPLACE_IMAGE@@#${IMAGE}#g" -e "s#@@REPLACE_NODE@@#${node}#g" \
               ./tools/bm-maintenance/cleanup-containerd.yml | kubectl apply -f -
-            kubectl wait -n maintenance-containerd-cleanup --for=condition=complete --timeout=600s job/containerd-cleanup-maintenance || failed=1
+            if ! kubectl wait -n maintenance-containerd-cleanup --for=condition=complete --timeout=600s job/containerd-cleanup-maintenance; then
+              failed=1
+              echo "::error::containerd cleanup failed on ${node}"
+              kubectl get pods -n maintenance-containerd-cleanup -o wide || true
+              kubectl describe job -n maintenance-containerd-cleanup containerd-cleanup-maintenance || true
+              kubectl events -n maintenance-containerd-cleanup || true
+            fi
             kubectl logs -n maintenance-containerd-cleanup job/containerd-cleanup-maintenance || true
           done
           [[ ${failed} -eq 0 ]]
@@ -184,6 +196,12 @@ jobs:
         run: |
           kubectl wait -n maintenance-nix-gc --for=condition=complete --timeout=600s job/nix-garbage-collection
           echo "result=success" >> "$GITHUB_OUTPUT"
+      - name: Collect diagnostics
+        if: failure()
+        run: |
+          kubectl get pods -n maintenance-nix-gc -o wide || true
+          kubectl describe jobs -n maintenance-nix-gc || true
+          kubectl events -n maintenance-nix-gc || true
       - name: Collect logs and cleanup
         if: always()
         run: |
