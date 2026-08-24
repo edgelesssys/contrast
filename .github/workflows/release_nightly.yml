@@ -178,6 +178,7 @@ jobs:
       - uses: ./.github/actions/release_e2e_test
         with:
           version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+          without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
           s3_base_url: ${{ needs.release-x86_64-linux.outputs.ARTIFACTS_URL }}
           container_registry: ${{ env.container_registry }}
           platform_name: ${{ matrix.platform.name }}

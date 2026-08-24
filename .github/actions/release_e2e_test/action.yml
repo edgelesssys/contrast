@@ -5,6 +5,10 @@ inputs:
   version:
     description: Release tag to test against, e.g. v1.2.3
     required: true
+  without_v:
+    description: >
+      Base version without the v prefix and without any pre-release suffix, e.g. 1.2.3. Must be the same value the build job was given, since it decides which derivations are in cachix.
+    required: true
   s3_base_url:
     description: If set, fetch release artifacts from this base HTTPS URL in S3 instead of from the Github release.
     required: false
@@ -60,6 +64,18 @@ inputs:
 runs:
   using: composite
   steps:
+    # The checked-out tree's version isn't the one the build job built and cached, so without
+    # this nix rebuilds the whole x86_64-linux closure, which darwin runners can't do at all.
+    - name: Verify the release version was reported
+      shell: bash
+      env:
+        WITHOUT_V: ${{ inputs.without_v }}
+      run: test -n "${WITHOUT_V}" || { echo "without_v is empty, refusing to test an unknown version"; exit 1; }
+    - name: Align version.txt with the version that was built
+      uses: ./.github/actions/bump_version
+      with:
+        version: ${{ inputs.without_v }}
+        commit: false
     - uses: ./.github/actions/setup_nix
       if: inputs.self_hosted != 'true'
       with:
