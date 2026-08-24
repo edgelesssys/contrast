@@ -87,7 +87,13 @@ gcloud iam workload-identity-pools providers create-oidc "${PROVIDER}" \
   --display-name "GitHub" \
   --issuer-uri "https://token.actions.githubusercontent.com" \
   --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner,attribute.ref=assertion.ref,attribute.event_name=assertion.event_name" \
-  --attribute-condition "assertion.repository == '${GH_REPO}' && assertion.ref == 'refs/heads/main' && assertion.event_name in ['schedule', 'workflow_dispatch']"
+  --attribute-condition "assertion.repository == '${GH_REPO}' && (
+    (assertion.ref == 'refs/heads/main' && assertion.event_name in ['schedule', 'workflow_dispatch'])
+    ||
+    (assertion.ref.startsWith('refs/heads/tmp/v')
+      && assertion.event_name == 'workflow_dispatch'
+      && assertion.workflow_ref.startsWith('${GH_REPO}/.github/workflows/release.yml@'))
+  )"
 ```
 
 Roughly how this works:
@@ -101,27 +107,22 @@ Roughly how this works:
 
 ### Why the condition is this strict
 
-The only steady-state consumer is `release_nightly.yml`, which runs on `schedule` (always the default branch per GitHub) and on `workflow_dispatch`.
-Restricting to `refs/heads/main` closes "any push to any branch by anyone with write access" as an abuse vector and makes a malicious `workflow_dispatch` from a feature branch ineffective.
+One clause per consumer.
+`release_nightly.yml` runs on `schedule` (always the default branch per GitHub) and on `workflow_dispatch`.
+`release.yml` can't use that clause: it refuses to run outside a `tmp/vX.Y.Z` branch, so its `ref` claim is never `refs/heads/main`.
+Pinning each clause to its trigger event, and the release clause to its workflow file, keeps a branch from being usable through anything other than the workflow it exists for.
+
 `push` is intentionally absent because no consumer needs it.
 `pull_request` is intentionally absent because PRs from forks must not be able to mint a token for our SA.
 
-When iterating on a feature branch, you can temporarily widen the condition by adding a second clause that pins both the feature ref AND its trigger event, leaving the main steady-state clause untouched.
-Use `gcloud iam workload-identity-pools providers update-oidc` to apply, and revert before merging.
+A third consumer needs a third clause here *and* on the live provider; nothing reconciles the two.
+Check what's deployed with `providers describe --format='value(attributeCondition)'`.
 
-```bash
-gcloud iam workload-identity-pools providers update-oidc "${PROVIDER}" \
-  --project="${PROJECT_ID}" \
-  --location=global \
-  --workload-identity-pool="${POOL}" \
-  --attribute-condition="assertion.repository == '${GH_REPO}' && (
-    (assertion.ref == 'refs/heads/main' && assertion.event_name in ['schedule', 'workflow_dispatch'])
-    ||
-    (assertion.ref == 'refs/heads/sse/e2e-release-darwin' && assertion.event_name == 'push')
-  )"
-```
+### Temporarily widening for a feature branch
 
-Pinning both `ref` and `event_name` per clause prevents the feature branch from being usable through any trigger other than the one its workflow declares (for example, an attacker who manages to land a `workflow_dispatch` job on the branch can't mint a token for our SA, because that event_name isn't allowed alongside this ref).
+Changing the workflows that consume this credential needs a token from a feature branch, which no steady-state clause grants.
+Add a clause via `providers update-oidc` pinning both the feature ref AND its trigger event, and revert before merging.
+Pinning both stops the branch being usable through any trigger other than the one its workflow declares, and `update-oidc` replaces the whole condition rather than appending, so carry the steady-state clauses through.
 
 ## 5. Allow GH workflows in the repository to impersonate the SA
 
