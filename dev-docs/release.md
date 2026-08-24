@@ -20,13 +20,13 @@ This draft release can be promoted to actual release.
 
 5. **Wait for PM approval before proceeding.**
 
-6. Review and merge the auto generated update PR for `main`.
+6. Review the release notes. If label/title/description changes are necessary, change them on the original PR itself, then regenerate the notes on the draft (see [Editing the release notes](#editing-the-release-notes)).
 
-7. Review the release notes. If label/title/description changes are necessary, change them on the original PR itself, then regenerate the notes on the draft (see [Editing the release notes](#editing-the-release-notes)).
+7. Approve the `Publish release` job in the GitHub Actions workflow run.
 
-8. Approve the `Publish release` job in the GitHub Actions workflow run.
+8. Check that the publish job succeeds.
 
-9. Check that the publish job succeeds.
+9. Review and merge the auto generated update PR for `main`. It advertises the new version in `contrast-releases.json` and the docs, so merging it earlier means reverting it if the release fails.
 
 ## Minor, manually
 
@@ -62,11 +62,11 @@ If you need to include new changes merged into main since the last successful ni
 
 8. **Wait for PM approval before proceeding.**
 
-9. Review and merge the auto generated update PR for main.
+9. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
 
-10. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
+10. Check that the release publish action succeeds.
 
-11. Check that the release publish action succeeds.
+11. Review and merge the auto generated update PR for main.
 
 ## Patch
 
@@ -112,11 +112,11 @@ If you need to include new changes merged into main since the last successful ni
 
 8. **Wait for PM approval before proceeding.**
 
-9. Review and merge the auto generated update PR for main.
+9. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
 
-10. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
+10. Check that the release publish action succeeds.
 
-11. Check that the release publish action succeeds.
+11. Review and merge the auto generated update PR for main.
 
 ## Editing the release notes
 
