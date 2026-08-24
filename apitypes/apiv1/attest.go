@@ -1,7 +1,7 @@
 // Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-package apitypes
+package apiv1
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"encoding/asn1"
 	"encoding/json"
 	"fmt"
+
+	"github.com/edgelesssys/contrast/apitypes"
 )
 
 // ReportDataSize is the size of the SNP/TDX REPORTDATA fields.
@@ -22,8 +24,8 @@ type AttestationRequest struct {
 
 // AttestationError is returned by the /attest endpoint if the request was not successful.
 //
-// It is an alias of [APIError], which all Contrast HTTP API endpoints return on error.
-type AttestationError = APIError
+// It is an alias of [apitypes.APIError], which all Contrast HTTP API endpoints return on error.
+type AttestationError = apitypes.APIError
 
 // AttestationResponse contains all fields required for application-level verification.
 type AttestationResponse struct {

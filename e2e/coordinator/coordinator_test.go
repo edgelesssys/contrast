@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/apitypes"
+	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
@@ -217,7 +218,7 @@ func TestCoordinator(t *testing.T) {
 		require.Equal(manifestBytesExpected, state.Manifests[0])
 
 		// Test backwards compatibility of AttestationType.
-		var resp apitypes.AttestationResponse
+		var resp apitypesv1.AttestationResponse
 		require.NoError(json.NewDecoder(bytes.NewReader(report)).Decode(&resp))
 		resp.AttestationType = nil
 		reportWithoutType, err := json.Marshal(resp)
