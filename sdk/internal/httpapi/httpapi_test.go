@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/apitypes"
+	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -167,11 +168,11 @@ func TestDoJSONSendsBody(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	c := &Client{HTTPClient: srv.Client(), BaseURL: srv.URL, Log: slog.New(slog.DiscardHandler)}
-	resp, err := c.DoJSON(t.Context(), http.MethodPost, "/attest", &apitypes.AttestationRequest{Nonce: []byte("nonce")})
+	resp, err := c.DoJSON(t.Context(), http.MethodPost, "/attest", &apitypesv1.AttestationRequest{Nonce: []byte("nonce")})
 	require.NoError(err)
 
 	assert.Equal("application/json", gotContentType)
-	var req apitypes.AttestationRequest
+	var req apitypesv1.AttestationRequest
 	require.NoError(json.Unmarshal(gotBody, &req))
 	assert.Equal([]byte("nonce"), req.Nonce)
 	assert.JSONEq(`{"api_versions":["v1"]}`, string(resp))

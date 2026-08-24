@@ -12,7 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/edgelesssys/contrast/apitypes"
+	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
@@ -33,7 +33,7 @@ func (c *Client) GetAttestation(ctx context.Context, nonce []byte) ([]byte, erro
 	if len(nonce) != cryptohelpers.RNGLengthDefault {
 		return nil, fmt.Errorf("bad nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
-	return c.httpapi.DoJSON(ctx, http.MethodPost, attestPath, &apitypes.AttestationRequest{Nonce: nonce})
+	return c.httpapi.DoJSON(ctx, http.MethodPost, attestPath, &apitypesv1.AttestationRequest{Nonce: nonce})
 }
 
 // ValidateAttestation validates the Coordinator state returned by the http://coordinator:1314/attest endpoint.
@@ -52,7 +52,7 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 		return nil, fmt.Errorf("wrong nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
 
-	resp, err := apitypes.UnmarshalAttestationResponse(attestation)
+	resp, err := apitypesv1.UnmarshalAttestationResponse(attestation)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling attestation document: %w", err)
 	}
@@ -82,7 +82,7 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 
 	transitions := history.BuildTransitionChain(resp.Manifests)
 	transitionDigest := transitions[len(transitions)-1].Digest()
-	reportData := apitypes.ConstructReportData(nonce, transitionDigest[:], &resp.CoordinatorState)
+	reportData := apitypesv1.ConstructReportData(nonce, transitionDigest[:], &resp.CoordinatorState)
 
 	if err := validator.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
