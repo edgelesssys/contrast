@@ -153,7 +153,14 @@ jobs:
         env:
           IMAGE: ${{ inputs.image }}
         run: |
+          machineID=$(cat /etc/machine-id)
+          node=$(kubectl get nodes -o jsonpath="{.items[?(@.status.nodeInfo.machineID=='${machineID:?}')].metadata.name}")
+          if [[ $(wc -w <<< "${node}") -ne 1 ]]; then
+            echo "::error::expected exactly one node with this runner's machine ID, got: ${node:-<none>}"
+            exit 1
+          fi
           sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/nix-gc.yml
+          sed -i "s#@@REPLACE_NODE@@#${node}#g" ./tools/bm-maintenance/nix-gc.yml
           kubectl apply -f ./tools/bm-maintenance/nix-gc.yml
       - name: Wait for nix garbage collection job
         id: update
