@@ -270,7 +270,7 @@
     ];
     text = ''
       tag='[a-zA-Z0-9_.-]+'
-      sha='@sha256:[a-fA-F0-9]{64}'
+      sha='(@sha256:([a-fA-F0-9]{64}|\.\.\.))*'
 
       while IFS= read -r replacement; do
         # Get the base name (no tag/sha) and escape dots.
