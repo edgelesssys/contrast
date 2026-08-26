@@ -525,8 +525,8 @@ get-credentials platform=default_platform:
         "Metal-QEMU-TDX"|"olimar")
             nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest" Metal-QEMU-TDX k3s
         ;;
-        "Metal-QEMU-TDX-GPU"|"dgx-007")
-            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/dgx-007-kubeconfig/versions/latest" Metal-QEMU-TDX-GPU none
+        "Metal-QEMU-TDX-GPU"|"b13-gs01")
+            nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/b13-gs01-kubeconfig/versions/latest" Metal-QEMU-TDX-GPU none
         ;;
         "Metal-QEMU-SNP"|"palutena")
             nix run -L .#base.scripts.get-credentials "projects/796962942582/secrets/palutena-kubeconfig/versions/latest" Metal-QEMU-SNP none
