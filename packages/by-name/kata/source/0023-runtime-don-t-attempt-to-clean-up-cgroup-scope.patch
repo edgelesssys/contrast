@@ -70,10 +70,10 @@ index deb472904b82b663213c33e9e567b87f5b7b6363..88f3618072a78fd6f302a465c43bd5a5
  		cgroup = cg
  	} else {
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index f64ec81118b9b31ab785f3e8561ce672d7468f44..585b9afbe4d4a16e37c4dd31f68f7b2e57dd7463 100644
+index 47378fa66671a240944f62a973154df02837ec45..5d603c27104a1bf070bb0f6612688a3490887f42 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
-@@ -2754,6 +2754,10 @@ func (s *Sandbox) resourceControllerUpdate(ctx context.Context) error {
+@@ -2762,6 +2762,10 @@ func (s *Sandbox) resourceControllerUpdate(ctx context.Context) error {
  // resourceControllerDelete will move the running processes in the sandbox resource
  // cvontroller to the parent and then delete the sandbox controller.
  func (s *Sandbox) resourceControllerDelete() error {

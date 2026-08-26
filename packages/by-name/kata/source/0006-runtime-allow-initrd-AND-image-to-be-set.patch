@@ -19,10 +19,10 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  7 files changed, 5 insertions(+), 36 deletions(-)
 
 diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
-index 5cfa967683cc05a8070d81b53638b8c74dc00f5f..6aba06f3046cda09d18cea977be3f3e7c1e68518 100644
+index ac49fa64eeb78295edbc480fc6dbfd3031f0edd6..15fae6db0dbc08fa22c0a805466d411f6955e76c 100644
 --- a/src/libs/kata-types/src/config/hypervisor/mod.rs
 +++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
-@@ -527,11 +527,6 @@ impl BootInfo {
+@@ -530,11 +530,6 @@ impl BootInfo {
          validate_path!(self.image, "guest boot image file {} is invalid: {}")?;
          validate_path!(self.initrd, "guest initrd image file {} is invalid: {}")?;
          validate_path!(self.firmware, "firmware image file {} is invalid: {}")?;
@@ -35,10 +35,10 @@ index 5cfa967683cc05a8070d81b53638b8c74dc00f5f..6aba06f3046cda09d18cea977be3f3e7
          let l = [
              VIRTIO_BLK_PCI,
 diff --git a/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs b/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
-index 02fe361dc4a9c9d1812309a21d550006e385cad6..f66b89d0495400975196eb6bc178a3fcedfb95a4 100644
+index b737e1ffc7dae6cd0ee4007b5890068a87433e45..d4a79de703b6e73791929fa5f3bbf55f20168505 100644
 --- a/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
 +++ b/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
-@@ -143,10 +143,6 @@ impl TryFrom<NamedHypervisorConfig> for VmConfig {
+@@ -150,10 +150,6 @@ impl TryFrom<NamedHypervisorConfig> for VmConfig {
          let use_initrd = !boot_info.initrd.is_empty();
          let use_image = !boot_info.image.is_empty();
  
@@ -50,10 +50,10 @@ index 02fe361dc4a9c9d1812309a21d550006e385cad6..f66b89d0495400975196eb6bc178a3fc
              return Err(VmConfigError::NoBootFile);
          }
 diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs b/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
-index 406d75c08a0db0369d1243bd1d8eacf8426c593b..aad7a0b0513d5e4ea953520dbb725bdc77d11c50 100644
+index b069ace6533b0a3b7b079adb21b3e10ccb26a545..b9bc6092f7d331c27c304c742b87783c22fcee9d 100644
 --- a/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
 +++ b/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
-@@ -111,10 +111,6 @@ impl VmConfig {
+@@ -116,10 +116,6 @@ impl VmConfig {
              return Err(anyhow!("missing image and initrd path"));
          }
  
@@ -65,10 +65,10 @@ index 406d75c08a0db0369d1243bd1d8eacf8426c593b..aad7a0b0513d5e4ea953520dbb725bdc
      }
  
 diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-index b4a22b97765c5788602fadd4ced9d92dc9cac3a4..411e7401023dace4c71a18c2296edd22125f27de 100644
+index edb132947c65291e249d395d6c3e36833ba60dcb..35466b3f0f75239dc1021584ba448205ab6bdece 100644
 --- a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
 +++ b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-@@ -646,11 +646,10 @@ impl VirtSandbox {
+@@ -654,11 +654,10 @@ impl VirtSandbox {
          let boot_info = self.hypervisor.hypervisor_config().await.boot_info;
          let security_info = self.hypervisor.hypervisor_config().await.security_info;
  

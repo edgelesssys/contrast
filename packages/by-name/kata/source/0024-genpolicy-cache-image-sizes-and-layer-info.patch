@@ -4,13 +4,13 @@ Date: Mon, 8 Jun 2026 12:49:03 +0200
 Subject: [PATCH] genpolicy: cache image sizes and layer info
 
 ---
- src/tools/genpolicy/src/layers_cache.rs       | 33 +++++++---
+ src/tools/genpolicy/src/layers_cache.rs       | 30 ++++++---
  src/tools/genpolicy/src/registry.rs           | 53 ++++++++++++---
  .../genpolicy/src/registry_containerd.rs      | 65 ++++++++++++++-----
- 3 files changed, 115 insertions(+), 36 deletions(-)
+ 3 files changed, 113 insertions(+), 35 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/layers_cache.rs b/src/tools/genpolicy/src/layers_cache.rs
-index 15db565c4caeb22b6d482ceb0d5215d572d3fc78..b97847c80c55a8921ec09c2c7e3c963a111f99cb 100644
+index 4a2e7e975a97b2a524d94de5778d84d55acbb184..82f4400c294539fcc2a91223cfa27f63fbb33777 100644
 --- a/src/tools/genpolicy/src/layers_cache.rs
 +++ b/src/tools/genpolicy/src/layers_cache.rs
 @@ -3,7 +3,7 @@
@@ -22,7 +22,7 @@ index 15db565c4caeb22b6d482ceb0d5215d572d3fc78..b97847c80c55a8921ec09c2c7e3c963a
  
  use fs2::FileExt;
  use log::{debug, warn};
-@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
+@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex};
  
  #[derive(Debug, Clone)]
  pub struct ImageLayersCache {
@@ -31,7 +31,7 @@ index 15db565c4caeb22b6d482ceb0d5215d572d3fc78..b97847c80c55a8921ec09c2c7e3c963a
      filename: Option<String>,
  }
  
-@@ -31,7 +31,9 @@ impl ImageLayersCache {
+@@ -33,7 +33,9 @@ impl ImageLayersCache {
          }
      }
  
@@ -39,20 +39,10 @@ index 15db565c4caeb22b6d482ceb0d5215d572d3fc78..b97847c80c55a8921ec09c2c7e3c963a
 +    fn try_new(
 +        layers_cache_file_path: &Option<String>,
 +    ) -> std::io::Result<Vec<ImageLayersCacheEntry>> {
-         match &layers_cache_file_path {
-             Some(filename) => {
-                 let file = OpenOptions::new()
-@@ -44,7 +46,8 @@ impl ImageLayersCache {
-                 // In this case, the cache will simply not be used for this instance.
-                 FileExt::try_lock_shared(&file)?;
+         Self::try_new_with_schema(layers_cache_file_path)
+     }
  
--                let initial_state: Vec<ImageLayer> = match serde_json::from_reader(&file) {
-+                let initial_state: Vec<ImageLayersCacheEntry> = match serde_json::from_reader(&file)
-+                {
-                     Ok(data) => data,
-                     Err(e) if e.is_eof() => Vec::new(), // empty file
-                     Err(e) => {
-@@ -61,15 +64,27 @@ impl ImageLayersCache {
+@@ -84,15 +86,27 @@ impl ImageLayersCache {
  
      pub fn get_layer(&self, diff_id: &str) -> Option<ImageLayer> {
          let layers = self.inner.lock().unwrap();
@@ -86,10 +76,10 @@ index 15db565c4caeb22b6d482ceb0d5215d572d3fc78..b97847c80c55a8921ec09c2c7e3c963a
  
      pub fn persist(&self) {
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d246b47e51 100644
+index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504bef1e25f8 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
-@@ -72,6 +72,28 @@ pub struct ImageLayer {
+@@ -73,6 +73,28 @@ pub struct ImageLayer {
      pub diff_id: String,
      pub passwd: String,
      pub group: String,
@@ -118,7 +108,7 @@ index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d2
  }
  
  /// See https://docs.docker.com/reference/dockerfile/#volume.
-@@ -533,7 +555,7 @@ async fn get_image_layers(
+@@ -599,7 +621,7 @@ async fn get_image_layers(
  ) -> Result<Vec<ImageLayer>> {
      let mut layer_index = 0;
      let mut layers = Vec::new();
@@ -127,7 +117,7 @@ index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d2
      for layer in &manifest.layers {
          if layer
              .media_type
-@@ -541,15 +563,20 @@ async fn get_image_layers(
+@@ -607,15 +629,20 @@ async fn get_image_layers(
              || layer.media_type.eq(manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE)
          {
              if layer_index < config_layer.rootfs.diff_ids.len() {
@@ -151,7 +141,7 @@ index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d2
                  layers.push(imageLayer);
              } else {
                  return Err(anyhow!("Too many Docker gzip layers"));
-@@ -559,6 +586,11 @@ async fn get_image_layers(
+@@ -625,6 +652,11 @@ async fn get_image_layers(
          }
      }
  
@@ -163,7 +153,7 @@ index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d2
      Ok(layers)
  }
  
-@@ -584,7 +616,7 @@ async fn get_users_from_layer(
+@@ -650,7 +682,7 @@ async fn get_users_from_layer(
      let mut compressed_path = decompressed_path.clone();
      compressed_path.set_extension("gz");
  
@@ -172,7 +162,7 @@ index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d2
          client,
          reference,
          layer_digest,
-@@ -593,7 +625,8 @@ async fn get_users_from_layer(
+@@ -659,7 +691,8 @@ async fn get_users_from_layer(
      )
      .await
      {
@@ -182,7 +172,7 @@ index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d2
      };
  
      match get_users_from_decompressed_layer(&decompressed_path) {
-@@ -604,6 +637,7 @@ async fn get_users_from_layer(
+@@ -670,6 +703,7 @@ async fn get_users_from_layer(
          Ok((passwd, group)) => {
              let layer = ImageLayer {
                  diff_id: diff_id.to_string(),
@@ -190,7 +180,7 @@ index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d2
                  passwd,
                  group,
              };
-@@ -619,7 +653,7 @@ async fn create_decompressed_layer_file(
+@@ -685,7 +719,7 @@ async fn create_decompressed_layer_file(
      layer_digest: &str,
      decompressed_path: &Path,
      compressed_path: &Path,
@@ -199,7 +189,7 @@ index abcd7ef7adcf0e09c43510a4f8c2e347510da0f5..e20c243d4075f98166d8735048eaa6d2
      info!(
          "create_decompressed_layer_file: pulling layer {:?}",
          layer_digest
-@@ -642,10 +676,11 @@ async fn create_decompressed_layer_file(
+@@ -708,10 +742,11 @@ async fn create_decompressed_layer_file(
          .truncate(true)
          .open(decompressed_path)?;
      let mut gz_decoder = flate2::read::GzDecoder::new(compressed_file);

@@ -164,6 +164,16 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
+    "dbs-snapshot" = rec {
+      packageId = "dbs-snapshot";
+      build = internal.buildRustCrateWithFeatures {
+        packageId = "dbs-snapshot";
+      };
+
+      # Debug support which might change between releases.
+      # File a bug if you depend on any for non-debug work!
+      debug = internal.debugCrate { inherit packageId; };
+    };
     "dbs-upcall" = rec {
       packageId = "dbs-upcall";
       build = internal.buildRustCrateWithFeatures {
@@ -1011,7 +1021,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_System_Console" "Win32_Foundation" ];
           }
@@ -1038,7 +1048,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_System_Console" "Win32_Foundation" ];
           }
@@ -2554,22 +2564,6 @@ rec {
         };
         resolvedDefaultFeatures = [ "libunwind" "std" ];
       };
-      "base64 0.13.1" = rec {
-        crateName = "base64";
-        version = "0.13.1";
-        edition = "2018";
-        sha256 = "1s494mqmzjb766fy1kqlccgfg2sdcjb6hzbvzqv2jw65fdi5h6wy";
-        authors = [
-          "Alice Maz <alice@alicemaz.com>"
-          "Marshall Pierce <marshall@mpierce.org>"
-        ];
-        license = "MIT/Apache-2.0";
-        repository = "https://github.com/marshallpierce/rust-base64";
-        features = {
-          "default" = [ "std" ];
-        };
-        resolvedDefaultFeatures = [ "alloc" "default" "std" ];
-      };
       "base64 0.21.7" = rec {
         crateName = "base64";
         version = "0.21.7";
@@ -3219,6 +3213,41 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "schema" ];
       };
+      "bs58" = rec {
+        crateName = "bs58";
+        version = "0.5.1";
+        edition = "2021";
+        sha256 = "1x3v51n5n2s3l0rgrsn142akdf331n2qsa75pscw71fi848vm25z";
+        license = "MIT/Apache-2.0";
+        repository = "https://github.com/Nullus157/bs58-rs";
+        dependencies = [
+          {
+            name = "tinyvec";
+            packageId = "tinyvec";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "grab_spare_slice" ];
+          }
+        ];
+        devDependencies = [
+          {
+            name = "tinyvec";
+            packageId = "tinyvec";
+            features = [ "rustc_1_55" ];
+          }
+        ];
+        features = {
+          "alloc" = [ "tinyvec?/alloc" ];
+          "cb58" = [ "sha2" ];
+          "check" = [ "sha2" ];
+          "default" = [ "std" ];
+          "sha2" = [ "dep:sha2" ];
+          "smallvec" = [ "dep:smallvec" ];
+          "std" = [ "alloc" "tinyvec?/std" ];
+          "tinyvec" = [ "dep:tinyvec" ];
+        };
+        resolvedDefaultFeatures = [ "alloc" "std" ];
+      };
       "bstr" = rec {
         crateName = "bstr";
         version = "1.12.1";
@@ -3297,7 +3326,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars";
+            packageId = "schemars 1.2.1";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -3670,7 +3699,7 @@ rec {
           }
           {
             name = "zbus";
-            packageId = "zbus 5.15.0";
+            packageId = "zbus 5.18.0";
           }
         ];
         devDependencies = [
@@ -5266,6 +5295,7 @@ rec {
           "serde" = [ "darling_core/serde" ];
           "suggestions" = [ "darling_core/suggestions" ];
         };
+        resolvedDefaultFeatures = [ "default" "suggestions" ];
       };
       "darling_core 0.20.11" = rec {
         crateName = "darling_core";
@@ -5335,6 +5365,11 @@ rec {
             packageId = "quote";
           }
           {
+            name = "strsim";
+            packageId = "strsim";
+            optional = true;
+          }
+          {
             name = "syn";
             packageId = "syn 2.0.117";
             features = [ "full" "extra-traits" ];
@@ -5345,6 +5380,7 @@ rec {
           "strsim" = [ "dep:strsim" ];
           "suggestions" = [ "strsim" ];
         };
+        resolvedDefaultFeatures = [ "strsim" "suggestions" ];
       };
       "darling_macro 0.20.11" = rec {
         crateName = "darling_macro";
@@ -5925,6 +5961,30 @@ rec {
         ];
 
       };
+      "dbs-snapshot" = rec {
+        crateName = "dbs-snapshot";
+        version = "0.1.0";
+        edition = "2018";
+        src = lib.cleanSourceWith { filter = sourceFilter;  src = workspaceSrc + "/src/dragonball/crates/dbs_snapshot"; };
+        libName = "dbs_snapshot";
+        authors = [
+          "The Kata Containers community <kata-dev@lists.katacontainers.io>"
+        ];
+        license = "Apache-2.0";
+        repository = "https://github.com/kata-containers/kata-containers.git";
+        homepage = "https://katacontainers.io/";
+        dependencies = [
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.18";
+          }
+        ];
+
+      };
       "dbs-upcall" = rec {
         crateName = "dbs-upcall";
         version = "0.3.0";
@@ -6066,6 +6126,10 @@ rec {
             features = [ "kvm-legacy-irq" "kvm-msi-irq" "split-legacy-irq" ];
           }
           {
+            name = "dbs-snapshot";
+            packageId = "dbs-snapshot";
+          }
+          {
             name = "dbs-utils";
             packageId = "dbs-utils";
           }
@@ -6130,6 +6194,7 @@ rec {
           {
             name = "serde";
             packageId = "serde";
+            features = [ "derive" ];
           }
           {
             name = "serde_json";
@@ -6899,6 +6964,10 @@ rec {
             optional = true;
           }
           {
+            name = "dbs-snapshot";
+            packageId = "dbs-snapshot";
+          }
+          {
             name = "dbs-upcall";
             packageId = "dbs-upcall";
             optional = true;
@@ -6924,6 +6993,7 @@ rec {
           {
             name = "kvm-bindings";
             packageId = "kvm-bindings";
+            features = [ "fam-wrappers" "serde" ];
           }
           {
             name = "kvm-ioctls";
@@ -7019,9 +7089,14 @@ rec {
           {
             name = "vmm-sys-util";
             packageId = "vmm-sys-util 0.15.0";
+            features = [ "with-serde" ];
           }
         ];
         devDependencies = [
+          {
+            name = "serial_test";
+            packageId = "serial_test 0.10.0";
+          }
           {
             name = "slog-async";
             packageId = "slog-async";
@@ -7476,7 +7551,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Diagnostics_Debug" ];
           }
@@ -10537,7 +10612,7 @@ rec {
           }
           {
             name = "socket2";
-            packageId = "socket2 0.5.10";
+            packageId = "socket2 0.6.3";
             optional = true;
             features = [ "all" ];
           }
@@ -10784,8 +10859,17 @@ rec {
             packageId = "path-clean";
           }
           {
+            name = "pcilibs-rs";
+            packageId = "pcilibs-rs";
+          }
+          {
             name = "persist";
             packageId = "persist";
+          }
+          {
+            name = "protobuf";
+            packageId = "protobuf";
+            optional = true;
           }
           {
             name = "protocols";
@@ -10881,6 +10965,10 @@ rec {
             packageId = "hypervisor";
           }
           {
+            name = "rstest";
+            packageId = "rstest";
+          }
+          {
             name = "serial_test";
             packageId = "serial_test 2.0.0";
           }
@@ -10898,8 +10986,9 @@ rec {
           "cloud-hypervisor" = [ "ch-config" ];
           "default" = [ "cloud-hypervisor" ];
           "dragonball" = [ "dep:dragonball" ];
+          "openvmm" = [ "dep:protobuf" ];
         };
-        resolvedDefaultFeatures = [ "ch-config" "cloud-hypervisor" "default" "dragonball" ];
+        resolvedDefaultFeatures = [ "ch-config" "cloud-hypervisor" "default" "dragonball" "openvmm" ];
       };
       "iana-time-zone" = rec {
         crateName = "iana-time-zone";
@@ -11816,7 +11905,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" ];
           }
@@ -12760,6 +12849,10 @@ rec {
             packageId = "pathrs";
           }
           {
+            name = "pcilibs-rs";
+            packageId = "pcilibs-rs";
+          }
+          {
             name = "procfs";
             packageId = "procfs 0.12.0";
           }
@@ -13127,7 +13220,7 @@ rec {
           }
           {
             name = "base64";
-            packageId = "base64 0.13.1";
+            packageId = "base64 0.22.1";
           }
           {
             name = "bytes";
@@ -13281,6 +13374,10 @@ rec {
             packageId = "sys-info";
           }
           {
+            name = "tar";
+            packageId = "tar";
+          }
+          {
             name = "thiserror";
             packageId = "thiserror 2.0.18";
           }
@@ -13329,7 +13426,12 @@ rec {
             packageId = "test-utils";
           }
         ];
-
+        features = {
+          "cloud-hypervisor" = [ "virt_container/cloud-hypervisor" ];
+          "default" = [ "cloud-hypervisor" ];
+          "dragonball" = [ "virt_container/dragonball" ];
+        };
+        resolvedDefaultFeatures = [ "cloud-hypervisor" "default" "dragonball" ];
       };
       "kata-deploy" = rec {
         crateName = "kata-deploy";
@@ -13362,8 +13464,16 @@ rec {
             packageId = "env_logger 0.10.2";
           }
           {
+            name = "flate2";
+            packageId = "flate2";
+          }
+          {
             name = "humantime";
             packageId = "humantime";
+          }
+          {
+            name = "json-patch";
+            packageId = "json-patch";
           }
           {
             name = "k8s-openapi";
@@ -13375,7 +13485,7 @@ rec {
             name = "kube";
             packageId = "kube";
             usesDefaultFeatures = false;
-            features = [ "client" "rustls-tls" "ring" ];
+            features = [ "client" "jsonpatch" "rustls-tls" "ring" ];
           }
           {
             name = "libc";
@@ -13390,8 +13500,9 @@ rec {
             packageId = "regex";
           }
           {
-            name = "semver";
-            packageId = "semver";
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
           }
           {
             name = "serde_json";
@@ -13421,6 +13532,10 @@ rec {
           {
             name = "zstd";
             packageId = "zstd 0.13.3";
+          }
+          {
+            name = "zvariant";
+            packageId = "zvariant 5.13.1";
           }
         ];
         devDependencies = [
@@ -13470,6 +13585,14 @@ rec {
             packageId = "env_logger 0.10.2";
           }
           {
+            name = "humantime";
+            packageId = "humantime";
+          }
+          {
+            name = "json-patch";
+            packageId = "json-patch";
+          }
+          {
             name = "k8s-openapi";
             packageId = "k8s-openapi";
             usesDefaultFeatures = false;
@@ -13479,15 +13602,23 @@ rec {
             name = "kube";
             packageId = "kube";
             usesDefaultFeatures = false;
-            features = [ "client" "rustls-tls" "ring" ];
+            features = [ "client" "jsonpatch" "rustls-tls" "ring" ];
           }
           {
             name = "log";
             packageId = "log";
           }
           {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
             name = "serde_yaml";
             packageId = "serde_yaml 0.9.34+deprecated";
+          }
+          {
+            name = "sha2";
+            packageId = "sha2 0.11.0";
           }
           {
             name = "tokio";
@@ -13553,10 +13684,6 @@ rec {
             name = "oci-spec";
             packageId = "oci-spec 0.10.0";
             features = [ "runtime" ];
-          }
-          {
-            name = "pci-ids";
-            packageId = "pci-ids";
           }
           {
             name = "rand";
@@ -13964,7 +14091,7 @@ rec {
           "webpki-roots" = [ "kube-client/webpki-roots" "client" ];
           "ws" = [ "kube-client/ws" "kube-core/ws" ];
         };
-        resolvedDefaultFeatures = [ "client" "config" "kube-client" "ring" "rustls-tls" ];
+        resolvedDefaultFeatures = [ "client" "config" "jsonpatch" "kube-client" "ring" "rustls-tls" ];
       };
       "kube-client" = rec {
         crateName = "kube-client";
@@ -14235,6 +14362,11 @@ rec {
             packageId = "http 1.4.0";
           }
           {
+            name = "json-patch";
+            packageId = "json-patch";
+            optional = true;
+          }
+          {
             name = "k8s-openapi";
             packageId = "k8s-openapi";
             usesDefaultFeatures = false;
@@ -14273,6 +14405,7 @@ rec {
           "schema" = [ "schemars" ];
           "schemars" = [ "dep:schemars" ];
         };
+        resolvedDefaultFeatures = [ "json-patch" "jsonpatch" ];
       };
       "kvm-bindings" = rec {
         crateName = "kvm-bindings";
@@ -14287,9 +14420,21 @@ rec {
         repository = "https://github.com/rust-vmm/kvm";
         dependencies = [
           {
+            name = "serde";
+            packageId = "serde";
+            optional = true;
+            features = [ "derive" ];
+          }
+          {
             name = "vmm-sys-util";
             packageId = "vmm-sys-util 0.15.0";
             optional = true;
+          }
+          {
+            name = "zerocopy";
+            packageId = "zerocopy 0.8.48";
+            optional = true;
+            features = [ "derive" ];
           }
         ];
         features = {
@@ -14297,7 +14442,7 @@ rec {
           "serde" = [ "dep:serde" "serde/derive" "dep:zerocopy" ];
           "vmm-sys-util" = [ "dep:vmm-sys-util" ];
         };
-        resolvedDefaultFeatures = [ "fam-wrappers" "vmm-sys-util" ];
+        resolvedDefaultFeatures = [ "fam-wrappers" "serde" "vmm-sys-util" ];
       };
       "kvm-ioctls" = rec {
         crateName = "kvm-ioctls";
@@ -16246,7 +16391,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             rename = "windows";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Console" "Win32_Storage_FileSystem" "Win32_Security" ];
@@ -19080,6 +19225,38 @@ rec {
         ];
 
       };
+      "pcilibs-rs" = rec {
+        crateName = "pcilibs-rs";
+        version = "0.1.0";
+        edition = "2018";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/zvonkok/pcilibs-rs";
+          rev = "ce6486db79ade33028583a9e81245db5f4de2079";
+          sha256 = "1kdzb21p5sdsa73cy11dgjhml3xvwn73iyn6hdyql3zpzghlm37h";
+        };
+        libName = "pcilibs_rs";
+        authors = [
+          "The Kata Containers community <kata-dev@lists.katacontainers.io>"
+        ];
+        license = "Apache-2.0";
+        repository = "https://github.com/kata-containers/pcilibs-rs.git";
+        homepage = "https://katacontainers.io/";
+        dependencies = [
+          {
+            name = "nix";
+            packageId = "nix 0.31.3";
+            usesDefaultFeatures = false;
+            features = [ "fs" ];
+          }
+          {
+            name = "pci-ids";
+            packageId = "pci-ids";
+          }
+        ];
+        features = {
+        };
+      };
       "pem" = rec {
         crateName = "pem";
         version = "3.0.6";
@@ -21335,7 +21512,7 @@ rec {
           }
           {
             name = "socket2";
-            packageId = "socket2 0.5.10";
+            packageId = "socket2 0.6.3";
             target = { target, features }: (!((builtins.elem "wasm" target."family") && ("unknown" == target."os" or null)));
           }
           {
@@ -21521,7 +21698,7 @@ rec {
           }
           {
             name = "socket2";
-            packageId = "socket2 0.5.10";
+            packageId = "socket2 0.6.3";
             target = { target, features }: (!((builtins.elem "wasm" target."family") && ("unknown" == target."os" or null)));
           }
           {
@@ -23917,8 +24094,9 @@ rec {
         features = {
           "cloud-hypervisor" = [ "runtimes/cloud-hypervisor" ];
           "dragonball" = [ "runtimes/dragonball" ];
+          "openvmm" = [ "runtimes/openvmm" ];
         };
-        resolvedDefaultFeatures = [ "cloud-hypervisor" "dragonball" ];
+        resolvedDefaultFeatures = [ "cloud-hypervisor" "dragonball" "openvmm" ];
       };
       "runtime-spec" = rec {
         crateName = "runtime-spec";
@@ -24136,12 +24314,13 @@ rec {
           "dragonball" = [ "virt_container/dragonball" ];
           "linux" = [ "linux_container" ];
           "linux_container" = [ "dep:linux_container" ];
+          "openvmm" = [ "virt_container/openvmm" ];
           "virt" = [ "virt_container" ];
           "virt_container" = [ "dep:virt_container" ];
           "wasm" = [ "wasm_container" ];
           "wasm_container" = [ "dep:wasm_container" ];
         };
-        resolvedDefaultFeatures = [ "cloud-hypervisor" "default" "dragonball" "linux" "linux_container" "virt" "virt_container" "wasm" "wasm_container" ];
+        resolvedDefaultFeatures = [ "cloud-hypervisor" "default" "dragonball" "linux" "linux_container" "openvmm" "virt" "virt_container" "wasm" "wasm_container" ];
       };
       "rust-ini" = rec {
         crateName = "rust-ini";
@@ -24661,7 +24840,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Networking_WinSock" ];
           }
@@ -25115,7 +25294,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             usesDefaultFeatures = false;
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Security_Cryptography" ];
@@ -25368,7 +25547,69 @@ rec {
         ];
 
       };
-      "schemars" = rec {
+      "schemars 0.9.0" = rec {
+        crateName = "schemars";
+        version = "0.9.0";
+        edition = "2021";
+        sha256 = "0pqncln5hqbzbl2r3yayyr4a82jjf93h2cfxrn0xamvx77wr3lac";
+        authors = [
+          "Graham Esau <gesau@hotmail.co.uk>"
+        ];
+        license = "MIT";
+        repository = "https://github.com/GREsau/schemars";
+        homepage = "https://graham.cool/schemars/";
+        dependencies = [
+          {
+            name = "dyn-clone";
+            packageId = "dyn-clone";
+          }
+          {
+            name = "ref-cast";
+            packageId = "ref-cast";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+        ];
+        features = {
+          "arrayvec07" = [ "dep:arrayvec07" ];
+          "bigdecimal04" = [ "dep:bigdecimal04" ];
+          "bytes1" = [ "dep:bytes1" ];
+          "chrono04" = [ "dep:chrono04" ];
+          "default" = [ "derive" "std" ];
+          "derive" = [ "schemars_derive" ];
+          "either1" = [ "dep:either1" ];
+          "indexmap2" = [ "dep:indexmap2" ];
+          "jiff02" = [ "dep:jiff02" ];
+          "preserve_order" = [ "serde_json/preserve_order" ];
+          "raw_value" = [ "serde_json/raw_value" ];
+          "rust_decimal1" = [ "dep:rust_decimal1" ];
+          "schemars_derive" = [ "dep:schemars_derive" ];
+          "semver1" = [ "dep:semver1" ];
+          "smallvec1" = [ "dep:smallvec1" ];
+          "smol_str02" = [ "dep:smol_str02" ];
+          "url2" = [ "dep:url2" ];
+          "uuid1" = [ "dep:uuid1" ];
+        };
+        resolvedDefaultFeatures = [ "std" ];
+      };
+      "schemars 1.2.1" = rec {
         crateName = "schemars";
         version = "1.2.1";
         edition = "2021";
@@ -26029,19 +26270,25 @@ rec {
       };
       "serde_with" = rec {
         crateName = "serde_with";
-        version = "2.3.3";
+        version = "3.21.0";
         edition = "2021";
-        sha256 = "1gmgl2raxxnpvjgcvkrimgv55kbjywi5xbffc9rvb9s7q7973zq7";
+        sha256 = "134ydsww9awaga8yvcqj7rn8gpcx75z6sa3waywvirqhfd6cb9bn";
         authors = [
           "Jonas Bushart"
           "Marcin Kaźmierczak"
         ];
         license = "MIT OR Apache-2.0";
-        repository = "https://github.com/jonasbb/serde_with";
+        repository = "https://github.com/jonasbb/serde_with/";
         dependencies = [
           {
             name = "base64";
-            packageId = "base64 0.13.1";
+            packageId = "base64 0.22.1";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "bs58";
+            packageId = "bs58";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -26068,10 +26315,32 @@ rec {
             features = [ "serde-1" ];
           }
           {
-            name = "serde";
-            packageId = "serde";
+            name = "indexmap";
+            packageId = "indexmap 2.14.0";
+            rename = "indexmap_2";
+            optional = true;
             usesDefaultFeatures = false;
-            features = [ "derive" ];
+            features = [ "serde" ];
+          }
+          {
+            name = "schemars";
+            packageId = "schemars 0.9.0";
+            rename = "schemars_0_9";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "schemars";
+            packageId = "schemars 1.2.1";
+            rename = "schemars_1";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "serde_core";
+            packageId = "serde_core";
+            usesDefaultFeatures = false;
+            features = [ "result" ];
           }
           {
             name = "serde_json";
@@ -26094,33 +26363,53 @@ rec {
         ];
         devDependencies = [
           {
+            name = "schemars";
+            packageId = "schemars 0.9.0";
+            rename = "schemars_0_9";
+          }
+          {
+            name = "schemars";
+            packageId = "schemars 1.2.1";
+            rename = "schemars_1";
+          }
+          {
             name = "serde_json";
             packageId = "serde_json";
             features = [ "preserve_order" ];
           }
         ];
         features = {
-          "alloc" = [ "serde/alloc" "base64?/alloc" "chrono_0_4?/alloc" "hex?/alloc" "serde_json?/alloc" "time_0_3?/alloc" ];
+          "alloc" = [ "serde_core/alloc" "base64?/alloc" "bs58?/alloc" "chrono_0_4?/alloc" "hex?/alloc" "serde_json?/alloc" "time_0_3?/alloc" ];
+          "base58" = [ "dep:bs58" "alloc" ];
           "base64" = [ "dep:base64" "alloc" ];
           "chrono" = [ "chrono_0_4" ];
           "chrono_0_4" = [ "dep:chrono_0_4" ];
           "default" = [ "std" "macros" ];
-          "guide" = [ "dep:doc-comment" "macros" "std" ];
+          "guide" = [ "dep:document-features" "macros" "std" ];
+          "hashbrown_0_14" = [ "dep:hashbrown_0_14" "alloc" ];
+          "hashbrown_0_15" = [ "dep:hashbrown_0_15" "alloc" ];
+          "hashbrown_0_16" = [ "dep:hashbrown_0_16" "alloc" ];
+          "hashbrown_0_17" = [ "dep:hashbrown_0_17" "alloc" ];
           "hex" = [ "dep:hex" "alloc" ];
           "indexmap" = [ "indexmap_1" ];
           "indexmap_1" = [ "dep:indexmap_1" "alloc" ];
+          "indexmap_2" = [ "dep:indexmap_2" "alloc" ];
           "json" = [ "dep:serde_json" "alloc" ];
           "macros" = [ "dep:serde_with_macros" ];
-          "std" = [ "alloc" "serde/std" "chrono_0_4?/clock" "chrono_0_4?/std" "indexmap_1?/std" "time_0_3?/serde-well-known" "time_0_3?/std" ];
+          "schemars_0_8" = [ "dep:schemars_0_8" "std" "serde_with_macros?/schemars_0_8" "dep:serde_json" ];
+          "schemars_0_9" = [ "dep:schemars_0_9" "alloc" "serde_with_macros?/schemars_0_9" "dep:serde_json" ];
+          "schemars_1" = [ "dep:schemars_1" "alloc" "serde_with_macros?/schemars_1" "dep:serde_json" ];
+          "smallvec_1" = [ "dep:smallvec_1" ];
+          "std" = [ "alloc" "bs58?/std" "serde_core/std" "chrono_0_4?/clock" "chrono_0_4?/std" "indexmap_1?/std" "indexmap_2?/std" "time_0_3?/serde-well-known" "time_0_3?/std" "schemars_0_9?/std" "schemars_1?/std" ];
           "time_0_3" = [ "dep:time_0_3" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" "macros" "std" ];
       };
       "serde_with_macros" = rec {
         crateName = "serde_with_macros";
-        version = "2.3.3";
+        version = "3.21.0";
         edition = "2021";
-        sha256 = "0pv9wy1aihsaklg83qac4q0ksimbxcwwk56lwla35l8p3f46y6w8";
+        sha256 = "0q5ndgb7mhdq9cclbawpki5dal28jaxsdnkqq4h7k8drr307pmc4";
         procMacro = true;
         authors = [
           "Jonas Bushart"
@@ -26130,7 +26419,7 @@ rec {
         dependencies = [
           {
             name = "darling";
-            packageId = "darling 0.20.11";
+            packageId = "darling 0.23.0";
           }
           {
             name = "proc-macro2";
@@ -26143,10 +26432,11 @@ rec {
           {
             name = "syn";
             packageId = "syn 2.0.117";
-            features = [ "full" "parsing" ];
+            features = [ "extra-traits" "full" "parsing" ];
           }
         ];
-
+        features = {
+        };
       };
       "serde_yaml 0.8.26" = rec {
         crateName = "serde_yaml";
@@ -27445,7 +27735,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Networking_WinSock" "Win32_System_IO" "Win32_System_Threading" "Win32_System_WindowsProgramming" ];
           }
@@ -28187,7 +28477,7 @@ rec {
           }
           {
             name = "getrandom";
-            packageId = "getrandom 0.3.4";
+            packageId = "getrandom 0.4.2";
             optional = true;
             usesDefaultFeatures = false;
             target = { target, features }: ((target."unix" or false) || (target."windows" or false) || ("wasi" == target."os" or null));
@@ -28206,7 +28496,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Storage_FileSystem" "Win32_Foundation" ];
           }
@@ -28232,7 +28522,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Storage" "Win32_Foundation" "Win32_System_Console" "Win32_Storage_FileSystem" "Win32_Security" ];
           }
@@ -28699,7 +28989,7 @@ rec {
           "std" = [ "alloc" ];
           "tinyvec_macros" = [ "dep:tinyvec_macros" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "default" "tinyvec_macros" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "grab_spare_slice" "std" "tinyvec_macros" ];
       };
       "tinyvec_macros" = rec {
         crateName = "tinyvec_macros";
@@ -30912,7 +31202,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Networking_WinSock" "Win32_Foundation" "Win32_System_Threading" "Win32_System_IO" ];
           }
@@ -31662,8 +31952,9 @@ rec {
           "cloud-hypervisor" = [ "hypervisor/cloud-hypervisor" ];
           "default" = [ "cloud-hypervisor" ];
           "dragonball" = [ "hypervisor/dragonball" ];
+          "openvmm" = [ "hypervisor/openvmm" ];
         };
-        resolvedDefaultFeatures = [ "cloud-hypervisor" "default" "dragonball" ];
+        resolvedDefaultFeatures = [ "cloud-hypervisor" "default" "dragonball" "openvmm" ];
       };
       "virtio-bindings" = rec {
         crateName = "virtio-bindings";
@@ -31854,12 +32145,23 @@ rec {
             name = "libc";
             packageId = "libc";
           }
+          {
+            name = "serde";
+            packageId = "serde";
+            optional = true;
+          }
+          {
+            name = "serde_derive";
+            packageId = "serde_derive";
+            optional = true;
+          }
         ];
         features = {
           "serde" = [ "dep:serde" ];
           "serde_derive" = [ "dep:serde_derive" ];
           "with-serde" = [ "serde" "serde_derive" ];
         };
+        resolvedDefaultFeatures = [ "serde" "serde_derive" "with-serde" ];
       };
       "vsimd" = rec {
         crateName = "vsimd";
@@ -33175,7 +33477,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -35230,7 +35532,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Security_Cryptography" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_SystemInformation" "Win32_System_Threading" "Win32_System_WindowsProgramming" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Networking" "Win32_Networking_WinSock" "Win32_System" "Win32_System_IO" "default" ];
       };
       "windows-sys 0.61.2" = rec {
         crateName = "windows-sys";
@@ -35494,7 +35796,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Security_Authentication" "Win32_Security_Authentication_Identity" "Win32_Security_Authorization" "Win32_Security_Credentials" "Win32_Security_Cryptography" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Console" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Memory" "Win32_System_Pipes" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "default" ];
+        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Security_Authentication" "Win32_Security_Authentication_Identity" "Win32_Security_Authorization" "Win32_Security_Credentials" "Win32_Security_Cryptography" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Memory" "Win32_System_Pipes" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "default" ];
       };
       "windows-targets 0.48.5" = rec {
         crateName = "windows-targets";
@@ -36753,11 +37055,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "async-executor" "async-fs" "async-io" "async-lock" "async-task" "blocking" "default" ];
       };
-      "zbus 5.15.0" = rec {
+      "zbus 5.18.0" = rec {
         crateName = "zbus";
-        version = "5.15.0";
+        version = "5.18.0";
         edition = "2024";
-        sha256 = "1haafa6wvq63ljpl1yibnpldbjx5w0i3d68cpv0pz3bhr0avzg63";
+        sha256 = "12p9swv45ja31c18a65vkd4a9rr1xbm7cyvi73kkjq39vihgn67y";
         authors = [
           "Zeeshan Ali Khan <zeeshanak@gnome.org>"
         ];
@@ -36887,15 +37189,15 @@ rec {
           }
           {
             name = "zbus_macros";
-            packageId = "zbus_macros 5.15.0";
+            packageId = "zbus_macros 5.18.0";
           }
           {
             name = "zbus_names";
-            packageId = "zbus_names 4.3.2";
+            packageId = "zbus_names 4.3.4";
           }
           {
             name = "zvariant";
-            packageId = "zvariant 5.11.0";
+            packageId = "zvariant 5.13.1";
             features = [ "enumflags2" ];
           }
         ];
@@ -36965,11 +37267,11 @@ rec {
         ];
 
       };
-      "zbus_macros 5.15.0" = rec {
+      "zbus_macros 5.18.0" = rec {
         crateName = "zbus_macros";
-        version = "5.15.0";
+        version = "5.18.0";
         edition = "2024";
-        sha256 = "1zqn4lghyabwc85wnkv3ncqva5ki6k7zhcd94p4ahxciml359yji";
+        sha256 = "068ix4mznsnwp3r63c5f0gnqxl0j9qvdyc0s5922ppwjxl5li5py";
         procMacro = true;
         authors = [
           "Marc-André Lureau <marcandre.lureau@redhat.com>"
@@ -36997,15 +37299,15 @@ rec {
           }
           {
             name = "zbus_names";
-            packageId = "zbus_names 4.3.2";
+            packageId = "zbus_names 4.3.4";
           }
           {
             name = "zvariant";
-            packageId = "zvariant 5.11.0";
+            packageId = "zvariant 5.13.1";
           }
           {
             name = "zvariant_utils";
-            packageId = "zvariant_utils 3.3.1";
+            packageId = "zvariant_utils 3.5.0";
           }
         ];
         features = {
@@ -37042,11 +37344,11 @@ rec {
         ];
 
       };
-      "zbus_names 4.3.2" = rec {
+      "zbus_names 4.3.4" = rec {
         crateName = "zbus_names";
-        version = "4.3.2";
+        version = "4.3.4";
         edition = "2024";
-        sha256 = "0bg5c1bq4xdq9xqdkgvxwvl9pa6h61nh2hh1fn8sqkl91gjz6x3h";
+        sha256 = "0kk250s3x1fxpz9fvhdr64ydbacpn8ah23hy021yhlzzlfs8igyq";
         authors = [
           "Zeeshan Ali Khan <zeeshanak@gnome.org>"
         ];
@@ -37064,7 +37366,7 @@ rec {
           }
           {
             name = "zvariant";
-            packageId = "zvariant 5.11.0";
+            packageId = "zvariant 5.13.1";
             features = [ "enumflags2" ];
           }
         ];
@@ -37150,7 +37452,7 @@ rec {
           "std" = [ "alloc" ];
           "zerocopy-derive" = [ "dep:zerocopy-derive" ];
         };
-        resolvedDefaultFeatures = [ "simd" ];
+        resolvedDefaultFeatures = [ "derive" "simd" "zerocopy-derive" ];
       };
       "zerocopy-derive 0.7.35" = rec {
         crateName = "zerocopy-derive";
@@ -37650,11 +37952,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "enumflags2" ];
       };
-      "zvariant 5.11.0" = rec {
+      "zvariant 5.13.1" = rec {
         crateName = "zvariant";
-        version = "5.11.0";
+        version = "5.13.1";
         edition = "2024";
-        sha256 = "1vhqwr9vvyhrdc8jp9h9a7z4j5nqqv7l9s7xpf68dpv8xjk6f58w";
+        sha256 = "04a9r40d5vd4q6gaww8bynjrnk7mmam4bzvg8mm7h1x9saya1qmy";
         authors = [
           "Zeeshan Ali Khan <zeeshanak@gnome.org>"
         ];
@@ -37682,11 +37984,11 @@ rec {
           }
           {
             name = "zvariant_derive";
-            packageId = "zvariant_derive 5.11.0";
+            packageId = "zvariant_derive 5.13.1";
           }
           {
             name = "zvariant_utils";
-            packageId = "zvariant_utils 3.3.1";
+            packageId = "zvariant_utils 3.5.0";
           }
         ];
         features = {
@@ -37740,11 +38042,11 @@ rec {
         ];
 
       };
-      "zvariant_derive 5.11.0" = rec {
+      "zvariant_derive 5.13.1" = rec {
         crateName = "zvariant_derive";
-        version = "5.11.0";
+        version = "5.13.1";
         edition = "2024";
-        sha256 = "1nnfv2ck0yszfhaqblq5a7nirbbzaychg6lxwcaf3gcvb60bgmf7";
+        sha256 = "04iywbj0dg5v6iapb6vqiwz3mj67753kzzhbfyb0fy0qd8hhi9rq";
         procMacro = true;
         authors = [
           "Zeeshan Ali Khan <zeeshanak@gnome.org>"
@@ -37771,7 +38073,7 @@ rec {
           }
           {
             name = "zvariant_utils";
-            packageId = "zvariant_utils 3.3.1";
+            packageId = "zvariant_utils 3.5.0";
           }
         ];
         features = {
@@ -37807,11 +38109,11 @@ rec {
         ];
 
       };
-      "zvariant_utils 3.3.1" = rec {
+      "zvariant_utils 3.5.0" = rec {
         crateName = "zvariant_utils";
-        version = "3.3.1";
+        version = "3.5.0";
         edition = "2024";
-        sha256 = "14fn22j5ccnpal9p55l5cg8fkb6a6f2z2mnnchqpm87z6dblyikd";
+        sha256 = "1iy79yppaqsw0pjb8q7b36vivw7qsc1b4n0jg9090lmlz61r7jwh";
         authors = [
           "Zeeshan Ali Khan <zeeshanak@gnome.org>"
           "turbocooler <turbocooler@cocaine.ninja>"

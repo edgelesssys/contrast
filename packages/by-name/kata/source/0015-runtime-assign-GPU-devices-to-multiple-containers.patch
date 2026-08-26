@@ -11,10 +11,10 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 41 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
-index 9551620aac9407c653652c93c9ad6816c051c44e..60050cc9bb357501147256505df045334e0e1811 100644
+index 9da6d19852828bfd4ebf2ff42a467141706a4f33..cb6213400165a0aa0d96d1d43de2d28d04349e65 100644
 --- a/src/runtime/virtcontainers/container.go
 +++ b/src/runtime/virtcontainers/container.go
-@@ -1397,6 +1397,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+@@ -1387,6 +1387,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
  			for _, dev := range devs {
  				containerPaths = append(containerPaths, dev.ContainerPath)
  			}
@@ -29,7 +29,7 @@ index 9551620aac9407c653652c93c9ad6816c051c44e..60050cc9bb357501147256505df04533
  		}
  
  		// Now that we have the index lets connect the /dev/vfio/<num>
-@@ -1417,6 +1425,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+@@ -1407,6 +1415,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
  				}
  				return err
  			}
@@ -67,10 +67,10 @@ index 041598f966a22225926d1a1e29153702348cd58a..303ce5066c4ebc0a48a12d86e2e91766
  
  fn compress_default_capabilities(
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 2247a87462252bcbfd6a9232ede5a034cb6fa3be..bb306e2c6f778ae4b3dae5bcfaca398b1e5abfe4 100644
+index 414d4ac7becc13c8e859fb5babdcfeba1424fd2d..12ff3e20d7d3be0858b9f9beb7e76aa1e8d77443 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -824,6 +824,20 @@ impl AgentPolicy {
+@@ -815,6 +815,20 @@ impl AgentPolicy {
                  "^io\\.kubernetes\\.container\\.terminationMessagePolicy$".to_string(),
                  "^(File|FallbackToLogsOnError)$".to_string(),
              );

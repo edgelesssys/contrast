@@ -19,14 +19,14 @@
 }:
 
 rec {
-  version = "4.0.0";
+  version = "4.1.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = version;
-      hash = "sha256-rjQNqHaQugiRkS0rI0C9gFiQ/PStF6Czy4WcAG5SxkQ=";
+      hash = "sha256-09zKTBDfSqHLCIsrEiUMDVaFVg6Tae6dbRW+T2gvYSo=";
     };
 
     patches = [

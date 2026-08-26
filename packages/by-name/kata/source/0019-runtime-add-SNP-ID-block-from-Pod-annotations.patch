@@ -85,10 +85,10 @@ index 5bac8ea47618a4099a3261d9ee100d16de814d12..5ea50edc9f80aa9527e83063cae5d4b0
                          Ok(r) => {
                              hv.remote_info.default_gpus = r.unwrap_or_default();
 diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
-index 6aba06f3046cda09d18cea977be3f3e7c1e68518..4f6ef1828cf14d657fe80476a047ff64bb2786aa 100644
+index 15fae6db0dbc08fa22c0a805466d411f6955e76c..5bbbb88655af894546db34b9a7f2ce7aeb66c871 100644
 --- a/src/libs/kata-types/src/config/hypervisor/mod.rs
 +++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
-@@ -1357,6 +1357,32 @@ pub struct SecurityInfo {
+@@ -1366,6 +1366,32 @@ pub struct SecurityInfo {
      #[serde(default = "default_snp_guest_policy")]
      pub snp_guest_policy: u32,
  
@@ -122,10 +122,10 @@ index 6aba06f3046cda09d18cea977be3f3e7c1e68518..4f6ef1828cf14d657fe80476a047ff64
      ///
      /// This setting does not affect host-side hooks, which must instead be
 diff --git a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
-index c9bdaa8868436db0020b9d026056220d685a5681..3e45da2d264d792a1729746c4a33ac0f290f3364 100644
+index 7488b008c4520f77024d27f1d62fa4d2a598c75f..a25ecc4c1e9e7148a4d49b0591465a7164b10dbd 100644
 --- a/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
 +++ b/src/runtime-rs/crates/hypervisor/src/qemu/cmdline_generator.rs
-@@ -2069,6 +2069,8 @@ struct ObjectSevSnpGuest {
+@@ -2068,6 +2068,8 @@ struct ObjectSevSnpGuest {
      host_data: Option<String>,
      policy: u32,
      is_snp: bool,
@@ -134,7 +134,7 @@ index c9bdaa8868436db0020b9d026056220d685a5681..3e45da2d264d792a1729746c4a33ac0f
  }
  
  impl ObjectSevSnpGuest {
-@@ -2081,6 +2083,8 @@ impl ObjectSevSnpGuest {
+@@ -2080,6 +2082,8 @@ impl ObjectSevSnpGuest {
              host_data,
              policy: 0x30000,
              is_snp,
@@ -143,7 +143,7 @@ index c9bdaa8868436db0020b9d026056220d685a5681..3e45da2d264d792a1729746c4a33ac0f
          }
      }
  
-@@ -2088,6 +2092,16 @@ impl ObjectSevSnpGuest {
+@@ -2087,6 +2091,16 @@ impl ObjectSevSnpGuest {
          self.policy = policy;
          self
      }
@@ -160,7 +160,7 @@ index c9bdaa8868436db0020b9d026056220d685a5681..3e45da2d264d792a1729746c4a33ac0f
  }
  
  #[async_trait]
-@@ -2114,6 +2128,12 @@ impl ToQemuParams for ObjectSevSnpGuest {
+@@ -2113,6 +2127,12 @@ impl ToQemuParams for ObjectSevSnpGuest {
              if let Some(host_data) = &self.host_data {
                  params.push(format!("host-data={host_data}"))
              }
@@ -173,7 +173,7 @@ index c9bdaa8868436db0020b9d026056220d685a5681..3e45da2d264d792a1729746c4a33ac0f
          }
          Ok(vec!["-object".to_owned(), params.join(",")])
      }
-@@ -2768,6 +2788,29 @@ fn is_running_in_vm() -> Result<bool> {
+@@ -2767,6 +2787,29 @@ fn is_running_in_vm() -> Result<bool> {
      Ok(res)
  }
  
@@ -203,7 +203,7 @@ index c9bdaa8868436db0020b9d026056220d685a5681..3e45da2d264d792a1729746c4a33ac0f
  fn should_disable_modern() -> bool {
      if !bus_type().supports_disable_modern() {
          return false;
-@@ -3279,7 +3322,34 @@ impl<'a> QemuCmdLine<'a> {
+@@ -3281,7 +3324,34 @@ impl<'a> QemuCmdLine<'a> {
  
          let mut sev_snp_object =
              ObjectSevSnpGuest::new(true, cbitpos, phys_addr_reduction, host_data.clone());
@@ -239,7 +239,7 @@ index c9bdaa8868436db0020b9d026056220d685a5681..3e45da2d264d792a1729746c4a33ac0f
  
          self.devices.push(Box::new(sev_snp_object));
  
-@@ -3290,7 +3360,7 @@ impl<'a> QemuCmdLine<'a> {
+@@ -3292,7 +3362,7 @@ impl<'a> QemuCmdLine<'a> {
              .set_confidential_guest_support("snp")
              .set_nvdimm(false);
  

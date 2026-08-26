@@ -531,8 +531,8 @@
       ];
       text = # bash
         ''
-          update-testdata ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
-          update-testdata-rs ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
+          update-testdata ${contrastPkgs.kata.release-tarball.go} "$(git rev-parse --show-toplevel)"
+          update-testdata-rs ${contrastPkgs.kata.release-tarball.rust} "$(git rev-parse --show-toplevel)"
         '';
     };
 
@@ -567,7 +567,7 @@
     ];
     text = # bash
       ''
-        update-base ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
+        update-base ${contrastPkgs.kata.release-tarball.go} "$(git rev-parse --show-toplevel)"
       '';
   };
 
