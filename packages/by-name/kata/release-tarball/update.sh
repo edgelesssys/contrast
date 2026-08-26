@@ -8,10 +8,15 @@ set -euo pipefail
 
 scriptDir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
-oldHash="$(nix eval .#base.kata.release-tarball.outputHash --raw)"
-sed -i "s|$oldHash||g" "$scriptDir/package.nix"
+for variant in go rust; do
+  echo "Updating hash of kata.release-tarball.$variant" >&2
+  oldHash="$(nix eval ".#base.kata.release-tarball.$variant.outputHash" --raw)"
+  if [[ -n $oldHash ]]; then
+    sed -i "s|$oldHash||g" "$scriptDir/package.nix"
+  fi
 
-nixBuildFailure=$(nix build .#base.kata.release-tarball --no-link 2>&1 >/dev/null || true)
-newHash=$(echo "$nixBuildFailure" | grep got: | awk '{print $2}')
+  nixBuildFailure=$(nix build ".#base.kata.release-tarball.$variant" --no-link 2>&1 >/dev/null || true)
+  newHash=$(echo "$nixBuildFailure" | grep got: | awk '{print $2}')
 
-sed -i "s|hash = \"\"|hash = \"$newHash\"|g" "$scriptDir/package.nix"
+  sed -i "s|hash = \"\"|hash = \"$newHash\"|g" "$scriptDir/package.nix"
+done

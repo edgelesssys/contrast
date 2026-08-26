@@ -94,7 +94,7 @@ kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
 # Optional dm-verity parameters (comma-separated key=value list):
 # root_hash=...,salt=...,data_blocks=...,data_block_size=...,hash_block_size=...
 # These are used by the runtime to assemble dm-verity kernel params.
-kernel_verity_params = "root_hash=c7a3264aed8c2ad1c941e10abb67b13beb2ea4c0f409823c221ed2486d531fb8,salt=9db451d042414547fec0d23dd848e7dacee249411308489232bd55b1634d80b2,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
+kernel_verity_params = "root_hash=c51ee359bfb5e29aea361e69f07aef0169f68a74dcee97d06c6d70b6a8306e5e,salt=79199deb937b657b57e0522e29d936bd03edaa579063aa8c302a7c33c5bda682,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
@@ -113,11 +113,10 @@ machine_accelerators = ""
 
 # Qemu seccomp sandbox feature
 # comma-separated list of seccomp sandbox features to control the syscall access.
-# For example, `seccompsandbox= "on,obsolete=deny,spawn=deny,resourcecontrol=deny"`
-# Note: "elevateprivileges=deny" doesn't work with daemonize option, so it's removed from the seccomp sandbox
+# For example, `seccompsandbox = "on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny"`
 # Another note: enabling this feature may reduce performance, you may enable
 # /proc/sys/net/core/bpf_jit_enable to reduce the impact. see https://man7.org/linux/man-pages/man8/bpfc.8.html
-# Recommended value when enabling: "on,obsolete=deny,spawn=deny,resourcecontrol=deny"
+# Recommended value when enabling: "on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny"
 seccompsandbox = ""
 
 # CPU features
@@ -659,8 +658,7 @@ jaeger_password = ""
 
 # If enabled, the runtime will not create a network namespace for shim and hypervisor processes.
 # This option may have some potential impacts to your host. It should only be used when you know what you're doing.
-# `disable_new_netns` conflicts with `internetworking_model=tcfilter` and `internetworking_model=macvtap`. It works only
-# with `internetworking_model=none`. The tap device will be in the host network namespace and can connect to a bridge
+# `disable_new_netns` only works with `internetworking_model=none`. The tap device will be in the host network namespace and can connect to a bridge
 # (like OVS) directly.
 # (default: false)
 disable_new_netns = false

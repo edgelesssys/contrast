@@ -12,10 +12,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 9 insertions(+), 63 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 8ad88b1eb0556dc9ee0fc0d9def3c23969ab31c4..032973f528712794907bb753fa2fda53c7afd5d9 100644
+index 5b6beed298d2881d48118ca02679ef8ae88c9237..ceaa01c7204534de748b0876eb69841e783375f9 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -217,18 +217,6 @@
+@@ -211,18 +211,6 @@
                  "rprivate",
                  "ro"
              ]
@@ -107,7 +107,7 @@ index c7d18c777f17684cd19384eb662bf4388b5030cd..84f7d1949560af32c6956f348f05a456
      pub mount_source: String,
      pub driver: String,
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index ed3e24e4128b99a07bb3d536156ba87618b231c9..93b223fff68c3f3ff05fe3ad14b3e03b293abc82 100644
+index 20613af48c2285f924f623929e7b0ee59f0fcc6f..a38d450cdb9ca528f2e77f17c6ed3f3f3730c0d8 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -27,6 +27,7 @@ use crate::utils::Config;

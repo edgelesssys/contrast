@@ -7,15 +7,25 @@
   zstd,
 }:
 
-let
+rec {
   inherit (runtime) version;
-in
-fetchzip {
-  url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.zst";
-  hash = "sha256-4UuPsUW0MkaXdYm/nkgcgro+vIowCb2JKFfOj2wOMhI=";
-  stripRoot = false;
-  nativeBuildInputs = [ zstd ];
+  go = fetchzip {
+    url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-go-static-${version}-amd64.tar.zst";
+    hash = "sha256-Qc2LDt9AI//40T68ZzQT3jO3/QwL77P3z8M+eC3fKz4=";
+    stripRoot = false;
+    nativeBuildInputs = [ zstd ];
 
-  passthru.version = version;
-  passthru.updateScript = ./update.sh;
+    passthru.version = version;
+    passthru.updateScript = ./update.sh;
+  };
+
+  rust = fetchzip {
+    url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.zst";
+    hash = "sha256-BOPN8C7MfzJnOF/WnvqdDhvkcWjjM1qjy8lv0vQUdIc=";
+    stripRoot = false;
+    nativeBuildInputs = [ zstd ];
+
+    passthru.version = version;
+    passthru.updateScript = ./update.sh;
+  };
 }

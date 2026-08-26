@@ -101,7 +101,7 @@ kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
 # Optional dm-verity parameters (comma-separated key=value list):
 # root_hash=...,salt=...,data_blocks=...,data_block_size=...,hash_block_size=...
 # These are used by the runtime to assemble dm-verity kernel params.
-kernel_verity_params = "root_hash=9be61f6c9b5ebfe6651ab65aeb61c09fe771cda8e7326bd0800f85af5a617c2c,salt=c5e05d2351447f2fdd5cf797a128782cdcdfd896e0e83574bfb8b12051802e68,data_blocks=64000,data_block_size=4096,hash_block_size=4096"
+kernel_verity_params = "root_hash=032c3b54512334b701183a6a2a5552aab5bba6075a4da6287a5142a72c9f2700,salt=11521d0de8629b9b8f58e138a9b5b952f6a29abac63808524a851a6e88175022,data_blocks=64000,data_block_size=4096,hash_block_size=4096"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
@@ -114,11 +114,10 @@ machine_accelerators = ""
 
 # Qemu seccomp sandbox feature
 # comma-separated list of seccomp sandbox features to control the syscall access.
-# For example, `seccomp_sandbox = "on,obsolete=deny,spawn=deny,resourcecontrol=deny"`
-# Note: "elevateprivileges=deny" doesn't work with daemonize option, so it's removed from the seccomp sandbox
+# For example, `seccomp_sandbox = "on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny"`
 # Another note: enabling this feature may reduce performance, you may enable
 # /proc/sys/net/core/bpf_jit_enable to reduce the impact. see https://man7.org/linux/man-pages/man8/bpfc.8.html
-# Recommended value when enabling: "on,obsolete=deny,spawn=deny,resourcecontrol=deny"
+# Recommended value when enabling: "on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny"
 seccomp_sandbox = ""
 
 # CPU features
@@ -576,11 +575,11 @@ kernel_modules = []
 # through "kata-runtime exec <sandbox-id>" command
 debug_console_enabled = false
 
-# Agent dial timeout in millisecond.
+# Sleep between agent connection retries, in milliseconds.
 # (default: 100)
 dial_timeout_ms = 100
 
-# Agent reconnect timeout in millisecond.
+# Overall time budget for establishing the agent connection, in milliseconds.
 # Retry times = reconnect_timeout_ms / dial_timeout_ms (default: 450)
 # If you find pod cannot connect to the agent when starting, please
 # consider increasing this value to increase the retry times.
@@ -633,6 +632,14 @@ enable_debug = false
 #     Uses tc filter rules to redirect traffic from the network interface
 #     provided by plugin to a tap interface connected to the VM.
 #
+#   - l3forwarding
+#     Uses L3 routing and proxy ARP to forward traffic between the network
+#     interface provided by the plugin and a tap interface connected to the
+#     VM.
+#     Useful for Istio Ambient-style service mesh integration with node
+#     proxies. Supports a single network interface per network namespace.
+#     Experimental feature, IPv4 only.
+#
 internetworking_model="tcfilter"
 
 name="virt_container"
@@ -668,8 +675,7 @@ jaeger_password = ""
 
 # If enabled, the runtime will not create a network namespace for shim and hypervisor processes.
 # This option may have some potential impacts to your host. It should only be used when you know what you're doing.
-# `disable_new_netns` conflicts with `internetworking_model=tcfilter` and `internetworking_model=macvtap`. It works only
-# with `internetworking_model=none`. The tap device will be in the host network namespace and can connect to a bridge
+# `disable_new_netns` only works with `internetworking_model=none`. The tap device will be in the host network namespace and can connect to a bridge
 # (like OVS) directly.
 # (default: false)
 disable_new_netns = false
@@ -759,4 +765,4 @@ dan_conf = "/run/kata-containers/dans"
 [[hypervisor.qemu.guest_extension_images]]
 name = "coco"
 path = "/opt/kata/share/kata-containers/kata-containers-coco-extension.img"
-verity_params = "root_hash=aea2f64f2c9ab57b8b00d96a4327ccefb3a4e68b9527316156020a047de55b36,salt=f6a339c1b86aeede6899b17550d989d01211da59dfad9e12653c4f3987b63e9d,data_blocks=17920,data_block_size=4096,hash_block_size=4096"
+verity_params = "root_hash=7e726139c4c8189eeec09f0c0d668a5e585092392b083a587265c73d773e67af,salt=b343ea6be6fe1f0d40a0e169d101a9443bfa5b5cbd7fffe7db4e535b7cb39ebb,data_blocks=32000,data_block_size=4096,hash_block_size=4096"

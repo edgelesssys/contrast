@@ -16,7 +16,7 @@ buildGoModule (finalAttrs: {
 
   sourceRoot = "${finalAttrs.src.name}/src/runtime";
 
-  vendorHash = "sha256-4QTq2BrnZDtUduqRdfRPXWsc9fHOo4DsM62BKuPCKNI=";
+  vendorHash = "sha256-dpOmOiHYyFK1LdeNb5cxbH3fHB0Fzx8aq58LKCvb8Pw=";
 
   subPackages = [
     "cmd/containerd-shim-kata-v2"

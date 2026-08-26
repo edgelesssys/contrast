@@ -11,7 +11,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 67 insertions(+), 24 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 1d770084948de8287ad183aa9655c29d9c59c2f5..abcd7ef7adcf0e09c43510a4f8c2e347510da0f5 100644
+index 6a0be3f4b7d97e30d542fb8389b0f7e37041cec5..ff700085bc5df3919124e4cf190bf77a4e18e816 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -23,9 +23,9 @@ use oci_client::{
@@ -26,7 +26,7 @@ index 1d770084948de8287ad183aa9655c29d9c59c2f5..abcd7ef7adcf0e09c43510a4f8c2e347
  };
  use tokio::io::AsyncWriteExt;
  
-@@ -143,19 +143,30 @@ impl Container {
+@@ -144,19 +144,30 @@ impl Container {
              ..Default::default()
          });
  
@@ -70,7 +70,7 @@ index 1d770084948de8287ad183aa9655c29d9c59c2f5..abcd7ef7adcf0e09c43510a4f8c2e347
              }
          };
  
-@@ -171,15 +182,35 @@ impl Container {
+@@ -172,15 +183,35 @@ impl Container {
          let mut passwd = String::new();
          let mut group = String::new();
  
