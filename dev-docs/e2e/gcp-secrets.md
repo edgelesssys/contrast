@@ -54,7 +54,7 @@ gcloud iam service-accounts create "${SA_NAME}" --project "${PROJECT_ID}" --disp
 When adding a new bare-metal cluster kubeconfig, also grant the SA access here.
 
 ```bash
-for SECRET in palutena-kubeconfig discovery-kubeconf olimar-kubeconfig dgx-007-kubeconfig; do
+for SECRET in palutena-kubeconfig discovery-kubeconf olimar-kubeconfig b13-gs01-kubeconfig; do
 gcloud secrets add-iam-policy-binding "${SECRET}" \
   --project "${PROJECT_ID}" \
   --member "serviceAccount:${SA_EMAIL}" \
