@@ -32,6 +32,8 @@ buildGoModule (finalAttrs: {
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
+        (path.append root "apitypes/go.mod")
+        (path.append root "apitypes/go.sum")
         (path.append root "nodeinstaller")
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
