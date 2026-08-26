@@ -14,7 +14,6 @@
       "op": "replace",
       "path": "/AllowedPIIDs",
       "value": [
-        "dcce32a12f7c89eeb4a747465504cdee",
         "efbfb928d8d2904c6e5fac0264ceada9"
       ]
     }
@@ -34,53 +33,8 @@
       "op": "replace",
       "path": "/AllowedPIIDs",
       "value": [
-        "dcce32a12f7c89eeb4a747465504cdee",
         "efbfb928d8d2904c6e5fac0264ceada9"
       ]
-    }
-  ],
-  [
-    {
-      "op": "test",
-      "path": "/tdx/0/MrSeam",
-      "value": "2d2de102461684f14c8d0984a09d895e3e9e15944ce020a03b977e1f114d5e1ed32ef666a47fd19a5851b3800eda3afa"
-    },
-    {
-      "op": "replace",
-      "path": "/tdx/0/MrSeam",
-      "value": "ab62561a173acbd18ee50ff37750db44184c6cf5e886df74247cc575e163b04c34b9e18374757c235affa614d4127f6b"
-    },
-    {
-      "op": "copy",
-      "from": "/tdx/0",
-      "path": "/tdx/-"
-    },
-    {
-      "op": "replace",
-      "path": "/tdx/0/MrSeam",
-      "value": "2d2de102461684f14c8d0984a09d895e3e9e15944ce020a03b977e1f114d5e1ed32ef666a47fd19a5851b3800eda3afa"
-    }
-  ],
-  [
-    {
-      "op": "test",
-      "path": "/tdx/1/MrSeam",
-      "value": "2d2de102461684f14c8d0984a09d895e3e9e15944ce020a03b977e1f114d5e1ed32ef666a47fd19a5851b3800eda3afa"
-    },
-    {
-      "op": "replace",
-      "path": "/tdx/1/MrSeam",
-      "value": "ab62561a173acbd18ee50ff37750db44184c6cf5e886df74247cc575e163b04c34b9e18374757c235affa614d4127f6b"
-    },
-    {
-      "op": "copy",
-      "from": "/tdx/1",
-      "path": "/tdx/-"
-    },
-    {
-      "op": "replace",
-      "path": "/tdx/1/MrSeam",
-      "value": "2d2de102461684f14c8d0984a09d895e3e9e15944ce020a03b977e1f114d5e1ed32ef666a47fd19a5851b3800eda3afa"
     }
   ]
 ]
