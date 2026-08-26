@@ -4,6 +4,8 @@ go 1.25.6
 
 replace github.com/edgelesssys/contrast => ../
 
+replace github.com/edgelesssys/contrast/apitypes => ../apitypes
+
 replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249
 
 replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5
@@ -24,6 +26,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
+	github.com/edgelesssys/contrast/apitypes v0.0.0-00010101000000-000000000000 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

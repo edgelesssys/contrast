@@ -38,6 +38,7 @@ buildGoModule (finalAttrs: {
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
         (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "apitypes"))
         (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal"))
       ];
     };
