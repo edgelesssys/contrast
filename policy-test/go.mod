@@ -4,6 +4,8 @@ go 1.26.0
 
 replace github.com/edgelesssys/contrast => ../
 
+replace github.com/edgelesssys/contrast/apitypes => ../apitypes
+
 require (
 	github.com/edgelesssys/contrast v1.22.0
 	github.com/evanphx/json-patch/v5 v5.9.11
