@@ -28,8 +28,13 @@ Post a message in the Teams channel to alert devs to re-run
 just get-ghcr-read-token
 ```
 
-## Rotate kubeconfig
+## Revoke the kubeconfig
 
 *only applicable if the runner was part of a multi-node cluster*
 
-1. Create a new kubeconfig.
+The kubeconfig sat on the machine, so treat it as compromised the moment the machine leaves our
+control. Its token is tied to the API key that minted it, so delete that key. Nothing else in the
+cluster is affected.
+
+A replacement runner needs a new key and a kubeconfig generated for it, see
+[bare-metal runner setup](./bare-metal-runner.md#developer-access).
