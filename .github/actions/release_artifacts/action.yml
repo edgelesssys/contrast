@@ -5,6 +5,11 @@ inputs:
   version:
     description: Version of the release
     required: true
+  image_tag:
+    description: >
+      Tag to push the container images under. Nightlies pass their date-suffixed version so they don't move the tag of an already published release.
+    required: false
+    default: ''
   container_registry:
     description: Container registry to push the images to
     required: true
@@ -28,6 +33,7 @@ runs:
       shell: bash
       env:
         CONTAINER_REGISTRY: ${{ inputs.container_registry }}
+        CONTRAST_IMAGE_TAG: ${{ inputs.image_tag }}
         SET: base
       run: |
         set -u
