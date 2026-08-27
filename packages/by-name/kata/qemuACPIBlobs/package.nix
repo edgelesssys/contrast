@@ -109,8 +109,9 @@ let
         "memory-backend-ram,id=dimm1,size=${mem}"
         "-numa"
         "node,memdev=dimm1"
+        # Kata lets QEMU infer one socket per vCPU for confidential guests.
         "-smp"
-        "${toString vcpus},cores=${toString vcpus},threads=1,sockets=1,maxcpus=${toString vcpus}"
+        "${toString vcpus},cores=1,threads=1"
       ];
 
       manifest = builtins.toJSON {
