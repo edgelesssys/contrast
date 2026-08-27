@@ -168,7 +168,7 @@ Contrast can only be used with the following Confidential Computing enabled GPUs
 
 :::warning
 
-Currently, only the `NVIDIA H100 PCIe` and `NVIDIA HGX B200` models are covered by tests. Other GPUs aren't guaranteed to work.
+Currently, only the `NVIDIA H100 PCIe` and `NVIDIA HGX B300` models are covered by tests. Other GPUs aren't guaranteed to work.
 
 :::
 
@@ -312,7 +312,7 @@ The above command should yield an output similar to the following, depending on 
 {
   "name": "node-name",
   "gpus": {
-    "nvidia.com/GB100_B200": "8"
+    "nvidia.com/GB110_B300_SXM6_AC": "8"
   }
 }
 ```
