@@ -13,6 +13,7 @@
   ovmf,
   withGPU ? false,
   withDebug ? false,
+  vcpus ? 1,
 }:
 
 let
@@ -24,14 +25,13 @@ let
   # distinguishes between GPU and non-GPU.
   gpuFlag = lib.optionalString withGPU "-g b200";
   # withDebug enables Kata's legacy serial topology, which changes ACPI.
-  # TODO(sespiros): Plumb the vCPU count; reference values assume one.
   # GPU VMs currently measure no ACPI tables.
   acpiBlobsFlag =
     lib.optionalString (!withGPU)
       "--acpi-blobs ${
         kata.qemuACPIBlobs {
           legacySerial = withDebug;
-          vcpus = 1;
+          inherit vcpus;
         }
       }";
 in
