@@ -64,19 +64,41 @@ sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyring
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 
 # Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
 sudo apt-get update
 
 # Download docker package
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
+> [!WARNING]
+> On a non-k3s node, `dpkg` offers to replace `/etc/containerd/config.toml`, which the
+> node-installer owns (`nodeinstaller/internal/targetconfig/targetconfig.go`). Answer `N`. The
+> packaged version drops the CRI registry config and every runtime handler from under a running
+> kubelet. k3s nodes are unaffected, k3s ships its own containerd.
+
 ## Kubernetes setup
 
 These steps depend on the Kubernetes distribution used for this runner.
+
+### Remove old runner (if applicable)
+
+> [!IMPORTANT]
+> Each testing cluster must have exactly one node labelled `ci.contrast.edgeless.systems/main-runner=true`.
+
+If there's already a runner in the cluster, it needs to be removed before the new runner can be added.
+Two runners break the assumption that e2e tests never run concurrently, since the node-installer
+restarts containerd. Two `main-runner` nodes break the `hostpath` CSI driver, whose volumes are
+node-local.
+
+Remove the label `ci.contrast.edgeless.systems/main-runner=true` from all nodes in the cluster before continuing.
 
 ### K3s
 
@@ -142,8 +164,8 @@ chmod a+x /usr/local/bin/kubectl
 kubectl version
 ```
 
-Generate a Kubernetes configuration in the Scaleway portal, using a dedicated API key for this machine.
-Save the generated config to `/home/github/.kube/config`.
+Download the kubeconfig for the cluster as described under [Developer access](#developer-access),
+and save it to `/home/github/.kube/config`.
 
 ## Kubernetes resources
 
@@ -152,6 +174,13 @@ Install the `hostpath` CSI driver:
 ```bash
 nix build .#base.csi-driver-host-path
 kubectl apply -k result
+```
+
+Its volumes are node-local, so when a runner is replaced, `collateral-proxy` is stranded on the
+old node and needs re-provisioning:
+
+```bash
+just collateral-proxy-redeploy
 ```
 
 ## Kernel config
@@ -168,10 +197,23 @@ EOF
 systemctl restart systemd-modules-load.service
 ```
 
-For newer Ubuntu versions, also set
+Ubuntu 23.10 and newer restrict unprivileged user namespaces via AppArmor, which breaks the
+`image-podvm-gpu` build with `unshare: write failed /proc/self/uid_map: Operation not permitted`.
+Exempt the binary that needs it:
 
-```
-echo "kernel.apparmor_restrict_unprivileged_userns = 0" > /etc/sysctl.d/97-apparmor-allow-userns.conf
+```bash
+sudo tee /etc/apparmor.d/nix-unshare > /dev/null <<'EOF'
+abi <abi/5.0>,
+include <tunables/global>
+
+profile nix-unshare /nix/store/*-util-linux-*/bin/unshare flags=(unconfined) {
+  userns,
+  @{exec_path} mr,
+
+  include if exists <local/nix-unshare>
+}
+EOF
+sudo apparmor_parser -r /etc/apparmor.d/nix-unshare
 ```
 
 ## Networking
@@ -254,16 +296,26 @@ If it's anything other than a btrfs, setup a btrfs builder volume.
 The instructions are taken from https://github.com/edgelesssys/contrast/blob/a62af98f2df761116109310a6af4adcb66e758c0/.github/actions/setup_nix/action.yml#L35.
 
 ```bash
+# not installed when the root filesystem isn't btrfs
+sudo apt-get install -y btrfs-progs
+
 # Create file fs backend
 echo "Setting up btrfs nix builder volume..."
 sudo mkdir -p /mnt/nixbld
-sudo fallocate -l 20G /mnt/btrfs.img
+sudo fallocate -l 50G /mnt/btrfs.img
 sudo mkfs.btrfs -f /mnt/btrfs.img
 
 # Create fstab entry to mount the file as btrfs
-sudo echo -e "# btrfs for nix builder \n/mnt/btrfs.img /mnt/nixbld btrfs loop,defaults 0 0" >> /etc/fstab
+sudo tee -a /etc/fstab > /dev/null <<'EOF'
+# btrfs for nix builder
+/mnt/btrfs.img /mnt/nixbld btrfs loop,defaults 0 0
+EOF
 sudo systemctl daemon-reload
 sudo mount -a
+
+# `mount -a` skips a malformed entry silently. --mountpoint reports nothing unless
+# /mnt/nixbld is itself a mount, rather than falling back to an ancestor.
+findmnt --mountpoint /mnt/nixbld
 
 # Use the btrfs for nix builds
 echo "build-dir = /mnt/nixbld" | sudo tee -a /etc/nix/nix.conf
@@ -302,9 +354,12 @@ that's `tdx` for TDX servers and `snp` for SNP servers (or `tdx-gpu` and `snp-gp
 
 ## Developer access
 
-For developers to be able to access the K8s cluster, prepare
-a kubeconfig which points to the DNS name of the server inside
-the Tailscale:
+For developers to be able to access the K8s cluster, prepare a kubeconfig and save it as
+`${RUNNER_NAME}-kubeconfig`.
+
+### K3s kubeconfig
+
+Point it at the DNS name of the server inside the Tailscale:
 
 ```bash
 CONFIG=$(cat /etc/rancher/k3s/k3s.yaml)
@@ -312,6 +367,22 @@ CONFIG="${CONFIG//default/$(hostname)}"
 CONFIG="${CONFIG//127.0.0.1/$(hostname)}"
 echo "${CONFIG}" > $(hostname)-kubeconfig
 ```
+
+### Scaleway Kosmos kubeconfig
+
+In the Scaleway portal, create an API key dedicated to this machine, owned by the application that
+has Kubernetes access, then generate a Kubernetes configuration for that key. The token is tied to
+the key, which is what makes it revocable when the machine is decommissioned.
+
+It must carry a static token: CI and `just get-credentials` run where no `scw` is configured, and
+recent `scw k8s kubeconfig get` emits an `exec` credential instead. Check both before uploading:
+
+```bash
+kubectl --kubeconfig "${RUNNER_NAME}-kubeconfig" config view -o json | jq -e '.users[0].user | has("token")'
+KUBECONFIG="${RUNNER_NAME}-kubeconfig" kubectl get nodes
+```
+
+### Push it to GCP
 
 Copy the config over to somewhere you are already
 authenticated with GCP and push it as a secret. If the secret already
@@ -335,23 +406,6 @@ The `bm-tcb-specs` ConfigMap wraps the [`<host>/manifest.json`](../e2e), contain
 Add a file [`dev-docs/e2e/<host>/manifest.json`](../e2e) with the values for the runner you've added.
 If the runner is using k3s and the embedded mirror registry, add a corresponding configuration file at `dev-docs/e2e/<host>/contrast-imagepuller.toml`.
 Push the branch and run the `update_bm_tcb_specs` workflow on that branch.
-
-## Sync Server
-
-**This step only applies to servers owned by Edgeless Systems that don't have an application load balancer.**
-
-If a FIFO-ticket sync server should run on the node, find the Tailscale IP, and set it as the `node-ip` for k3s:
-
-```bash
-NODE_IP=$(tailscale ip -4)
-echo "node-ip: \"${NODE_IP}\"" >> /etc/rancher/k3s/config.yaml
-```
-
-Then restart k3s:
-
-```bash
-systemctl restart k3s
-```
 
 ## Test run
 
