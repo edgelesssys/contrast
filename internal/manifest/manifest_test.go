@@ -199,6 +199,20 @@ func TestValidate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		"tdx RTMR0 alternative empty": {
+			m: newTestManifestTDX(),
+			mutate: func(m *Manifest) {
+				m.ReferenceValues.TDX[0].Rtmr0Alternatives = []HexString{""}
+			},
+			wantErr: true,
+		},
+		"tdx RTMR0 alternative duplicates primary": {
+			m: newTestManifestTDX(),
+			mutate: func(m *Manifest) {
+				m.ReferenceValues.TDX[0].Rtmr0Alternatives = []HexString{m.ReferenceValues.TDX[0].Rtmrs[0]}
+			},
+			wantErr: true,
+		},
 		"tdx mr seam empty": {
 			m: newTestManifestTDX(),
 			mutate: func(m *Manifest) {
@@ -262,6 +276,32 @@ func TestValidate(t *testing.T) {
 				return
 			}
 			assert.NoError(tc.m.Validate())
+		})
+	}
+}
+
+func TestTDXValidateOptsRTMR0Alternatives(t *testing.T) {
+	for name, alternatives := range map[string][]HexString{
+		"primary only": nil,
+		"alternative":  {HexString(fmt.Sprintf("%096x", 9))},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := newTestManifestTDX()
+			m.ReferenceValues.TDX[0].Rtmr0Alternatives = alternatives
+
+			opts, err := m.TDXValidateOpts(nil)
+			require.NoError(t, err)
+			require.Len(t, opts, 1)
+
+			primaryBytes, err := m.ReferenceValues.TDX[0].Rtmrs[0].Bytes()
+			require.NoError(t, err)
+			want := [][]byte{primaryBytes}
+			for _, alternative := range alternatives {
+				alternativeBytes, err := alternative.Bytes()
+				require.NoError(t, err)
+				want = append(want, alternativeBytes)
+			}
+			require.Equal(t, want, opts[0].AllowedRtmr0s)
 		})
 	}
 }
