@@ -4,11 +4,13 @@
 package tdx
 
 import (
+	"bytes"
 	"encoding/hex"
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/google/go-tdx-guest/proto/tdx"
+	"github.com/google/go-tdx-guest/validate"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -58,6 +60,52 @@ func TestValidateXfamIgnoringCET(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRTMR0ValidateOptsGenerator(t *testing.T) {
+	primary := bytes.Repeat([]byte{0x01}, 48)
+	alternative := bytes.Repeat([]byte{0x02}, 48)
+	otherRtmrs := [][]byte{
+		bytes.Repeat([]byte{0x03}, 48),
+		bytes.Repeat([]byte{0x04}, 48),
+		bytes.Repeat([]byte{0x05}, 48),
+	}
+	opts := &validate.Options{
+		TdQuoteBodyOptions: validate.TdQuoteBodyOptions{
+			Rtmrs: append([][]byte{primary}, otherRtmrs...),
+		},
+	}
+	generator := &RTMR0ValidateOptsGenerator{
+		Opts:          opts,
+		AllowedRtmr0s: [][]byte{primary, alternative},
+	}
+
+	for name, tc := range map[string]struct {
+		rtmr0   []byte
+		wantErr bool
+	}{
+		"primary":     {rtmr0: primary},
+		"alternative": {rtmr0: alternative},
+		"unknown":     {rtmr0: bytes.Repeat([]byte{0xff}, 48), wantErr: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, err := generator.TDXValidateOpts(&tdx.QuoteV4{
+				TdQuoteBody: &tdx.TDQuoteBody{Rtmrs: [][]byte{tc.rtmr0}},
+			})
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.NotSame(t, opts, got)
+			require.Empty(t, got.TdQuoteBodyOptions.Rtmrs[0])
+			require.Equal(t, otherRtmrs, got.TdQuoteBodyOptions.Rtmrs[1:])
+			require.Equal(t, primary, opts.TdQuoteBodyOptions.Rtmrs[0])
+		})
+	}
+
+	_, err := generator.TDXValidateOpts(&tdx.QuoteV4{TdQuoteBody: &tdx.TDQuoteBody{}})
+	require.ErrorContains(t, err, "attestation has no RTMRs")
 }
 
 func mustHex(t *testing.T, s string) []byte {
