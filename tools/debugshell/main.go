@@ -17,6 +17,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
+	"github.com/mdlayher/vsock"
 )
 
 var bashPath = "/bin/sh" // Path is swapped out during package build, /bin/sh for local development.
@@ -45,12 +46,33 @@ func main() {
 		},
 	}
 
+	// TODO(burgerdev): should be an errgroup
 	wg := sync.WaitGroup{}
 
 	wg.Go(func() {
 		defer wg.Done()
 		log.Printf("Starting debug shell server on %s", s.Addr)
 		if err := s.ListenAndServe(); err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+	})
+
+	wg.Go(func() {
+		// Reachable at
+		// cat /run/vc/sbs/$SANDBOXID/persist.json  | jq -r .AgentState.URL
+		// vsock://4157183119:1024
+		// Sandboxid at
+		// k3s crictl inspectp | flatten
+		// $.[3]."status"."id" = "e2e110885c4cae0cfd15c16e9be4c1072dd023200be18c9ad5c2b61543483422"
+		// $.[3]."status"."metadata"."name" = "coordinator-0"
+		// $.[3]."status"."metadata"."namespace" = "custom-mr"
+
+		log.Printf("Starting debug shell server on VSOCK")
+		l, err := vsock.Listen(22, nil)
+		if err != nil {
+			log.Fatalf("Error listening on VSOCK: %v", err)
+		}
+		if err := s.Serve(l); err != nil {
 			log.Fatalf("Error: %v", err)
 		}
 	})
