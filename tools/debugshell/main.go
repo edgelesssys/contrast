@@ -50,7 +50,6 @@ func main() {
 	wg := sync.WaitGroup{}
 
 	wg.Go(func() {
-		defer wg.Done()
 		log.Printf("Starting debug shell server on %s", s.Addr)
 		if err := s.ListenAndServe(); err != nil {
 			log.Fatalf("Error: %v", err)
@@ -78,7 +77,6 @@ func main() {
 	})
 
 	wg.Go(func() {
-		defer wg.Done()
 		<-ctx.Done()
 		if err := s.Close(); err != nil {
 			log.Printf("Error closing SSH server: %v\n", err)
