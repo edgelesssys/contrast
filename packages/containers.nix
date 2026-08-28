@@ -146,6 +146,15 @@
       bash
       coreutils
       contrastPkgs.debugshell
+      contrastPkgs.scripts.debugshell-host
+      (runCommand "debugshell-rootfs" { } ''
+        mkdir -p \
+          $out/etc \
+          $out/tmp
+
+        echo "root:x:0:0::/tmp:/bin/sh" > $out/etc/passwd
+        echo "root:x:0:root" > $out/etc/group
+      '')
       openssh
       contrastPkgs.tdx-tools
     ];
