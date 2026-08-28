@@ -17,6 +17,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
+	"github.com/mdlayher/vsock"
 )
 
 var bashPath = "/bin/sh" // Path is swapped out during package build, /bin/sh for local development.
@@ -45,12 +46,33 @@ func main() {
 		},
 	}
 
+	// TODO(burgerdev): should be an errgroup
 	wg := sync.WaitGroup{}
 
 	wg.Go(func() {
 		defer wg.Done()
 		log.Printf("Starting debug shell server on %s", s.Addr)
 		if err := s.ListenAndServe(); err != nil {
+			log.Fatalf("Error: %v", err)
+		}
+	})
+
+	wg.Go(func() {
+		// Expose the SSH server over VSOCK for the host.
+		// In order to reach it, you first need the VM's CID.
+		//
+		//   sandbox=$(crictl pods --namespace "$NS" --name "$POD" --state ready -q)
+		//   cid=$(jq -r .AgentState.URL "/run/vc/sbs/$sandbox/persist.json" | sed -e 's|vsock://||' -e 's|:.*||')
+		//   ssh -o ProxyCommand="socat - VSOCK-CONNECT:$cid:22" root@localhost
+		//
+		// There's a script for this in packages/by-name/scripts/debugshell-host.
+
+		log.Printf("Starting debug shell server on VSOCK port 22")
+		l, err := vsock.Listen(22, nil)
+		if err != nil {
+			log.Fatalf("Error listening on VSOCK: %v", err)
+		}
+		if err := s.Serve(l); err != nil {
 			log.Fatalf("Error: %v", err)
 		}
 	})
