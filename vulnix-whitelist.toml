@@ -64,3 +64,10 @@ cve = [ "CVE-2026-40467", "CVE-2026-40468", "CVE-2026-40469", "CVE-2026-40553" ]
 
 ["patch"]
 cve = [ "CVE-2026-56288", "CVE-2026-56289" ]
+
+["coreutils"]
+cve = [ "CVE-2026-56391", "CVE-2026-56392" ]
+comment = [
+  "CVE-2026-56391: out-of-bounds read in uniq requires attacker-controlled arguments. We don't seem to use uniq at all.",
+  "CVE-2026-56392: heap overflow in unexpand requires attacker-controlled arguments. We don't seem to use unexpand at all.",
+]
