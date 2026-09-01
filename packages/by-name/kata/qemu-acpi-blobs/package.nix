@@ -3,16 +3,19 @@
 
 {
   buildGoModule,
-  # MADT depends on the vCPU count.
-  vcpus ? 1,
-  legacySerial ? false,
-  # qemu-cc omits memory-dependent ACPI data; 130 MiB is the DMA minimum.
-  memoryMiB ? 1024,
   lib,
   stdenvNoCC,
   qemu-cc,
   source,
   tdx-measure,
+}:
+
+{
+  # MADT depends on the vCPU count.
+  vcpus,
+  legacySerial ? false,
+  # qemu-cc omits memory-dependent ACPI data; 130 MiB is the DMA minimum.
+  memoryMiB ? 1024,
 }:
 
 # Generates OVMF-measured ACPI blobs for Kata's q35 topology with qtest.
