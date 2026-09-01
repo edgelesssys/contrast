@@ -181,9 +181,36 @@ func TestAttestationHandler(t *testing.T) {
 	}
 }
 
+func TestAttestationReportDataBindsCapabilities(t *testing.T) {
+	require := require.New(t)
+
+	meshKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
+	rootKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[2])
+	ca, err := ca.New(rootKey, meshKey)
+	require.NoError(err)
+
+	capabilitiesDigest := NewCapabilitiesHandler().Digest()
+
+	reportDataFor := func(capabilitiesDigest []byte) [64]byte {
+		issuer := &stubIssuer{oid: asn1.ObjectIdentifier{1, 2, 3}}
+		handler := &AttestationHandler{
+			StateGuard:         &stubGuard{ca: ca},
+			Issuer:             issuer,
+			CapabilitiesDigest: capabilitiesDigest,
+		}
+		_, status, err := handler.getResponse(t.Context(), nonce)
+		require.NoError(err)
+		require.Equal(http.StatusOK, status)
+		return issuer.gotReportData
+	}
+
+	require.NotEqual(reportDataFor(nil), reportDataFor(capabilitiesDigest[:]))
+}
+
 type stubIssuer struct {
-	oid      asn1.ObjectIdentifier
-	issueErr error
+	oid           asn1.ObjectIdentifier
+	issueErr      error
+	gotReportData [64]byte
 	atls.Issuer
 }
 
@@ -191,10 +218,11 @@ func (s *stubIssuer) OID() asn1.ObjectIdentifier {
 	return s.oid
 }
 
-func (s *stubIssuer) Issue(_ context.Context, _ [64]byte) (quote []byte, err error) {
+func (s *stubIssuer) Issue(_ context.Context, reportData [64]byte) (quote []byte, err error) {
 	if s.issueErr != nil {
 		return nil, s.issueErr
 	}
+	s.gotReportData = reportData
 	return []byte("fake-attestation"), nil
 }
 

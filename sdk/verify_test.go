@@ -6,7 +6,9 @@
 package sdk
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/asn1"
 	"encoding/json"
 	"log/slog"
@@ -14,11 +16,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/sdk/apiv1"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -156,11 +161,13 @@ func TestValidateAttestation(t *testing.T) {
 			attestation, err := json.Marshal(tc.resp)
 			require.NoError(err)
 
-			// ValidateAttestation is offline, so no Coordinator URL is needed.
-			c := New("")
+			srv := httptest.NewServer(capabilitiesHandler([]string{apiv1.Version}))
+			t.Cleanup(srv.Close)
+			c := New(srv.URL)
 
+			validator := &stubValidator{err: tc.validateErr}
 			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error) {
-				return &stubValidator{err: tc.validateErr}, nil
+				return validator, nil
 			}
 			state, err := c.ValidateAttestation(t.Context(), tc.nonce, attestation)
 			if tc.wantErr != "" {
@@ -170,6 +177,8 @@ func TestValidateAttestation(t *testing.T) {
 			}
 			assert.NoError(err)
 
+			transitions := history.BuildTransitionChain(tc.resp.Manifests)
+			latestTransitionHash := transitions[len(transitions)-1].Digest()
 			expected := &CoordinatorState{
 				Manifests: tc.resp.Manifests,
 				Policies:  tc.resp.Policies,
@@ -178,6 +187,12 @@ func TestValidateAttestation(t *testing.T) {
 			}
 
 			assert.Equal(expected, state)
+
+			var capsBody bytes.Buffer
+			require.NoError(json.NewEncoder(&capsBody).Encode(apitypes.CapabilitiesResponse{APIVersions: []string{apiv1.Version}}))
+			capsDigest := sha256.Sum256(capsBody.Bytes())
+			wantReportData := apitypesv1.ConstructReportData(tc.nonce, latestTransitionHash[:], capsDigest[:], &tc.resp.CoordinatorState)
+			assert.Equal(wantReportData[:], validator.gotReportData)
 		})
 	}
 }
@@ -232,10 +247,12 @@ var testManifest = []byte(`
 `)
 
 type stubValidator struct {
-	err error
+	err           error
+	gotReportData []byte
 }
 
-func (v *stubValidator) Validate(context.Context, asn1.ObjectIdentifier, []byte, []byte) error {
+func (v *stubValidator) Validate(_ context.Context, _ asn1.ObjectIdentifier, _ []byte, reportData []byte) error {
+	v.gotReportData = reportData
 	return v.err
 }
 
