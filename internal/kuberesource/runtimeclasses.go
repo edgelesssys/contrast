@@ -95,7 +95,7 @@ func (p PlatformCollection) AddFromResources(resources []any) error {
 			}
 			// Bare runtime class names (e.g. "contrast-cc") are placeholders
 			// that get resolved during generate. Skip them here.
-			if *spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "contrast-insecure" {
+			if IsBareContrastRuntimeClass(*spec.RuntimeClassName) {
 				return meta, spec
 			}
 			platform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)

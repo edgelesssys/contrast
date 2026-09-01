@@ -283,6 +283,82 @@ func TestIsContrastWorkload(t *testing.T) {
 	}
 }
 
+func TestPatchCoordinatorAllowInsecure(t *testing.T) {
+	insecurePlatforms := kuberesource.PlatformCollection{
+		platforms.MetalQEMUInsecure: {},
+	}
+	securePlatforms := kuberesource.PlatformCollection{
+		platforms.MetalQEMUSNP: {},
+	}
+	mixedPlatforms := kuberesource.PlatformCollection{
+		platforms.MetalQEMUSNP:      {},
+		platforms.MetalQEMUInsecure: {},
+	}
+
+	newCoordinator := func() *applyappsv1.StatefulSetApplyConfiguration {
+		podSpec := applycorev1.PodSpec().WithContainers(
+			applycorev1.Container().WithName("sidecar"),
+			applycorev1.Container().WithName("coordinator").WithEnv(
+				kuberesource.NewEnvVar("KEEP_ME", "value"),
+				kuberesource.NewEnvVar(allowInsecureEnvVar, "false"),
+			),
+		)
+		template := applycorev1.PodTemplateSpec().
+			WithLabels(map[string]string{kuberesource.ContrastRoleLabelKey: string(manifest.RoleCoordinator)}).
+			WithSpec(podSpec)
+		return applyappsv1.StatefulSet("coordinator", "default").
+			WithSpec(applyappsv1.StatefulSetSpec().WithTemplate(template))
+	}
+
+	t.Run("patches named coordinator container idempotently", func(t *testing.T) {
+		coordinator := newCoordinator()
+		patchCoordinatorAllowInsecure(coordinator, insecurePlatforms, true)
+		patchCoordinatorAllowInsecure(coordinator, insecurePlatforms, true)
+
+		containers := coordinator.Spec.Template.Spec.Containers
+		require.Len(t, containers, 2)
+		assert.Empty(t, containers[0].Env)
+		require.Len(t, containers[1].Env, 2)
+
+		env := map[string]string{}
+		for _, envVar := range containers[1].Env {
+			env[*envVar.Name] = *envVar.Value
+		}
+		assert.Equal(t, "value", env["KEEP_ME"])
+		assert.Equal(t, "1", env[allowInsecureEnvVar])
+	})
+
+	t.Run("does not patch secure platforms", func(t *testing.T) {
+		coordinator := newCoordinator()
+		patchCoordinatorAllowInsecure(coordinator, securePlatforms, true)
+		assert.Equal(t, "false", *coordinator.Spec.Template.Spec.Containers[1].Env[1].Value)
+	})
+
+	t.Run("does not patch mixed platforms", func(t *testing.T) {
+		coordinator := newCoordinator()
+		patchCoordinatorAllowInsecure(coordinator, mixedPlatforms, true)
+		assert.Equal(t, "false", *coordinator.Spec.Template.Spec.Containers[1].Env[1].Value)
+	})
+
+	t.Run("does not patch without opt-in", func(t *testing.T) {
+		coordinator := newCoordinator()
+		patchCoordinatorAllowInsecure(coordinator, insecurePlatforms, false)
+		assert.Equal(t, "false", *coordinator.Spec.Template.Spec.Containers[1].Env[1].Value)
+	})
+
+	t.Run("handles missing pod spec", func(t *testing.T) {
+		template := applycorev1.PodTemplateSpec().
+			WithLabels(map[string]string{kuberesource.ContrastRoleLabelKey: string(manifest.RoleCoordinator)})
+		coordinator := applyappsv1.StatefulSet("coordinator", "default").
+			WithSpec(applyappsv1.StatefulSetSpec().WithTemplate(template))
+
+		assert.False(t, isCoordinator(coordinator))
+		assert.NotPanics(t, func() {
+			patchCoordinatorAllowInsecure(coordinator, insecurePlatforms, true)
+		})
+	})
+}
+
 func TestValidateInsecurePlatforms(t *testing.T) {
 	testCases := map[string]struct {
 		platforms      []platforms.Platform
@@ -330,6 +406,46 @@ func TestValidateInsecurePlatforms(t *testing.T) {
 	}
 }
 
+func TestValidateInsecureManifest(t *testing.T) {
+	testCases := map[string]struct {
+		platform      platforms.Platform
+		allowInsecure bool
+		wantErr       bool
+	}{
+		"secure without flag": {
+			platform: platforms.MetalQEMUSNP,
+		},
+		"secure with flag": {
+			platform:      platforms.MetalQEMUSNP,
+			allowInsecure: true,
+		},
+		"insecure without flag": {
+			platform: platforms.MetalQEMUInsecure,
+			wantErr:  true,
+		},
+		"insecure with flag": {
+			platform:      platforms.MetalQEMUInsecure,
+			allowInsecure: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			mnf := &manifest.Manifest{
+				ReferenceValues: manifest.ReferenceValues{
+					SNP: []manifest.SNPReferenceValues{{Platform: tc.platform.String()}},
+				},
+			}
+			err := validateInsecureManifest(mnf, tc.allowInsecure)
+			if tc.wantErr {
+				require.ErrorContains(t, err, "--INSECURE flag not set")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestInsecureRuntimesAllowed(t *testing.T) {
 	testCases := map[string]struct {
 		set   bool
@@ -346,9 +462,9 @@ func TestInsecureRuntimesAllowed(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			t.Setenv("CONTRAST_ALLOW_INSECURE", tc.value)
+			t.Setenv(allowInsecureEnvVar, tc.value)
 			if !tc.set {
-				os.Unsetenv("CONTRAST_ALLOW_INSECURE")
+				require.NoError(t, os.Unsetenv(allowInsecureEnvVar))
 			}
 
 			assert.Equal(t, tc.want, insecureRuntimesAllowed())

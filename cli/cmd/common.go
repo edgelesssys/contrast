@@ -21,6 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/fsstore"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -49,6 +50,13 @@ const (
 func insecureRuntimesAllowed() bool {
 	allowed, err := strconv.ParseBool(os.Getenv(allowInsecureEnvVar))
 	return err == nil && allowed
+}
+
+func validateInsecureManifest(mnf *manifest.Manifest, allowInsecure bool) error {
+	if mnf.HasInsecurePlatforms() && !allowInsecure {
+		return fmt.Errorf("manifest contains insecure platforms but --INSECURE flag not set (the flag is only available with the %s environment variable set to true)", allowInsecureEnvVar)
+	}
+	return nil
 }
 
 // ReleaseImageReplacements contains the image replacements used by contrast.

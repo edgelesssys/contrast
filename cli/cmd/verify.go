@@ -77,8 +77,8 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
 		return fmt.Errorf("unmarshalling manifest: %w", err)
 	}
-	if mnfst.HasInsecurePlatforms() && !flags.allowInsecureRuntimes {
-		return fmt.Errorf("manifest contains insecure platforms but --INSECURE flag not set (the flag is only available with the %s environment variable set to true)", allowInsecureEnvVar)
+	if err := validateInsecureManifest(&mnfst, flags.allowInsecureRuntimes); err != nil {
+		return err
 	}
 
 	kdsDir, err := cachedir("kds")

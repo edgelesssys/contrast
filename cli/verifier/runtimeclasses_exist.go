@@ -35,7 +35,7 @@ func (r *RuntimeClassesExist) Verify(toVerify any) error {
 		}
 		// Bare runtime class names (without hash suffix) are placeholders that
 		// get resolved during generate. They can't be parsed as platforms.
-		if *spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "contrast-insecure" {
+		if kuberesource.IsBareContrastRuntimeClass(*spec.RuntimeClassName) {
 			if defaultRuntimeClass == "" {
 				collectedMissingRuntimes[*spec.RuntimeClassName] = fmt.Errorf("no default platform was specified using --reference-values")
 			}

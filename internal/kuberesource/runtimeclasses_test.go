@@ -13,6 +13,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestIsBareContrastRuntimeClass(t *testing.T) {
+	testCases := map[string]struct {
+		runtimeClass string
+		want         bool
+	}{
+		"empty":                   {},
+		"bare cc":                 {runtimeClass: "contrast-cc", want: true},
+		"bare insecure":           {runtimeClass: "contrast-insecure", want: true},
+		"qualified cc":            {runtimeClass: "contrast-cc-metal-qemu-snp"},
+		"qualified insecure":      {runtimeClass: "contrast-insecure-metal-qemu"},
+		"legacy kata":             {runtimeClass: "kata-cc-isolation"},
+		"unrelated runtime class": {runtimeClass: "unrelated-runtime-class"},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, IsBareContrastRuntimeClass(tc.runtimeClass))
+		})
+	}
+}
+
 func TestNames(t *testing.T) {
 	testCases := map[string]struct {
 		p    PlatformCollection

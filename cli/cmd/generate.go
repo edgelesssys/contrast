@@ -182,6 +182,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("validate existing manifest: %w", err)
 		}
 	}
+	if err := validateInsecureManifest(mnf, flags.allowInsecureRuntimes); err != nil {
+		return err
+	}
 
 	// Inject the APEIP (from the OVMF passed at build time) into every SNP
 	// reference value entry. This allows SNPValidateOpts to derive launch
@@ -209,7 +212,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("get runtime handler: %w", err)
 		}
 	}
-	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags, mnf); err != nil {
+	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags, mnf, usedPlatforms); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
@@ -348,6 +351,7 @@ func isCoordinator(resource any) bool {
 	if ok &&
 		r.Spec != nil &&
 		r.Spec.Template != nil &&
+		r.Spec.Template.Spec != nil &&
 		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 		r.Spec.Template.Labels[kuberesource.ContrastRoleLabelKey] == string(manifest.RoleCoordinator) {
 		return true
@@ -355,13 +359,20 @@ func isCoordinator(resource any) bool {
 	return false
 }
 
-func patchCoordinatorAllowInsecure(resource any) {
+func patchCoordinatorAllowInsecure(resource any, usedPlatforms kuberesource.PlatformCollection, allowInsecure bool) {
 	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-	if !ok || !isCoordinator(resource) {
+	if !ok || !allowInsecure || !isCoordinator(resource) {
 		return
 	}
-	if len(r.Spec.Template.Spec.Containers) > 0 {
-		r.Spec.Template.Spec.Containers[0].WithEnv(kuberesource.NewEnvVar(allowInsecureEnvVar, "1"))
+	platformList := usedPlatforms.Platforms()
+	if len(platformList) == 0 || slices.ContainsFunc(platformList, func(p platforms.Platform) bool { return !platforms.IsInsecure(p) }) {
+		return
+	}
+	for i := range r.Spec.Template.Spec.Containers {
+		container := &r.Spec.Template.Spec.Containers[i]
+		if container.Name != nil && *container.Name == string(manifest.RoleCoordinator) {
+			kuberesource.SetContainerEnv(container, allowInsecureEnvVar, "1")
+		}
 	}
 }
 
@@ -563,7 +574,7 @@ func calculatePodMemory(spec *applycorev1.PodSpecApplyConfiguration, podLayers *
 	return podMemory, nil
 }
 
-func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags, mnf *manifest.Manifest) error {
+func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags, mnf *manifest.Manifest, usedPlatforms kuberesource.PlatformCollection) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -607,9 +618,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 		if flags.injectImageStore {
 			kuberesource.AddImageStore([]any{res})
 		}
-		if flags.allowInsecureRuntimes {
-			patchCoordinatorAllowInsecure(res)
-		}
+		patchCoordinatorAllowInsecure(res, usedPlatforms, flags.allowInsecureRuntimes)
 
 		kuberesource.PatchImages([]any{res}, replacements)
 
@@ -792,7 +801,7 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 		if spec == nil || spec.RuntimeClassName == nil {
 			return spec, nil
 		}
-		if *spec.RuntimeClassName == "kata-cc-isolation" || *spec.RuntimeClassName == "contrast-cc" || *spec.RuntimeClassName == "contrast-insecure" {
+		if *spec.RuntimeClassName == "kata-cc-isolation" || kuberesource.IsBareContrastRuntimeClass(*spec.RuntimeClassName) {
 			// Only allow the bare runtime class names if the default runtime handler is compatible.
 			// For example, `contrast-cc` should only resolve when `--reference-values` is set to a CC-enabled platform,
 			// and `contrast-insecure` should only resolve when `--reference-values` is set to an insecure platform.
