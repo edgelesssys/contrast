@@ -57,3 +57,7 @@ reason = "wait for kata 4.1.0" # TODO(charludo): remove after kata 4.1.0 update
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0235" # rkyv
 reason = "wait for kata 4.1.0" # TODO(charludo): remove after kata 4.1.0 update
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0258" # h2
+reason = "DoS vector only, and only relevant to genpolicy. Waiting for kata update" # TODO(charludo): remove after kata update
