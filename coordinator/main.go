@@ -168,10 +168,10 @@ func run() (retErr error) {
 		capabilities := httpapi.NewCapabilitiesHandler()
 
 		mux := http.NewServeMux()
-		mux.Handle("/attest", &httpapi.AttestationHandler{
+		mux.Handle("/attest", &httpapi.APIVersionGate{Version: 0, StateGuard: meshAuth, Next: &httpapi.AttestationHandler{
 			Issuer:     issuer,
 			StateGuard: meshAuth,
-		})
+		}})
 		mux.Handle("/capabilities", capabilities)
 
 		httpAPIServer.Addr = ":" + apitypes.Port

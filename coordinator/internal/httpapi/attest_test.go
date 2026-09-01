@@ -227,9 +227,10 @@ func (s *stubIssuer) Issue(_ context.Context, reportData [64]byte) (quote []byte
 }
 
 type stubGuard struct {
-	ca            *ca.CA
-	getStateErr   error
-	getHistoryErr error
+	ca                *ca.CA
+	minimumAPIVersion string
+	getStateErr       error
+	getHistoryErr     error
 	stateguard.Guard
 }
 
@@ -237,7 +238,7 @@ func (s *stubGuard) GetState(context.Context) (*stateguard.State, error) {
 	if s.getStateErr != nil {
 		return nil, s.getStateErr
 	}
-	m := &manifest.Manifest{}
+	m := &manifest.Manifest{MinimumAPIVersion: s.minimumAPIVersion}
 	policyHash := sha256.Sum256(nil)
 	policyHashHex := manifest.NewHexString(policyHash[:])
 	m.Policies = map[manifest.HexString]manifest.PolicyEntry{

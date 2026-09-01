@@ -113,6 +113,16 @@ func TestGetAttestation(t *testing.T) {
 func TestValidateAttestation(t *testing.T) {
 	testNonce := make([]byte, 32)
 	testOID := asn1.ObjectIdentifier{1, 2, 3}
+
+	manifestWithMinAPIVersion := func(version string) []byte {
+		var m map[string]any
+		require.NoError(t, json.Unmarshal(testManifest, &m))
+		m["MinimumAPIVersion"] = version
+		out, err := json.Marshal(m)
+		require.NoError(t, err)
+		return out
+	}
+
 	for name, tc := range map[string]struct {
 		nonce       []byte
 		resp        *apitypesv1.AttestationResponse
@@ -152,6 +162,17 @@ func TestValidateAttestation(t *testing.T) {
 			},
 			validateErr: assert.AnError,
 			wantErr:     assert.AnError.Error(),
+		},
+		"manifest pins a newer API version": {
+			nonce: testNonce,
+			resp: &apitypesv1.AttestationResponse{
+				AttestationType:   testOID,
+				RawAttestationDoc: testNonce,
+				CoordinatorState: apitypesv1.CoordinatorState{
+					Manifests: [][]byte{manifestWithMinAPIVersion("v2")},
+				},
+			},
+			wantErr: "older than the minimum",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

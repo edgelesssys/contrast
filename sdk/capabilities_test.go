@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/apitypes"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/sdk/apiv1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -135,6 +136,55 @@ func TestWithAPIVersionSkipsNegotiation(t *testing.T) {
 	require.NoError(err)
 	require.Equal(apiv1.Version, version)
 	require.False(contacted.Load(), "Coordinator must not be contacted for a pinned API version")
+}
+
+func TestNegotiateAPIVersionManifestPin(t *testing.T) {
+	for name, tc := range map[string]struct {
+		minimumAPIVersion string
+		pinnedVersion     string
+
+		wantVersion string
+		wantErr     string
+	}{
+		"minimum matches the negotiated version": {
+			minimumAPIVersion: "v1",
+			wantVersion:       apiv1.Version,
+		},
+		"minimum above all common versions": {
+			minimumAPIVersion: "v2",
+			wantErr:           "older than the minimum",
+		},
+		"pinned version below the minimum": {
+			minimumAPIVersion: "v2",
+			pinnedVersion:     apiv1.Version,
+			wantErr:           "older than the minimum",
+		},
+		"pinned version meets the minimum": {
+			minimumAPIVersion: "v1",
+			pinnedVersion:     apiv1.Version,
+			wantVersion:       apiv1.Version,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			srv := httptest.NewServer(capabilitiesHandler([]string{apiv1.Version}))
+			t.Cleanup(srv.Close)
+
+			client := New(srv.URL).WithExpectedManifest(&manifest.Manifest{MinimumAPIVersion: tc.minimumAPIVersion})
+			if tc.pinnedVersion != "" {
+				client = client.WithAPIVersion(tc.pinnedVersion)
+			}
+
+			version, err := client.NegotiateAPIVersion(t.Context())
+			if tc.wantErr != "" {
+				require.ErrorContains(err, tc.wantErr)
+				return
+			}
+			require.NoError(err)
+			require.Equal(tc.wantVersion, version)
+		})
+	}
 }
 
 func capabilitiesHandler(versions []string) http.Handler {
