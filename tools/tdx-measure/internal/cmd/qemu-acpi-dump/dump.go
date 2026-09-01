@@ -58,7 +58,7 @@ func dump(ctx context.Context, config dumpConfig) (returnErr error) {
 		return fmt.Errorf("programming ACPI chipset registers: %w", err)
 	}
 
-	fwConfig, err := qtest.OpenFWConfig(ctx, client, acpi.TableLoader)
+	fwConfig, err := qtest.OpenFWConfig(ctx, client)
 	if err != nil {
 		return err
 	}
