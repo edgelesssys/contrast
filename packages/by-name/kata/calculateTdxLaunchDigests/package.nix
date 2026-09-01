@@ -29,7 +29,7 @@ let
   acpiBlobsFlag =
     lib.optionalString (!withGPU)
       "--acpi-blobs ${
-        kata.qemu-acpi-blobs.override {
+        kata.qemu-acpi-blobs {
           legacySerial = withDebug;
           vcpus = 1;
         }
