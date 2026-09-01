@@ -34,7 +34,7 @@ openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${fron
 
 :::info[Subject alternative names and LoadBalancer IP]
 
-By default, mesh certificates are issued with a wildcard DNS entry.
+By default, mesh certificates are issued with a SAN for their workload resource name.
 Here, the service is accessed via its LoadBalancer IP address.
 Tools like curl check the certificate for IP entries in the subject alternative name (SAN) field, which aren't present.
 For example, attempting to connect with curl and the mesh CA certificate will throw the following error:

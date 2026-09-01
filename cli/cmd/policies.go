@@ -157,7 +157,7 @@ type deployment struct {
 }
 
 func (d deployment) DNSNames() []string {
-	return []string{d.name, "*"}
+	return []string{d.name}
 }
 
 func orDefault(s, d string) string {
