@@ -74,7 +74,7 @@ func Start(ctx context.Context, binary string, arguments []string) (*Session, er
 	}
 
 	return &Session{
-		client:       NewClient(ctx, connection),
+		client:       NewClient(connection),
 		connection:   connection,
 		listener:     listener,
 		process:      command.Process,

@@ -17,23 +17,21 @@ import (
 
 // Client is a qtest protocol client.
 type Client struct {
-	context context.Context
-	conn    net.Conn
-	reader  *bufio.Reader
+	conn   net.Conn
+	reader *bufio.Reader
 }
 
 // NewClient creates a qtest client over conn.
-func NewClient(ctx context.Context, conn net.Conn) *Client {
+func NewClient(conn net.Conn) *Client {
 	return &Client{
-		context: ctx,
-		conn:    conn,
-		reader:  bufio.NewReader(conn),
+		conn:   conn,
+		reader: bufio.NewReader(conn),
 	}
 }
 
-func (c *Client) command(command string) (string, error) {
+func (c *Client) command(ctx context.Context, command string) (string, error) {
 	deadline := time.Now().Add(time.Minute)
-	if contextDeadline, ok := c.context.Deadline(); ok {
+	if contextDeadline, ok := ctx.Deadline(); ok {
 		deadline = contextDeadline
 	}
 	if err := c.conn.SetDeadline(deadline); err != nil {
@@ -54,23 +52,23 @@ func (c *Client) command(command string) (string, error) {
 	return response, nil
 }
 
-func (c *Client) outB(port uint16, value byte) error {
-	_, err := c.command(fmt.Sprintf("outb 0x%x 0x%x", port, value))
+func (c *Client) outB(ctx context.Context, port uint16, value byte) error {
+	_, err := c.command(ctx, fmt.Sprintf("outb 0x%x 0x%x", port, value))
 	return err
 }
 
-func (c *Client) outL(port uint16, value uint32) error {
-	_, err := c.command(fmt.Sprintf("outl 0x%x 0x%x", port, value))
+func (c *Client) outL(ctx context.Context, port uint16, value uint32) error {
+	_, err := c.command(ctx, fmt.Sprintf("outl 0x%x 0x%x", port, value))
 	return err
 }
 
-func (c *Client) writeMemory(address uint64, data []byte) error {
-	_, err := c.command(fmt.Sprintf("write 0x%x 0x%x 0x%x", address, len(data), data))
+func (c *Client) writeMemory(ctx context.Context, address uint64, data []byte) error {
+	_, err := c.command(ctx, fmt.Sprintf("write 0x%x 0x%x 0x%x", address, len(data), data))
 	return err
 }
 
-func (c *Client) readMemory(address uint64, size uint32) ([]byte, error) {
-	response, err := c.command(fmt.Sprintf("b64read 0x%x 0x%x", address, size))
+func (c *Client) readMemory(ctx context.Context, address uint64, size uint32) ([]byte, error) {
+	response, err := c.command(ctx, fmt.Sprintf("b64read 0x%x 0x%x", address, size))
 	if err != nil {
 		return nil, err
 	}

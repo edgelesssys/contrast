@@ -54,16 +54,16 @@ func dump(ctx context.Context, config dumpConfig) (returnErr error) {
 	}()
 
 	client := session.Client()
-	if err := programACPIChipsetRegisters(client); err != nil {
+	if err := programACPIChipsetRegisters(ctx, client); err != nil {
 		return fmt.Errorf("programming ACPI chipset registers: %w", err)
 	}
 
-	fwConfig, err := qtest.OpenFWConfig(client, acpi.TableLoader)
+	fwConfig, err := qtest.OpenFWConfig(ctx, client, acpi.TableLoader)
 	if err != nil {
 		return err
 	}
 	for _, name := range acpi.OVMFMeasuredFiles() {
-		blob, err := fwConfig.ReadFile(name)
+		blob, err := fwConfig.ReadFile(ctx, name)
 		if err != nil {
 			return err
 		}
@@ -75,17 +75,17 @@ func dump(ctx context.Context, config dumpConfig) (returnErr error) {
 }
 
 // programACPIChipsetRegisters reproduces OVMF's q35 ACPI register setup.
-func programACPIChipsetRegisters(client *qtest.Client) error {
-	if err := client.PCIConfigWrite32(0, 0, 0, pciexbarOffset+4, ecamBase>>32); err != nil {
+func programACPIChipsetRegisters(ctx context.Context, client *qtest.Client) error {
+	if err := client.PCIConfigWrite32(ctx, 0, 0, 0, pciexbarOffset+4, ecamBase>>32); err != nil {
 		return err
 	}
-	if err := client.PCIConfigWrite32(0, 0, 0, pciexbarOffset, ecamBase|ecamEnable); err != nil {
+	if err := client.PCIConfigWrite32(ctx, 0, 0, 0, pciexbarOffset, ecamBase|ecamEnable); err != nil {
 		return err
 	}
-	if err := client.PCIConfigWrite32(0, ich9LPCDevice, 0, ich9LPCPMBaseOffset, ich9LPCPMBaseValue); err != nil {
+	if err := client.PCIConfigWrite32(ctx, 0, ich9LPCDevice, 0, ich9LPCPMBaseOffset, ich9LPCPMBaseValue); err != nil {
 		return err
 	}
-	return client.PCIConfigWrite8(0, ich9LPCDevice, 0, ich9LPCACPIOffset, ich9LPCACPIEnable)
+	return client.PCIConfigWrite8(ctx, 0, ich9LPCDevice, 0, ich9LPCACPIOffset, ich9LPCACPIEnable)
 }
 
 func qemuVersion(ctx context.Context, binary string) (string, error) {

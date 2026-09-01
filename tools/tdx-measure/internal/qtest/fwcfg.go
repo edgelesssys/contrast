@@ -4,6 +4,7 @@
 package qtest
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"math/bits"
@@ -39,10 +40,10 @@ type fwConfigFile struct {
 
 // OpenFWConfig reads the fw_cfg file directory. requiredFile identifies the
 // byte order used by QEMU's qtest DMA address ports.
-func OpenFWConfig(client *Client, requiredFile string) (*FWConfig, error) {
+func OpenFWConfig(ctx context.Context, client *Client, requiredFile string) (*FWConfig, error) {
 	var errors []string
 	for _, swap := range []bool{true, false} {
-		directory, err := readDirectory(client, swap)
+		directory, err := readDirectory(ctx, client, swap)
 		if err == nil {
 			if _, exists := directory[requiredFile]; exists {
 				return &FWConfig{client: client, swap: swap, directory: directory}, nil
@@ -55,7 +56,7 @@ func OpenFWConfig(client *Client, requiredFile string) (*FWConfig, error) {
 }
 
 // ReadFile returns the contents of the named fw_cfg file.
-func (f *FWConfig) ReadFile(name string) ([]byte, error) {
+func (f *FWConfig) ReadFile(ctx context.Context, name string) ([]byte, error) {
 	entry, exists := f.directory[name]
 	if !exists {
 		return nil, fmt.Errorf("fw_cfg entry %q not found", name)
@@ -63,14 +64,14 @@ func (f *FWConfig) ReadFile(name string) ([]byte, error) {
 	if entry.size > maxBlobSize {
 		return nil, fmt.Errorf("fw_cfg entry %q is %d bytes, exceeding DMA scratch space %d", name, entry.size, maxBlobSize)
 	}
-	data, err := dmaRead(f.client, entry.selector, entry.size, f.swap)
+	data, err := dmaRead(ctx, f.client, entry.selector, entry.size, f.swap)
 	if err != nil {
 		return nil, fmt.Errorf("reading fw_cfg entry %q: %w", name, err)
 	}
 	return data, nil
 }
 
-func dmaRead(client *Client, selector uint16, size uint32, swap bool) ([]byte, error) {
+func dmaRead(ctx context.Context, client *Client, selector uint16, size uint32, swap bool) ([]byte, error) {
 	if size > maxBlobSize {
 		return nil, fmt.Errorf("fw_cfg entry size %d exceeds DMA scratch space %d", size, maxBlobSize)
 	}
@@ -79,7 +80,7 @@ func dmaRead(client *Client, selector uint16, size uint32, swap bool) ([]byte, e
 	binary.BigEndian.PutUint32(access[0:4], control)
 	binary.BigEndian.PutUint32(access[4:8], size)
 	binary.BigEndian.PutUint64(access[8:16], dataAddress)
-	if err := client.writeMemory(accessAddress, access); err != nil {
+	if err := client.writeMemory(ctx, accessAddress, access); err != nil {
 		return nil, err
 	}
 
@@ -89,17 +90,17 @@ func dmaRead(client *Client, selector uint16, size uint32, swap bool) ([]byte, e
 		high = bits.ReverseBytes32(high)
 		low = bits.ReverseBytes32(low)
 	}
-	if err := client.outL(dmaAddressHighPort, high); err != nil {
+	if err := client.outL(ctx, dmaAddressHighPort, high); err != nil {
 		return nil, err
 	}
-	if err := client.outL(dmaAddressLowPort, low); err != nil {
+	if err := client.outL(ctx, dmaAddressLowPort, low); err != nil {
 		return nil, err
 	}
-	return client.readMemory(dataAddress, size)
+	return client.readMemory(ctx, dataAddress, size)
 }
 
-func readDirectory(client *Client, swap bool) (map[string]fwConfigFile, error) {
-	countData, err := dmaRead(client, fileDirectory, 4, swap)
+func readDirectory(ctx context.Context, client *Client, swap bool) (map[string]fwConfigFile, error) {
+	countData, err := dmaRead(ctx, client, fileDirectory, 4, swap)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ func readDirectory(client *Client, swap bool) (map[string]fwConfigFile, error) {
 	if count == 0 || count > maxFileDirectoryEntries {
 		return nil, fmt.Errorf("invalid fw_cfg file count %d", count)
 	}
-	raw, err := dmaRead(client, fileDirectory, 4+count*fileDirectoryEntrySize, swap)
+	raw, err := dmaRead(ctx, client, fileDirectory, 4+count*fileDirectoryEntrySize, swap)
 	if err != nil {
 		return nil, err
 	}

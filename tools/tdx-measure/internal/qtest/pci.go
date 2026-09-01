@@ -3,25 +3,27 @@
 
 package qtest
 
+import "context"
+
 const (
 	pciConfigAddressPort = 0xcf8
 	pciConfigDataPort    = 0xcfc
 )
 
 // PCIConfigWrite32 writes a 32-bit value to a PCI configuration register.
-func (c *Client) PCIConfigWrite32(bus, device, function, offset, value uint32) error {
-	if err := c.outL(pciConfigAddressPort, pciConfigAddress(bus, device, function, offset)); err != nil {
+func (c *Client) PCIConfigWrite32(ctx context.Context, bus, device, function, offset, value uint32) error {
+	if err := c.outL(ctx, pciConfigAddressPort, pciConfigAddress(bus, device, function, offset)); err != nil {
 		return err
 	}
-	return c.outL(pciConfigDataPort, value)
+	return c.outL(ctx, pciConfigDataPort, value)
 }
 
 // PCIConfigWrite8 writes an 8-bit value to a PCI configuration register.
-func (c *Client) PCIConfigWrite8(bus, device, function, offset uint32, value byte) error {
-	if err := c.outL(pciConfigAddressPort, pciConfigAddress(bus, device, function, offset)); err != nil {
+func (c *Client) PCIConfigWrite8(ctx context.Context, bus, device, function, offset uint32, value byte) error {
+	if err := c.outL(ctx, pciConfigAddressPort, pciConfigAddress(bus, device, function, offset)); err != nil {
 		return err
 	}
-	return c.outB(pciConfigDataPort+uint16(offset&3), value)
+	return c.outB(ctx, pciConfigDataPort+uint16(offset&3), value)
 }
 
 func pciConfigAddress(bus, device, function, offset uint32) uint32 {

@@ -5,7 +5,6 @@ package qtest
 
 import (
 	"bufio"
-	"context"
 	"encoding/base64"
 	"fmt"
 	"net"
@@ -36,7 +35,7 @@ func TestReadMemory(t *testing.T) {
 		serverError <- err
 	}()
 
-	got, err := NewClient(context.Background(), clientConnection).readMemory(testAddress, uint32(len(want)))
+	got, err := NewClient(clientConnection).readMemory(t.Context(), testAddress, uint32(len(want)))
 	if err != nil {
 		t.Fatalf("readMemory: %v", err)
 	}
@@ -57,7 +56,7 @@ func TestRejectsErrorResponse(t *testing.T) {
 		_, _ = bufio.NewReader(serverConnection).ReadString('\n')
 		_, _ = fmt.Fprintln(serverConnection, "FAIL unsupported command")
 	}()
-	if _, err := NewClient(context.Background(), clientConnection).command("bad-command"); err == nil {
+	if _, err := NewClient(clientConnection).command(t.Context(), "bad-command"); err == nil {
 		t.Fatal("command returned nil error")
 	}
 }
