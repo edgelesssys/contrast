@@ -78,7 +78,7 @@ let
       ]
       ++ serialDevices
       ++ [
-        # Block backends are not ACPI-visible; null-co avoids host disks.
+        # Storage devices preserve Kata's PCI topology; null-co provides their backends.
         "-blockdev"
         "driver=null-co,node-name=drv-image,size=1073741824"
         "-device"
