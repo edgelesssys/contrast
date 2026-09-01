@@ -128,7 +128,7 @@ func run() (retErr error) {
 	userAPICredentials := atlscredentials.New(issuer, nil, atls.NoMetrics, loggerpkg.NewNamed(logger, "atlscredentials"))
 	userAPIServer := newGRPCServer(userAPICredentials, serverMetrics)
 	userapiService := userapiserver.New(logger, meshAuth, discovery)
-	if os.Getenv(allowInsecureEnvVar) != "" {
+	if insecureRuntimesAllowed() {
 		logger.Warn("Coordinator is configured to allow insecure manifests")
 		userapiService.MakeInsecure()
 	}
@@ -296,6 +296,12 @@ func run() (retErr error) {
 	})
 
 	return eg.Wait()
+}
+
+// insecureRuntimesAllowed reports whether allowInsecureEnvVar is set to a value that parses as true.
+func insecureRuntimesAllowed() bool {
+	allowed, err := strconv.ParseBool(os.Getenv(allowInsecureEnvVar))
+	return err == nil && allowed
 }
 
 func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
