@@ -184,6 +184,13 @@ rec {
       # always fail wrongfully.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757
       ./0026-genpolicy-unconditionally-skip-guest-pull-security-c.patch
+
+      # Build image_guest_pull Storage requests with an empty driver_options
+      # list. The image reference continues to come from OCI annotations.
+      # Update the virtual volume unit test to assert that no driver metadata is
+      # emitted.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/13692
+      ./0027-runtime-rs-omit-guest-pull-driver-metadata.patch
     ];
 
     # The rules.rego unit tests only run on linux, since open-policy-agent fails to build on darwin.
