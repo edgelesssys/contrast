@@ -90,9 +90,9 @@ gcloud iam workload-identity-pools providers create-oidc "${PROVIDER}" \
   --attribute-condition "assertion.repository == '${GH_REPO}' && (
     (assertion.ref == 'refs/heads/main' && assertion.event_name in ['schedule', 'workflow_dispatch'])
     ||
-    (assertion.ref.startsWith('refs/heads/tmp/v')
+    (assertion.ref.startsWith('refs/heads/release/v')
       && assertion.event_name == 'workflow_dispatch'
-      && assertion.workflow_ref.startsWith('${GH_REPO}/.github/workflows/release.yml@'))
+      && assertion.workflow_ref.startsWith('${GH_REPO}/.github/workflows/release_nightly.yml@'))
   )"
 ```
 
@@ -108,9 +108,9 @@ Roughly how this works:
 ### Why the condition is this strict
 
 One clause per consumer.
-`release_nightly.yml` runs on `schedule` (always the default branch per GitHub) and on `workflow_dispatch`.
-`release.yml` can't use that clause: it refuses to run outside a `tmp/vX.Y.Z` branch, so its `ref` claim is never `refs/heads/main`.
-Pinning each clause to its trigger event, and the release clause to its workflow file, keeps a branch from being usable through anything other than the workflow it exists for.
+`release_nightly.yml` runs on `schedule` (always the default branch per GitHub) and on `workflow_dispatch` of `main`, which the first clause covers.
+Patch nightly runs can't use that clause: they're `workflow_dispatch` runs of `release_nightly.yml` on `release/vX.Y` branches, so their `ref` claim is never `refs/heads/main`.
+Pinning each clause to its trigger event, and the release-branch clause to its workflow file, keeps a branch from being usable through anything other than the workflow it exists for.
 
 `push` is intentionally absent because no consumer needs it.
 `pull_request` is intentionally absent because PRs from forks must not be able to mint a token for our SA.
