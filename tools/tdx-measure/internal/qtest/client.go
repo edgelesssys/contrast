@@ -45,7 +45,7 @@ func (c *Client) command(ctx context.Context, command string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("reading response to qtest command %q: %w", command, err)
 	}
-	response = strings.TrimSuffix(strings.TrimSuffix(response, "\n"), "\r")
+	response = strings.TrimSuffix(response, "\n")
 	if response != "OK" && !strings.HasPrefix(response, "OK ") {
 		return "", fmt.Errorf("qtest command %q failed: %q", command, response)
 	}
