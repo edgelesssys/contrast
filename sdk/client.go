@@ -31,11 +31,14 @@ type Client struct {
 
 	log *slog.Logger
 
-	// negotiateMu guards negotiatedVersion.
+	// negotiateMu guards negotiatedVersion and capabilitiesDigest.
 	negotiateMu sync.Mutex
 	// negotiatedVersion caches the API version agreed on with the Coordinator,
 	// empty until negotiated or pinned via [Client.WithAPIVersion].
 	negotiatedVersion string
+	// capabilitiesDigest is the SHA-256 digest of the raw capabilities response body received
+	// from the Coordinator, nil until one was fetched.
+	capabilitiesDigest []byte
 
 	// validatorsFromManifestOverride is used by tests to replace the validators.
 	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error)
