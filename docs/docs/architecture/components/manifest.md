@@ -56,9 +56,7 @@ Allowed values are:
 - URIs
 - DNS names
 
-By default, the Contrast CLI will add two SANs for each workload on generate: The pod name as DNS name under which the pod can be reached inside the cluster,
-and a wildcard DNS name `*` to allow the certificate to be used with any other hostname (for example an external load balancer).
-As DNS is untrusted in the context of Contrast, issuing a wildcard certificate won't weaken the security of your workload.
+The Contrast CLI adds the workload resource name (for example, the `Deployment` name) to the manifest as a DNS SAN.
 In addition, the Coordinator will add the pod IP address to the certificate.
 
 If the pod is exposed via a different IP than the pod IP, for example a load balancer, and you want to include that IP in the certificate for verification,
@@ -70,9 +68,8 @@ The change could look like this:
      ...
      "99dd77cbd7fe2c4e1f29511014c14054a21a376f7d58a48d50e9e036f4522f6b": {
        "SANs": [
-         "web",
--        "*"
-+        "*",
+-        "web"
++        "web",
 +        "203.0.113.34"
        ],
      },
@@ -87,9 +84,8 @@ The change to add such an URI SAN to the manifest could look like this:
      ...
      "99dd77cbd7fe2c4e1f29511014c14054a21a376f7d58a48d50e9e036f4522f6b": {
        "SANs": [
-         "web",
--        "*"
-+        "*",
+-        "web"
++        "web",
 +        "spiffe://acme.com/billing/payments"
        ],
      },

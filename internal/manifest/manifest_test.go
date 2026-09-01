@@ -21,7 +21,7 @@ func newTestManifestSNP() *Manifest {
 		Policies: map[HexString]PolicyEntry{
 			HexString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"): {
 				Role:             "coordinator",
-				SANs:             []string{"example.com", "*"},
+				SANs:             []string{"example.com"},
 				WorkloadSecretID: "foo",
 			},
 		},
