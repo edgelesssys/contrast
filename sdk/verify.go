@@ -18,6 +18,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/sdk/apiv1"
 )
 
 // attestPath is the path of the Coordinator's attestation endpoint, which is unversioned.
@@ -95,6 +96,11 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 	if err := validator.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
+
+	if err := enforceMinimumAPIVersion(c.usedAPIVersion(), &latestManifest); err != nil {
+		return nil, err
+	}
+
 	state := CoordinatorState{
 		Manifests: resp.Manifests,
 		Policies:  resp.Policies,
@@ -102,6 +108,15 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 		MeshCA:    resp.MeshCA,
 	}
 	return &state, nil
+}
+
+func (c *Client) usedAPIVersion() string {
+	c.negotiateMu.Lock()
+	defer c.negotiateMu.Unlock()
+	if c.negotiatedVersion != "" {
+		return c.negotiatedVersion
+	}
+	return apiv1.Version
 }
 
 // CoordinatorState represents the state of the Contrast Coordinator at a fixed point in time.

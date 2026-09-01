@@ -14,6 +14,7 @@ import (
 	"slices"
 
 	"github.com/edgelesssys/contrast/apitypes"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/sdk/apiv1"
 )
 
@@ -28,11 +29,16 @@ var supportedAPIVersions = []string{apiv1.Version}
 
 // NegotiateAPIVersion returns the newest API version supported by both this SDK and the Coordinator.
 //
+// If the expected manifest pins a MinimumAPIVersion, negotiation fails rather than settle on an older version.
+//
 // The first successful result is cached, so this costs at most one successful request per [Client].
 func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 	c.negotiateMu.Lock()
 	defer c.negotiateMu.Unlock()
 	if c.negotiatedVersion != "" {
+		if err := enforceMinimumAPIVersion(c.negotiatedVersion, c.expectedManifest); err != nil {
+			return "", err
+		}
 		return c.negotiatedVersion, nil
 	}
 
@@ -44,6 +50,9 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 	for _, version := range supportedAPIVersions {
 		if !slices.Contains(caps.APIVersions, version) {
 			continue
+		}
+		if err := enforceMinimumAPIVersion(version, c.expectedManifest); err != nil {
+			return "", fmt.Errorf("refusing to negotiate: %w", err)
 		}
 		c.negotiatedVersion = version
 		return version, nil
@@ -76,6 +85,25 @@ func (c *Client) getCapabilitiesDigest(ctx context.Context) ([]byte, error) {
 		}
 	}
 	return c.capabilitiesDigest, nil
+}
+
+// enforceMinimumAPIVersion returns an error if version is older than the given manifest's optional MinimumAPIVersion pin.
+func enforceMinimumAPIVersion(version string, m *manifest.Manifest) error {
+	if m == nil || m.MinimumAPIVersion == "" {
+		return nil
+	}
+	minVersion, err := apitypes.ParseAPIVersion(m.MinimumAPIVersion)
+	if err != nil {
+		return fmt.Errorf("parsing the manifest's MinimumAPIVersion: %w", err)
+	}
+	v, err := apitypes.ParseAPIVersion(version)
+	if err != nil {
+		return fmt.Errorf("parsing API version %q: %w", version, err)
+	}
+	if v < minVersion {
+		return fmt.Errorf("API version %s is older than the minimum %s required by the manifest", version, m.MinimumAPIVersion)
+	}
+	return nil
 }
 
 // V1 returns a client for version v1 of the Coordinator's HTTP API.
