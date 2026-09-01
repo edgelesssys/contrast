@@ -129,6 +129,19 @@ func TestValidate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		"valid minimum API version": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.MinimumAPIVersion = "v1"
+			},
+		},
+		"invalid minimum API version": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.MinimumAPIVersion = "1"
+			},
+			wantErr: true,
+		},
 		"invalid workload owner key": {
 			m: newTestManifestSNP(),
 			mutate: func(m *Manifest) {
