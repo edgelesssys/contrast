@@ -36,6 +36,7 @@ func Start(ctx context.Context, binary string, arguments []string) (*Session, er
 	}
 
 	socketPath := filepath.Join(temporaryDir, "qtest.sock")
+	// QEMU's qtest chardev connects as a client unless server=on is set.
 	var listenConfig net.ListenConfig
 	listener, err := listenConfig.Listen(ctx, "unix", socketPath)
 	if err != nil {
