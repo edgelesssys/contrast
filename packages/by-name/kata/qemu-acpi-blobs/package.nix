@@ -21,7 +21,7 @@
 # Generates OVMF-measured ACPI blobs for Kata's q35 topology with qtest.
 let
   # Force review of the mirrored topology on Kata upgrades.
-  mirroredKataVersion = "4.0.0";
+  mirroredKataVersion = "4.1.0";
 
   qemuAcpiDump = buildGoModule {
     pname = "qemu-acpi-dump";
