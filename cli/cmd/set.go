@@ -6,12 +6,15 @@ package cmd
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,7 +22,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/apitypes"
+	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
 	"github.com/edgelesssys/contrast/internal/history"
@@ -27,6 +33,8 @@ import (
 	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/sdk"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -59,6 +67,7 @@ issuer certificates.`,
 	cmd.Flags().String("latest-transition", "", "latest transition hash set at the coordinator (hex string)")
 	cmd.Flags().StringP("signature", "s", "", "path to a detached transition signature (DER) file")
 	must(cmd.MarkFlagFilename("signature"))
+	cmd.Flags().Bool("experimental-http", false, "use the new HTTP API. Falls back to gRPC")
 	addCollateralProxyFlag(cmd)
 
 	return cmd
@@ -135,36 +144,24 @@ func runSet(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	kdsGetter, err := cachedHTTPSGetter(log, flags.collateralProxyURL)
-	if err != nil {
-		return fmt.Errorf("configuring KDS cache: %w", err)
-	}
-	validator, err := m.CoordinatorValidator(log, kdsGetter)
-	if err != nil {
-		return fmt.Errorf("getting validators: %w", err)
-	}
-
-	var dialr *dialer.Dialer
-	if workloadOwnerKey == nil {
-		dialr = dialer.New(atls.NoIssuer, validator, atls.NoMetrics, nil, log)
-	} else {
-		dialr = dialer.NewWithKey(atls.NoIssuer, validator, atls.NoMetrics, nil, workloadOwnerKey, log)
-	}
-
-	conn, err := dialr.Dial(cmd.Context(), flags.coordinator)
-	if err != nil {
-		return fmt.Errorf("failed to dial coordinator: %w", err)
-	}
-	defer conn.Close()
-
-	client := userapi.NewUserAPIClient(conn)
 	req := &userapi.SetManifestRequest{
 		Manifest:               manifestBytes,
 		Policies:               getInitdataDocuments(policies),
 		PreviousTransitionHash: previousTransitionHash,
 		Signature:              signatureBytes,
 	}
-	resp, err := setLoop(cmd.Context(), client, cmd.OutOrStdout(), req)
+
+	var resp *userapi.SetManifestResponse
+	if flags.experimentalHTTP {
+		resp, err = setViaHTTP(cmd.Context(), flags, &m, req, workloadOwnerKey, log)
+		if errors.Is(err, errHTTPAPIUnavailable) {
+			log.Info("Falling back to the gRPC API", "err", err)
+			resp, err = nil, nil
+		}
+	}
+	if resp == nil && err == nil {
+		resp, err = setViaGRPC(cmd.Context(), flags, &m, req, workloadOwnerKey, cmd.OutOrStdout(), log)
+	}
 	if err != nil {
 		grpcSt, ok := status.FromError(err)
 		if ok {
@@ -210,6 +207,172 @@ func runSet(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// errHTTPAPIUnavailable signals that the manifest could not be set over the HTTP API, and that the caller should fall back to gRPC.
+var errHTTPAPIUnavailable = errors.New("coordinator HTTP API unavailable")
+
+// setViaGRPC sets the manifest over the gRPC UserAPI, using aTLS.
+func setViaGRPC(
+	ctx context.Context, flags *setFlags, m *manifest.Manifest, req *userapi.SetManifestRequest,
+	workloadOwnerKey *ecdsa.PrivateKey, out io.Writer, log *slog.Logger,
+) (*userapi.SetManifestResponse, error) {
+	kdsGetter, err := cachedHTTPSGetter(log, flags.collateralProxyURL)
+	if err != nil {
+		return nil, fmt.Errorf("configuring KDS cache: %w", err)
+	}
+	validator, err := m.CoordinatorValidator(log, kdsGetter)
+	if err != nil {
+		return nil, fmt.Errorf("getting validators: %w", err)
+	}
+
+	var dialr *dialer.Dialer
+	if workloadOwnerKey == nil {
+		dialr = dialer.New(atls.NoIssuer, validator, atls.NoMetrics, nil, log)
+	} else {
+		dialr = dialer.NewWithKey(atls.NoIssuer, validator, atls.NoMetrics, nil, workloadOwnerKey, log)
+	}
+
+	conn, err := dialr.Dial(ctx, flags.coordinator)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dial coordinator: %w", err)
+	}
+	defer conn.Close()
+
+	return setLoop(ctx, userapi.NewUserAPIClient(conn), out, req)
+}
+
+// setViaHTTP sets the manifest over the HTTP API, using the SDK.
+//
+// Unlike aTLS, the transport carries no attestation, so the Coordinator is attested explicitly
+// before the manifest is sent, against the reference values of the manifest that's being set.
+func setViaHTTP(
+	ctx context.Context, flags *setFlags, m *manifest.Manifest, req *userapi.SetManifestRequest,
+	workloadOwnerKey *ecdsa.PrivateKey, log *slog.Logger,
+) (*userapi.SetManifestResponse, error) {
+	baseURL, err := httpAPIBaseURL(flags.coordinator)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errHTTPAPIUnavailable, err)
+	}
+	log.Debug("Using coordinator HTTP API", "url", baseURL)
+
+	kdsDir, err := cachedir("kds")
+	if err != nil {
+		return nil, fmt.Errorf("getting cache dir: %w", err)
+	}
+	client := sdk.New(baseURL).
+		WithSlog(log).
+		WithCollateralProxy(flags.collateralProxyURL).
+		WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), kdsDir)).
+		WithExpectedManifest(m)
+
+	if _, err := client.NegotiateAPIVersion(ctx); err != nil {
+		return nil, fmt.Errorf("%w: %w", errHTTPAPIUnavailable, err)
+	}
+
+	// Never send the manifest to a Coordinator we haven't attested.
+	state, err := attestCoordinator(ctx, client)
+	if err != nil {
+		return nil, fmt.Errorf("%w: attesting coordinator: %w", errHTTPAPIUnavailable, err)
+	}
+
+	if len(req.Signature) == 0 && workloadOwnerKey != nil {
+		previousTransitionHash := req.PreviousTransitionHash
+		if len(previousTransitionHash) == 0 {
+			previousTransitionHash = state.LatestTransitionHash
+		}
+		req.Signature, err = signTransition(req.Manifest, previousTransitionHash, workloadOwnerKey)
+		if err != nil {
+			return nil, fmt.Errorf("signing transition: %w", err)
+		}
+	}
+	if len(req.Signature) == 0 && len(req.PreviousTransitionHash) > 0 {
+		// TODO(charludo): Without a signature, there is no way to express the compare-and-swap over HTTP.
+		return nil, fmt.Errorf("%w: unsigned atomic updates require the gRPC API", errHTTPAPIUnavailable)
+	}
+
+	apiReq := &apitypesv1.SetManifestRequest{
+		Manifest: req.Manifest,
+		Policies: req.Policies,
+	}
+	if len(req.Signature) > 0 {
+		apiReq.Signatures = [][]byte{req.Signature}
+	}
+	resp, err := client.SetManifest(ctx, apiReq)
+	if err != nil {
+		return nil, err
+	}
+	return setManifestResponseFromAPI(resp), nil
+}
+
+// httpAPIBaseURL derives the HTTP API's base URL from the coordinator endpoint, which addresses the gRPC API.
+func httpAPIBaseURL(coordinator string) (string, error) {
+	host, _, err := net.SplitHostPort(coordinator)
+	if err != nil {
+		// The endpoint may not carry a port.
+		host = coordinator
+	}
+	if host == "" {
+		return "", fmt.Errorf("no host in coordinator endpoint %q", coordinator)
+	}
+	return "http://" + net.JoinHostPort(host, apitypes.Port), nil
+}
+
+// attestCoordinator verifies the Coordinator's attestation and returns its state.
+func attestCoordinator(ctx context.Context, client *sdk.Client) (*sdk.CoordinatorState, error) {
+	nonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
+	if err != nil {
+		return nil, fmt.Errorf("generating nonce: %w", err)
+	}
+	attestation, err := client.GetAttestation(ctx, nonce)
+	if err != nil {
+		return nil, fmt.Errorf("getting attestation: %w", err)
+	}
+	state, err := client.ValidateAttestation(ctx, nonce, attestation)
+	if err != nil {
+		return nil, fmt.Errorf("validating attestation: %w", err)
+	}
+	return state, nil
+}
+
+// signTransition signs the transition to the given manifest with the workload owner key.
+//
+// This is the same signature that `contrast sign` produces, and that the gRPC API's client
+// certificate authentication substitutes for.
+func signTransition(manifestBytes, previousTransitionHash []byte, key *ecdsa.PrivateKey) ([]byte, error) {
+	if len(previousTransitionHash) != history.HashSize {
+		return nil, fmt.Errorf("invalid latest transition hash byte length: got %d, want %d", len(previousTransitionHash), history.HashSize)
+	}
+	tr := &history.Transition{
+		ManifestHash:           history.Digest(manifestBytes),
+		PreviousTransitionHash: [history.HashSize]byte(previousTransitionHash),
+	}
+	transitionHash := tr.Digest()
+	signingHash := sha256.Sum256(hex.AppendEncode(nil, transitionHash[:]))
+	return ecdsa.SignASN1(rand.Reader, key, signingHash[:])
+}
+
+// setManifestResponseFromAPI converts the HTTP API's response to its gRPC equivalent.
+func setManifestResponseFromAPI(resp *apitypesv1.SetManifestResponse) *userapi.SetManifestResponse {
+	out := &userapi.SetManifestResponse{
+		RootCA: resp.RootCA,
+		MeshCA: resp.MeshCA,
+	}
+	if resp.SeedSharesDoc == nil {
+		return out
+	}
+	shares := make([]*userapi.SeedShare, 0, len(resp.SeedSharesDoc.SeedShares))
+	for _, share := range resp.SeedSharesDoc.SeedShares {
+		shares = append(shares, &userapi.SeedShare{
+			PublicKey:     share.PublicKey,
+			EncryptedSeed: share.EncryptedSeed,
+		})
+	}
+	out.SeedSharesDoc = &userapi.SeedShareDocument{
+		Salt:       resp.SeedSharesDoc.Salt,
+		SeedShares: shares,
+	}
+	return out
+}
+
 type setFlags struct {
 	manifestPath         string
 	coordinator          string
@@ -219,6 +382,7 @@ type setFlags struct {
 	signaturePath        string
 	workspaceDir         string
 	collateralProxyURL   string
+	experimentalHTTP     bool
 }
 
 func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
@@ -251,6 +415,10 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	flags.signaturePath, err = cmd.Flags().GetString("signature")
 	if err != nil {
 		return nil, fmt.Errorf("getting signature flag: %w", err)
+	}
+	flags.experimentalHTTP, err = cmd.Flags().GetBool("experimental-http")
+	if err != nil {
+		return nil, fmt.Errorf("getting experimental-http flag: %w", err)
 	}
 	flags.workspaceDir, err = cmd.Flags().GetString("workspace-dir")
 	if err != nil {
