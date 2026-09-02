@@ -184,6 +184,7 @@ func run() (retErr error) {
 			StateGuard: meshAuth,
 		}})
 		mux.Handle("/capabilities", capabilities)
+		mux.Handle("/v1/manifest", v1(&httpapi.SetManifestHandler{UserAPI: userapiService}))
 
 		httpAPIServer.Addr = ":" + apitypes.Port
 		httpAPIServer.Handler = mux
