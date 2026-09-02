@@ -75,6 +75,7 @@ buildGoModule {
     "e2e/coordinator"
     "e2e/genpolicy-unsupported"
     "e2e/gpu"
+    "e2e/httpapi"
     "e2e/imagepuller-auth"
     "e2e/imagestore"
     "e2e/ipsec"

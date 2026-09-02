@@ -34,6 +34,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/spinner"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
+	"github.com/edgelesssys/contrast/sdk/apiv1"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/codes"
@@ -68,6 +69,10 @@ issuer certificates.`,
 	cmd.Flags().StringP("signature", "s", "", "path to a detached transition signature (DER) file")
 	must(cmd.MarkFlagFilename("signature"))
 	cmd.Flags().Bool("experimental-http", false, "use the new HTTP API. Falls back to gRPC")
+	cmd.Flags().String("experimental-http-url", "",
+		"base URL of the coordinator's HTTP API, if it isn't reachable at the coordinator endpoint. Implies --experimental-http")
+	cmd.Flags().String("experimental-http-version", "",
+		"pin the HTTP API to this version instead of negotiating the newest one both sides support")
 	addCollateralProxyFlag(cmd)
 
 	return cmd
@@ -248,9 +253,13 @@ func setViaHTTP(
 	ctx context.Context, flags *setFlags, m *manifest.Manifest, req *userapi.SetManifestRequest,
 	workloadOwnerKey *ecdsa.PrivateKey, log *slog.Logger,
 ) (*userapi.SetManifestResponse, error) {
-	baseURL, err := httpAPIBaseURL(flags.coordinator)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", errHTTPAPIUnavailable, err)
+	baseURL := flags.experimentalHTTPURL
+	if baseURL == "" {
+		var err error
+		baseURL, err = httpAPIBaseURL(flags.coordinator)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", errHTTPAPIUnavailable, err)
+		}
 	}
 	log.Debug("Using coordinator HTTP API", "url", baseURL)
 
@@ -264,6 +273,9 @@ func setViaHTTP(
 		WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), kdsDir)).
 		WithExpectedManifest(m)
 
+	if flags.experimentalHTTPVersion != "" {
+		client = client.WithAPIVersion(flags.experimentalHTTPVersion)
+	}
 	if _, err := client.NegotiateAPIVersion(ctx); err != nil {
 		return nil, fmt.Errorf("%w: %w", errHTTPAPIUnavailable, err)
 	}
@@ -296,7 +308,17 @@ func setViaHTTP(
 	if len(req.Signature) > 0 {
 		apiReq.Signatures = [][]byte{req.Signature}
 	}
-	resp, err := client.SetManifest(ctx, apiReq)
+
+	var resp *apitypesv1.SetManifestResponse
+	switch flags.experimentalHTTPVersion {
+	case "":
+		// Use whichever version the Coordinator and the SDK agree on.
+		resp, err = client.SetManifest(ctx, apiReq)
+	case apiv1.Version:
+		resp, err = client.V1().SetManifest(ctx, apiReq)
+	default:
+		return nil, fmt.Errorf("unsupported API version %q", flags.experimentalHTTPVersion)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -374,15 +396,17 @@ func setManifestResponseFromAPI(resp *apitypesv1.SetManifestResponse) *userapi.S
 }
 
 type setFlags struct {
-	manifestPath         string
-	coordinator          string
-	workloadOwnerKeyPath string
-	atomic               bool
-	latestTransition     string
-	signaturePath        string
-	workspaceDir         string
-	collateralProxyURL   string
-	experimentalHTTP     bool
+	manifestPath            string
+	coordinator             string
+	workloadOwnerKeyPath    string
+	atomic                  bool
+	latestTransition        string
+	signaturePath           string
+	workspaceDir            string
+	collateralProxyURL      string
+	experimentalHTTP        bool
+	experimentalHTTPURL     string
+	experimentalHTTPVersion string
 }
 
 func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
@@ -419,6 +443,18 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	flags.experimentalHTTP, err = cmd.Flags().GetBool("experimental-http")
 	if err != nil {
 		return nil, fmt.Errorf("getting experimental-http flag: %w", err)
+	}
+	flags.experimentalHTTPURL, err = cmd.Flags().GetString("experimental-http-url")
+	if err != nil {
+		return nil, fmt.Errorf("getting experimental-http-url flag: %w", err)
+	}
+	flags.experimentalHTTPVersion, err = cmd.Flags().GetString("experimental-http-version")
+	if err != nil {
+		return nil, fmt.Errorf("getting experimental-http-version flag: %w", err)
+	}
+	// Both flags configure the HTTP API, so either of them opts into it.
+	if flags.experimentalHTTPURL != "" || flags.experimentalHTTPVersion != "" {
+		flags.experimentalHTTP = true
 	}
 	flags.workspaceDir, err = cmd.Flags().GetString("workspace-dir")
 	if err != nil {
