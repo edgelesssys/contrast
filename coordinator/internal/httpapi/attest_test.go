@@ -14,7 +14,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/edgelesssys/contrast/apitypes"
+	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/coordinator/internal/userapi"
 	"github.com/edgelesssys/contrast/internal/atls"
@@ -30,7 +30,7 @@ var nonce = make([]byte, 32)
 
 func TestAttestationHandler(t *testing.T) {
 	testCases := map[string]struct {
-		request *apitypes.AttestationRequest
+		request *apitypesv1.AttestationRequest
 		method  string
 
 		malformedBody   bool
@@ -44,7 +44,7 @@ func TestAttestationHandler(t *testing.T) {
 		expErr    error
 	}{
 		"invalid nonce length": {
-			request:   &apitypes.AttestationRequest{Nonce: []byte{1, 2, 3}},
+			request:   &apitypesv1.AttestationRequest{Nonce: []byte{1, 2, 3}},
 			expStatus: http.StatusBadRequest,
 			expErr:    errNonceLength,
 		},
@@ -53,7 +53,7 @@ func TestAttestationHandler(t *testing.T) {
 			expStatus: http.StatusMethodNotAllowed,
 		},
 		"no body": {
-			request:   &apitypes.AttestationRequest{},
+			request:   &apitypesv1.AttestationRequest{},
 			expStatus: http.StatusBadRequest,
 			expErr:    errNonceLength,
 		},
@@ -67,48 +67,48 @@ func TestAttestationHandler(t *testing.T) {
 			expErr:        errNonceLength,
 		},
 		"no Content-Type": {
-			request:         &apitypes.AttestationRequest{Nonce: nonce},
+			request:         &apitypesv1.AttestationRequest{Nonce: nonce},
 			skipContentType: true,
 			expStatus:       http.StatusBadRequest,
 		},
 		"wrong Content-Type": {
-			request:     &apitypes.AttestationRequest{Nonce: nonce},
+			request:     &apitypesv1.AttestationRequest{Nonce: nonce},
 			contentType: "text/html",
 			expStatus:   http.StatusUnsupportedMediaType,
 			expErr:      errContentType,
 		},
 		"no state": {
-			request:   &apitypes.AttestationRequest{Nonce: nonce},
+			request:   &apitypesv1.AttestationRequest{Nonce: nonce},
 			guard:     &stubGuard{getStateErr: stateguard.ErrNoState},
 			expStatus: http.StatusPreconditionFailed,
 			expErr:    userapi.ErrNoManifest,
 		},
 		"stale state": {
-			request:   &apitypes.AttestationRequest{Nonce: nonce},
+			request:   &apitypesv1.AttestationRequest{Nonce: nonce},
 			guard:     &stubGuard{getStateErr: stateguard.ErrStaleState},
 			expStatus: http.StatusPreconditionFailed,
 			expErr:    userapi.ErrNeedsRecovery,
 		},
 		"unknown error during GetState": {
-			request:   &apitypes.AttestationRequest{Nonce: nonce},
+			request:   &apitypesv1.AttestationRequest{Nonce: nonce},
 			guard:     &stubGuard{getStateErr: assert.AnError},
 			expStatus: http.StatusInternalServerError,
 			expErr:    errGettingState,
 		},
 		"unknown error during GetHistory": {
-			request:   &apitypes.AttestationRequest{Nonce: nonce},
+			request:   &apitypesv1.AttestationRequest{Nonce: nonce},
 			guard:     &stubGuard{getHistoryErr: assert.AnError},
 			expStatus: http.StatusInternalServerError,
 			expErr:    errGettingHistory,
 		},
 		"unable to get attestation": {
-			request:   &apitypes.AttestationRequest{Nonce: nonce},
+			request:   &apitypesv1.AttestationRequest{Nonce: nonce},
 			issuer:    &stubIssuer{issueErr: assert.AnError},
 			expStatus: http.StatusInternalServerError,
 			expErr:    errGettingAttestation,
 		},
 		"success": {
-			request:   &apitypes.AttestationRequest{Nonce: nonce},
+			request:   &apitypesv1.AttestationRequest{Nonce: nonce},
 			expStatus: http.StatusOK,
 		},
 	}
@@ -166,12 +166,12 @@ func TestAttestationHandler(t *testing.T) {
 			require.Equal(tc.expStatus, res.StatusCode)
 
 			if tc.expErr != nil {
-				var apiErr apitypes.AttestationError
+				var apiErr apitypesv1.AttestationError
 				require.NoError(json.NewDecoder(res.Body).Decode(&apiErr))
 				require.Contains(apiErr.Err, tc.expErr.Error())
 				require.Equal(tc.expStatus, apiErr.StatusCode)
 			} else if res.StatusCode == http.StatusOK {
-				var resp apitypes.AttestationResponse
+				var resp apitypesv1.AttestationResponse
 				require.NoError(json.NewDecoder(res.Body).Decode(&resp))
 				require.Equal(constants.Version, resp.Version)
 				require.Equal(expectedOID, resp.AttestationType)
@@ -181,9 +181,74 @@ func TestAttestationHandler(t *testing.T) {
 	}
 }
 
+func TestAttestationReportDataBindsCapabilities(t *testing.T) {
+	require := require.New(t)
+
+	meshKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
+	rootKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[2])
+	ca, err := ca.New(rootKey, meshKey)
+	require.NoError(err)
+
+	capabilitiesDigest := NewCapabilitiesHandler().Digest()
+
+	reportDataFor := func(capabilitiesDigest []byte) [64]byte {
+		issuer := &stubIssuer{oid: asn1.ObjectIdentifier{1, 2, 3}}
+		handler := &AttestationHandler{
+			StateGuard:         &stubGuard{ca: ca},
+			Issuer:             issuer,
+			CapabilitiesDigest: capabilitiesDigest,
+		}
+		_, status, err := handler.getResponse(t.Context(), nonce)
+		require.NoError(err)
+		require.Equal(http.StatusOK, status)
+		return issuer.gotReportData
+	}
+
+	require.NotEqual(reportDataFor(nil), reportDataFor(capabilitiesDigest[:]))
+}
+
+// TestAttestationHandlerPaths ensures the handler is reachable both at the versioned path and
+// at the unversioned one it was served at before the API was versioned.
+func TestAttestationHandlerPaths(t *testing.T) {
+	for _, path := range []string{"/v1/attest", "/attest"} {
+		t.Run(path, func(t *testing.T) {
+			require := require.New(t)
+
+			meshKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
+			rootKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[2])
+			ca, err := ca.New(rootKey, meshKey)
+			require.NoError(err)
+
+			handler := &AttestationHandler{
+				StateGuard: &stubGuard{ca: ca},
+				Issuer:     &stubIssuer{oid: asn1.ObjectIdentifier{1, 2, 3}},
+			}
+			mux := http.NewServeMux()
+			mux.Handle("/v1/attest", handler)
+			mux.Handle("/attest", handler)
+
+			body, err := json.Marshal(&apitypesv1.AttestationRequest{Nonce: nonce})
+			require.NoError(err)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, path, bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			mux.ServeHTTP(rec, req)
+			res := rec.Result()
+			defer res.Body.Close()
+
+			require.Equal(http.StatusOK, res.StatusCode)
+			var resp apitypesv1.AttestationResponse
+			require.NoError(json.NewDecoder(res.Body).Decode(&resp))
+			require.NotEmpty(resp.RawAttestationDoc)
+		})
+	}
+}
+
 type stubIssuer struct {
-	oid      asn1.ObjectIdentifier
-	issueErr error
+	oid           asn1.ObjectIdentifier
+	issueErr      error
+	gotReportData [64]byte
 	atls.Issuer
 }
 
@@ -191,17 +256,19 @@ func (s *stubIssuer) OID() asn1.ObjectIdentifier {
 	return s.oid
 }
 
-func (s *stubIssuer) Issue(_ context.Context, _ [64]byte) (quote []byte, err error) {
+func (s *stubIssuer) Issue(_ context.Context, reportData [64]byte) (quote []byte, err error) {
 	if s.issueErr != nil {
 		return nil, s.issueErr
 	}
+	s.gotReportData = reportData
 	return []byte("fake-attestation"), nil
 }
 
 type stubGuard struct {
-	ca            *ca.CA
-	getStateErr   error
-	getHistoryErr error
+	ca                *ca.CA
+	minimumAPIVersion string
+	getStateErr       error
+	getHistoryErr     error
 	stateguard.Guard
 }
 
@@ -209,7 +276,7 @@ func (s *stubGuard) GetState(context.Context) (*stateguard.State, error) {
 	if s.getStateErr != nil {
 		return nil, s.getStateErr
 	}
-	m := &manifest.Manifest{}
+	m := &manifest.Manifest{MinimumAPIVersion: s.minimumAPIVersion}
 	policyHash := sha256.Sum256(nil)
 	policyHashHex := manifest.NewHexString(policyHash[:])
 	m.Policies = map[manifest.HexString]manifest.PolicyEntry{

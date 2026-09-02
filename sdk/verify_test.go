@@ -6,7 +6,9 @@
 package sdk
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/asn1"
 	"encoding/json"
 	"log/slog"
@@ -15,10 +17,13 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/apitypes"
+	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/sdk/apiv1"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,12 +35,12 @@ func attestationHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	var req apitypes.AttestationRequest
+	var req apitypesv1.AttestationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	resp := &apitypes.AttestationResponse{
+	resp := &apitypesv1.AttestationResponse{
 		Version: constants.Version,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
@@ -49,6 +54,15 @@ func attestationHandler(w http.ResponseWriter, r *http.Request) {
 func badAttestationHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusInternalServerError)
 	_, _ = w.Write([]byte(`{"version": "12345", "error": "my error"}`))
+}
+
+// coordinatorMux serves the capabilities endpoint, so that the Client can negotiate an API
+// version, and routes everything else to the given attestation handler.
+func coordinatorMux(attest http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle(capabilitiesPath, capabilitiesHandler([]string{apiv1.Version}))
+	mux.Handle("/", attest)
+	return mux
 }
 
 func TestGetAttestation(t *testing.T) {
@@ -83,7 +97,7 @@ func TestGetAttestation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			srv := tc.getServer(tc.handler)
+			srv := tc.getServer(coordinatorMux(tc.handler))
 			t.Cleanup(srv.Close)
 
 			client := New(srv.URL).
@@ -105,31 +119,71 @@ func TestGetAttestation(t *testing.T) {
 	}
 }
 
+func TestGetAttestationPath(t *testing.T) {
+	for name, pinned := range map[string]bool{
+		"negotiated": false,
+		"pinned":     true,
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			var gotPath string
+			srv := httptest.NewServer(coordinatorMux(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotPath = r.URL.Path
+				attestationHandler(w, r)
+			})))
+			t.Cleanup(srv.Close)
+
+			client := New(srv.URL)
+			nonce := make([]byte, 32)
+
+			var err error
+			if pinned {
+				_, err = client.V1().GetAttestation(t.Context(), nonce)
+			} else {
+				_, err = client.GetAttestation(t.Context(), nonce)
+			}
+			require.NoError(err)
+			require.Equal(apiv1.AttestPath, gotPath)
+		})
+	}
+}
+
 func TestValidateAttestation(t *testing.T) {
 	testNonce := make([]byte, 32)
 	testOID := asn1.ObjectIdentifier{1, 2, 3}
+
+	manifestWithMinAPIVersion := func(version string) []byte {
+		var m map[string]any
+		require.NoError(t, json.Unmarshal(testManifest, &m))
+		m["MinimumAPIVersion"] = version
+		out, err := json.Marshal(m)
+		require.NoError(t, err)
+		return out
+	}
+
 	for name, tc := range map[string]struct {
 		nonce       []byte
-		resp        *apitypes.AttestationResponse
+		resp        *apitypesv1.AttestationResponse
 		validateErr error
 		wantErr     string
 	}{
 		"success": {
 			nonce: testNonce,
-			resp: &apitypes.AttestationResponse{
+			resp: &apitypesv1.AttestationResponse{
 				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
-				CoordinatorState: apitypes.CoordinatorState{
+				CoordinatorState: apitypesv1.CoordinatorState{
 					Manifests: [][]byte{testManifest},
 				},
 			},
 		},
 		"no manifests": {
 			nonce: testNonce,
-			resp: &apitypes.AttestationResponse{
+			resp: &apitypesv1.AttestationResponse{
 				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
-				CoordinatorState:  apitypes.CoordinatorState{},
+				CoordinatorState:  apitypesv1.CoordinatorState{},
 			},
 			wantErr: "coordinator state does not include manifests",
 		},
@@ -138,15 +192,26 @@ func TestValidateAttestation(t *testing.T) {
 		},
 		"failed validation": {
 			nonce: testNonce,
-			resp: &apitypes.AttestationResponse{
+			resp: &apitypesv1.AttestationResponse{
 				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
-				CoordinatorState: apitypes.CoordinatorState{
+				CoordinatorState: apitypesv1.CoordinatorState{
 					Manifests: [][]byte{testManifest},
 				},
 			},
 			validateErr: assert.AnError,
 			wantErr:     assert.AnError.Error(),
+		},
+		"manifest pins a newer API version": {
+			nonce: testNonce,
+			resp: &apitypesv1.AttestationResponse{
+				AttestationType:   testOID,
+				RawAttestationDoc: testNonce,
+				CoordinatorState: apitypesv1.CoordinatorState{
+					Manifests: [][]byte{manifestWithMinAPIVersion("v2")},
+				},
+			},
+			wantErr: "older than the minimum",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -156,11 +221,13 @@ func TestValidateAttestation(t *testing.T) {
 			attestation, err := json.Marshal(tc.resp)
 			require.NoError(err)
 
-			// ValidateAttestation is offline, so no Coordinator URL is needed.
-			c := New("")
+			srv := httptest.NewServer(capabilitiesHandler([]string{apiv1.Version}))
+			t.Cleanup(srv.Close)
+			c := New(srv.URL)
 
+			validator := &stubValidator{err: tc.validateErr}
 			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error) {
-				return &stubValidator{err: tc.validateErr}, nil
+				return validator, nil
 			}
 			state, err := c.ValidateAttestation(t.Context(), tc.nonce, attestation)
 			if tc.wantErr != "" {
@@ -170,6 +237,8 @@ func TestValidateAttestation(t *testing.T) {
 			}
 			assert.NoError(err)
 
+			transitions := history.BuildTransitionChain(tc.resp.Manifests)
+			latestTransitionHash := transitions[len(transitions)-1].Digest()
 			expected := &CoordinatorState{
 				Manifests: tc.resp.Manifests,
 				Policies:  tc.resp.Policies,
@@ -178,6 +247,12 @@ func TestValidateAttestation(t *testing.T) {
 			}
 
 			assert.Equal(expected, state)
+
+			var capsBody bytes.Buffer
+			require.NoError(json.NewEncoder(&capsBody).Encode(apitypes.CapabilitiesResponse{APIVersions: []string{apiv1.Version}}))
+			capsDigest := sha256.Sum256(capsBody.Bytes())
+			wantReportData := apitypesv1.ConstructReportData(tc.nonce, latestTransitionHash[:], capsDigest[:], &tc.resp.CoordinatorState)
+			assert.Equal(wantReportData[:], validator.gotReportData)
 		})
 	}
 }
@@ -232,10 +307,12 @@ var testManifest = []byte(`
 `)
 
 type stubValidator struct {
-	err error
+	err           error
+	gotReportData []byte
 }
 
-func (v *stubValidator) Validate(context.Context, asn1.ObjectIdentifier, []byte, []byte) error {
+func (v *stubValidator) Validate(_ context.Context, _ asn1.ObjectIdentifier, _ []byte, reportData []byte) error {
+	v.gotReportData = reportData
 	return v.err
 }
 
