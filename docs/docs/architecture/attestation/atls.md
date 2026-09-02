@@ -62,3 +62,38 @@ sequenceDiagram
     Server->>Client: CertificateRequest { DN: [nonce-2] }
     Client->>Server: ClientCertificate { Ext: [report(nonce-2, pubkey-client)] }
 ```
+
+## Intra-handshake.fail
+
+You might have heard about the [Intra-handshake.fail] paper by Sardar et.al.
+This section explains the results of that paper and the implications for Contrast.
+
+### Results
+
+The paper analyses several ways of binding attestation evidence to a TLS channel.
+Among these is the binding explained above, where the nonce and the ephemeral public key are hashed into the report data field.
+Next, the authors define a set of TLS session correlation goals, and show that none of the analysed binding schemes meet these goals.
+This result isn't really surprising for the schemes that are using ephemeral keys: the TEE commits itself to a specific key, not to a specific negotiated session.
+For these schemes, the session could be relayed by anybody possessing the committed private key.
+
+This wouldn't be an issue if all TEEs were perfectly secure and interchangeable, because the report would guarantee that the key was generated within the TEE and can't leave it.
+In practice, however, this assumption doesn't hold universally.
+TEEs can be attacked physically, for example with [TEE.fail], and keys could be extracted.
+Thus we can't rely on the report only to assure key security, and in extension aTLS security.
+
+### Applicability to Contrast
+
+The necessary condition for the paper's relay attack is a leak of the private key by any TEE that otherwise passes verification.
+If we rule out implementation errors, the threat model of the CPU vendors suggests that a hardware attack is necessary for that to happen.
+This means that we can remove the attack vector by somehow ensuring physical security of the host systems.
+
+Server CPUs have stable identifiers that can be verified, so we could use them to query the actual location, ownership and physical security.
+In an ideal world, [Platform Ownership Endorsement] would assure that the expected cloud provider operates a particular TEE and vouches for its security.
+Since the concept is quite new and the mechanism isn't widely deployed yet, we can't rely on it as of today.
+Instead, Contrast users can add a list of expected hardware identifiers to their manifests.
+Reports issued by another, attacker-controlled TEE won't pass validation due to ID mismatch.
+This reduces the circle of possible attackers to the hardware owners, which is the baseline we can expect: a physical attack can compromise the session keys directly, making any attempt to secure the connection moot, regardless of binding strategy.
+
+[Intra-handshake.fail]: https://www.researchgate.net/publication/408219182_Intra-handshakefail_CVE-2026-33697_High-severity_CVE_in_Attested_TLS
+[TEE.fail]: https://tee.fail
+[Platform Ownership Endorsement]: https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/technical-documentation/platform-ownership-endorsements.html
