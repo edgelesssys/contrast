@@ -29,10 +29,10 @@ func newTestManifestSNP() *Manifest {
 			SNP: []SNPReferenceValues{
 				{
 					MinimumTCB: SNPTCB{
-						BootloaderVersion: toPtr(SVN(2)),
-						TEEVersion:        toPtr(SVN(2)),
-						SNPVersion:        toPtr(SVN(2)),
-						MicrocodeVersion:  toPtr(SVN(2)),
+						BootloaderVersion: new(SVN(2)),
+						TEEVersion:        new(SVN(2)),
+						SNPVersion:        new(SVN(2)),
+						MicrocodeVersion:  new(SVN(2)),
 					},
 					ProductName:        "Milan",
 					TrustedMeasurement: "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",

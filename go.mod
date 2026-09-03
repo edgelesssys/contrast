@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast
 
-go 1.25.6
+go 1.26.0
 
 // Upstream is poorly maintained, use edgelesssys fork instead.
 replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249
@@ -33,7 +33,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
 	go.yaml.in/yaml/v3 v3.0.4
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0
