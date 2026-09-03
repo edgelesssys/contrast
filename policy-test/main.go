@@ -12,19 +12,38 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/registry"
+	"github.com/google/go-containerregistry/pkg/v1/layout"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/spf13/cobra"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-//go:embed assets/pod.yml
-var podYaml []byte
+var (
+	//go:embed assets/pod.yml
+	podYaml []byte
+	//go:embed assets/genpolicy-settings-kata.json
+	genpolicySettings []byte
+	//go:embed assets/images.json
+	imagesJSON []byte
+)
+
+type testImage struct {
+	// Path to the image tarball or OCI layout directory.
+	Path string `json:"path"`
+	// ReplaceRef is the image reference with which the image should be replaced with.
+	ReplaceRef string `json:"ref"`
+}
 
 func main() {
 	cmd := &cobra.Command{
@@ -32,7 +51,6 @@ func main() {
 		Short: "policy-test",
 		RunE:  execute,
 	}
-	cmd.Flags().String("image-replacements", "", "path to the image replacements file")
 
 	cmd.SilenceUsage = true
 
@@ -42,9 +60,43 @@ func main() {
 }
 
 func execute(c *cobra.Command, _ []string) error {
-	flags, err := parseFlags(c)
+	// Start a local registry server to serve the test images.
+	srv := &http.Server{Handler: registry.New(registry.Logger(log.New(io.Discard, "", 0)))}
+	lis, err := (&net.ListenConfig{}).Listen(c.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {
-		return fmt.Errorf("parse flags: %w", err)
+		return fmt.Errorf("listen: %w", err)
+	}
+	defer lis.Close()
+	go func() {
+		if err := srv.Serve(lis); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("registry server error: %v", err)
+		}
+	}()
+	defer srv.Close()
+	registryAddr := lis.Addr().String()
+
+	// Push the test images to the local registry.
+	var testImages map[string]testImage
+	if err := json.Unmarshal(imagesJSON, &testImages); err != nil {
+		return fmt.Errorf("unmarshal images.json: %w", err)
+	}
+	imageReplacements, err := setupRegistry(registryAddr, testImages)
+	if err != nil {
+		return fmt.Errorf("setup registry: %w", err)
+	}
+
+	imageReplacementsFile, err := os.CreateTemp("", "image-replacements-*")
+	if err != nil {
+		return fmt.Errorf("create temp file: %w", err)
+	}
+	defer os.Remove(imageReplacementsFile.Name())
+	for k, v := range imageReplacements {
+		if _, err := fmt.Fprintf(imageReplacementsFile, "%s=%s\n", k, v); err != nil {
+			return fmt.Errorf("write image replacements: %w", err)
+		}
+	}
+	if err := imageReplacementsFile.Close(); err != nil {
+		return fmt.Errorf("close image replacements file: %w", err)
 	}
 
 	workDir, err := os.MkdirTemp("", "contrast-policy-test-*")
@@ -57,7 +109,24 @@ func execute(c *cobra.Command, _ []string) error {
 		return fmt.Errorf("write pod.yml: %w", err)
 	}
 
-	policy, err := generatePolicy(c.Context(), workDir, flags)
+	// Patch the pause image in genpolicy-settings.json to use the local registry.
+	pauseImageRef, ok := testImages["pause"]
+	if !ok {
+		return fmt.Errorf("pause image not found in test images")
+	}
+	if !bytes.Contains(genpolicySettings, []byte(pauseImageRef.ReplaceRef)) {
+		return fmt.Errorf("pause image reference %s not found in genpolicy-settings.json", pauseImageRef.ReplaceRef)
+	}
+	pauseImage, ok := imageReplacements[pauseImageRef.ReplaceRef]
+	if !ok {
+		return fmt.Errorf("pause image not found in image replacements")
+	}
+	genpolicySettings = bytes.ReplaceAll(genpolicySettings, []byte(pauseImageRef.ReplaceRef), []byte(pauseImage))
+	if err := os.WriteFile(filepath.Join(workDir, "genpolicy-settings.json"), genpolicySettings, 0o644); err != nil {
+		return fmt.Errorf("write genpolicy-settings.json: %w", err)
+	}
+
+	policy, err := generatePolicy(c.Context(), workDir, imageReplacementsFile.Name(), registryAddr)
 	if err != nil {
 		return fmt.Errorf("generate policy: %w", err)
 	}
@@ -115,14 +184,43 @@ func execute(c *cobra.Command, _ []string) error {
 	return errors.Join(errs...)
 }
 
-func generatePolicy(ctx context.Context, workDir string, flags *flags) (string, error) {
+func setupRegistry(registryAddr string, testImages map[string]testImage) (map[string]string, error) {
+	imageReplacements := make(map[string]string)
+	for imgName, img := range testImages {
+		ref, err := name.NewTag(registryAddr+"/"+imgName, name.Insecure)
+		if err != nil {
+			return nil, fmt.Errorf("parse image name %s: %w", imgName, err)
+		}
+		idx, err := layout.ImageIndexFromPath(img.Path)
+		if err != nil {
+			return nil, fmt.Errorf("load image index %s: %w", img.Path, err)
+		}
+		idxManifest, err := idx.IndexManifest()
+		if err != nil {
+			return nil, fmt.Errorf("get index manifest for image index %s: %w", img.Path, err)
+		}
+		if len(idxManifest.Manifests) != 1 {
+			return nil, fmt.Errorf("expected exactly one manifest in image index %s, got %d", img.Path, len(idxManifest.Manifests))
+		}
+		digest := idxManifest.Manifests[0].Digest
+		if err := remote.WriteIndex(ref, idx); err != nil {
+			return nil, fmt.Errorf("write image index %s to registry: %w", imgName, err)
+		}
+		imageReplacements[img.ReplaceRef] = ref.String() + "@" + digest.String()
+	}
+	return imageReplacements, nil
+}
+
+func generatePolicy(ctx context.Context, workDir string, imageReplacementsFile string, registryAddr string) (string, error) {
 	generateCmd := cmd.NewGenerateCmd()
 	generateCmd.Flags().String("workspace-dir", workDir, "")
 	args := []string{
 		"--workspace-dir=" + workDir,
 		"--reference-values=Metal-QEMU-SNP",
+		"--settings=" + filepath.Join(workDir, "genpolicy-settings.json"),
 		"--genpolicy-cache-path=" + filepath.Join(workDir, "layers-cache.json"),
-		"--image-replacements=" + flags.imageReplacementsFile,
+		"--image-replacements=" + imageReplacementsFile,
+		"--insecure-registry=" + registryAddr,
 		"--output=" + filepath.Join(workDir, "out.yml"),
 		filepath.Join(workDir, "pod.yml"),
 	}
@@ -179,18 +277,4 @@ func extractPolicy(yaml []byte) (string, error) {
 		return "", err
 	}
 	return policy, nil
-}
-
-type flags struct {
-	imageReplacementsFile string
-}
-
-func parseFlags(cmd *cobra.Command) (*flags, error) {
-	imageReplacementsFile, err := cmd.Flags().GetString("image-replacements")
-	if err != nil {
-		return nil, err
-	}
-	return &flags{
-		imageReplacementsFile: imageReplacementsFile,
-	}, nil
 }
