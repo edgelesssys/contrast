@@ -362,7 +362,7 @@ func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstru
 		}
 
 		if err := ri.Delete(ctx, obj.GetName(), metav1.DeleteOptions{
-			PropagationPolicy: toPtr(metav1.DeletePropagationForeground),
+			PropagationPolicy: new(metav1.DeletePropagationForeground),
 		}); err != nil {
 			return fmt.Errorf("could not delete %s %s in namespace %s: %w", obj.GetKind(), obj.GetName(), obj.GetNamespace(), err)
 		}
@@ -380,7 +380,7 @@ func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, names
 	for _, pod := range pods {
 		c.log.Info("restarting pod", "namespace", namespace, "name", name)
 		err := c.Client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{
-			GracePeriodSeconds: toPtr(int64(0)),
+			GracePeriodSeconds: new(int64(0)),
 		})
 		if err != nil {
 			return err
@@ -419,7 +419,7 @@ func (c *Kubeclient) WaitForDeletion(ctx context.Context, objs ...*unstructured.
 // DeleteHistory deletes the ConfigMaps storing Coordinator history.
 func (c *Kubeclient) DeleteHistory(ctx context.Context, namespace string) error {
 	deleteOpts := metav1.DeleteOptions{
-		PropagationPolicy: toPtr(metav1.DeletePropagationForeground),
+		PropagationPolicy: new(metav1.DeletePropagationForeground),
 	}
 	listOpts := metav1.ListOptions{
 		LabelSelector: labels.Set(map[string]string{kuberesource.KubernetesAppManagedByLabel: "contrast.edgeless.systems"}).AsSelector().String(),
@@ -443,8 +443,4 @@ func (c *Kubeclient) ScaleStatefulSet(ctx context.Context, namespace, name strin
 		Spec:       autoscalingv1.ScaleSpec{Replicas: replicas},
 	}, metav1.UpdateOptions{})
 	return err
-}
-
-func toPtr[T any](t T) *T {
-	return &t
 }

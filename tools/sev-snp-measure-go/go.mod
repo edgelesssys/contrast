@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/sev-snp-measure-go
 
-go 1.25.6
+go 1.26.0
 
 replace github.com/edgelesssys/contrast => ../..
 

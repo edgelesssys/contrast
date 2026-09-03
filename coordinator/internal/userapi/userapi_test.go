@@ -408,25 +408,25 @@ func TestRecovery(t *testing.T) {
 	}{
 		{
 			name:        "empty seed",
-			seed:        toPtr[[]byte](nil),
+			seed:        new([]byte),
 			wantCode:    codes.InvalidArgument,
 			wantMessage: "seed must be",
 		},
 		{
 			name:        "empty salt",
-			salt:        toPtr[[]byte](nil),
+			salt:        new([]byte),
 			wantCode:    codes.InvalidArgument,
 			wantMessage: "salt must be",
 		},
 		{
 			name:        "short seed",
-			seed:        toPtr(seed[:16]),
+			seed:        new(seed[:16]),
 			wantCode:    codes.InvalidArgument,
 			wantMessage: "seed must be",
 		},
 		{
 			name:        "short salt",
-			salt:        toPtr(salt[:16]),
+			salt:        new(salt[:16]),
 			wantCode:    codes.InvalidArgument,
 			wantMessage: "salt must be",
 		},
@@ -1189,10 +1189,6 @@ func (d *stubDiscovery) GetPeers(ctx context.Context) ([]string, error) {
 	default:
 		return d.peers, d.err
 	}
-}
-
-func toPtr[A any](a A) *A {
-	return &a
 }
 
 func TestMain(m *testing.M) {

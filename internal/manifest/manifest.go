@@ -323,13 +323,13 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 
 		pckOptions := tdxvalidate.PCKOptions{}
 		if refVal.MemoryIntegrity {
-			pckOptions.SgxType = toPtr(pcs.SGXTypeScalableWithIntegrity)
+			pckOptions.SgxType = new(pcs.SGXTypeScalableWithIntegrity)
 		}
 		if refVal.SMTDisabled {
-			pckOptions.SMTEnabled = toPtr(false)
+			pckOptions.SMTEnabled = new(false)
 		}
 		if refVal.StaticPlatform {
-			pckOptions.DynamicPlatform = toPtr(false)
+			pckOptions.DynamicPlatform = new(false)
 		}
 
 		validateOptions := &tdxvalidate.Options{
@@ -586,7 +586,3 @@ func (e *ValidationError) OnlyExpectedMissingReferenceValues() bool {
 
 // ErrMissingCoordinator is returned when the manifest does not contain at least one policy for a Coordinator.
 var ErrMissingCoordinator = errors.New("expected at least 1 policy with role 'coordinator'")
-
-func toPtr[T any](v T) *T {
-	return &v
-}

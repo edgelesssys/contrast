@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/initdata-processor
 
-go 1.25.6
+go 1.26.0
 
 replace github.com/edgelesssys/contrast => ..
 
@@ -21,6 +21,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
