@@ -312,6 +312,8 @@ You can check the hash of the in-use TDX module by executing
 sha384sum /boot/efi/EFI/TDX/TDX-SEAM.so | cut -d' ' -f1
 ```
 
+This value changes whenever the TDX module is replaced, so re-extract it after updating the module.
+
 :::warning
 
 The TDX module hash (`MrSeam`) observed on the target platform might not be trustworthy.
@@ -346,6 +348,16 @@ The following command will print a JSON document, containing the hex-encoded PII
 ```bash
 cut -d, -f6 pckid_retrieval.csv | poe-gen-tool extract --type pm /dev/stdin
 ```
+
+:::warning
+
+The `PIID` is derived from the platform's SGX provisioning keys.
+Updating the platform firmware can regenerate those keys, which changes the `PIID` and requires the platform to be re-registered with Intel.
+Until the re-registration is completed, Intel doesn't issue PCK certificates for the platform.
+The platform fetches its PCK certificate while generating a quote, so quote generation itself fails rather than producing a quote that later fails verification.
+After a firmware update, re-extract the `PIID` and update this list.
+
+:::
 
 ### `ReferenceValues.tdx.*.MemoryIntegrity` {#tdx-memory-integrity}
 
