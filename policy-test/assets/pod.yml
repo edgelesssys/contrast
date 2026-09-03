@@ -2,9 +2,6 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: test
-  labels:
-    # Contrast generate expects at least one Coordinator policy hash
-    contrast.edgeless.systems/pod-role: coordinator
 spec:
   containers:
     - name: test
