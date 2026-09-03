@@ -25,8 +25,12 @@ kubectl get namespaces --no-headers | while read -r ns _; do
     continue
   fi
 
-  if kubectl get namespace "$ns" -o jsonpath='{.metadata.labels.ci\.contrast\.edgeless\.systems/keep}' | grep -q "true"; then
-    echo "Skipping namespace protected by label : $ns"
+  if ! keep_label=$(kubectl get namespace "$ns" -o jsonpath='{.metadata.labels.ci\.contrast\.edgeless\.systems/keep}'); then
+    echo "Skipping namespace due to kubectl error: $ns"
+    continue
+  fi
+  if grep -q "true" <<<"$keep_label"; then
+    echo "Skipping namespace protected by label: $ns"
     continue
   fi
 
