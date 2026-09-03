@@ -179,6 +179,56 @@ jobs:
             ./release-artifacts/**
             ./darwin-artifacts/contrast-aarch64-darwin
 
+  retag-images:
+    name: Tag promoted images with the release version
+    runs-on: ubuntu-24.04
+    needs: [prepare, promote]
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Download image replacements from nightly run
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: image-replacements
+          run-id: ${{ needs.prepare.outputs.nightly_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tag promoted digests with the release version
+        env:
+          VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+          SET: base
+        run: |
+          set -euo pipefail
+          crane=$(nix build --no-link --print-out-paths ".#${SET}.nixpkgs.crane" | head -n1)/bin/crane
+
+          # Keep in sync with the image list in .github/actions/release_artifacts.
+          count=$(grep -cE '^[^#].*=' image-replacements.txt || true)
+          if (( count != 6 )); then
+            echo "::error::Expected 6 image replacements, found ${count}."
+            exit 1
+          fi
+
+          while IFS= read -r replacement; do
+            case "${replacement}" in ''|'#'*) continue ;; esac
+            pinned="${replacement#*=}"
+            echo "Tagging ${pinned} as ${VERSION}"
+            "${crane}" tag "${pinned}" "${VERSION}"
+          done <image-replacements.txt
+
   prepare-github-release:
     name: Create backport label and milestone
     # Depend on promote so we don't create a milestone for a failed release.
@@ -224,7 +274,7 @@ jobs:
 
   publish:
     name: Publish release
-    needs: [prepare, promote, prepare-github-release, prepare-post-release-pr]
+    needs: [prepare, promote, retag-images, prepare-github-release, prepare-post-release-pr]
     runs-on: ubuntu-24.04
     environment: release-publish
     permissions:
