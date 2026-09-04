@@ -10,6 +10,7 @@ attesters
 auditable
 auto-unseal
 auto-unsealing
+autonegotiates?
 autoscaler
 autoscaling
 AWS
@@ -141,8 +142,10 @@ proxied
 QEMU
 rebase
 Rego
+reimplement
 Rekor
 repurposes?
+repurposing
 resizable
 resourceGroup
 rollout
@@ -164,6 +167,7 @@ stdin
 stdout
 strongSwan
 subcommand
+subpackage
 Subresource
 substituters
 superset
@@ -190,6 +194,7 @@ unencrypted
 unrepresentable
 unspoofable
 untrusted
+unversioned
 updatable
 upsert
 URIs?
