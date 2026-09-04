@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast
 
-go 1.25.6
+go 1.26.0
 
 // Upstream is poorly maintained, use edgelesssys fork instead.
 replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249

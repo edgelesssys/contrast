@@ -380,7 +380,7 @@ func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, names
 	for _, pod := range pods {
 		c.log.Info("restarting pod", "namespace", namespace, "name", name)
 		err := c.Client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{
-			GracePeriodSeconds: toPtr(int64(0)),
+			GracePeriodSeconds: new(int64(0)),
 		})
 		if err != nil {
 			return err
@@ -445,6 +445,7 @@ func (c *Kubeclient) ScaleStatefulSet(ctx context.Context, namespace, name strin
 	return err
 }
 
+//go:fix inline
 func toPtr[T any](t T) *T {
-	return &t
+	return new(t)
 }

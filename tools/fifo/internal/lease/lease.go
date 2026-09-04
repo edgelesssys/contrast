@@ -243,7 +243,7 @@ func (l *Lease) claimLease(ctx context.Context) (bool, error) {
 	previousHolder := orDefault(existing.Spec.HolderIdentity, unknownHolder)
 	l.log.Debug("Found expired lease", "name", existing.Name, "previous-holder", previousHolder, "now", now, "expiry", expiry)
 
-	existing.Spec.LeaseTransitions = toPtr(orDefault(existing.Spec.LeaseTransitions, 0) + 1)
+	existing.Spec.LeaseTransitions = new(orDefault(existing.Spec.LeaseTransitions, 0) + 1)
 	existing.Spec.AcquireTime = &now
 	existing.Spec.RenewTime = &now
 	existing.Spec.LeaseDurationSeconds = &l.leaseDurationSeconds
@@ -275,7 +275,7 @@ func (l *Lease) createQueueEntry(ctx context.Context) error {
 			HolderIdentity:       &l.holderIdentity,
 			AcquireTime:          &now,
 			RenewTime:            &now,
-			LeaseDurationSeconds: toPtr(queueEntryTTL),
+			LeaseDurationSeconds: new(queueEntryTTL),
 		},
 	}
 
@@ -325,8 +325,9 @@ func (l *Lease) refreshQueueEntry(ctx context.Context) {
 	}
 }
 
+//go:fix inline
 func toPtr[A any](a A) *A {
-	return &a
+	return new(a)
 }
 
 func orDefault[A any](a *A, def A) A {

@@ -420,13 +420,13 @@ func TestRecovery(t *testing.T) {
 		},
 		{
 			name:        "short seed",
-			seed:        toPtr(seed[:16]),
+			seed:        new(seed[:16]),
 			wantCode:    codes.InvalidArgument,
 			wantMessage: "seed must be",
 		},
 		{
 			name:        "short salt",
-			salt:        toPtr(salt[:16]),
+			salt:        new(salt[:16]),
 			wantCode:    codes.InvalidArgument,
 			wantMessage: "salt must be",
 		},
@@ -1191,8 +1191,9 @@ func (d *stubDiscovery) GetPeers(ctx context.Context) ([]string, error) {
 	}
 }
 
+//go:fix inline
 func toPtr[A any](a A) *A {
-	return &a
+	return new(a)
 }
 
 func TestMain(m *testing.M) {

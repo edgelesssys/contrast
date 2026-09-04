@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/policy-test
 
-go 1.25.6
+go 1.26.0
 
 replace github.com/edgelesssys/contrast => ../
 
