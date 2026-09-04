@@ -28,6 +28,8 @@ buildGoModule (finalAttrs: {
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
+        (path.append root "apitypes/go.mod")
+        (path.append root "apitypes/go.sum")
         (fileset.fileFilter (file: hasSuffix ".yaml" file.name) (
           path.append root "internal/kuberesource/assets"
         ))
@@ -36,6 +38,7 @@ buildGoModule (finalAttrs: {
         (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
         (fileset.intersection (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           fileset.unions [
+            (path.append root "apitypes")
             (path.append root "internal/atls")
             (path.append root "internal/attestation")
             (path.append root "internal/constants")
