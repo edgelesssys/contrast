@@ -66,7 +66,7 @@ func main() {
 		// $.[3]."status"."metadata"."name" = "coordinator-0"
 		// $.[3]."status"."metadata"."namespace" = "custom-mr"
 
-		log.Printf("Starting debug shell server on VSOCK")
+		log.Printf("Starting debug shell server on VSOCK port 22")
 		l, err := vsock.Listen(22, nil)
 		if err != nil {
 			log.Fatalf("Error listening on VSOCK: %v", err)
