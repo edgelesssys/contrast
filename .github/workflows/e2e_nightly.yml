@@ -3,6 +3,12 @@ name: e2e test nightly
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      notify:
+        description: Notify the Teams channel about failures even when not running on a schedule (used by chained patch nightlies).
+        type: boolean
+        required: false
+        default: false
     secrets:
       GITHUB_TOKEN_IN:
         required: true
@@ -176,7 +182,7 @@ jobs:
       - tdx
       - snp-gpu
       - tdx-gpu
-    if: always() && github.event_name == 'schedule' && github.run_attempt == 1
+    if: always() && (github.event_name == 'schedule' || inputs.notify) && github.run_attempt == 1
     permissions:
       contents: read
     steps:

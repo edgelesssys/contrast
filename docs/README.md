@@ -25,7 +25,7 @@ Browse to <http://localhost:3000/contrast> and choose the "Next" version in the 
 - **Publishing** Deployed by [`docs_publish`](../.github/workflows/docs_publish.yml) on push to main.
   This will build the website and push it to the [`gh-pages` branch](https://github.com/edgelesssys/contrast/tree/gh-pages).
 - **Actual deployment** happens through a [GitHub controlled action](https://github.com/edgelesssys/contrast/actions/workflows/pages/pages-build-deployment).
-- **Release versioning** happens as part of the [release workflow](../.github/workflows/release.yml)
+- **Release versioning** happens as part of the [release promote workflow](../.github/workflows/release_promote.yml)
 
 Check out the [latest deployments](https://github.com/edgelesssys/contrast/deployments) (both main and PR preview).
 
