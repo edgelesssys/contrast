@@ -71,6 +71,82 @@ jobs:
         run: |
           nix run ".#${SET}.scripts.govulncheck"
 
+  govulncheck-autofix:
+    name: "Fix vulnerabilities and open a PR"
+    needs: govulncheck
+    if: ${{ failure() && github.event.pull_request.head.repo.fork != true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      pull-requests: read
+    concurrency:
+      group: govulncheck-autofix
+      cancel-in-progress: false
+    env:
+      SET: base
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: main
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+          persist-credentials: true
+      - name: Check for an existing autofix PR
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          number=$(gh pr list --head automated/govulncheck --state open --json number --jq '.[0].number // empty')
+          if [[ -n "${number}" ]]; then
+            echo "PR #${number} is already open, leaving it alone." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "number=${number}" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/setup_nix
+        if: ${{ steps.existing.outputs.number == '' }}
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Apply the mechanical fixes
+        id: fix
+        if: ${{ steps.existing.outputs.number == '' }}
+        run: |
+          set +e
+          nix run ".#${SET}.scripts.govulncheck-fix" > "${RUNNER_TEMP}/report.md"
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+      - name: Build the PR body
+        if: ${{ steps.existing.outputs.number == '' }}
+        run: |
+          {
+            echo "Automated update created by the [static checks workflow](https://github.com/edgelesssys/contrast/blob/main/.github/workflows/static.yml)."
+            echo
+            cat "${RUNNER_TEMP}/report.md" 2>/dev/null || echo "No report produced."
+          } > "${RUNNER_TEMP}/body.md"
+          cat "${RUNNER_TEMP}/body.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Create PR
+        if: ${{ steps.existing.outputs.number == '' }}
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          title: "deps: fix vulnerabilities reported by govulncheck"
+          body-path: ${{ runner.temp }}/body.md
+          commit-message: "deps: fix vulnerabilities reported by govulncheck"
+          base: main
+          draft: false
+          labels: "dependencies"
+          branch: automated/govulncheck
+          delete-branch: true
+          committer: edgelessci <edgelessci@users.noreply.github.com>
+          author: edgelessci <edgelessci@users.noreply.github.com>
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+      - name: Notify teams channel about findings that need a human
+        if: ${{ steps.fix.outputs.status != '0' && steps.fix.outputs.status != '' }}
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          title: "govulncheck found vulnerabilities that cannot be fixed automatically"
+          message: "Check the run summary for the list."
+          additionalActions: '[{"type": "Action.OpenUrl", "title": "Run", "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}]'
+
   golangci-lint:
     runs-on: ubuntu-24.04
     timeout-minutes: 15

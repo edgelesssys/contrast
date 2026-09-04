@@ -110,6 +110,23 @@
     '';
   };
 
+  govulncheck-fix = writeShellApplication {
+    name = "govulncheck-fix";
+    runtimeInputs = with pkgs; [
+      go
+      govulncheck
+      jq
+      gawk
+      gnugrep
+      gnused
+      coreutils
+      nix
+      nix-update
+      scripts.generate
+    ];
+    text = builtins.readFile ./govulncheck-fix.sh;
+  };
+
   gofix = writeShellApplication {
     name = "gofix";
     runtimeInputs = with pkgs; [

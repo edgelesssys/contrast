@@ -558,6 +558,10 @@ get-ghcr-read-token:
 codegen:
     nix run -L .#base.scripts.generate
 
+# Fix vulnerabilities reported by govulncheck. Pass --dry-run to only report them.
+govulnfix *ARGS:
+    nix run -L .#base.scripts.govulncheck-fix -- {{ ARGS }}
+
 # Format code.
 fmt:
     nix fmt
