@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/idblock"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -37,6 +38,8 @@ type Manifest struct {
 	WorkloadOwnerPubKeys []HexString
 	// SeedshareOwnerPubKeys is a list of RSA public keys in PKCS1 DER format, hex-encoded.
 	SeedshareOwnerPubKeys []HexString
+	// MinimumAPIVersion optionally pins the oldest Contrast HTTP API version, e.g. "v1".
+	MinimumAPIVersion string `json:",omitempty"`
 }
 
 // Default returns a default manifest with reference values for the given platform.
@@ -104,6 +107,12 @@ func (m *Manifest) Validate() error {
 	for i, key := range m.SeedshareOwnerPubKeys {
 		if _, err := ParseSeedShareOwnerKey(key); err != nil {
 			errs = append(errs, newValidationError(fmt.Sprintf("SeedshareOwnerPubKeys[%d]", i), err))
+		}
+	}
+
+	if m.MinimumAPIVersion != "" {
+		if _, err := apitypes.ParseAPIVersion(m.MinimumAPIVersion); err != nil {
+			errs = append(errs, newValidationError("MinimumAPIVersion", err))
 		}
 	}
 	return errors.Join(errs...)
