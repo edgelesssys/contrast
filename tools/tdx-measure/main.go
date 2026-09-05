@@ -128,7 +128,10 @@ func newRtMrCmd() *cobra.Command {
 	}
 	cmd.Flags().StringP("cmdline", "c", "", "kernel command line")
 	cmd.Flags().StringP("gpu-model", "g", "none", "GPU model used in the VM (none, h100, b200, b300)")
-	cmd.Flags().Bool("legacy-serial", false, "VM uses -serial chardev:... instead of virtio-serial-pci (changes ACPI topology)")
+	cmd.Flags().String("acpi-blobs", "", "path to the directory of dumped QEMU ACPI fw_cfg blobs (etc/table-loader, etc/acpi/*) for the VM topology; required for RTMR 0 of non-GPU VMs")
+	if err := cmd.MarkFlagDirname("acpi-blobs"); err != nil {
+		panic(err)
+	}
 	return cmd
 }
 
@@ -153,11 +156,11 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("invalid gpu model: %w", err)
 		}
-		legacySerial, err := cmd.Flags().GetBool("legacy-serial")
+		acpiBlobsDir, err := cmd.Flags().GetString("acpi-blobs")
 		if err != nil {
 			return err
 		}
-		digest, err = rtmr.CalcRtmr0(firmware, gpuModel, legacySerial)
+		digest, err = rtmr.CalcRtmr0(firmware, gpuModel, acpiBlobsDir)
 		if err != nil {
 			return fmt.Errorf("can't calculate RTMR 0: %w", err)
 		}
