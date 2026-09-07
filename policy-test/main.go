@@ -12,12 +12,13 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 
-	"github.com/edgelesssys/contrast/cli/cmd"
+	"github.com/edgelesssys/contrast/cli/genpolicy"
 	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -25,8 +26,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/layout"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/spf13/cobra"
-	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
-	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 var (
@@ -94,6 +93,7 @@ func execute(c *cobra.Command, _ []string) error {
 		if _, err := fmt.Fprintf(imageReplacementsFile, "%s=%s\n", k, v); err != nil {
 			return fmt.Errorf("write image replacements: %w", err)
 		}
+		podYaml = bytes.ReplaceAll(podYaml, []byte(k), []byte(v))
 	}
 	if err := imageReplacementsFile.Close(); err != nil {
 		return fmt.Errorf("close image replacements file: %w", err)
@@ -126,7 +126,22 @@ func execute(c *cobra.Command, _ []string) error {
 		return fmt.Errorf("write genpolicy-settings.json: %w", err)
 	}
 
-	policy, err := generatePolicy(c.Context(), workDir, imageReplacementsFile.Name(), registryAddr)
+	genpolicyConfig := genpolicy.NewConfig()
+	if err := os.WriteFile(filepath.Join(workDir, "genpolicy-rules.rego"), genpolicyConfig.Rules, 0o644); err != nil {
+		return fmt.Errorf("write genpolicy-rules.rego: %w", err)
+	}
+	genpolicyRunner, err := genpolicy.New(
+		filepath.Join(workDir, "genpolicy-rules.rego"),
+		filepath.Join(workDir, "genpolicy-settings.json"),
+		filepath.Join(workDir, "layers-cache.json"),
+		[]string{registryAddr},
+		genpolicyConfig.Bin,
+	)
+	if err != nil {
+		return fmt.Errorf("create genpolicy runner: %w", err)
+	}
+
+	policy, err := generatePolicy(c.Context(), genpolicyRunner, podYaml)
 	if err != nil {
 		return fmt.Errorf("generate policy: %w", err)
 	}
@@ -211,70 +226,29 @@ func setupRegistry(registryAddr string, testImages map[string]testImage) (map[st
 	return imageReplacements, nil
 }
 
-func generatePolicy(ctx context.Context, workDir string, imageReplacementsFile string, registryAddr string) (string, error) {
-	generateCmd := cmd.NewGenerateCmd()
-	generateCmd.Flags().String("workspace-dir", workDir, "")
-	args := []string{
-		"--workspace-dir=" + workDir,
-		"--reference-values=Metal-QEMU-SNP",
-		"--settings=" + filepath.Join(workDir, "genpolicy-settings.json"),
-		"--genpolicy-cache-path=" + filepath.Join(workDir, "layers-cache.json"),
-		"--image-replacements=" + imageReplacementsFile,
-		"--insecure-registry=" + registryAddr,
-		"--output=" + filepath.Join(workDir, "out.yml"),
-		filepath.Join(workDir, "pod.yml"),
-	}
-	generateCmd.SetArgs(args)
-	generateCmd.SetOut(io.Discard)
-	errBuf := &bytes.Buffer{}
-	generateCmd.SetErr(errBuf)
-
-	if err := generateCmd.ExecuteContext(ctx); err != nil {
-		return "", fmt.Errorf("run generate: %w\n%s", err, errBuf.String())
-	}
-
-	output, err := os.ReadFile(filepath.Join(workDir, "out.yml"))
-	if err != nil {
-		return "", err
-	}
-
-	policy, err := extractPolicy(output)
-	if err != nil {
-		return "", fmt.Errorf("extract policy: %w", err)
-	}
-	return policy, nil
-}
-
-func extractPolicy(yaml []byte) (string, error) {
+func generatePolicy(ctx context.Context, runner *genpolicy.Runner, yaml []byte) (string, error) {
 	applyConfigs, err := kuberesource.UnmarshalApplyConfigurations(yaml)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unmarshal pod yaml: %w", err)
 	}
 	if len(applyConfigs) != 1 {
 		return "", fmt.Errorf("expected exactly one resource, got %d", len(applyConfigs))
 	}
-	var policy string
-	_, err = kuberesource.MapPodSpecWithMetaAndErrors(applyConfigs[0], func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration, error) {
-		if meta == nil {
-			return meta, spec, fmt.Errorf("pod spec is nil")
-		}
-		annotation := meta.Annotations[kuberesource.InitdataAnnotationKey]
-		idRaw, err := initdata.DecodeKataAnnotation(annotation)
-		if err != nil {
-			return meta, spec, fmt.Errorf("decoding initdata annotation: %w", err)
-		}
-		id, err := idRaw.Parse()
-		if err != nil {
-			return meta, spec, fmt.Errorf("parsing initdata: %w", err)
-		}
-		var ok bool
-		if policy, ok = id.Data["policy.rego"]; !ok {
-			return meta, spec, fmt.Errorf("policy.rego not found in initdata")
-		}
-		return meta, spec, nil
-	})
+	// TODO(davidweisse): Change extraPath when we actually need it.
+	anno, _, err := runner.Run(ctx, applyConfigs[0], "/dev/null", false, slog.Default())
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("run genpolicy: %w", err)
 	}
-	return policy, nil
+	idRaw, err := initdata.DecodeKataAnnotation(anno)
+	if err != nil {
+		return "", fmt.Errorf("decoding initdata annotation: %w", err)
+	}
+	id, err := idRaw.Parse()
+	if err != nil {
+		return "", fmt.Errorf("parsing initdata: %w", err)
+	}
+	if policy, ok := id.Data["policy.rego"]; ok {
+		return policy, nil
+	}
+	return "", fmt.Errorf("policy.rego not found in initdata")
 }
