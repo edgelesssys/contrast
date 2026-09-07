@@ -89,7 +89,7 @@ buildGoModule (_finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-sbDA+Fm6f/kd57rfcIkWFqDjoRXw+heOaM7looujlUk=";
+  vendorHash = "sha256-XbhVkJzpkJ1FJqmD8UeJEPx6xq6cX/bzX7OqdHhSzMk=";
 
   modRoot = "policy-test";
 
