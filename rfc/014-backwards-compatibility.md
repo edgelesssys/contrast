@@ -59,6 +59,7 @@ Non-additive, breaking changes are prohibited within minor versions, and include
 - The removal of fields.
 - The repurposing of fields.
 - The changing of API paths.
+- Behavioral changes that break existing guarantees.
 
 In order to make a change like this, a new major version of the API is required.
 Rather than changing such implementation details in the `apitypes` package directly and releasing the changes as a new major version, a subpackage for each API version is added, namely `apitypes/apiv1` and so forth.
@@ -102,7 +103,7 @@ The capabilities response may be cached for reuse.
 
 In the case of the example from above, the "unversioned" `SetManifest` version looks something like this:
 ```go
-func (c *Client) SetManifest(...) {
+func (c *Client) SetManifest(...) ([]byte, error) {
     version, _ := c.NegotiateAPIVersion(...)
     switch version {
     case apiv1.Version:
@@ -112,8 +113,10 @@ func (c *Client) SetManifest(...) {
     }
 }
 ```
+Returning `[]byte` here rather than a concrete type allows this function to return values of any API version's type.
+Conversion to the concrete types, for example `apitypesv1.SetManifestResponse`, is the responsibility of the caller.
 
-To mitigate downgrade attacks on this negotiation, two mechanisms are supported.
+To mitigate downgrade attacks on the version negotiation, two mechanisms are supported.
 
 First, users may pin the minimum required API version in the manifest via a new `MinimumAPIVersion` field.
 If the newest API version supported by both client and Coordinator is less than this field, communication via HTTP API isn't possible, and the client should throw an appropriate error.
@@ -121,6 +124,10 @@ If the newest API version supported by both client and Coordinator is less than 
 Even though we could, at least for the time being, fall back to the gRPC API in this case, this would ignore that a pinned minimum version clearly indicates the user's desire to use the HTTP API,
 thus likely meaning the user also expects the Coordinator to speak this version; moreover, the error-on-minimum-unmet behavior would need to be implemented anyways once gRPC is deprecated.
 Falling back to gRPC *in the case of a pinned minimum version* would therefore be a potentially unexpected, temporary behavior and shouldn't be introduced.
+
+Essentially, we treat the gRPC as the version zero of the API.
+If no component has a minimum version requirement, it's acceptable to negotiate down to version zero.
+If a minimum version greater than zero is set, the gRPC API doesn't satisfy the requirement.
 
 Second, the hash of the Coordinator `/capabilities` response is included in `ConstructReportData`.
 This allows clients to verify that the capabilities response they received during version negotiation was genuine.
@@ -133,18 +140,18 @@ The planned timeline for this looks as follows.
 0. Fully implement the HTTP API.
 1. Use the HTTP API by default in all our e2e tests.
 2. After 2 weeks of no (API-related) e2e failures, remove the `contrast_unstable_api` tags and default to the HTTP API with the next minor release.
-   Publicly announce the change in the changelog, mark as breaking change, and include a notice informing readers of the deprecation and planned removal for the second-next minor release.
+   Publicly announce the change in the changelog, mark as breaking change, and include a notice informing readers of the deprecation and planned removal.
    Also print an appropriate warning in the CLI whenever gRPC fallback is being used.
-3. With the specified minor release, remove all gRPC related code, again marking the PR as breaking change.
+3. Six months later, remove all gRPC related code, again marking the PR as breaking change.
 
 ### Testing strategy
 
 A new e2e test is introduced with the purpose of testing that communication between clients and Coordinators with different supported API versions succeeds.
-For each supported API version in the SDK, plus a gRPC-only case, a corresponding test case starts a Coordinator supporting all versions *up to* the specified version.
+For each supported API version in the SDK, plus a gRPC-only case, a corresponding test case starts the latest released Coordinator supporting all versions *up to* the specified version.
 All user API functionalities (`GetManifests`, `SetManifest`, `Recover`) are tested for each supported SDK version (via the explicitly versioned SDK methods),
 as well as using the automatic version negotiation paths for overlap between versions, and disjunct supported versions.
 
-While the gRPC API is still supported, automatic negotiation failure should fall back to gRPC.
+While the gRPC API is still supported, automatic negotiation failure of a HTTP API version should fall back to gRPC, the above-mentioned version zero.
 Afterward, this simply becomes an expected error case, and the gRPC-only Coordinator test case can be removed.
 
 Additionally, the release e2e test should gain an new step in which the to-be-released deployment files are tested via an older, released version of the Contrast CLI, and vice versa.
