@@ -34,9 +34,6 @@ outputs:
   next_minor_pre_without_v:
     description: Next minor pre-release version without v, e.g. 1.3.0-pre
     value: ${{ steps.parse.outputs.next_minor_pre_without_v }}
-  next_patch_pre_without_v:
-    description: Next patch pre-release version without v, e.g. 1.2.4-pre
-    value: ${{ steps.parse.outputs.next_patch_pre_without_v }}
   previous_minor_tag:
     description: Previous minor release tag, e.g. v1.1.0. Empty if minor is 0.
     value: ${{ steps.parse.outputs.previous_minor_tag }}
@@ -67,7 +64,6 @@ runs:
           echo "release_branch=release/v${PART_MAJOR}.${PART_MINOR}"
           echo "next_minor=${PART_MAJOR}.$((PART_MINOR + 1)).0"
           echo "next_minor_pre_without_v=${PART_MAJOR}.$((PART_MINOR + 1)).0-pre"
-          echo "next_patch_pre_without_v=${PART_MAJOR}.${PART_MINOR}.$((PART_PATCH + 1))-pre"
           if (( PART_MINOR > 0 )); then
             echo "previous_minor_tag=v${PART_MAJOR}.$((PART_MINOR - 1)).0"
           else
