@@ -45,6 +45,7 @@ CRDs?
 CRIs?
 CRLs?
 CSPs?
+CSRs?
 CVMs?
 cyber
 cybersecurity
