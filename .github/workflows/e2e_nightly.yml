@@ -15,6 +15,11 @@ on:
         type: string
         required: false
         default: "[]"
+      skip-maintenance:
+        description: Skip bare-metal maintenance. Maintenance a run from a release branch would roll the shared clusters back to that branch's versions. Set for patch nightlies.
+        type: boolean
+        required: false
+        default: false
     secrets:
       GITHUB_TOKEN_IN:
         required: true
@@ -30,6 +35,7 @@ on:
 jobs:
   build-image:
     name: "Build cleanup-bare-metal image"
+    if: ${{ !inputs.skip-maintenance }}
     uses: ./.github/workflows/bm_build_image.yml
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
@@ -40,8 +46,7 @@ jobs:
 
   snp-maintenance:
     name: maintenance Metal-QEMU-SNP
-    # The platform's e2e jobs need this job, so they are skipped along with it.
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -54,7 +59,7 @@ jobs:
 
   tdx-maintenance:
     name: maintenance Metal-QEMU-TDX
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -67,7 +72,7 @@ jobs:
 
   snp-gpu-maintenance:
     name: maintenance Metal-QEMU-SNP-GPU
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-GPU') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-GPU') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -80,7 +85,7 @@ jobs:
 
   snp-dev-maintenance:
     name: maintenance Metal-QEMU-SNP-DEV
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-DEV') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-DEV') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -93,7 +98,7 @@ jobs:
 
   tdx-gpu-maintenance:
     name: maintenance Metal-QEMU-TDX-GPU
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX-GPU') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX-GPU') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -107,6 +112,9 @@ jobs:
   snp:
     name: Metal-QEMU-SNP
     needs: snp-maintenance
+    # Maintenance is skipped for patch nightlies, so a skipped maintenance job must not skip the e2e jobs.
+    # Skipped platforms are therefore excluded explicitly.
+    if: ${{ !failure() && !cancelled() && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP') }}
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-SNP
@@ -126,6 +134,7 @@ jobs:
   tdx:
     name: Metal-QEMU-TDX
     needs: tdx-maintenance
+    if: ${{ !failure() && !cancelled() && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX') }}
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-TDX
@@ -145,6 +154,7 @@ jobs:
   snp-gpu:
     name: Metal-QEMU-SNP-GPU
     needs: snp-gpu-maintenance
+    if: ${{ !failure() && !cancelled() && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-GPU') }}
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-SNP-GPU
@@ -164,6 +174,7 @@ jobs:
   tdx-gpu:
     name: Metal-QEMU-TDX-GPU
     needs: tdx-gpu-maintenance
+    if: ${{ !failure() && !cancelled() && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX-GPU') }}
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-TDX-GPU
