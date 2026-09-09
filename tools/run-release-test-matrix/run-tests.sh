@@ -7,7 +7,7 @@ set -euo pipefail
 # Create an associative array to hold platform.name -> test list
 declare -A platform_tests
 
-# This should point to the workflows called in release.yml, excluding the release test.
+# This should point to the workflows called in release_nightly.yml, excluding the release test.
 declare -A files=(
   [".github/workflows/e2e_nightly.yml"]="jobs.test_matrix.strategy.matrix"
   [".github/workflows/e2e_regression.yml"]="jobs.regression-test.strategy.matrix"
