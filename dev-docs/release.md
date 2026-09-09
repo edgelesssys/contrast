@@ -1,8 +1,11 @@
 # How to release
 
-## Minor, by promoting nightly
+Minor and patch releases are both handled exclusively through the nightly pipeline.
+`release_nightly.yml` builds the artifacts and runs the full test suite, while `release_promote.yml` turns the resulting draft into a release.
 
-The CI should create a nightly minor draft release, called `v1.x.0-yyyy-mm-dd`, and runs the full test suite against it.
+## Minor
+
+`release_nightly.yml` runs nightly on `main` and creates a minor draft release, called `v1.x.0-yyyy-mm-dd`, running the full test suite against it.
 This draft release can be promoted to actual release.
 
 1. Check that in the latest nightly, all checks and tests passed. A draft release is created even if that's not the case, but trying to promote a nightly release where linux/darwin releases, nightly e2es or the release e2e failed, will automatically fail anyway.
@@ -10,7 +13,7 @@ This draft release can be promoted to actual release.
 2. Sanity-check the latest nightly draft release on GitHub. The tag should match `vX.Y.Z-yyyy-mm-dd` where
   `X.Y.Z` is `version.txt` on main with the `-pre` suffix stripped, and the draft must have artifacts attached.
 
-3. Trigger the promote workflow (it always promotes the most recent completed `release_nightly.yml` run):
+3. Trigger the promote workflow (without a version, it promotes the most recent completed `release_nightly.yml` run on `main`):
 
     ```sh
     gh workflow run release_promote.yml
@@ -29,6 +32,76 @@ This draft release can be promoted to actual release.
 8. Check that the publish job succeeds.
 
 9. Review and merge the auto generated update PR for `main`. It advertises the new version in `contrast-releases.json` and the docs, so merging it earlier means reverting it if the release fails.
+
+## Minor, manually
+
+If you need to include changes merged into `main` since the last nightly, dispatch the nightly yourself and promote it as described [above](#minor):
+
+```sh
+gh workflow run release_nightly.yml --ref main --repo edgelesssys/contrast
+```
+
+## Patch
+
+> [!NOTE]
+> We do backports by applying backport labels (`backport release/v<minor>`) to PRs that should be backported.
+> The backport then happens automatically by the backport action on merge. If you label a PR that was already
+> merged, the backport action can be triggered by adding a `/backport` comment. Ensure the backport PR has
+> the proper label to gets listed in the release notes.
+
+A patch release works exactly like a minor one, except that it needs to run off the release branch instead of `main` on demand.
+
+> [!IMPORTANT]
+> The dispatched run uses the release branch's copy of `release_nightly.yml`, of `e2e_nightly.yml` and of the actions they call.
+> It therefore only works on release branches that carry the unified release pipeline.
+> A release branch that was cut before the pipeline was unified needs a one-time backport of these workflows first.
+
+1. Ensure all needed PRs were backported to the current release branch, and all backport PRs were merged.
+
+   The release runs the release branch's copy of the workflows and actions, so fixes to the release process merged on main after the branch was cut are missing unless they were backported.
+   Check with `git fetch origin && git diff origin/release/vX.Y origin/main -- .github/workflows .github/actions` and backport the relevant fixes before continuing.
+
+2. Dispatch the nightly on the release branch:
+
+    ```sh
+    export REL_BRANCH=release/v0.1
+    gh workflow run release_nightly.yml --ref "$REL_BRANCH" --repo edgelesssys/contrast
+    ```
+
+3. Check that in that run, all checks and tests passed, and that a draft release `vX.Y.Z-yyyy-mm-dd` with artifacts exists.
+
+4. Trigger the promote workflow with the explicit version (without one, it promotes the latest *minor* nightly from `main`):
+
+    ```sh
+    gh workflow run release_promote.yml -f version="v1.X.Y" --repo edgelesssys/contrast
+    ```
+
+5. Test the binary artifact. The artifacts to review come from the nightly build: open the `release_nightly.yml` run on the release branch and copy the S3 link from its `Pre-release artifacts` job summary. Send Privatemode a message to review these artifacts and wait for their feedback.
+
+6. **Wait for PM approval before proceeding.**
+
+7. Review the release notes. Ensure the release is based on the latest patch release. If label/title/description changes are necessary, change them on the original PR itself, then regenerate the notes on the draft (see [Editing the release notes](#editing-the-release-notes)).
+
+8. Approve the `Publish release` job in the GitHub Actions workflow run.
+
+9. Check that the publish job succeeds.
+
+10. Review and merge the auto generated update PR for `main`.
+
+## Concurrent release runs
+
+All `release_nightly.yml` runs share one concurrency group.
+This allows queueing an additional release run, for example to have them run subsequently overnight.
+
+The downside is that a dispatched run waits for a run that's already in progress, which can take a *while*.
+If a patch release is urgent, cancel the in-progress nightly:
+
+```sh
+gh run list --workflow release_nightly.yml --status in_progress --repo edgelesssys/contrast
+gh run cancel <run-id> --repo edgelesssys/contrast
+```
+
+GitHub keeps at most one pending run per concurrency group, so dispatching a third run while one is running and one is waiting cancels the waiting one.
 
 ## Editing the release notes
 
