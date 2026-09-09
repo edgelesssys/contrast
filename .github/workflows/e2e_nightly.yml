@@ -15,6 +15,16 @@ on:
         type: string
         required: false
         default: "[]"
+      notify:
+        description: Notify the Teams channel about failures even when not running on a schedule (used by chained patch nightlies).
+        type: boolean
+        required: false
+        default: false
+      skip-maintenance:
+        description: Skip bare-metal maintenance. Maintenance a run from a release branch would roll the shared clusters back to that branch's versions. Set for patch nightlies.
+        type: boolean
+        required: false
+        default: false
     secrets:
       GITHUB_TOKEN_IN:
         required: true
@@ -30,6 +40,7 @@ on:
 jobs:
   build-image:
     name: "Build cleanup-bare-metal image"
+    if: ${{ !inputs.skip-maintenance }}
     uses: ./.github/workflows/bm_build_image.yml
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
@@ -40,8 +51,7 @@ jobs:
 
   snp-maintenance:
     name: maintenance Metal-QEMU-SNP
-    # The platform's e2e jobs need this job, so they are skipped along with it.
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -54,7 +64,7 @@ jobs:
 
   tdx-maintenance:
     name: maintenance Metal-QEMU-TDX
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -67,7 +77,7 @@ jobs:
 
   snp-gpu-maintenance:
     name: maintenance Metal-QEMU-SNP-GPU
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-GPU') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-GPU') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -80,7 +90,7 @@ jobs:
 
   snp-dev-maintenance:
     name: maintenance Metal-QEMU-SNP-DEV
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-DEV') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-DEV') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -93,7 +103,7 @@ jobs:
 
   tdx-gpu-maintenance:
     name: maintenance Metal-QEMU-TDX-GPU
-    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX-GPU') }}
+    if: ${{ !inputs.skip-maintenance && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX-GPU') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -107,6 +117,9 @@ jobs:
   snp:
     name: Metal-QEMU-SNP
     needs: snp-maintenance
+    # Maintenance is skipped for patch nightlies, so a skipped maintenance job must not skip the e2e jobs.
+    # Skipped platforms are therefore excluded explicitly.
+    if: ${{ !failure() && !cancelled() && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP') }}
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-SNP
@@ -126,6 +139,7 @@ jobs:
   tdx:
     name: Metal-QEMU-TDX
     needs: tdx-maintenance
+    if: ${{ !failure() && !cancelled() && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX') }}
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-TDX
@@ -145,6 +159,7 @@ jobs:
   snp-gpu:
     name: Metal-QEMU-SNP-GPU
     needs: snp-gpu-maintenance
+    if: ${{ !failure() && !cancelled() && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-GPU') }}
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-SNP-GPU
@@ -164,6 +179,7 @@ jobs:
   tdx-gpu:
     name: Metal-QEMU-TDX-GPU
     needs: tdx-gpu-maintenance
+    if: ${{ !failure() && !cancelled() && !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX-GPU') }}
     uses: ./.github/workflows/e2e_nightly_platform.yml
     with:
       platform-name: Metal-QEMU-TDX-GPU
@@ -194,7 +210,7 @@ jobs:
       - tdx
       - snp-gpu
       - tdx-gpu
-    if: always() && github.event_name == 'schedule' && github.run_attempt == 1
+    if: always() && (github.event_name == 'schedule' || inputs.notify) && github.run_attempt == 1
     permissions:
       contents: read
     steps:
@@ -227,41 +243,61 @@ jobs:
           NIX_GC_TDX_GPU: ${{ needs.tdx-gpu-maintenance.outputs.nix-gc }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
           SKIP_PLATFORMS: ${{ inputs.skip-platforms || '[]' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          SKIP_MAINTENANCE: ${{ inputs.skip-maintenance }}
+          E2E_SNP: ${{ needs.snp.result }}
+          E2E_TDX: ${{ needs.tdx.result }}
+          E2E_SNP_GPU: ${{ needs.snp-gpu.result }}
+          E2E_TDX_GPU: ${{ needs.tdx-gpu.result }}
         run: |
-          if [[ -z "${IMAGE_BUILD_RESULT}" ]]; then
-            echo 'json=[{"title": "Job ID", "value": "build-image"}]' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
           declare -a entries snp tdx snp_gpu snp_dev tdx_gpu
 
-          [[ "${UPDATE_RESOURCES_SNP}" != "success" ]] && snp+=("update-resources")
-          [[ "${CLEANUP_SNP}" != "success" ]] && snp+=("cleanup")
-          [[ "${NIX_GC_SNP}" != "success" ]] && snp+=("nix-gc")
-
-          [[ "${UPDATE_RESOURCES_TDX}" != "success" ]] && tdx+=("update-resources")
-          [[ "${CLEANUP_TDX}" != "success" ]] && tdx+=("cleanup")
-          [[ "${NIX_GC_TDX}" != "success" ]] && tdx+=("nix-gc")
-
-          [[ "${UPDATE_RESOURCES_SNP_GPU}" != "success" ]] && snp_gpu+=("update-resources")
-          [[ "${CLEANUP_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup")
-          [[ "${NIX_GC_SNP_GPU}" != "success" ]] && snp_gpu+=("nix-gc")
-
-          [[ "${UPDATE_RESOURCES_SNP_DEV}" != "success" ]] && snp_dev+=("update-resources")
-          [[ "${CLEANUP_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup")
-          [[ "${NIX_GC_SNP_DEV}" != "success" ]] && snp_dev+=("nix-gc")
-
-          [[ "${UPDATE_RESOURCES_TDX_GPU}" != "success" ]] && tdx_gpu+=("update-resources")
-          [[ "${CLEANUP_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup")
-          [[ "${NIX_GC_TDX_GPU}" != "success" ]] && tdx_gpu+=("nix-gc")
-
-          if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 5" ]]; then
-            [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
-            [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
-            [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
-            [[ "${CLEANUP_CONTAINERD_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup-containerd")
-            [[ "${CLEANUP_CONTAINERD_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup-containerd")
+          # e2e.yml posts a card per failing test, but only for scheduled runs. Report the e2e jobs here for
+          # everything else, so failures of dispatched runs (chained patch nightlies) don't go unnoticed.
+          if [[ "${GITHUB_EVENT_NAME}" != "schedule" ]]; then
+            [[ "${E2E_SNP}" == "success" ]] || snp+=("e2e")
+            [[ "${E2E_TDX}" == "success" ]] || tdx+=("e2e")
+            [[ "${E2E_SNP_GPU}" == "success" ]] || snp_gpu+=("e2e")
+            [[ "${E2E_TDX_GPU}" == "success" ]] || tdx_gpu+=("e2e")
           fi
+
+          # The maintenance jobs are skipped for patch nightlies, so only the e2e results are reported for those.
+          if [[ "${SKIP_MAINTENANCE}" != "true" ]]; then
+            if [[ -z "${IMAGE_BUILD_RESULT}" ]]; then
+              echo 'json=[{"title": "Job ID", "value": "build-image"}]' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            [[ "${UPDATE_RESOURCES_SNP}" != "success" ]] && snp+=("update-resources")
+            [[ "${CLEANUP_SNP}" != "success" ]] && snp+=("cleanup")
+            [[ "${NIX_GC_SNP}" != "success" ]] && snp+=("nix-gc")
+
+            [[ "${UPDATE_RESOURCES_TDX}" != "success" ]] && tdx+=("update-resources")
+            [[ "${CLEANUP_TDX}" != "success" ]] && tdx+=("cleanup")
+            [[ "${NIX_GC_TDX}" != "success" ]] && tdx+=("nix-gc")
+
+            [[ "${UPDATE_RESOURCES_SNP_GPU}" != "success" ]] && snp_gpu+=("update-resources")
+            [[ "${CLEANUP_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup")
+            [[ "${NIX_GC_SNP_GPU}" != "success" ]] && snp_gpu+=("nix-gc")
+
+            [[ "${UPDATE_RESOURCES_SNP_DEV}" != "success" ]] && snp_dev+=("update-resources")
+            [[ "${CLEANUP_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup")
+            [[ "${NIX_GC_SNP_DEV}" != "success" ]] && snp_dev+=("nix-gc")
+
+            [[ "${UPDATE_RESOURCES_TDX_GPU}" != "success" ]] && tdx_gpu+=("update-resources")
+            [[ "${CLEANUP_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup")
+            [[ "${NIX_GC_TDX_GPU}" != "success" ]] && tdx_gpu+=("nix-gc")
+
+            if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 5" ]]; then
+              [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
+              [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
+              [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
+              [[ "${CLEANUP_CONTAINERD_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup-containerd")
+              [[ "${CLEANUP_CONTAINERD_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup-containerd")
+            fi
+          fi
+          # `&&` chains above leave a non-zero status behind when nothing was appended.
+          true
 
           # Skipped platforms have no maintenance outputs, which would read as failures.
           skipped() { jq -e --arg p "$1" 'index($p) != null' <<<"${SKIP_PLATFORMS}" >/dev/null; }
