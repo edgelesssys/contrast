@@ -57,7 +57,7 @@ Follow the checklist below to publish the advisory.
       We don't add the next minor release to this field.
 2. Merge all PRs on the temporary fork.
    You will need to tick the _bypass branch protections_ box. That's okay.
-3. Create a [patch release](release.md#patch) for the latest released version.
+3. Create a [patch release](release.md) for the latest released version.
 4. From the advisory's drop-down menu, select _Publish Advisory_ and click the button.
 
 ## FAQ
