@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Runs the tests that gate a release, as defined by the workflows called in
-# release.yml (excluding the release test itself).
+# release_nightly.yml (excluding the release test itself).
 #
 # Set DRY_RUN=1 to print the discovered matrix without running anything.
 # Set FAIL_FAST=1 to stop at the first failure instead of finishing the matrix.
