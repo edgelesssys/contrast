@@ -393,15 +393,15 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 	if cacheDir == "" {
 		return fmt.Errorf("contrasttest.New should have set env var %q, but it's empty", constants.CacheDirEnvVar)
 	}
-	client := sdk.New().WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), cacheDir))
 	nonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
 	if err != nil {
 		return fmt.Errorf("generating nonce: %w", err)
 	}
+	var client *sdk.Client
 	var serializedAttestation []byte
 	err = ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", apitypes.Port, func(addr string) error {
-		url := fmt.Sprintf("http://%s/attest", addr)
-		resp, err := client.GetAttestation(ctx, url, nonce)
+		client = sdk.New(fmt.Sprintf("http://%s", addr)).WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), cacheDir))
+		resp, err := client.GetAttestation(ctx, nonce)
 		if err != nil {
 			return fmt.Errorf("getting attestation: %w", err)
 		}
