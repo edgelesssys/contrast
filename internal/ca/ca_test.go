@@ -44,29 +44,45 @@ func TestNewCA(t *testing.T) {
 
 func TestAttestedMeshCert(t *testing.T) {
 	testCases := map[string]struct {
-		dnsNames   []string
-		extensions []pkix.Extension
-		subjectPub any
-		wantErr    bool
-		wantIPs    int
-		wantURIs   int
+		dnsNames       []string
+		extensions     []pkix.Extension
+		subjectPub     any
+		wantErr        bool
+		wantIPs        int
+		wantURIs       int
+		wantCommonName string
 	}{
 		"valid": {
-			dnsNames:   []string{"foo", "bar"},
-			extensions: []pkix.Extension{},
-			subjectPub: newKey(t, 0).Public(),
+			dnsNames:       []string{"foo", "bar"},
+			extensions:     []pkix.Extension{},
+			subjectPub:     newKey(t, 0).Public(),
+			wantCommonName: "foo",
 		},
 		"ips": {
-			dnsNames:   []string{"foo", "192.0.2.1"},
+			dnsNames:       []string{"foo", "192.0.2.1"},
+			extensions:     []pkix.Extension{},
+			subjectPub:     newKey(t, 0).Public(),
+			wantIPs:        1,
+			wantCommonName: "foo",
+		},
+		"uris": {
+			dnsNames:       []string{"foo", "spiffe://trust-domain/workload-identifier"},
+			extensions:     []pkix.Extension{},
+			subjectPub:     newKey(t, 0).Public(),
+			wantURIs:       1,
+			wantCommonName: "foo",
+		},
+		"no common name still valid": {
+			dnsNames:   []string{"192.0.2.1"},
 			extensions: []pkix.Extension{},
 			subjectPub: newKey(t, 0).Public(),
 			wantIPs:    1,
 		},
-		"uris": {
-			dnsNames:   []string{"foo", "spiffe://trust-domain/workload-identifier"},
+		"no usable SAN": {
+			dnsNames:   []string{},
 			extensions: []pkix.Extension{},
 			subjectPub: newKey(t, 0).Public(),
-			wantURIs:   1,
+			wantErr:    true,
 		},
 	}
 
@@ -91,6 +107,7 @@ func TestAttestedMeshCert(t *testing.T) {
 			cert := parsePEMCertificate(t, pem)
 			assert.Len(cert.IPAddresses, tc.wantIPs)
 			assert.Len(cert.URIs, tc.wantURIs)
+			assert.Equal(tc.wantCommonName, cert.Subject.CommonName)
 		})
 	}
 }
