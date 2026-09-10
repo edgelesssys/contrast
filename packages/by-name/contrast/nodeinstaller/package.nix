@@ -32,10 +32,13 @@ buildGoModule (finalAttrs: {
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
+        (path.append root "apitypes/go.mod")
+        (path.append root "apitypes/go.sum")
         (path.append root "nodeinstaller")
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
         (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "apitypes"))
         (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal"))
       ];
     };
