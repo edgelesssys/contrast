@@ -122,6 +122,12 @@ func (c *CA) NewAttestedMeshCert(names []string, extensions []pkix.Extension, su
 		}
 	}
 
+	// Add check to see if dnsNames len is > 0 so
+	// index based access doesnt panick with out of bounds err
+	if len(dnsNames) < 1 {
+		return nil, errors.New("no suitable DNS name provided")
+	}
+
 	now := time.Now()
 	certTemplate := &x509.Certificate{
 		Subject:               pkix.Name{CommonName: dnsNames[0]},

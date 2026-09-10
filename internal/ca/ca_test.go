@@ -68,6 +68,12 @@ func TestAttestedMeshCert(t *testing.T) {
 			subjectPub: newKey(t, 0).Public(),
 			wantURIs:   1,
 		},
+		"empty dns names": {
+			dnsNames:   []string{},
+			extensions: []pkix.Extension{},
+			subjectPub: newKey(t, 0).Public(),
+			wantErr:    true,
+		},
 	}
 
 	for name, tc := range testCases {
