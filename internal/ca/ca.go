@@ -122,9 +122,18 @@ func (c *CA) NewAttestedMeshCert(names []string, extensions []pkix.Extension, su
 		}
 	}
 
+	if len(names) == 0 {
+		return nil, errors.New("at least one SAN needs to be provided")
+	}
+
+	var subjectName pkix.Name
+	if len(dnsNames) > 0 {
+		subjectName.CommonName = dnsNames[0]
+	}
+
 	now := time.Now()
 	certTemplate := &x509.Certificate{
-		Subject:               pkix.Name{CommonName: dnsNames[0]},
+		Subject:               subjectName,
 		NotBefore:             now.Add(-time.Hour),
 		NotAfter:              now.AddDate(1, 0, 0),
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
