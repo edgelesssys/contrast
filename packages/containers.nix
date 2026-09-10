@@ -146,12 +146,16 @@
       bash
       coreutils
       contrastPkgs.debugshell
+      contrastPkgs.scripts.debugshell-host
       openssh
       contrastPkgs.tdx-tools
     ];
     config = {
       Entrypoint = [ "/bin/debugshell" ];
       Cmd = [ "journalctl --no-tail --no-pager -f" ];
+      Env = [
+        "TMPDIR=/tmp"
+      ];
     };
   };
 
