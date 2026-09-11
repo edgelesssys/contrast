@@ -191,6 +191,8 @@ rec {
       # emitted.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/13692
       ./0027-runtime-rs-omit-guest-pull-driver-metadata.patch
+
+      ./0028-runtime-add-l3forwarding-network-model.patch
     ];
 
     # The rules.rego unit tests only run on linux, since open-policy-agent fails to build on darwin.

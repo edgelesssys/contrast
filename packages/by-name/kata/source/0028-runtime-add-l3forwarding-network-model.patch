@@ -1,0 +1,446 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Fri, 11 Sep 2026 17:03:42 +0200
+Subject: [PATCH] runtime: add l3forwarding network model
+
+---
+ src/runtime/virtcontainers/network.go         |  13 ++
+ .../network_l3_forwarding_linux.go            | 211 ++++++++++++++++++
+ src/runtime/virtcontainers/network_linux.go   |  10 +
+ .../network_port_forwarding_linux.go          | 129 +++++++++++
+ 4 files changed, 363 insertions(+)
+ create mode 100644 src/runtime/virtcontainers/network_l3_forwarding_linux.go
+ create mode 100644 src/runtime/virtcontainers/network_port_forwarding_linux.go
+
+diff --git a/src/runtime/virtcontainers/network.go b/src/runtime/virtcontainers/network.go
+index 9d6a8faedeb9e2a7a9737bec4ce5d3c48b452f09..511ad741d3fd2614631739ff4be715956e960e39 100644
+--- a/src/runtime/virtcontainers/network.go
++++ b/src/runtime/virtcontainers/network.go
+@@ -124,6 +124,12 @@ const (
+ 	// NetXConnectNoneModel can be used when the VM is in the host network namespace
+ 	NetXConnectNoneModel
+ 
++	// NetXConnectL3ForwardingModel routes traffic at layer 3 between the
++	// network interface provided by the network plugin and a tap interface,
++	// using proxy ARP and IP forwarding instead of the L2 redirection used
++	// by NetXConnectTCFilterModel. This works for veth and macvlan.
++	NetXConnectL3ForwardingModel
++
+ 	// NetXConnectInvalidModel is the last item to Check valid values by IsValid()
+ 	NetXConnectInvalidModel
+ )
+@@ -140,6 +146,8 @@ const (
+ 
+ 	tcFilterNetModelStr = "tcfilter"
+ 
++	l3ForwardingNetModelStr = "l3forwarding"
++
+ 	noneNetModelStr = "none"
+ )
+ 
+@@ -154,6 +162,8 @@ func (n *NetInterworkingModel) GetModel() string {
+ 		return tcFilterNetModelStr
+ 	case NetXConnectNoneModel:
+ 		return noneNetModelStr
++	case NetXConnectL3ForwardingModel:
++		return l3ForwardingNetModelStr
+ 	}
+ 	return "unknown"
+ }
+@@ -173,6 +183,9 @@ func (n *NetInterworkingModel) SetModel(modelName string) error {
+ 	case noneNetModelStr:
+ 		*n = NetXConnectNoneModel
+ 		return nil
++	case l3ForwardingNetModelStr:
++		*n = NetXConnectL3ForwardingModel
++		return nil
+ 	}
+ 	return fmt.Errorf("Unknown type %s", modelName)
+ }
+diff --git a/src/runtime/virtcontainers/network_l3_forwarding_linux.go b/src/runtime/virtcontainers/network_l3_forwarding_linux.go
+new file mode 100644
+index 0000000000000000000000000000000000000000..1717034b1e023856835d02d739d2717b549443a5
+--- /dev/null
++++ b/src/runtime/virtcontainers/network_l3_forwarding_linux.go
+@@ -0,0 +1,211 @@
++// Copyright (c) 2026 Edgeless Systems GmbH
++//
++// SPDX-License-Identifier: Apache-2.0
++//
++
++package virtcontainers
++
++import (
++	"context"
++	"fmt"
++	"net"
++	"os"
++
++	"github.com/vishvananda/netlink"
++	"golang.org/x/sys/unix"
++)
++
++// tapAddress is the link-local address assigned to the tap interface.
++//
++// The interface needs to get an address in order to make ARP forwarding work.
++const tapAddress = "169.254.0.1/32"
++
++// setupL3Forwarding creates a tap interface for the VM and connects it to the host-facing interface.
++//
++// This code is backported from runtime-rs,
++// src/runtime-rs/crates/resource/src/network/network_model/l3_forwarding_model.rs.
++func setupL3Forwarding(ctx context.Context, endpoint Endpoint, queues int, disableVhostNet bool) error {
++	span, _ := networkTrace(ctx, "setupL3Forwarding", endpoint)
++	defer span.End()
++
++	netHandle, err := netlink.NewHandle()
++	if err != nil {
++		return fmt.Errorf("requesting netlink handle: %w", err)
++	}
++	defer netHandle.Close()
++
++	netPair := endpoint.NetworkPair()
++
++	tapLink, fds, err := createLink(netHandle, netPair.TAPIface.Name, &netlink.Tuntap{}, queues)
++	if err != nil {
++		return fmt.Errorf("creating TAP interface: %w", err)
++	}
++	netPair.VMFds = fds
++
++	if !disableVhostNet {
++		vhostFds, err := createVhostFds(queues)
++		if err != nil {
++			return fmt.Errorf("setting up vhost fds on interface %q: %w", netPair.VirtIface.Name, err)
++		}
++		netPair.VhostFds = vhostFds
++	}
++
++	link, err := getLinkForEndpoint(endpoint, netHandle)
++	if err != nil {
++		return fmt.Errorf("finding link for endpoint %q: %w", endpoint.Name(), err)
++	}
++
++	attrs := link.Attrs()
++
++	netPair.TAPIface.HardAddr = attrs.HardwareAddr.String()
++
++	if err := netHandle.LinkSetMTU(tapLink, attrs.MTU); err != nil {
++		return fmt.Errorf("setting TAP MTU to %d: %w", attrs.MTU, err)
++	}
++
++	if err := netHandle.LinkSetUp(tapLink); err != nil {
++		return fmt.Errorf("enabling TAP: %w", err)
++	}
++
++	tapAttrs := tapLink.Attrs()
++
++	for _, ifaceName := range []string{netPair.TAPIface.Name, netPair.VirtIface.Name} {
++		path := fmt.Sprintf("/proc/sys/net/ipv4/conf/%s/proxy_arp", ifaceName)
++		if err := os.WriteFile(path, []byte("1"), defaultFilePerms); err != nil {
++			return fmt.Errorf("enabling proxy ARP on %q: %w", ifaceName, err)
++		}
++	}
++
++	if err := enableIPForward(); err != nil {
++		return err
++	}
++
++	tapIP, tapNet, err := net.ParseCIDR(tapAddress)
++	if err != nil {
++		panic("failed to parse const CIDR")
++	}
++	tapIPNet := &net.IPNet{IP: tapIP, Mask: tapNet.Mask}
++
++	if err := netHandle.AddrReplace(tapLink, &netlink.Addr{IPNet: tapIPNet}); err != nil {
++		return fmt.Errorf("adding address %q to TAP: %w", tapAddress, err)
++	}
++
++	podAddrs, err := ipv4WorkloadAddresses(netHandle, link)
++	if err != nil {
++		return err
++	}
++	if len(podAddrs) == 0 {
++		return fmt.Errorf("no IPv4 addresses found on %s", netPair.VirtIface.Name)
++	}
++
++	if err := removeLocalRoutes(netHandle, podAddrs, attrs.Index); err != nil {
++		return err
++	}
++
++	for _, addr := range podAddrs {
++		route := &netlink.Route{
++			LinkIndex: tapAttrs.Index,
++			Dst:       &net.IPNet{IP: addr, Mask: net.CIDRMask(32, 32)},
++			Scope:     netlink.SCOPE_LINK,
++		}
++		if err := netHandle.RouteReplace(route); err != nil {
++			return fmt.Errorf("adding route for pod ip %q via TAP: %w", addr, err)
++		}
++	}
++
++	configurePortForwarding(netPair.TAPIface.Name, podAddrs[0], tapIP)
++
++	return nil
++}
++
++// removeL3Forwarding tries to undo setupL3Forwarding.
++func removeL3Forwarding(ctx context.Context, endpoint Endpoint) error {
++	span, _ := networkTrace(ctx, "removeL3Forwarding", endpoint)
++	defer span.End()
++
++	netHandle, err := netlink.NewHandle()
++	if err != nil {
++		return err
++	}
++	defer netHandle.Close()
++
++	netPair := endpoint.NetworkPair()
++
++	tapLink, err := getLinkByName(netHandle, netPair.TAPIface.Name, &netlink.Tuntap{})
++	if err != nil {
++		return fmt.Errorf("Could not get TAP interface: %s", err)
++	}
++
++	if err := netHandle.LinkSetDown(tapLink); err != nil {
++		return fmt.Errorf("Could not disable TAP %s: %s", netPair.TAPIface.Name, err)
++	}
++
++	if err := netHandle.LinkDel(tapLink); err != nil {
++		return fmt.Errorf("Could not remove TAP %s: %s", netPair.TAPIface.Name, err)
++	}
++
++	return nil
++}
++
++// ipv4WorkloadAddresses returns the IPv4 addresses assigned to the link, except for link-local ones.
++func ipv4WorkloadAddresses(netHandle *netlink.Handle, link netlink.Link) ([]net.IP, error) {
++	addrs, err := netHandle.AddrList(link, netlink.FAMILY_ALL)
++	if err != nil {
++		return nil, fmt.Errorf("Unable to obtain IP addresses for %s: %s", link.Attrs().Name, err)
++	}
++
++	var podAddrs []net.IP
++	for _, addr := range addrs {
++		// TODO(burgerdev): mask is just swallowed
++		if v4 := addr.IP.To4(); v4 != nil {
++			podAddrs = append(podAddrs, v4)
++			continue
++		}
++		if addr.IP.IsLinkLocalUnicast() {
++			continue
++		}
++		return nil, fmt.Errorf("l3forwarding does not support IPv6 yet, but %s has %s", link.Attrs().Name, addr.IP)
++	}
++
++	return podAddrs, nil
++}
++
++// TODO(burgerdev): below is more or less unreviewed Claude code.
++
++// enableIPForward enables IPv4 forwarding for the current network namespace.
++func enableIPForward() error {
++	if err := os.WriteFile("/proc/sys/net/ipv4/ip_forward", []byte("1"), defaultFilePerms); err != nil {
++		return fmt.Errorf("Could not enable IP forwarding: %s", err)
++	}
++	return nil
++}
++
++// removeLocalRoutes deletes the local route table.
++func removeLocalRoutes(netHandle *netlink.Handle, podAddrs []net.IP, linkIndex int) error {
++	filter := &netlink.Route{Table: unix.RT_TABLE_LOCAL}
++	routes, err := netHandle.RouteListFiltered(netlink.FAMILY_V4, filter, netlink.RT_FILTER_TABLE)
++	if err != nil {
++		return fmt.Errorf("Could not list local routes: %s", err)
++	}
++
++	for _, route := range routes {
++		if route.LinkIndex != linkIndex || route.Dst == nil {
++			continue
++		}
++		ones, bits := route.Dst.Mask.Size()
++		if ones != bits {
++			continue
++		}
++		for _, addr := range podAddrs {
++			if !route.Dst.IP.Equal(addr) {
++				continue
++			}
++			if err := netHandle.RouteDel(&route); err != nil {
++				return fmt.Errorf("Could not delete local route for pod ip %s: %s", addr, err)
++			}
++			break
++		}
++	}
++
++	return nil
++}
+diff --git a/src/runtime/virtcontainers/network_linux.go b/src/runtime/virtcontainers/network_linux.go
+index 9bee440a04a42f99b9af4f839a2566f0a20eff15..b03167a396b829a6aeb5805b12efa0a9a8f3df5a 100644
+--- a/src/runtime/virtcontainers/network_linux.go
++++ b/src/runtime/virtcontainers/network_linux.go
+@@ -653,6 +653,11 @@ func (n *LinuxNetwork) AddEndpoints(ctx context.Context, s *Sandbox, endpointsIn
+ 		}
+ 	}
+ 
++	// l3forwarding configures the host netns for a single pod interface.
++	if n.interworkingModel == NetXConnectL3ForwardingModel && len(n.eps) > 1 {
++		return nil, fmt.Errorf("l3forwarding supports only a single interface per network namespace, found %d", len(n.eps))
++	}
++
+ 	katatrace.AddTags(span, "endpoints", n.eps, "hotplug", hotplug)
+ 	networkLogger().Debug("Endpoints added")
+ 
+@@ -875,6 +880,9 @@ func xConnectVMNetwork(ctx context.Context, endpoint Endpoint, h Hypervisor) err
+ 	case NetXConnectTCFilterModel:
+ 		networkLogger().Info("connect TCFilter to VM network")
+ 		err = setupTCFiltering(ctx, endpoint, queues, disableVhostNet)
++	case NetXConnectL3ForwardingModel:
++		networkLogger().Info("set up L3 forwarding in VM network")
++		err = setupL3Forwarding(ctx, endpoint, queues, disableVhostNet)
+ 	default:
+ 		err = fmt.Errorf("Invalid internetworking model")
+ 	}
+@@ -899,6 +907,8 @@ func xDisconnectVMNetwork(ctx context.Context, endpoint Endpoint) error {
+ 		err = untapNetworkPair(ctx, endpoint)
+ 	case NetXConnectTCFilterModel:
+ 		err = removeTCFiltering(ctx, endpoint)
++	case NetXConnectL3ForwardingModel:
++		err = removeL3Forwarding(ctx, endpoint)
+ 	default:
+ 		err = fmt.Errorf("Invalid internetworking model")
+ 	}
+diff --git a/src/runtime/virtcontainers/network_port_forwarding_linux.go b/src/runtime/virtcontainers/network_port_forwarding_linux.go
+new file mode 100644
+index 0000000000000000000000000000000000000000..6d2f272ecf5cead5bee4baec2cc63c1043cff2db
+--- /dev/null
++++ b/src/runtime/virtcontainers/network_port_forwarding_linux.go
+@@ -0,0 +1,129 @@
++// Copyright (c) 2026 Edgeless Systems GmbH
++//
++// SPDX-License-Identifier: Apache-2.0
++//
++
++// TODO(burgerdev): below is more or less unreviewed Claude code.
++
++package virtcontainers
++
++import (
++	"fmt"
++	"net"
++	"os/exec"
++	"strings"
++)
++
++const (
++	ipv4Loopback           = "127.0.0.1/32"
++	kataPortFwOutputChain  = "KATA_PORTFW_OUTPUT"
++	kataPortFwPostRtChain  = "KATA_PORTFW_POSTRT"
++	xtablesLockWaitSeconds = "5"
++)
++
++// configurePortForwarding sets up NAT rules so that connections made to
++// localhost inside the pod network namespace (as containerd does for
++// `kubectl port-forward`) reach the workload running inside the guest, and
++// so that the guest's replies are routed back to the caller. Failures are
++// logged and otherwise ignored: port-forwarding is a convenience on top of
++// l3forwarding, not a requirement for the network model to work.
++func configurePortForwarding(tapName string, podIPv4 net.IP, tapIPv4 net.IP) {
++	if err := configureIPv4PortForwarding(tapName, podIPv4, tapIPv4); err != nil {
++		networkLogger().WithError(err).Warn("failed to configure IPv4 port-forward NAT; continuing without it")
++	}
++}
++
++func configureIPv4PortForwarding(tapName string, podIP net.IP, tapIP net.IP) error {
++	iptables, err := detectIPTablesBinary()
++	if err != nil {
++		return err
++	}
++
++	podCIDR := podIP.String() + "/32"
++
++	if err := runIPTables(iptables, "-t", "nat", "-N", kataPortFwPostRtChain); err != nil {
++		return err
++	}
++	if err := runIPTables(iptables, "-t", "nat", "-N", kataPortFwOutputChain); err != nil {
++		return err
++	}
++
++	// Make replies from the guest routable back to the host-side pod
++	// namespace. Install this before DNAT so a partial failure cannot leave
++	// destination rewriting active without a valid reply path.
++	if err := runIPTables(iptables,
++		"-t", "nat", "-A", kataPortFwPostRtChain,
++		"-s", ipv4Loopback,
++		"-d", podCIDR,
++		"-o", tapName,
++		"-p", "tcp",
++		"-j", "SNAT", "--to-source", tapIP.String(),
++	); err != nil {
++		return err
++	}
++	if err := runIPTables(iptables, "-t", "nat", "-A", "POSTROUTING", "-j", kataPortFwPostRtChain); err != nil {
++		return err
++	}
++
++	// containerd port-forward connects to localhost inside the pod network
++	// namespace. Preserve the requested port while redirecting that
++	// connection to the workload inside the guest.
++	if err := runIPTables(iptables,
++		"-t", "nat", "-A", kataPortFwOutputChain,
++		"-s", ipv4Loopback,
++		"-d", ipv4Loopback,
++		"-p", "tcp",
++		"-j", "DNAT", "--to-destination", podIP.String(),
++	); err != nil {
++		return err
++	}
++	return runIPTables(iptables, "-t", "nat", "-A", "OUTPUT", "-j", kataPortFwOutputChain)
++}
++
++func runIPTables(binary string, args ...string) error {
++	// Note that "-w" is a no-op for iptables-nft.
++	cmdArgs := append([]string{"-w", xtablesLockWaitSeconds}, args...)
++	output, err := exec.Command(binary, cmdArgs...).CombinedOutput()
++	if err != nil {
++		return fmt.Errorf("%s %s failed: %s: %s", binary, strings.Join(args, " "), strings.TrimSpace(string(output)), err)
++	}
++	return nil
++}
++
++// detectIPTablesBinary picks which iptables binary to use, following the
++// same heuristic as Istio's istio-iptables:
++// https://github.com/istio/istio/blob/1ef2d93c3b1ba12922d2e8e1384e4ec7317a973f/tools/istio-iptables/pkg/dependencies/implementation.go#L179-L210
++// In short: if "iptables-legacy" is available and has rules, use it. If
++// "iptables-nft" is available, use it. If "iptables" (which symlinks to
++// iptables-nft or iptables-legacy) is available, use it. Otherwise fail.
++func detectIPTablesBinary() (string, error) {
++	const legacy, plain, nft = "iptables-legacy", "iptables", "iptables-nft"
++
++	if output, ok := probeBinary(legacy); ok && hasRules(output) {
++		return legacy, nil
++	}
++	if _, ok := probeBinary(nft); ok {
++		return nft, nil
++	}
++	if _, ok := probeBinary(plain); ok {
++		return plain, nil
++	}
++
++	return "", fmt.Errorf("no usable IPv4 iptables binary found (tried %s, %s, %s)", legacy, nft, plain)
++}
++
++// hasRules checks if the output of iptablesxxx-save has any rules, using the
++// same heuristic as Istio:
++// https://github.com/istio/istio/blob/1ef2d93c3b1ba12922d2e8e1384e4ec7317a973f/tools/istio-iptables/pkg/dependencies/implementation_linux.go#L140-L144
++func hasRules(output string) bool {
++	return strings.Count(output, "\n") >= 3
++}
++
++// probeBinary assumes that iptablesxxx-save runs iff iptablesxxx is usable.
++func probeBinary(binary string) (string, bool) {
++	output, err := exec.Command(binary + "-save").Output()
++	if err != nil {
++		return "", false
++	}
++	return string(output), true
++}
