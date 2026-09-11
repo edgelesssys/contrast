@@ -94,6 +94,7 @@ func KataRuntimeConfig(
 	// Doing so again here prevents VM boots.
 	config.Hypervisor["qemu"]["kernel_verity_params"] = ""
 	config.Runtime["sandbox_cgroup_only"] = true
+	config.Runtime["internetworking_model"] = "l3forwarding"
 
 	// TODO: Check again why we need this and how we can avoid it.
 	config.Hypervisor["qemu"]["block_device_aio"] = "threads"
