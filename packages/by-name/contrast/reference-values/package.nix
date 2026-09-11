@@ -3,9 +3,11 @@
 
 {
   lib,
+  jq,
   kata,
   OVMF-TDX,
   node-installer-image,
+  runCommand,
 }:
 
 let
@@ -63,28 +65,57 @@ let
       withGPU,
     }:
     {
-      tdx = [
-        (
-          let
-            launch-digests = kata.calculateTdxLaunchDigests {
-              inherit os-image ovmf withGPU;
+      tdx =
+        let
+          vcpuCounts = if withGPU then [ 1 ] else lib.range 1 220;
+          launchDigests = map (
+            vcpus:
+            kata.calculateTdxLaunchDigests {
+              inherit
+                os-image
+                ovmf
+                withGPU
+                vcpus
+                ;
               inherit (node-installer-image) withDebug;
-            };
-          in
-          {
-            mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
-            rtmrs = [
-              (builtins.readFile "${launch-digests}/rtmr0.hex")
-              (builtins.readFile "${launch-digests}/rtmr1.hex")
-              (builtins.readFile "${launch-digests}/rtmr2.hex")
-              (builtins.readFile "${launch-digests}/rtmr3.hex")
-            ];
-            # CET (XFAM bits 11/12) is ignored during validation because it depends on host CPU support. see validateXfamIgnoringCET.
-            xfam = "e702060000000000";
-            memoryIntegrity = false;
-          }
-        )
-      ];
+            }
+          ) vcpuCounts;
+          referenceValues = runCommand "tdx-reference-values.json" { nativeBuildInputs = [ jq ]; } ''
+            set -o pipefail
+            for launchDigests in ${lib.escapeShellArgs (map toString launchDigests)}; do
+              jq -n \
+                --rawfile mrTd "$launchDigests/mrtd.hex" \
+                --rawfile rtmr0 "$launchDigests/rtmr0.hex" \
+                --rawfile rtmr1 "$launchDigests/rtmr1.hex" \
+                --rawfile rtmr2 "$launchDigests/rtmr2.hex" \
+                --rawfile rtmr3 "$launchDigests/rtmr3.hex" \
+                '{
+                  mrTd: $mrTd,
+                  rtmrs: [$rtmr0, $rtmr1, $rtmr2, $rtmr3],
+                  # CET (XFAM bits 11/12) is ignored during validation because it depends on host CPU support. see validateXfamIgnoringCET.
+                  xfam: "e702060000000000",
+                  memoryIntegrity: false
+                }'
+            done | jq -s '
+              length as $count
+              | if (map(.rtmrs[0]) | unique | length) != $count then
+                error("duplicate RTMR0 values")
+              elif (map(.rtmrs[0] = null) | unique | length) != 1 then
+                error("TDX reference values differ outside RTMR0")
+              else
+                .[0] as $shared
+                | {
+                    tdx: [
+                      $shared + {
+                        rtmr0Alternatives: (map(.rtmrs[0]) | .[1:])
+                      }
+                    ]
+                  }
+              end
+            ' > "$out"
+          '';
+        in
+        (builtins.fromJSON (builtins.readFile referenceValues)).tdx;
     };
   tdxRefVals = tdxRefValsWith {
     inherit (node-installer-image) os-image;

@@ -51,6 +51,37 @@ func (v *StaticValidateOptsGenerator) TDXValidateOpts(_ *tdx.QuoteV4) (*validate
 	return v.Opts, nil
 }
 
+// RTMR0ValidateOptsGenerator accepts multiple RTMR0 values.
+type RTMR0ValidateOptsGenerator struct {
+	Opts          *validate.Options
+	AllowedRtmr0s [][]byte
+}
+
+// TDXValidateOpts returns validation options for an allowed RTMR0 value.
+func (v *RTMR0ValidateOptsGenerator) TDXValidateOpts(report *tdx.QuoteV4) (*validate.Options, error) {
+	if len(v.AllowedRtmr0s) == 0 {
+		return v.Opts, nil
+	}
+
+	rtmrs := report.GetTdQuoteBody().GetRtmrs()
+	if len(rtmrs) == 0 {
+		return nil, fmt.Errorf("attestation has no RTMRs")
+	}
+	if !slices.ContainsFunc(v.AllowedRtmr0s, func(allowed []byte) bool {
+		return bytes.Equal(rtmrs[0], allowed)
+	}) {
+		return nil, fmt.Errorf("RTMR[0] %x is not trusted", rtmrs[0])
+	}
+	if len(v.Opts.TdQuoteBodyOptions.Rtmrs) == 0 {
+		return nil, fmt.Errorf("validation options have no RTMRs")
+	}
+
+	opts := *v.Opts
+	opts.TdQuoteBodyOptions.Rtmrs = slices.Clone(v.Opts.TdQuoteBodyOptions.Rtmrs)
+	opts.TdQuoteBodyOptions.Rtmrs[0] = nil
+	return &opts, nil
+}
+
 // NewValidator returns a new Validator.
 func NewValidator(VerifyOpts *verify.Options, optsGen validateOptsGenerator, allowedPIIDs [][]byte, log *slog.Logger, name string) *Validator {
 	return &Validator{

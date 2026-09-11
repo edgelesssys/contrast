@@ -316,6 +316,18 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 			}
 			rtmrs[i] = bytes
 		}
+		var allowedRtmr0s [][]byte
+		if len(refVal.Rtmr0Alternatives) > 0 {
+			allowedRtmr0s = make([][]byte, 0, len(refVal.Rtmr0Alternatives)+1)
+			allowedRtmr0s = append(allowedRtmr0s, rtmrs[0])
+			for i, rtmr0 := range refVal.Rtmr0Alternatives {
+				bytes, err := rtmr0.Bytes()
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert Rtmr0Alternatives[%d] from manifest to byte slices: %w", i, err)
+				}
+				allowedRtmr0s = append(allowedRtmr0s, bytes)
+			}
+		}
 
 		// TdAttributes is configured by Kata/QEMU, with only the SEPT_VE_DISABLE bit (28) set.
 		// See https://download.01.org/intel-sgx/sgx-dcap/1.24/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf, A.3.4.
@@ -356,9 +368,10 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 		}
 
 		out = append(out, TDXValidatorOptions{
-			VerifyOpts:   verifyOpts,
-			ValidateOpts: validateOptions,
-			AllowedPIIDs: allowedPIIDs,
+			VerifyOpts:    verifyOpts,
+			ValidateOpts:  validateOptions,
+			AllowedRtmr0s: allowedRtmr0s,
+			AllowedPIIDs:  allowedPIIDs,
 		})
 	}
 
@@ -385,9 +398,10 @@ type SNPValidatorOptions struct {
 // TDXValidatorOptions contains the verification and validation options to be used
 // by a TDX Validator.
 type TDXValidatorOptions struct {
-	VerifyOpts   *tdxverify.Options
-	ValidateOpts *tdxvalidate.Options
-	AllowedPIIDs [][]byte
+	VerifyOpts    *tdxverify.Options
+	ValidateOpts  *tdxvalidate.Options
+	AllowedRtmr0s [][]byte
+	AllowedPIIDs  [][]byte
 }
 
 // PolicyEntry is a policy entry in the manifest. It contains further information the user wants to associate with the policy.

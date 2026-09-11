@@ -57,7 +57,10 @@ func (m *Manifest) Validator(log *slog.Logger, kdsGetter *certcache.CachedHTTPSG
 	}
 	for i, opt := range tdxOpts {
 		name := fmt.Sprintf("tdx-%d", i)
-		validator := tdx.NewValidatorWithReportSetter(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs,
+		validator := tdx.NewValidatorWithReportSetter(opt.VerifyOpts, &tdx.RTMR0ValidateOptsGenerator{
+			Opts:          opt.ValidateOpts,
+			AllowedRtmr0s: opt.AllowedRtmr0s,
+		}, opt.AllowedPIIDs,
 			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), reportSetter, name)
 		allValidators = append(allValidators, validators.WithFixedOID(oid.RawTDXReport, validator))
 	}

@@ -340,6 +340,7 @@ type TDXReferenceValues struct {
 	MrTd                       HexString
 	MrSeam                     HexString
 	Rtmrs                      [4]HexString
+	Rtmr0Alternatives          []HexString `json:",omitempty"`
 	Xfam                       HexString
 	AllowedPIIDs               []HexString
 	MemoryIntegrity            bool
@@ -366,6 +367,16 @@ func (r TDXReferenceValues) Validate() error {
 		if err := validateHexString(rtmr, 48); err != nil {
 			errs = append(errs, newValidationError(fmt.Sprintf("RTMR[%d]", i+1), err))
 		}
+	}
+	seenRtmr0s := map[HexString]struct{}{r.Rtmrs[0]: {}}
+	for i, rtmr0 := range r.Rtmr0Alternatives {
+		if err := validateHexString(rtmr0, 48); err != nil {
+			errs = append(errs, newValidationError(fmt.Sprintf("Rtmr0Alternatives[%d]", i), err))
+		}
+		if _, ok := seenRtmr0s[rtmr0]; ok {
+			errs = append(errs, newValidationError(fmt.Sprintf("Rtmr0Alternatives[%d]", i), errors.New("duplicate RTMR0")))
+		}
+		seenRtmr0s[rtmr0] = struct{}{}
 	}
 	return errors.Join(errs...)
 }
