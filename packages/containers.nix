@@ -153,9 +153,6 @@
     config = {
       Entrypoint = [ "/bin/debugshell" ];
       Cmd = [ "journalctl --no-tail --no-pager -f" ];
-      Env = [
-        "TMPDIR=/tmp"
-      ];
     };
   };
 

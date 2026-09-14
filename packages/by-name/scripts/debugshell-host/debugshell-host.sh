@@ -25,5 +25,5 @@ cid=$(cat "/run/vc/sbs/$sandbox/persist.json" | jq -r .AgentState.URL | sed -e '
 
 key=$(mktemp -d)
 trap 'rm -rf "$key"' EXIT
-ssh-keygen -t ed25519 -f "$key/id_ed25519" -C "" -N ""
+ssh-keygen -t ed25519 -f "$key/id_ed25519" -C "" -N "" >&2
 ssh -o "ProxyCommand=socat - VSOCK-CONNECT:$cid:22" -o StrictHostKeyChecking=false -i "$key/id_ed25519" root@localhost "$@"
