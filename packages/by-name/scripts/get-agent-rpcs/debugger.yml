@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debugger
+spec:
+  containers:
+    - name: debugger
+      image: ghcr.io/edgelesssys/contrast/debugshell:latest
+      command: ["/bin/sh", "-c", "sleep inf"]
+      volumeMounts:
+        - name: ctr
+          mountPath: /run/containerd/containerd.sock
+        - name: sbs
+          mountPath: /run/vc/sbs
+      securityContext:
+        privileged: true
+  volumes:
+    - name: ctr
+      hostPath:
+        path: /var/run/k3s/containerd/containerd.sock
+        type: Socket
+    - name: sbs
+      hostPath:
+        path: /run/vc/sbs
+        type: Directory
+  restartPolicy: Always
