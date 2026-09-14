@@ -146,6 +146,7 @@
       bash
       coreutils
       contrastPkgs.debugshell
+      contrastPkgs.scripts.debugshell-host
       openssh
       contrastPkgs.tdx-tools
     ];
