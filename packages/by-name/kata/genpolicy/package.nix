@@ -104,7 +104,7 @@
         ];
         installPhase = ''
           runHook preInstall
-          install -D ../../kata-opa/allow-all.rego $out/genpolicy-rules.rego
+          install -D src/kata-opa/allow-all.rego $out/genpolicy-rules.rego
           runHook postInstall
         '';
       };
