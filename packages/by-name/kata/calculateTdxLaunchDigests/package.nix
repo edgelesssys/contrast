@@ -13,6 +13,8 @@
   ovmf,
   withGPU ? false,
   withDebug ? false,
+  vcpus ? 1,
+  rtmr0Only ? false,
 }:
 
 let
@@ -24,14 +26,13 @@ let
   # distinguishes between GPU and non-GPU.
   gpuFlag = lib.optionalString withGPU "-g b200";
   # withDebug enables Kata's legacy serial topology, which changes ACPI.
-  # TODO(sespiros): Plumb the vCPU count; reference values assume one.
   # GPU VMs currently measure no ACPI tables.
   acpiBlobsFlag =
     lib.optionalString (!withGPU)
       "--acpi-blobs ${
         kata.qemuACPIBlobs {
           legacySerial = withDebug;
-          vcpus = 1;
+          inherit vcpus;
         }
       }";
 in
@@ -45,13 +46,15 @@ stdenvNoCC.mkDerivation {
   buildPhase = ''
     mkdir $out
 
-    ${lib.getExe tdx-measure} mrtd -f ${ovmf-tdx} --eventlog-dir eventlogs > $out/mrtd.hex
     ${lib.getExe tdx-measure} rtmr ${gpuFlag} ${acpiBlobsFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 0 > $out/rtmr0.hex
-    ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 1 > $out/rtmr1.hex
-    ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 2 > $out/rtmr2.hex
-    ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 3 > $out/rtmr3.hex
+    ${lib.optionalString (!rtmr0Only) ''
+      ${lib.getExe tdx-measure} mrtd -f ${ovmf-tdx} --eventlog-dir eventlogs > $out/mrtd.hex
+      ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 1 > $out/rtmr1.hex
+      ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 2 > $out/rtmr2.hex
+      ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 3 > $out/rtmr3.hex
 
-    cp -r eventlogs $out/
-    echo "Eventlog available in $out/eventlogs/"
+      cp -r eventlogs $out/
+      echo "Eventlog available in $out/eventlogs/"
+    ''}
   '';
 }
