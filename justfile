@@ -579,6 +579,22 @@ unit:
 policy:
     nix run -L .#base.policy-test
 
+policy-rpc: debugshell
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rc=$(yq 'select(.kind == "RuntimeClass") | .metadata.name' ./{{ workspace_dir }}/runtime/runtime.yml)
+    ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
+    rules=$(nix build .#base.kata.genpolicy.rules-allow-all --no-link --print-out-paths)
+    settings=$(nix build .#base.kata.genpolicy.settings --no-link --print-out-paths)
+    nix run -L .#base.scripts.get-agent-rpcs -- \
+        --image-replacements ./{{ workspace_dir }}/just.containerlookup \
+        --runtime-class "$rc" \
+        --namespace "$ns" \
+        --rules "$rules/genpolicy-rules.rego" \
+        --settings "$settings/genpolicy-settings.json" \
+        --yaml ./policy-test/assets/pod.yml \
+        --output ./{{ workspace_dir }}/policy.jsonl
+
 # Check links.
 check-links config="external":
     nix run .#base.nixpkgs.lychee -- --config tools/lychee/config-{{ config }}.toml .
