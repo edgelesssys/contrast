@@ -21,8 +21,9 @@ location.
  src/agent/src/storage/image_pull_handler.rs | 65 ++-------------------
  src/runtime/virtcontainers/kata_agent.go    | 17 +-----
  src/tools/genpolicy/rules.rego              | 59 ++++++++++++-------
+ src/tools/genpolicy/src/pod.rs              |  1 +
  src/tools/genpolicy/src/yaml.rs             | 11 ++++
- 4 files changed, 56 insertions(+), 96 deletions(-)
+ 5 files changed, 57 insertions(+), 96 deletions(-)
 
 diff --git a/src/agent/src/storage/image_pull_handler.rs b/src/agent/src/storage/image_pull_handler.rs
 index 74686abf43436d9c5c5117d061f1faed79783f74..e927668e85b61c1d242c1052bf50d7a599e33600 100644
@@ -265,6 +266,18 @@ index 93f7462f59acbaa5c4e9e9d4716512a5b4de531a..6edaf235f75566318a5b62e33c58a634
  
  allow_mount_point_by_device_id(p_storage, i_storage) if {
      print("allow_mount_point_by_device_id: start")
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index 041598f966a22225926d1a1e29153702348cd58a..71a57c70fb9da3a82d00c7c7130df8773bd1e3fe 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -1278,6 +1278,7 @@ pub async fn add_pause_container(containers: &mut Vec<Container>, config: &Confi
+         ..Default::default()
+     };
+     pause_container.init(config).await;
++    pause_container.image = "pause".to_string();
+     containers.insert(0, pause_container);
+     debug!("pause container added.");
+ }
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
 index c7e131c65efe198788fb2b363e3b4121a1ae61f8..20613af48c2285f924f623929e7b0ee59f0fcc6f 100644
 --- a/src/tools/genpolicy/src/yaml.rs
