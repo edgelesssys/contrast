@@ -191,6 +191,12 @@ rec {
       # emitted.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/13692
       ./0027-runtime-rs-omit-guest-pull-driver-metadata.patch
+
+      # Changing the pause container image reference to one with digest creates a policy mismatch
+      # because the runtime fixes the storage source to "pause" and the policy matches the digest.
+      # Align policy generation with the runtime by setting the image ref for the pause container to "pause"
+      # before populating the policy data.
+      ./0028-genpolicy-change-pause-container-image-ref-to-pause.patch
     ];
 
     # The rules.rego unit tests only run on linux, since open-policy-agent fails to build on darwin.

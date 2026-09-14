@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: davidweisse <98460960+davidweisse@users.noreply.github.com>
+Date: Mon, 14 Sep 2026 12:41:41 +0200
+Subject: [PATCH] genpolicy: change pause container image ref to pause
+
+The runtime fixes the image ref to "pause" for the pause container.
+Align this behavior in genpolicy to avoid policy mismatches on pause
+images with and without digest during policy generation and runtime.
+---
+ src/tools/genpolicy/src/pod.rs | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index 303ce5066c4ebc0a48a12d86e2e9176681f69f95..bcd0b28bbcb702de7238ea322390ca7fda25906a 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -1289,6 +1289,7 @@ pub async fn add_pause_container(containers: &mut Vec<Container>, config: &Confi
+         ..Default::default()
+     };
+     pause_container.init(config).await;
++    pause_container.image = "pause".to_string();
+     containers.insert(0, pause_container);
+     debug!("pause container added.");
+ }
