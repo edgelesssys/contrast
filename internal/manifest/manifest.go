@@ -316,17 +316,14 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 			}
 			rtmrs[i] = bytes
 		}
-		var allowedRtmr0s [][]byte
-		if len(refVal.Rtmr0Alternatives) > 0 {
-			allowedRtmr0s = make([][]byte, 0, len(refVal.Rtmr0Alternatives)+1)
-			allowedRtmr0s = append(allowedRtmr0s, rtmrs[0])
-			for i, rtmr0 := range refVal.Rtmr0Alternatives {
-				bytes, err := rtmr0.Bytes()
-				if err != nil {
-					return nil, fmt.Errorf("failed to convert Rtmr0Alternatives[%d] from manifest to byte slices: %w", i, err)
-				}
-				allowedRtmr0s = append(allowedRtmr0s, bytes)
+		allowedRtmr0s := make([][]byte, 0, len(refVal.Rtmr0Alternatives)+1)
+		allowedRtmr0s = append(allowedRtmr0s, rtmrs[0])
+		for i, rtmr0 := range refVal.Rtmr0Alternatives {
+			bytes, err := rtmr0.Bytes()
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert Rtmr0Alternatives[%d] from manifest to byte slices: %w", i, err)
 			}
+			allowedRtmr0s = append(allowedRtmr0s, bytes)
 		}
 
 		// TdAttributes is configured by Kata/QEMU, with only the SEPT_VE_DISABLE bit (28) set.

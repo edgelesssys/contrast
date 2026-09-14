@@ -281,19 +281,29 @@ func TestValidate(t *testing.T) {
 }
 
 func TestTDXValidateOptsRTMR0Alternatives(t *testing.T) {
-	m := newTestManifestTDX()
-	alternative := HexString(fmt.Sprintf("%096x", 9))
-	m.ReferenceValues.TDX[0].Rtmr0Alternatives = []HexString{alternative}
+	for name, alternatives := range map[string][]HexString{
+		"primary only": nil,
+		"alternative":  {HexString(fmt.Sprintf("%096x", 9))},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := newTestManifestTDX()
+			m.ReferenceValues.TDX[0].Rtmr0Alternatives = alternatives
 
-	opts, err := m.TDXValidateOpts(nil)
-	require.NoError(t, err)
-	require.Len(t, opts, 1)
+			opts, err := m.TDXValidateOpts(nil)
+			require.NoError(t, err)
+			require.Len(t, opts, 1)
 
-	primaryBytes, err := m.ReferenceValues.TDX[0].Rtmrs[0].Bytes()
-	require.NoError(t, err)
-	alternativeBytes, err := alternative.Bytes()
-	require.NoError(t, err)
-	require.Equal(t, [][]byte{primaryBytes, alternativeBytes}, opts[0].AllowedRtmr0s)
+			primaryBytes, err := m.ReferenceValues.TDX[0].Rtmrs[0].Bytes()
+			require.NoError(t, err)
+			want := [][]byte{primaryBytes}
+			for _, alternative := range alternatives {
+				alternativeBytes, err := alternative.Bytes()
+				require.NoError(t, err)
+				want = append(want, alternativeBytes)
+			}
+			require.Equal(t, want, opts[0].AllowedRtmr0s)
+		})
+	}
 }
 
 func TestPolicy(t *testing.T) {
