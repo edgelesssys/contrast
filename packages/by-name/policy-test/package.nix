@@ -88,7 +88,7 @@ buildGoModule (_finalAttrs: {
     install -D ${imagesJson} policy-test/assets/images.json
     # The default file under cli/cmd/assets/genpolicy-settings-kata.json will still contain a placeholder
     # but this doesn't matter because we will always call genpolicy with a custom settings file.
-    install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json policy-test/assets/genpolicy-settings-kata.json
+    install -D ${kata.genpolicy.settings}/genpolicy-settings.json policy-test/assets/genpolicy-settings-kata.json
     # Move postConfigure here, because the configurePhase already cd's into modRoot.
     ${contrast.cli.postConfigure}
   '';
