@@ -106,6 +106,14 @@ func TestRTMR0ValidateOptsGenerator(t *testing.T) {
 
 	_, err := generator.TDXValidateOpts(&tdx.QuoteV4{TdQuoteBody: &tdx.TDQuoteBody{}})
 	require.ErrorContains(t, err, "attestation has no RTMRs")
+
+	t.Run("empty allowlist", func(t *testing.T) {
+		generator := &RTMR0ValidateOptsGenerator{Opts: opts}
+		_, err := generator.TDXValidateOpts(&tdx.QuoteV4{
+			TdQuoteBody: &tdx.TDQuoteBody{Rtmrs: [][]byte{primary}},
+		})
+		require.ErrorContains(t, err, "is not trusted")
+	})
 }
 
 func mustHex(t *testing.T, s string) []byte {

@@ -59,10 +59,6 @@ type RTMR0ValidateOptsGenerator struct {
 
 // TDXValidateOpts returns validation options for an allowed RTMR0 value.
 func (v *RTMR0ValidateOptsGenerator) TDXValidateOpts(report *tdx.QuoteV4) (*validate.Options, error) {
-	if len(v.AllowedRtmr0s) == 0 {
-		return v.Opts, nil
-	}
-
 	rtmrs := report.GetTdQuoteBody().GetRtmrs()
 	if len(rtmrs) == 0 {
 		return nil, fmt.Errorf("attestation has no RTMRs")
