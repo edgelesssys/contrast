@@ -189,7 +189,7 @@ func (g *Guard) ResetState(ctx context.Context, oldState *State, authorizer Secr
 		return nil, fmt.Errorf("parsing manifest: %w", err)
 	}
 
-	se, meshCAKey, err := authorizer.AuthorizeByManifest(ctx, mnfst)
+	se, meshCAKey, err := authorizer.AuthorizeByManifest(ctx, mnfst, insecureLatest.TransitionHash)
 	if err != nil {
 		return nil, fmt.Errorf("authorizing seed source: %w", err)
 	}
@@ -234,8 +234,9 @@ func (g *Guard) ResetState(ctx context.Context, oldState *State, authorizer Secr
 type SecretSourceAuthorizer interface {
 	// AuthorizeByManifest obtains a SeedEngine and a mesh CA key and verifies their source
 	// according to the Manifest. Secrets must only be held by other Coordinators (identified by
-	// their Role) and seed share owners.
-	AuthorizeByManifest(context.Context, *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error)
+	// their Role) and seed share owners. latestTransitionHash identifies the exact history state
+	// being recovered.
+	AuthorizeByManifest(ctx context.Context, mnfst *manifest.Manifest, latestTransitionHash [history.HashSize]byte) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error)
 }
 
 // GetState returns the current state.
@@ -418,15 +419,17 @@ type State struct {
 //
 // This function is intended for testing packages that work on State objects. It fills the fields
 // that are observable outside this package, but does not manage the fields only relevant for this
-// package. State objects created with this function can't be used as arguments to this package's
+// package. The latest transition is derived from manifestBytes, as if the manifest was the initial
+// one. State objects created with this function can't be used as arguments to this package's
 // public API functions.
 func NewStateForTest(seedEngine *seedengine.SeedEngine, manifest *manifest.Manifest, manifestBytes []byte, ca *ca.CA) *State {
+	transition := &history.Transition{ManifestHash: history.Digest(manifestBytes)}
 	return &State{
 		seedEngine:    seedEngine,
 		manifest:      manifest,
 		manifestBytes: manifestBytes,
 		ca:            ca,
-		latest:        &history.LatestTransition{},
+		latest:        &history.LatestTransition{TransitionHash: transition.Digest()},
 	}
 }
 

@@ -185,6 +185,7 @@ func TestResetState(t *testing.T) {
 	state, err = g.ResetState(ctx, state, authz)
 	require.NoError(err)
 	require.NotNil(state)
+	require.Equal(state.LatestTransition().TransitionHash, authz.latestTransitionHash)
 
 	// Unauthorized state reset should fail.
 	unauthz := &stubAuthorizer{err: assert.AnError}
@@ -270,12 +271,14 @@ func TestMetrics(t *testing.T) {
 }
 
 type stubAuthorizer struct {
-	se  *seedengine.SeedEngine
-	pk  *ecdsa.PrivateKey
-	err error
+	se                   *seedengine.SeedEngine
+	pk                   *ecdsa.PrivateKey
+	err                  error
+	latestTransitionHash [history.HashSize]byte
 }
 
-func (fa *stubAuthorizer) AuthorizeByManifest(context.Context, *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+func (fa *stubAuthorizer) AuthorizeByManifest(_ context.Context, _ *manifest.Manifest, latestTransitionHash [history.HashSize]byte) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+	fa.latestTransitionHash = latestTransitionHash
 	return fa.se, fa.pk, fa.err
 }
 

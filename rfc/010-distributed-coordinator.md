@@ -182,6 +182,7 @@ message RecoverResponse {
   bytes MeshCAKey = 5;
   bytes MeshCACert = 6;
   bytes LatestManifest = 7;
+  bytes LatestTransitionHash = 8;
 }
 ```
 
@@ -200,10 +201,10 @@ The complete flow from the recovering Coordinator's perspective:
    * Add a callback that verifies the policy hash with the roles from the unverified manifest.
    * Add standard client attestation.
 3. Call the serving Coordinator's `Recover` endpoint.
-4. Compare the received manifest with the temporary manifest.
+4. Compare the received latest transition hash with the temporary latest transition hash.
 5. Set up a temporary `SeedEngine` with the received parameters.
 6. Load the manifest history from persistence, verifying the signature with the temporary seed engine.
-7. Compare the loaded manifest with the received manifest.
+7. Compare the loaded latest transition hash with the received latest transition hash.
    If they match, update the state with the temporary seed engine and the fetched history.
 
 If the recovery was successful, the client Coordinator leaves the peer recovery process.

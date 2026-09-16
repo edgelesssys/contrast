@@ -32,4 +32,5 @@ message RecoverResponse {
   bytes Salt = 2;
   bytes MeshCAKey = 3;
   bytes LatestManifest = 4;
+  bytes LatestTransitionHash = 5;
 }

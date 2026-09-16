@@ -166,13 +166,14 @@ func (*RecoverRequest) Descriptor() ([]byte, []int) {
 }
 
 type RecoverResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Seed           []byte                 `protobuf:"bytes,1,opt,name=Seed,proto3" json:"Seed,omitempty"`
-	Salt           []byte                 `protobuf:"bytes,2,opt,name=Salt,proto3" json:"Salt,omitempty"`
-	MeshCAKey      []byte                 `protobuf:"bytes,3,opt,name=MeshCAKey,proto3" json:"MeshCAKey,omitempty"`
-	LatestManifest []byte                 `protobuf:"bytes,4,opt,name=LatestManifest,proto3" json:"LatestManifest,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Seed                 []byte                 `protobuf:"bytes,1,opt,name=Seed,proto3" json:"Seed,omitempty"`
+	Salt                 []byte                 `protobuf:"bytes,2,opt,name=Salt,proto3" json:"Salt,omitempty"`
+	MeshCAKey            []byte                 `protobuf:"bytes,3,opt,name=MeshCAKey,proto3" json:"MeshCAKey,omitempty"`
+	LatestManifest       []byte                 `protobuf:"bytes,4,opt,name=LatestManifest,proto3" json:"LatestManifest,omitempty"`
+	LatestTransitionHash []byte                 `protobuf:"bytes,5,opt,name=LatestTransitionHash,proto3" json:"LatestTransitionHash,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *RecoverResponse) Reset() {
@@ -233,6 +234,13 @@ func (x *RecoverResponse) GetLatestManifest() []byte {
 	return nil
 }
 
+func (x *RecoverResponse) GetLatestTransitionHash() []byte {
+	if x != nil {
+		return x.LatestTransitionHash
+	}
+	return nil
+}
+
 var File_meshapi_proto protoreflect.FileDescriptor
 
 const file_meshapi_proto_rawDesc = "" +
@@ -248,12 +256,13 @@ const file_meshapi_proto_rawDesc = "" +
 	"RootCACert\x18\x03 \x01(\fR\n" +
 	"RootCACert\x12&\n" +
 	"\x0eWorkloadSecret\x18\x04 \x01(\fR\x0eWorkloadSecret\"\x10\n" +
-	"\x0eRecoverRequest\"\x7f\n" +
+	"\x0eRecoverRequest\"\xb3\x01\n" +
 	"\x0fRecoverResponse\x12\x12\n" +
 	"\x04Seed\x18\x01 \x01(\fR\x04Seed\x12\x12\n" +
 	"\x04Salt\x18\x02 \x01(\fR\x04Salt\x12\x1c\n" +
 	"\tMeshCAKey\x18\x03 \x01(\fR\tMeshCAKey\x12&\n" +
-	"\x0eLatestManifest\x18\x04 \x01(\fR\x0eLatestManifest2\x91\x01\n" +
+	"\x0eLatestManifest\x18\x04 \x01(\fR\x0eLatestManifest\x122\n" +
+	"\x14LatestTransitionHash\x18\x05 \x01(\fR\x14LatestTransitionHash2\x91\x01\n" +
 	"\aMeshAPI\x12H\n" +
 	"\vNewMeshCert\x12\x1b.meshapi.NewMeshCertRequest\x1a\x1c.meshapi.NewMeshCertResponse\x12<\n" +
 	"\aRecover\x12\x17.meshapi.RecoverRequest\x1a\x18.meshapi.RecoverResponseB2Z0github.com/edgelesssys/contrast/internal/meshapib\x06proto3"

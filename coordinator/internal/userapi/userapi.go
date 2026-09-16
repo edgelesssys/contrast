@@ -276,7 +276,7 @@ type seedAuthorizer struct {
 	checkManifestSecurity func(*manifest.Manifest) error
 }
 
-func (a *seedAuthorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+func (a *seedAuthorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifest.Manifest, _ [history.HashSize]byte) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
 	if err := a.checkManifestSecurity(mnfst); err != nil {
 		return nil, nil, status.Error(codes.FailedPrecondition, err.Error())
 	}

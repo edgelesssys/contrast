@@ -60,6 +60,7 @@ sequenceDiagram
     meshapi2-->>meshapi2: extract seed and mesh<br/>key from state
     meshapi2->>-recovery1: RecoverResponse
 
+    recovery1-->>recovery1: verify peer transition hash<br/>matches recovery transition
     recovery1-->>recovery1: construct seedengine from response
     recovery1->>stateguard1: seedengine + mesh CA key
     stateguard1->>+history1: get state with seedengine
