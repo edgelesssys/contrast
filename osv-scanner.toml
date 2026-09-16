@@ -49,3 +49,7 @@ reason = "wait for kata 4.2.0" # TODO(charludo): remove after kata 4.2.0 update
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0258" # h2
 reason = "DoS vector only, and only relevant to genpolicy. Waiting for kata update" # TODO(charludo): remove after kata update
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0285" # rustls
+reason = "minor information disclosure through unencrypted handshake content, not a vulnerability for Contrast"
