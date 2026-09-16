@@ -27,7 +27,13 @@ var embeddedReferenceValuesJSON []byte
 
 // EmbeddedReferenceValues is a map of runtime handler names to a list of reference values
 // for the runtime handler, as embedded in the binary.
-type EmbeddedReferenceValues map[string]ReferenceValues
+type EmbeddedReferenceValues map[string]EmbeddedRuntimeReferenceValues
+
+// EmbeddedRuntimeReferenceValues includes build-time metadata used during generation.
+type EmbeddedRuntimeReferenceValues struct {
+	ReferenceValues
+	RTMR0ByVCPU map[int]HexString `json:"rtmr0ByVCPU,omitempty"`
+}
 
 // GetEmbeddedReferenceValues returns the reference values embedded in the binary.
 func GetEmbeddedReferenceValues() (EmbeddedReferenceValues, error) {
@@ -42,18 +48,14 @@ func GetEmbeddedReferenceValues() (EmbeddedReferenceValues, error) {
 
 // ForPlatform returns the reference values for the given platform.
 func (e *EmbeddedReferenceValues) ForPlatform(platform platforms.Platform) (*ReferenceValues, error) {
-	mapping, err := GetEmbeddedReferenceValues()
-	if err != nil {
-		return nil, err
-	}
-	for handler, referenceValues := range mapping {
+	for handler, referenceValues := range *e {
 		p, err := PlatformFromHandler(handler)
 		if err != nil {
 			return nil, fmt.Errorf("invalid handler name: %w", err)
 		}
 
 		if p == platform {
-			return &referenceValues, nil
+			return &referenceValues.ReferenceValues, nil
 		}
 	}
 

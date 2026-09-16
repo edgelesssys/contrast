@@ -84,13 +84,14 @@ let
               xfam: "e702060000000000",
               memoryIntegrity: false
             }'
-        done | jq -s '
+        done | jq -s --argjson vcpuCounts '${builtins.toJSON vcpuCounts}' '
           length as $count
           | if (map(.rtmrs[0]) | unique | length) != $count then
             error("duplicate RTMR0 values")
           else
             .[0] as $shared
             | {
+                rtmr0ByVCPU: (to_entries | map({key: ($vcpuCounts[.key] | tostring), value: .value.rtmrs[0]}) | from_entries),
                 tdx: [
                   $shared + {
                     rtmr0Alternatives: (map(.rtmrs[0]) | .[1:])
