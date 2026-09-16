@@ -7,8 +7,22 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestEmbeddedVCPUMapping(t *testing.T) {
+	var embedded EmbeddedReferenceValues
+	err := json.Unmarshal([]byte(`{"contrast-cc-metal-qemu-tdx-test":{"tdx":[{"Rtmrs":["01","11","22","33"]}],"rtmr0ByVCPU":{"1":"01","100":"64"}}}`), &embedded)
+	require.NoError(t, err)
+	require.Equal(t, HexString("64"), embedded["contrast-cc-metal-qemu-tdx-test"].RTMR0ByVCPU[100])
+	values, err := embedded.ForPlatform(platforms.MetalQEMUTDX)
+	require.NoError(t, err)
+	encoded, err := json.Marshal(values)
+	require.NoError(t, err)
+	require.NotContains(t, string(encoded), "rtmr0ByVCPU")
+}
 
 func TestTrustedRoots(t *testing.T) {
 	roots, err := amdTrustedRootCerts(Milan)

@@ -111,7 +111,7 @@ Workloads don't set this field.
 
 The remote attestation reference values for the confidential micro-VM that's the runtime environment of your Pods.
 The reference values cover both the platform configuration as well as the guest TCB.
-They're independent from the workload executed inside the Contrast pod VM and only differ between platforms or Contrast versions.
+They're independent from the workload code, but can differ with the platform, Contrast version, and VM CPU count.
 
 The reference values are grouped by confidential computing technology, there is a `snp` and a `tdx` section.
 Each of those sections contains a list of reference value sets.
@@ -321,6 +321,10 @@ Make sure to retrieve or reproduce the value on a trusted machine.
 [Intel's GitHub repository]: https://github.com/intel/confidential-computing.tdx.tdx-module/releases
 
 ### `ReferenceValues.tdx.*.Rtmrs[4]` {#tdx-rtmrs}
+
+For non-GPU TDX workloads, each `contrast generate` run selects RTMR0 values for the CPU counts required by the input resources.
+It updates `Rtmrs[0]` and `Rtmr0Alternatives` even in an existing manifest, replacing manual edits to those fields.
+Other TDX reference values are preserved. Generation fails if MRTD or RTMR1-3 differ from the CLI's embedded runtime measurements.
 
 RTMRs are the runtime extendable measurement registers of TDX, as specified in Table 3.50 (`TDINFO_BASE`) in the [TDX ABI Spec].
 They cover the guest firmware, the initrd and kernel as well as the kernel command line.

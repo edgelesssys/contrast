@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -14,10 +15,200 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
+
+func TestSelectTDXReferenceValues(t *testing.T) {
+	const handler = "contrast-cc-metal-qemu-tdx-test"
+	base := manifest.TDXReferenceValues{
+		Platform:          "Metal-QEMU-TDX",
+		Rtmrs:             [4]manifest.HexString{"01", "11", "22", "33"},
+		Rtmr0Alternatives: []manifest.HexString{"02", "03"},
+	}
+	embedded := manifest.EmbeddedReferenceValues{handler: {
+		ReferenceValues: manifest.ReferenceValues{TDX: []manifest.TDXReferenceValues{base}},
+		RTMR0ByVCPU:     map[int]manifest.HexString{1: "01", 2: "02", 3: "03"},
+	}}
+	testCases := map[string]struct {
+		cpus           []string
+		want           []manifest.HexString
+		custom         bool
+		wantErr        bool
+		kind           string
+		missingMapping bool
+	}{
+		"coordinator and workload": {cpus: []string{"0", "1"}, want: []manifest.HexString{"01", "02"}},
+		"only two CPUs":            {cpus: []string{"1"}, want: []manifest.HexString{"02"}},
+		"duplicate counts":         {cpus: []string{"1", "1"}, want: []manifest.HexString{"02"}},
+		"order independent":        {cpus: []string{"2", "0"}, want: []manifest.HexString{"01", "03"}},
+		"unsupported count":        {cpus: []string{"220"}, wantErr: true},
+		"replace custom RTMR0":     {cpus: []string{"1"}, custom: true, want: []manifest.HexString{"02"}},
+		"missing mapping":          {cpus: []string{"1"}, missingMapping: true, wantErr: true},
+		"deployment":               {cpus: []string{"1"}, kind: "Deployment", want: []manifest.HexString{"02"}},
+		"statefulset":              {cpus: []string{"1"}, kind: "StatefulSet", want: []manifest.HexString{"02"}},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			mnf := &manifest.Manifest{ReferenceValues: manifest.ReferenceValues{TDX: []manifest.TDXReferenceValues{base}}}
+			if tc.custom {
+				mnf.ReferenceValues.TDX[0].Rtmrs[0] = "ff"
+			}
+			var pods []any
+			for _, cpus := range tc.cpus {
+				spec := applycorev1.PodSpec().
+					WithRuntimeClassName(handler).WithContainers(applycorev1.Container().WithName("workload").
+					WithResources(applycorev1.ResourceRequirements().WithLimits(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse(cpus)})))
+				switch tc.kind {
+				case "Deployment":
+					pods = append(pods, applyappsv1.Deployment("workload", "test").WithSpec(applyappsv1.DeploymentSpec().WithTemplate(applycorev1.PodTemplateSpec().WithSpec(spec))))
+				case "StatefulSet":
+					pods = append(pods, applyappsv1.StatefulSet("workload", "test").WithSpec(applyappsv1.StatefulSetSpec().WithTemplate(applycorev1.PodTemplateSpec().WithSpec(spec))))
+				default:
+					pods = append(pods, applycorev1.Pod("pod", "test").WithSpec(spec))
+				}
+			}
+			resources, err := kuberesource.ResourcesToUnstructured(pods)
+			require.NoError(t, err)
+			values := embedded
+			if tc.missingMapping {
+				values = nil
+			}
+			err = selectTDXReferenceValues(map[string][]*unstructured.Unstructured{"pods.yml": resources}, mnf, values)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			got := mnf.ReferenceValues.TDX[0]
+			assert.Equal(t, tc.want, append([]manifest.HexString{got.Rtmrs[0]}, got.Rtmr0Alternatives...))
+			assert.Equal(t, base.Rtmrs[1:], got.Rtmrs[1:])
+		})
+	}
+}
+
+func TestSelectTDXReferenceValuesUpdates(t *testing.T) {
+	const handler = "contrast-cc-metal-qemu-tdx-test"
+	base := manifest.TDXReferenceValues{
+		Platform: "Metal-QEMU-TDX", MrTd: "aa",
+		Rtmrs:             [4]manifest.HexString{"01", "11", "22", "33"},
+		Rtmr0Alternatives: []manifest.HexString{"02", "04"},
+	}
+	embedded := manifest.EmbeddedReferenceValues{handler: {
+		ReferenceValues: manifest.ReferenceValues{TDX: []manifest.TDXReferenceValues{base}},
+		RTMR0ByVCPU:     map[int]manifest.HexString{1: "01", 2: "02", 4: "04"},
+	}}
+	mnf := &manifest.Manifest{ReferenceValues: manifest.ReferenceValues{TDX: []manifest.TDXReferenceValues{base}}}
+	mnf.ReferenceValues.TDX[0].MrSeam = "bb"
+	for _, tc := range []struct {
+		name string
+		cpu  string
+		want manifest.HexString
+	}{
+		{"initial generation", "1", "02"},
+		{"increase CPUs", "3", "04"},
+		{"unchanged CPUs", "3", "04"},
+		{"decrease CPUs", "1", "02"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resources, err := kuberesource.ResourcesToUnstructured([]any{
+				applycorev1.Pod("workload", "test").WithSpec(applycorev1.PodSpec().WithRuntimeClassName(handler).
+					WithContainers(applycorev1.Container().WithResources(applycorev1.ResourceRequirements().
+						WithLimits(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse(tc.cpu)})))),
+			})
+			require.NoError(t, err)
+			require.NoError(t, selectTDXReferenceValues(map[string][]*unstructured.Unstructured{"pods.yml": resources}, mnf, embedded))
+			got := mnf.ReferenceValues.TDX[0]
+			assert.Equal(t, tc.want, got.Rtmrs[0])
+			assert.Empty(t, got.Rtmr0Alternatives)
+			assert.Equal(t, base.Rtmrs[1:], got.Rtmrs[1:])
+			assert.Equal(t, base.MrTd, got.MrTd)
+			assert.Equal(t, manifest.HexString("bb"), got.MrSeam)
+			encoded, err := json.Marshal(mnf)
+			require.NoError(t, err)
+			var loaded manifest.Manifest
+			require.NoError(t, json.Unmarshal(encoded, &loaded))
+			mnf = &loaded
+		})
+	}
+}
+
+func TestSelectTDXReferenceValuesIncompatibleRuntime(t *testing.T) {
+	const handler = "contrast-cc-metal-qemu-tdx-test"
+	base := manifest.TDXReferenceValues{Platform: "Metal-QEMU-TDX", MrTd: "aa", Rtmrs: [4]manifest.HexString{"01", "11", "22", "33"}}
+	embedded := manifest.EmbeddedReferenceValues{handler: {
+		ReferenceValues: manifest.ReferenceValues{TDX: []manifest.TDXReferenceValues{base}},
+		RTMR0ByVCPU:     map[int]manifest.HexString{1: "01"},
+	}}
+	resources, err := kuberesource.ResourcesToUnstructured([]any{
+		applycorev1.Pod("workload", "test").WithSpec(applycorev1.PodSpec().WithRuntimeClassName(handler)),
+	})
+	require.NoError(t, err)
+	testCases := map[string]func(*manifest.TDXReferenceValues){
+		"MRTD":  func(ref *manifest.TDXReferenceValues) { ref.MrTd = "ff" },
+		"RTMR1": func(ref *manifest.TDXReferenceValues) { ref.Rtmrs[1] = "ff" },
+		"RTMR2": func(ref *manifest.TDXReferenceValues) { ref.Rtmrs[2] = "ff" },
+		"RTMR3": func(ref *manifest.TDXReferenceValues) { ref.Rtmrs[3] = "ff" },
+	}
+	for name, change := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ref := base
+			change(&ref)
+			mnf := &manifest.Manifest{ReferenceValues: manifest.ReferenceValues{TDX: []manifest.TDXReferenceValues{ref}}}
+			err := selectTDXReferenceValues(map[string][]*unstructured.Unstructured{"pods.yml": resources}, mnf, embedded)
+			require.ErrorContains(t, err, "do not match embedded reference values")
+			assert.Equal(t, ref, mnf.ReferenceValues.TDX[0])
+		})
+	}
+	t.Run("missing reference values", func(t *testing.T) {
+		err := selectTDXReferenceValues(map[string][]*unstructured.Unstructured{"pods.yml": resources}, &manifest.Manifest{}, embedded)
+		require.ErrorContains(t, err, "manifest has no TDX reference values")
+	})
+}
+
+func TestPodVCPUCount(t *testing.T) {
+	container := func(cpu string) *applycorev1.ContainerApplyConfiguration {
+		return applycorev1.Container().WithResources(applycorev1.ResourceRequirements().WithLimits(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse(cpu)}))
+	}
+	testCases := map[string]struct {
+		spec *applycorev1.PodSpecApplyConfiguration
+		want int64
+	}{
+		"empty":         {applycorev1.PodSpec(), 1},
+		"fractional":    {applycorev1.PodSpec().WithContainers(container("100m")), 2},
+		"regular sum":   {applycorev1.PodSpec().WithContainers(container("600m"), container("600m")), 3},
+		"init sum":      {applycorev1.PodSpec().WithInitContainers(container("600m"), container("600m")), 3},
+		"sidecar":       {applycorev1.PodSpec().WithContainers(container("1")).WithInitContainers(container("500m").WithRestartPolicy(corev1.ContainerRestartPolicyAlways)), 3},
+		"pod resources": {applycorev1.PodSpec().WithResources(applycorev1.ResourceRequirements().WithLimits(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("4")})), 5},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, podVCPUCount(tc.spec))
+		})
+	}
+}
+
+func TestSelectTDXReferenceValuesOtherPlatforms(t *testing.T) {
+	for _, handler := range []string{"contrast-cc-metal-qemu-snp-test", "contrast-cc-metal-qemu-tdx-gpu-test"} {
+		t.Run(handler, func(t *testing.T) {
+			resources, err := kuberesource.ResourcesToUnstructured([]any{
+				applycorev1.Pod("pod", "test").WithSpec(applycorev1.PodSpec().WithRuntimeClassName(handler)),
+			})
+			require.NoError(t, err)
+			newManifest := func() *manifest.Manifest {
+				return &manifest.Manifest{ReferenceValues: manifest.ReferenceValues{
+					SNP: []manifest.SNPReferenceValues{{TrustedMeasurement: "01"}},
+					TDX: []manifest.TDXReferenceValues{{Platform: "Metal-QEMU-TDX-GPU", Rtmrs: [4]manifest.HexString{"01", "11", "22", "33"}, Rtmr0Alternatives: []manifest.HexString{"02"}}},
+				}}
+			}
+			mnf := newManifest()
+			require.NoError(t, selectTDXReferenceValues(map[string][]*unstructured.Unstructured{"pods.yml": resources}, mnf, nil))
+			assert.Equal(t, newManifest(), mnf)
+		})
+	}
+}
 
 // TestStatefulSetInjections is a regression test for a nil dereference in the inject* functions.
 func TestStatefulSetInjections(t *testing.T) {

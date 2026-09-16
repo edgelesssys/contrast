@@ -216,6 +216,13 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
+	embedded, err := manifest.GetEmbeddedReferenceValues()
+	if err != nil {
+		return err
+	}
+	if err := selectTDXReferenceValues(fileMap, mnf, embedded); err != nil {
+		return fmt.Errorf("selecting TDX reference values: %w", err)
+	}
 
 	if len(flags.insecureRegistries) > 0 {
 		fmt.Fprintln(cmd.OutOrStdout(), "⚠️ Using insecure registries for policy generation!")
@@ -931,24 +938,7 @@ func patchIDBlockAnnotation(res any, mnf *manifest.Manifest) error {
 			return meta, spec, nil
 		}
 
-		var regularContainersCPU int64
-		for _, container := range spec.Containers {
-			regularContainersCPU += getCPUCount(container.Resources)
-		}
-		var initContainersCPU int64
-		for _, container := range spec.InitContainers {
-			cpuCount := getCPUCount(container.Resources)
-			initContainersCPU += cpuCount
-			// Sidecar containers remain running alongside the actual application, consuming CPU resources
-			if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
-				regularContainersCPU += cpuCount
-			}
-		}
-		podLevelCPU := getCPUCount(spec.Resources)
-
-		// Convert milliCPUs to number of CPUs (rounding up), and add 1 for hypervisor overhead
-		totalMilliCPUs := max(regularContainersCPU, initContainersCPU, podLevelCPU)
-		cpuCount := strconv.FormatInt((totalMilliCPUs+999)/1000+1, 10)
+		cpuCount := strconv.FormatInt(podVCPUCount(spec), 10)
 
 		if meta == nil {
 			meta = &applymetav1.ObjectMetaApplyConfiguration{}
@@ -986,6 +976,89 @@ func snpGuestPolicyForProduct(refVals []manifest.SNPReferenceValues, platform pl
 		}
 	}
 	return abi.SnpPolicy{}, false
+}
+
+// podVCPUCount mirrors Kata's CPU sizing, including one CPU for hypervisor overhead.
+func podVCPUCount(spec *applycorev1.PodSpecApplyConfiguration) int64 {
+	var regular, init int64
+	for _, container := range spec.Containers {
+		regular += getCPUCount(container.Resources)
+	}
+	for _, container := range spec.InitContainers {
+		cpus := getCPUCount(container.Resources)
+		init += cpus
+		if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+			regular += cpus
+		}
+	}
+	return (max(regular, init, getCPUCount(spec.Resources))+999)/1000 + 1
+}
+
+func selectTDXReferenceValues(fileMap map[string][]*unstructured.Unstructured, mnf *manifest.Manifest, embedded manifest.EmbeddedReferenceValues) error {
+	required := make(map[string][]manifest.HexString)
+	err := mapContrastWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
+		return kuberesource.MapPodSpecWithErrors(res, func(spec *applycorev1.PodSpecApplyConfiguration) (*applycorev1.PodSpecApplyConfiguration, error) {
+			if spec == nil || spec.RuntimeClassName == nil {
+				return spec, nil
+			}
+			handler := *spec.RuntimeClassName
+			platform, err := platforms.FromRuntimeClassString(handler)
+			if err != nil {
+				return nil, err
+			}
+			if platform != platforms.MetalQEMUTDX {
+				return spec, nil
+			}
+			values, ok := embedded[handler]
+			if !ok || len(values.RTMR0ByVCPU) == 0 {
+				return nil, fmt.Errorf("no vCPU measurement mapping for runtime handler %s", handler)
+			}
+			cpus := podVCPUCount(spec)
+			rtmr0, ok := values.RTMR0ByVCPU[int(cpus)]
+			if !ok {
+				return nil, fmt.Errorf("no RTMR0 for %d vCPUs with runtime handler %s", cpus, handler)
+			}
+			if !slices.Contains(required[handler], rtmr0) {
+				required[handler] = append(required[handler], rtmr0)
+			}
+			return spec, nil
+		})
+	})
+	if err != nil {
+		return err
+	}
+	for handler, selected := range required {
+		platform, err := manifest.PlatformFromHandler(handler)
+		if err != nil {
+			return err
+		}
+		slices.Sort(selected)
+		found := false
+		for i := range mnf.ReferenceValues.TDX {
+			ref := &mnf.ReferenceValues.TDX[i]
+			if ref.Platform != platform.String() {
+				continue
+			}
+			matched := false
+			for _, base := range embedded[handler].TDX {
+				if ref.MrTd != base.MrTd || !slices.Equal(ref.Rtmrs[1:], base.Rtmrs[1:]) {
+					continue
+				}
+				matched = true
+				ref.Rtmrs[0] = selected[0]
+				ref.Rtmr0Alternatives = slices.Clone(selected[1:])
+				break
+			}
+			if !matched {
+				return fmt.Errorf("manifest MRTD or RTMR1–3 do not match embedded reference values for %s; update the runtime reference values before generating", handler)
+			}
+			found = true
+		}
+		if !found {
+			return fmt.Errorf("manifest has no TDX reference values for %s", handler)
+		}
+	}
+	return nil
 }
 
 func getCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) int64 {
