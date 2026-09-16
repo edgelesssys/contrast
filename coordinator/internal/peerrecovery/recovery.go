@@ -4,6 +4,7 @@
 package peerrecovery
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/x509"
@@ -19,6 +20,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/seedengine"
@@ -76,7 +78,10 @@ func (r *Recoverer) RunRecovery(ctx context.Context) error {
 	})
 }
 
-var errNoPeers = errors.New("no peers found")
+var (
+	errNoPeers                = errors.New("no peers found")
+	errPeerTransitionMismatch = errors.New("peer transition does not match recovery transition")
+)
 
 // RecoverOnce performs one round of recovery attempts over all discovered peers.
 func (r *Recoverer) RecoverOnce(ctx context.Context) error {
@@ -134,7 +139,7 @@ type authorizer struct {
 
 // AuthorizeByManifest calls meshapi.Recover on a peer coordinator given as context value and
 // verifies that the peer is an authorized Coordinator according to the manifest.
-func (a *authorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+func (a *authorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifest.Manifest, latestTransitionHash [history.HashSize]byte) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
 	validator, err := mnfst.CoordinatorValidator(a.logger, a.httpsGetter)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generating validators: %w", err)
@@ -153,6 +158,9 @@ func (a *authorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifest.Ma
 	resp, err := client.Recover(ctx, &meshapi.RecoverRequest{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("calling Recover: %w", err)
+	}
+	if !bytes.Equal(resp.LatestTransitionHash, latestTransitionHash[:]) {
+		return nil, nil, errPeerTransitionMismatch
 	}
 
 	se, err := seedengine.New(resp.Seed, resp.Salt)

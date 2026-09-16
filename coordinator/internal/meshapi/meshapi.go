@@ -153,10 +153,11 @@ func (i *Server) Recover(ctx context.Context, _ *meshapi.RecoverRequest) (*mesha
 	}
 
 	resp := &meshapi.RecoverResponse{
-		Seed:           se.Seed(),
-		Salt:           se.Salt(),
-		MeshCAKey:      meshCAPrivKeyPEM,
-		LatestManifest: state.ManifestBytes(),
+		Seed:                 se.Seed(),
+		Salt:                 se.Salt(),
+		MeshCAKey:            meshCAPrivKeyPEM,
+		LatestManifest:       state.ManifestBytes(),
+		LatestTransitionHash: state.LatestTransition().TransitionHash[:],
 	}
 
 	return resp, nil

@@ -17,6 +17,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/ca"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/testkeys"
@@ -69,6 +70,14 @@ func receiveEventually[A any](t *testing.T, d time.Duration, ch chan A) A {
 func TestRecoverOnce(t *testing.T) {
 	logger := slog.Default()
 	ctx := t.Context()
+	validGuard := newFakeStaleGuard(t)
+	mismatchGuard := newFakeStaleGuard(t)
+	missingTransitionGuard := newFakeStaleGuard(t)
+	fallbackGuard := newFakeStaleGuard(t)
+	mismatchingTransitionHash := mismatchGuard.transitionHash
+	mismatchingTransitionHash[0] ^= 0xff
+	fallbackMismatchingTransitionHash := fallbackGuard.transitionHash
+	fallbackMismatchingTransitionHash[0] ^= 0xff
 
 	for name, tc := range map[string]struct {
 		peerGetter   peerGetter
@@ -93,9 +102,33 @@ func TestRecoverOnce(t *testing.T) {
 		},
 		"one bad peer": {
 			peerGetter: &stubPeerGetter{[]string{"a", "b"}, nil},
-			guard:      newFakeStaleGuard(t),
+			guard:      validGuard,
 			dialResponse: map[string]meshapi.MeshAPIClient{
-				"b:7777": newStubClient(t),
+				"b:7777": newStubClient(t, validGuard.manifestBytes, validGuard.transitionHash[:]),
+			},
+		},
+		"peer transition mismatch": {
+			peerGetter: &stubPeerGetter{[]string{"a"}, nil},
+			guard:      mismatchGuard,
+			dialResponse: map[string]meshapi.MeshAPIClient{
+				"a:7777": newStubClient(t, mismatchGuard.manifestBytes, mismatchingTransitionHash[:]),
+			},
+			wantErr: errPeerTransitionMismatch,
+		},
+		"peer transition missing": {
+			peerGetter: &stubPeerGetter{[]string{"a"}, nil},
+			guard:      missingTransitionGuard,
+			dialResponse: map[string]meshapi.MeshAPIClient{
+				"a:7777": newStubClient(t, missingTransitionGuard.manifestBytes, nil),
+			},
+			wantErr: errPeerTransitionMismatch,
+		},
+		"matching peer after transition mismatch": {
+			peerGetter: &stubPeerGetter{[]string{"a", "b"}, nil},
+			guard:      fallbackGuard,
+			dialResponse: map[string]meshapi.MeshAPIClient{
+				"a:7777": newStubClient(t, fallbackGuard.manifestBytes, fallbackMismatchingTransitionHash[:]),
+				"b:7777": newStubClient(t, fallbackGuard.manifestBytes, fallbackGuard.transitionHash[:]),
 			},
 		},
 	} {
@@ -121,13 +154,14 @@ func TestRecoverFromPeer(t *testing.T) {
 	logger := slog.Default()
 
 	expectedAddr := "127.1.2.3:7777"
+	guard := newFakeStaleGuard(t)
 	dialer := &stubDialer{
 		responses: map[string]meshapi.MeshAPIClient{
-			expectedAddr: newStubClient(t),
+			expectedAddr: newStubClient(t, guard.manifestBytes, guard.transitionHash[:]),
 		},
 	}
 	r := &Recoverer{
-		guard:  newFakeStaleGuard(t),
+		guard:  guard,
 		issuer: &fakeIssuer{},
 		dialer: dialer,
 		logger: logger,
@@ -146,13 +180,18 @@ type fakeIssuer struct {
 }
 
 type fakeStaleGuard struct {
-	manifest *manifest.Manifest
+	manifest       *manifest.Manifest
+	manifestBytes  []byte
+	transitionHash [history.HashSize]byte
 }
 
 func newFakeStaleGuard(t *testing.T) *fakeStaleGuard {
-	mnfst, _ := newManifest(t)
+	mnfst, manifestBytes := newManifest(t)
+	transition := &history.Transition{ManifestHash: history.Digest(manifestBytes)}
 	return &fakeStaleGuard{
-		manifest: mnfst,
+		manifest:       mnfst,
+		manifestBytes:  manifestBytes,
+		transitionHash: transition.Digest(),
 	}
 }
 
@@ -169,11 +208,7 @@ func (g *fakeStaleGuard) ResetState(ctx context.Context, oldState *stateguard.St
 	if oldState != nil {
 		return nil, stateguard.ErrConcurrentUpdate
 	}
-	mnfstBytes, err := json.Marshal(g.manifest)
-	if err != nil {
-		return nil, err
-	}
-	se, meshCAKey, err := a.AuthorizeByManifest(ctx, g.manifest)
+	se, meshCAKey, err := a.AuthorizeByManifest(ctx, g.manifest, g.transitionHash)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +216,7 @@ func (g *fakeStaleGuard) ResetState(ctx context.Context, oldState *stateguard.St
 	if err != nil {
 		return nil, err
 	}
-	return stateguard.NewStateForTest(se, g.manifest, mnfstBytes, ca), nil
+	return stateguard.NewStateForTest(se, g.manifest, g.manifestBytes, ca), nil
 }
 
 type stubClient struct {
@@ -189,7 +224,7 @@ type stubClient struct {
 	meshapi.RecoverResponse
 }
 
-func newStubClient(t *testing.T) *stubClient {
+func newStubClient(t *testing.T, latestManifest, latestTransitionHash []byte) *stubClient {
 	require := require.New(t)
 
 	seed := [32]byte{1}
@@ -204,9 +239,11 @@ func newStubClient(t *testing.T) *stubClient {
 	})
 	return &stubClient{
 		RecoverResponse: meshapi.RecoverResponse{
-			Seed:      seed[:],
-			Salt:      salt[:],
-			MeshCAKey: meshCAKeyPEM,
+			Seed:                 seed[:],
+			Salt:                 salt[:],
+			MeshCAKey:            meshCAKeyPEM,
+			LatestManifest:       latestManifest,
+			LatestTransitionHash: latestTransitionHash,
 		},
 	}
 }

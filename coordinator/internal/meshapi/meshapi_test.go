@@ -155,11 +155,12 @@ func TestRecover(t *testing.T) {
 			ca, err := ca.New(se.RootCAKey(), meshKey)
 			require.NoError(err)
 
+			state := stateguard.NewStateForTest(se, tc.mnfst, mJSON, ca)
 			info := stateguard.AuthInfo{
 				Report: &fakeReport{
 					hostData: tc.report.hostData,
 				},
-				State: stateguard.NewStateForTest(se, tc.mnfst, mJSON, ca),
+				State: state,
 			}
 			ctx := peer.NewContext(t.Context(), &peer.Peer{
 				AuthInfo: info,
@@ -178,6 +179,8 @@ func TestRecover(t *testing.T) {
 			assert.Equal(salt[:], resp.Salt)
 			assert.Equal(meshKeyPEM, resp.MeshCAKey)
 			assert.JSONEq(string(mJSON), string(resp.LatestManifest))
+			transitionHash := state.LatestTransition().TransitionHash
+			assert.Equal(transitionHash[:], resp.LatestTransitionHash)
 		})
 	}
 }
