@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">The manifest | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/next/architecture/components/manifest"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="The manifest | Contrast"><meta data-rh="true" name="description" content="The manifest is the configuration file for the Coordinator, defining your confidential deployment."><meta data-rh="true" property="og:description" content="The manifest is the configuration file for the Coordinator, defining your confidential deployment."><link data-rh="true" rel="icon" href="/contrast/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/next/architecture/components/manifest"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/components/manifest" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/components/manifest" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Manifest","item":"https://docs.edgeless.systems/contrast/next/architecture/components/manifest"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/assets/css/styles.3541c1a1.css">
-<script src="/contrast/assets/js/runtime~main.e473dde1.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.c3a890bd.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.f6ff7e44.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -48,7 +48,7 @@ Workloads don&#x27;t set this field.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="reference-values"><code>ReferenceValues</code><a href="#reference-values" class="hash-link" aria-label="Direct link to reference-values" title="Direct link to reference-values" translate="no">​</a></h2>
 <p>The remote attestation reference values for the confidential micro-VM that&#x27;s the runtime environment of your Pods.
 The reference values cover both the platform configuration as well as the guest TCB.
-They&#x27;re independent from the workload executed inside the Contrast pod VM and only differ between platforms or Contrast versions.</p>
+They&#x27;re independent from the workload code, but can differ with the platform, Contrast version, and VM CPU count.</p>
 <p>The reference values are grouped by confidential computing technology, there is a <code>snp</code> and a <code>tdx</code> section.
 Each of those sections contains a list of reference value sets.
 The Coordinator will accept a workload if its attestation report matches <em>any</em> of the listed reverence value sets exactly.</p>
@@ -140,6 +140,9 @@ You can also reproduce the release artifact by following the build instructions 
 Your channel to the system or the system itself might be compromised.
 Make sure to retrieve or reproduce the value on a trusted machine.</p></div></div>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="tdx-rtmrs"><code>ReferenceValues.tdx.*.Rtmrs[4]</code><a href="#tdx-rtmrs" class="hash-link" aria-label="Direct link to tdx-rtmrs" title="Direct link to tdx-rtmrs" translate="no">​</a></h3>
+<p>For non-GPU TDX workloads, each <code>contrast generate</code> run selects RTMR0 values for the CPU counts required by the input resources.
+It updates <code>Rtmrs[0]</code> and <code>Rtmr0Alternatives</code> even in an existing manifest, replacing manual edits to those fields.
+Other TDX reference values are preserved. Generation fails if MRTD or RTMR1-3 differ from the CLI&#x27;s embedded runtime measurements.</p>
 <p>RTMRs are the runtime extendable measurement registers of TDX, as specified in Table 3.50 (<code>TDINFO_BASE</code>) in the <a href="https://www.intel.com/content/www/us/en/content-details/865802/intel-tdx-module-abi-specification.html" target="_blank" rel="noopener noreferrer" class="">TDX ABI Spec</a>.
 They cover the guest firmware, the initrd and kernel as well as the kernel command line.
 The kernel command line contains the dm-verity hash of the root filesystem, which contains all Contrast components that run inside the guest.</p>
