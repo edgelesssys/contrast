@@ -33,7 +33,7 @@ jobs:
       SBOM: ${{ matrix.sbom }}
       VULNIX_CACHE_DIR: ${{ github.workspace }}/.vulnix-cache
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Restore vulnix NVD cache
@@ -61,7 +61,7 @@ jobs:
       - name: Upload results to the Security tab
         # Publish findings even when the scan failed. Guard on SARIF existing.
         if: ${{ !cancelled() && hashFiles(format('sarif-{0}/*.sarif', matrix.sbom)) != '' }}
-        uses: github/codeql-action/upload-sarif@b7351df727350dca84cb9d725d57dcf5bc82ba26 # v3.37.1
+        uses: github/codeql-action/upload-sarif@faaca9a8f6edddba5725ffe5adefdab6669a2eca # v3.38.0
         with:
           sarif_file: sarif-${{ matrix.sbom }}
           category: vuln-scan-${{ matrix.sbom }}
@@ -74,7 +74,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Notify teams channel
