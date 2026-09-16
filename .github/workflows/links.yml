@@ -18,7 +18,7 @@ jobs:
     env:
       SET: base
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup_nix
@@ -27,7 +27,7 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Restore lychee cache
         id: restore-cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .lycheecache
           key: cache-lychee-${{ github.sha }}
@@ -38,7 +38,7 @@ jobs:
         run: |
           nix run ".#${SET}.nixpkgs.lychee" -- --config tools/lychee/config-external.toml .
       - name: Save lychee cache
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         if: always()
         with:
           path: .lycheecache

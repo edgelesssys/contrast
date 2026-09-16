@@ -55,7 +55,7 @@ jobs:
       # is always set when kind is patch.
       PREVIOUS_TAG: ${{ inputs.kind == 'patch' && steps.version-info.outputs.previous_patch_tag || steps.version-info.outputs.previous_minor_tag }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-tags: true
@@ -115,7 +115,7 @@ jobs:
       ARTIFACTS_URL: ${{ steps.build.outputs.s3-bucket-url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: true
@@ -153,7 +153,7 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
@@ -210,7 +210,7 @@ jobs:
       id-token: write
     needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, nightly]
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
@@ -240,7 +240,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
@@ -266,7 +266,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           fetch-depth: 0
@@ -312,7 +312,7 @@ jobs:
       issues: write
       contents: read
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false

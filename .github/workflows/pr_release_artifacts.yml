@@ -23,7 +23,7 @@ jobs:
     outputs:
       s3-bucket-url: ${{ steps.create-artifacts.outputs.s3-bucket-url }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup_nix
@@ -31,7 +31,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -63,7 +63,7 @@ jobs:
     env:
       SET: base
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup_nix
@@ -129,7 +129,7 @@ jobs:
       id-token: write
     steps:
       - name: AWS login (IAM role)
-        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
           aws-region: eu-central-1
