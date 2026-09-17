@@ -165,14 +165,14 @@ func run() (retErr error) {
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {
-		h := httpapi.AttestationHandler{
-			Issuer:     issuer,
-			StateGuard: meshAuth,
-		}
+		capabilities := httpapi.NewCapabilitiesHandler()
 
 		mux := http.NewServeMux()
-		mux.Handle("/attest", &h)
-		mux.Handle("/capabilities", &httpapi.CapabilitiesHandler{})
+		mux.Handle("/attest", &httpapi.APIVersionGate{Version: 0, StateGuard: meshAuth, Next: &httpapi.AttestationHandler{
+			Issuer:     issuer,
+			StateGuard: meshAuth,
+		}})
+		mux.Handle("/capabilities", capabilities)
 
 		httpAPIServer.Addr = ":" + apitypes.Port
 		httpAPIServer.Handler = mux

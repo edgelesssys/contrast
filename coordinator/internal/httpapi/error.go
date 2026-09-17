@@ -27,6 +27,8 @@ func errorCode(err error, statusCode int) apitypes.ErrorCode {
 		return apitypes.ErrorCodeManifestConflict
 	case errors.Is(err, userapi.ErrInvalidSignature):
 		return apitypes.ErrorCodeInvalidSignature
+	case errors.Is(err, errAPIVersionTooOld):
+		return apitypes.ErrorCodeAPIVersionTooOld
 	}
 
 	switch {

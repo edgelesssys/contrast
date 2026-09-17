@@ -95,8 +95,11 @@ type CoordinatorState struct {
 
 // ConstructReportData constructs an extended report data digest,
 // intended for use with application-level verification.
-func ConstructReportData(nonce []byte, transitionDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
-	// reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mesh-ca))
+//
+// capabilitiesDigest is the SHA-256 digest of the raw /capabilities response body.
+// Binding it into the report data lets clients detect tampering with the unauthenticated capabilities endpoint.
+func ConstructReportData(nonce []byte, transitionDigest []byte, capabilitiesDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
+	// reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mesh-ca) || sha256(capabilities))
 	rootCADigest := sha256.Sum256(state.RootCA)
 	meshCADigest := sha256.Sum256(state.MeshCA)
 
@@ -104,6 +107,7 @@ func ConstructReportData(nonce []byte, transitionDigest []byte, state *Coordinat
 	reportdata = append(reportdata, transitionDigest...)
 	reportdata = append(reportdata, rootCADigest[:]...)
 	reportdata = append(reportdata, meshCADigest[:]...)
+	reportdata = append(reportdata, capabilitiesDigest...)
 	hash32 := sha256.Sum256(reportdata)
 
 	var hash64 [64]byte

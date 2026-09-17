@@ -4,8 +4,9 @@
 package httpapi
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/edgelesssys/contrast/apitypes"
@@ -22,7 +23,26 @@ var supportedAPIVersions = []string{apitypes.APIVersionV1}
 //
 // This endpoint is deliberately NOT versioned, since it is used by clients to discover which versions exist.
 // The response body must only ever be extended.
-type CapabilitiesHandler struct{}
+type CapabilitiesHandler struct {
+	body []byte
+}
+
+// NewCapabilitiesHandler returns a [CapabilitiesHandler] advertising the supported API versions.
+func NewCapabilitiesHandler() *CapabilitiesHandler {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(apitypes.CapabilitiesResponse{APIVersions: supportedAPIVersions}); err != nil {
+		// The response is a fixed struct of strings; failing to encode it is a programming error.
+		panic(err)
+	}
+	return &CapabilitiesHandler{body: buf.Bytes()}
+}
+
+// Digest returns the SHA-256 digest of the exact response body this handler serves.
+func (h *CapabilitiesHandler) Digest() [32]byte {
+	return sha256.Sum256(h.body)
+}
 
 // ServeHTTP implements [http.Handler].
 func (h *CapabilitiesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -31,14 +51,6 @@ func (h *CapabilitiesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	resp := apitypes.CapabilitiesResponse{
-		APIVersions: supportedAPIVersions,
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(false)
-	if err := enc.Encode(resp); err != nil {
-		log.Printf("encoding capabilities response: %v", err)
-	}
+	_, _ = w.Write(h.body)
 }
