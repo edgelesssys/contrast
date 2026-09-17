@@ -5,6 +5,10 @@ inputs:
   system:
     description: Nix system (e.g. x86_64-linux, aarch64-darwin)
     required: true
+  sbom-path:
+    description: Path to the CLI SBOM to validate, if provided
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -18,3 +22,17 @@ runs:
         mkdir -p workspace
         nix build -L ".#${SET}.contrast.cli-release"
         cp result/bin/contrast "workspace/contrast-${SYSTEM}"
+    - name: Verify CLI SBOM
+      if: ${{ inputs.sbom-path != '' }}
+      shell: bash
+      env:
+        SBOM_PATH: ${{ inputs.sbom-path }}
+      run: |
+        cli=$(cd result && pwd -P)
+        hash=$(nix-hash --type sha256 "$cli")
+        jq -e --arg ref "${cli##*/}" --arg hash "$hash" '
+          .components | any(
+            .["bom-ref"] == $ref and
+            any(.hashes[]?; .alg == "SHA-256" and .content == $hash)
+          )
+        ' "$SBOM_PATH" > /dev/null
