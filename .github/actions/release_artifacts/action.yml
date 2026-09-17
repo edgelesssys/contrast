@@ -209,6 +209,7 @@ runs:
     - uses: ./.github/actions/build_cli
       with:
         system: x86_64-linux
+        sbom-path: workspace/contrast-cli.cdx.json
     - id: upload-artifacts
       uses: ./.github/actions/s3_upload
       if: ${{ inputs.s3-bucket-path != '' }}
