@@ -78,7 +78,7 @@ let
 
   categories = {
     cli = {
-      inherit (contrastPkgs.contrast) cli;
+      inherit (contrastPkgs.contrast) cli-release;
       # The CLI go:embeds the (static) genpolicy binary. Embedded bytes carry no store-path reference, so it never appears in the CLI's runtime closure.
       # Adding genpolicy as an explicit root pulls in its Rust component and vendored SBOM.
       inherit (contrastPkgsStatic.kata) genpolicy;
