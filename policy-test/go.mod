@@ -4,6 +4,8 @@ go 1.26.0
 
 replace github.com/edgelesssys/contrast => ../
 
+replace github.com/edgelesssys/contrast/apitypes => ../apitypes
+
 replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249
 
 replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5
