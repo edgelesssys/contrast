@@ -9,6 +9,11 @@ set -euo pipefail
 #
 # Set DRY_RUN=1 to print the discovered matrix without running anything.
 
+nightly_workflow=".github/workflows/e2e_nightly.yml"
+nightly_platform_workflow=".github/workflows/e2e_nightly_platform.yml"
+regression_workflow=".github/workflows/e2e_regression.yml"
+regression_matrix="jobs.regression-test.strategy.matrix"
+
 # Create an associative array to hold platform.name -> test list
 declare -A platform_tests
 
@@ -20,51 +25,52 @@ add_test() {
   fi
 }
 
-# This should point to the workflows called in release.yml, excluding the release test.
-declare -A files=(
-  [".github/workflows/e2e_nightly.yml"]="jobs.test_matrix.strategy.matrix"
-  [".github/workflows/e2e_regression.yml"]="jobs.regression-test.strategy.matrix"
+# The nightly workflow fans out over platforms, each of them calling the
+# per-platform workflow that holds the test matrix.
+echo "Processing $nightly_workflow and $nightly_platform_workflow" >&2
+
+mapfile -t nightly_jobs < <(
+  yq -r ".jobs[] | select(.uses == \"./$nightly_platform_workflow\") | [.with.platform-name, .with.debug-set-test-name] | @tsv" "$nightly_workflow"
 )
+mapfile -t nightly_tests < <(yq ".jobs.test_matrix.strategy.matrix.test-name[]" "$nightly_platform_workflow")
 
-for file in "${!files[@]}"; do
-  MATRIX_FILE="$file"
-  MATRIX_PATH="${files[$file]}"
-
-  echo "Processing $MATRIX_FILE at path $MATRIX_PATH" >&2
-
-  # Read all test names
-  mapfile -t tests < <(yq ".$MATRIX_PATH.test-name[]" "$MATRIX_FILE")
-
-  # Read number of platforms
-  platform_count=$(yq ".$MATRIX_PATH.platform | length" "$MATRIX_FILE")
-
-  for ((i = 0; i < platform_count; i++)); do
-    name=$(yq ".$MATRIX_PATH.platform[$i].name" "$MATRIX_FILE")
-    self_hosted=$(yq ".$MATRIX_PATH.platform[$i].self-hosted" "$MATRIX_FILE")
-
-    valid_tests=()
-    for test in "${tests[@]}"; do
-      if ! yq -o=json ".$MATRIX_PATH.exclude[]?" "$MATRIX_FILE" |
-        jq -e --argjson sh "$self_hosted" --arg t "$test" 'select(."test-name" == $t and .platform."self-hosted" == $sh)' >/dev/null; then
-        valid_tests+=("$test")
-      fi
-    done
-
-    # Append valid tests to platform
-    for test in "${valid_tests[@]}"; do
-      add_test "$name" "$test"
-    done
+for job in "${nightly_jobs[@]}"; do
+  IFS=$'\t' read -r platform debug_set_test <<<"$job"
+  for test in "${nightly_tests[@]}"; do
+    # The per-platform workflow excludes the gpu test on non-GPU platforms.
+    if [[ $test == "gpu" ]] && [[ $platform != *GPU* ]]; then
+      continue
+    fi
+    add_test "$platform" "$test"
   done
+  # The matrix includes one test that exercises the debug package set.
+  add_test "$platform" "$debug_set_test"
+done
 
-  # Apply includes
-  include_count=$(yq ".$MATRIX_PATH.include | length" "$MATRIX_FILE" 2>/dev/null || echo 0)
-  if [[ $include_count -gt 0 ]]; then
-    for ((j = 0; j < include_count; j++)); do
-      name=$(yq ".$MATRIX_PATH.include[$j].platform.name" "$MATRIX_FILE")
-      test=$(yq ".$MATRIX_PATH.include[$j].test-name" "$MATRIX_FILE")
+# The regression workflow still carries platforms and tests in a single matrix.
+echo "Processing $regression_workflow at path $regression_matrix" >&2
+
+mapfile -t regression_tests < <(yq ".$regression_matrix.test-name[]" "$regression_workflow")
+platform_count=$(yq ".$regression_matrix.platform | length" "$regression_workflow")
+
+for ((i = 0; i < platform_count; i++)); do
+  name=$(yq ".$regression_matrix.platform[$i].name" "$regression_workflow")
+  self_hosted=$(yq ".$regression_matrix.platform[$i].self-hosted" "$regression_workflow")
+
+  for test in "${regression_tests[@]}"; do
+    if ! yq -o=json ".$regression_matrix.exclude[]?" "$regression_workflow" |
+      jq -e --argjson sh "$self_hosted" --arg t "$test" 'select(."test-name" == $t and .platform."self-hosted" == $sh)' >/dev/null; then
       add_test "$name" "$test"
-    done
-  fi
+    fi
+  done
+done
+
+# Apply includes
+include_count=$(yq ".$regression_matrix.include | length" "$regression_workflow" 2>/dev/null || echo 0)
+for ((j = 0; j < include_count; j++)); do
+  name=$(yq ".$regression_matrix.include[$j].platform.name" "$regression_workflow")
+  test=$(yq ".$regression_matrix.include[$j].test-name" "$regression_workflow")
+  add_test "$name" "$test"
 done
 
 # Output merged results
