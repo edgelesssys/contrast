@@ -8,6 +8,7 @@ set -euo pipefail
 # release.yml (excluding the release test itself).
 #
 # Set DRY_RUN=1 to print the discovered matrix without running anything.
+# Set FAIL_FAST=1 to stop at the first failure instead of finishing the matrix.
 
 nightly_workflow=".github/workflows/e2e_nightly.yml"
 nightly_platform_workflow=".github/workflows/e2e_nightly_platform.yml"
@@ -95,13 +96,35 @@ if [[ ${DRY_RUN:-} == "1" ]]; then
 fi
 
 # Run tests
-for platform in "${!platform_tests[@]}"; do
+failures=()
+
+# Keep going by default, because the CI matrices this mirrors run with
+# fail-fast: false and a full sweep is too long to redo over one flake.
+fail() {
+  if [[ ${FAIL_FAST:-} == "1" ]]; then
+    exit 1
+  fi
+  failures+=("$1")
+}
+
+for platform in $(printf '%s\n' "${!platform_tests[@]}" | sort); do
   echo "Setting default_platform to $platform in justfile.env" >&2
   sed -i "s/^default_platform=.*/default_platform=\"$platform\"/" justfile.env
   echo "Getting credentials.." >&2
-  just get-credentials
+  if ! just get-credentials; then
+    fail "$platform: getting credentials"
+    continue
+  fi
   for test in ${platform_tests[$platform]}; do
     echo "Running test $test on platform $platform" >&2
-    just e2e "$test"
+    if ! just e2e "$test"; then
+      fail "$platform: $test"
+    fi
   done
 done
+
+if [[ ${#failures[@]} -gt 0 ]]; then
+  echo "The following tests failed:" >&2
+  printf '  %s\n' "${failures[@]}" >&2
+  exit 1
+fi
