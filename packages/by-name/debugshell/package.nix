@@ -4,9 +4,7 @@
 {
   lib,
   buildGoModule,
-  writeShellApplication,
   bash,
-  openssh,
 }:
 
 buildGoModule {
@@ -39,31 +37,5 @@ buildGoModule {
     "-X main.bashPath=${lib.getExe bash}"
   ];
 
-  postInstall =
-    let
-      debugshell = writeShellApplication {
-        name = "debugshell";
-        runtimeInputs = [ openssh ];
-        text = ''
-          if [[ ! -f /etc/passwd ]]; then
-              echo "root:x:0:0:root:/root:/bin/bash" > /etc/passwd
-          fi
-          if [[ ! -f ./id_ed25519 ]]; then
-              ssh-keygen -t ed25519 -f ./id_ed25519 -N ""
-          fi
-          ssh -p 2222 \
-              -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null \
-              -i ./id_ed25519 \
-              root@localhost \
-              "$@"
-        '';
-      };
-    in
-    ''
-      mv $out/bin/debugshell $out/bin/debugshell-server
-      cp ${lib.getExe debugshell} $out/bin/debugshell
-    '';
-
-  meta = lib.contrast.ourMeta { mainProgram = "debugshell-server"; };
+  meta = lib.contrast.ourMeta { mainProgram = "debugshell"; };
 }
