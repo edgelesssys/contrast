@@ -12,6 +12,14 @@ set -euo pipefail
 # Create an associative array to hold platform.name -> test list
 declare -A platform_tests
 
+# Append a test to a platform's test list, unless it's already there.
+add_test() {
+  local platform="$1" test="$2"
+  if [[ " ${platform_tests[$platform]-} " != *" $test "* ]]; then
+    platform_tests[$platform]+=" $test"
+  fi
+}
+
 # This should point to the workflows called in release.yml, excluding the release test.
 declare -A files=(
   [".github/workflows/e2e_nightly.yml"]="jobs.test_matrix.strategy.matrix"
@@ -44,9 +52,7 @@ for file in "${!files[@]}"; do
 
     # Append valid tests to platform
     for test in "${valid_tests[@]}"; do
-      if [[ -z ${platform_tests[$name]+set} ]] || [[ ! " ${platform_tests[$name]} " =~ $test ]]; then
-        platform_tests[$name]+=" $test"
-      fi
+      add_test "$name" "$test"
     done
   done
 
@@ -56,9 +62,7 @@ for file in "${!files[@]}"; do
     for ((j = 0; j < include_count; j++)); do
       name=$(yq ".$MATRIX_PATH.include[$j].platform.name" "$MATRIX_FILE")
       test=$(yq ".$MATRIX_PATH.include[$j].test-name" "$MATRIX_FILE")
-      if [[ -z ${platform_tests[$name]+set} ]] || [[ ! " ${platform_tests[$name]} " =~ $test ]]; then
-        platform_tests[$name]+=" $test"
-      fi
+      add_test "$name" "$test"
     done
   fi
 done
