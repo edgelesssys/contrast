@@ -8,7 +8,6 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"testing"
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
 	"github.com/edgelesssys/contrast/internal/initdata"
@@ -25,7 +25,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -44,81 +44,51 @@ type testImage struct {
 	ReplaceRef string `json:"ref"`
 }
 
-func main() {
-	cmd := &cobra.Command{
-		Use:   "policy-test",
-		Short: "policy-test",
-		RunE:  execute,
-	}
+func TestPolicy(t *testing.T) {
+	req := require.New(t)
 
-	cmd.SilenceUsage = true
-
-	if err := cmd.Execute(); err != nil {
-		os.Exit(1)
-	}
-}
-
-func execute(c *cobra.Command, _ []string) error {
 	// Start a local registry server to serve the test images.
+	errCh := make(chan error)
 	srv := &http.Server{Handler: registry.New(registry.Logger(log.New(io.Discard, "", 0)))}
-	lis, err := (&net.ListenConfig{}).Listen(c.Context(), "tcp", "127.0.0.1:0")
-	if err != nil {
-		return fmt.Errorf("listen: %w", err)
-	}
-	defer lis.Close()
-	go func() {
-		if err := srv.Serve(lis); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("registry server error: %v", err)
-		}
-	}()
-	defer srv.Close()
+	lis, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
+	req.NoError(err)
 	registryAddr := lis.Addr().String()
+
+	t.Cleanup(func() {
+		req.NoError(srv.Close())
+		err := <-errCh
+		req.ErrorIs(err, http.ErrServerClosed)
+	})
+
+	go func() {
+		errCh <- srv.Serve(lis)
+	}()
 
 	// Push the test images to the local registry.
 	var testImages map[string]testImage
-	if err := json.Unmarshal(imagesJSON, &testImages); err != nil {
-		return fmt.Errorf("unmarshal images.json: %w", err)
-	}
+	req.NoError(json.Unmarshal(imagesJSON, &testImages))
 	imageReplacements, err := setupRegistry(registryAddr, testImages)
-	if err != nil {
-		return fmt.Errorf("setup registry: %w", err)
-	}
+	req.NoError(err)
 
 	for k, v := range imageReplacements {
 		podYaml = bytes.ReplaceAll(podYaml, []byte(k), []byte(v))
 	}
 
-	workDir, err := os.MkdirTemp("", "contrast-policy-test-*")
-	if err != nil {
-		return fmt.Errorf("create temp dir: %w", err)
-	}
-	defer os.RemoveAll(workDir)
+	workDir := t.TempDir()
 
-	if err := os.WriteFile(filepath.Join(workDir, "pod.yml"), podYaml, 0o644); err != nil {
-		return fmt.Errorf("write pod.yml: %w", err)
-	}
+	req.NoError(os.WriteFile(filepath.Join(workDir, "pod.yml"), podYaml, 0o644))
 
 	// Patch the pause image in genpolicy-settings.json to use the local registry.
 	pauseImageRef, ok := testImages["pause"]
-	if !ok {
-		return fmt.Errorf("pause image not found in test images")
-	}
-	if !bytes.Contains(genpolicySettings, []byte(pauseImageRef.ReplaceRef)) {
-		return fmt.Errorf("pause image reference %s not found in genpolicy-settings.json", pauseImageRef.ReplaceRef)
-	}
+	req.True(ok, "pause image not found in test images")
+	req.Contains(string(genpolicySettings), pauseImageRef.ReplaceRef, "pause image reference %s not found in genpolicy-settings.json", pauseImageRef.ReplaceRef)
 	pauseImage, ok := imageReplacements[pauseImageRef.ReplaceRef]
-	if !ok {
-		return fmt.Errorf("pause image not found in image replacements")
-	}
+	req.True(ok, "pause image not found in image replacements")
 	genpolicySettings = bytes.ReplaceAll(genpolicySettings, []byte(pauseImageRef.ReplaceRef), []byte(pauseImage))
-	if err := os.WriteFile(filepath.Join(workDir, "genpolicy-settings.json"), genpolicySettings, 0o644); err != nil {
-		return fmt.Errorf("write genpolicy-settings.json: %w", err)
-	}
+	req.NoError(os.WriteFile(filepath.Join(workDir, "genpolicy-settings.json"), genpolicySettings, 0o644))
 
 	genpolicyConfig := genpolicy.NewConfig()
-	if err := os.WriteFile(filepath.Join(workDir, "genpolicy-rules.rego"), genpolicyConfig.Rules, 0o644); err != nil {
-		return fmt.Errorf("write genpolicy-rules.rego: %w", err)
-	}
+	req.NoError(os.WriteFile(filepath.Join(workDir, "genpolicy-rules.rego"), genpolicyConfig.Rules, 0o644))
 	genpolicyRunner, err := genpolicy.New(
 		filepath.Join(workDir, "genpolicy-rules.rego"),
 		filepath.Join(workDir, "genpolicy-settings.json"),
@@ -126,66 +96,40 @@ func execute(c *cobra.Command, _ []string) error {
 		[]string{registryAddr},
 		genpolicyConfig.Bin,
 	)
-	if err != nil {
-		return fmt.Errorf("create genpolicy runner: %w", err)
-	}
+	req.NoError(err)
 
-	policy, err := generatePolicy(c.Context(), genpolicyRunner, podYaml)
-	if err != nil {
-		return fmt.Errorf("generate policy: %w", err)
-	}
+	policy, err := generatePolicy(t.Context(), genpolicyRunner, podYaml)
+	req.NoError(err)
 
 	dataDir := "./policy-test/testdata/"
 	dirs, err := os.ReadDir(dataDir)
-	if err != nil {
-		return fmt.Errorf("read test data dir: %w", err)
-	}
+	req.NoError(err)
 
 	var numTestCases int
-	var errs []error
 	for _, file := range dirs {
 		if file.IsDir() {
 			continue
 		}
 		numTestCases++
-		log.Printf("===== Running test case: %s", file.Name())
-		fileData, err := os.ReadFile(filepath.Join(dataDir, file.Name()))
-		if err != nil {
-			errs = append(errs, fmt.Errorf("read test case file %s: %w", file.Name(), err))
-			continue
-		}
-		var tc []TestCase
-		if err := json.Unmarshal(fileData, &tc); err != nil {
-			errs = append(errs, fmt.Errorf("unmarshal test case %s: %w", file.Name(), err))
-			continue
-		}
+		t.Run(file.Name(), func(t *testing.T) {
+			require := require.New(t)
+			fileData, err := os.ReadFile(filepath.Join(dataDir, file.Name()))
+			require.NoError(err)
+			var tc []TestCase
+			require.NoError(json.Unmarshal(fileData, &tc))
 
-		p, err := NewOPAPolicy(policy)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("create OPA policy for test case %s: %w", file.Name(), err))
-			continue
-		}
-		for _, testCase := range tc {
-			allowed, prints, err := p.AllowRequest(c.Context(), testCase)
-			if err != nil {
-				log.Printf("%s: policy evaluation error: %v\n", testCase.Kind, err)
-				errs = append(errs, fmt.Errorf("test case %s failed: %w, logs:\n%v", file.Name(), err, prints))
-				break
+			p, err := NewOPAPolicy(policy)
+			require.NoError(err)
+			for _, testCase := range tc {
+				allowed, prints, err := p.AllowRequest(t.Context(), testCase)
+				require.NoError(err, prints)
+				t.Logf("%s: %v", testCase.Kind, allowed)
+				require.Equal(testCase.Allowed, allowed, "policy mismatch for %s:\n%s", testCase.Kind, prints)
 			}
-			if allowed != testCase.Allowed {
-				log.Printf("%s: policy evaluation mismatch, expected allowed=%v, got allowed=%v\n", testCase.Kind, testCase.Allowed, allowed)
-				errs = append(errs, fmt.Errorf("test case %s failed: %v: expected allowed=%v, got allowed=%v, logs:\n%v", file.Name(), testCase.Kind, testCase.Allowed, allowed, prints))
-				break
-			}
-			log.Printf("%s: allowed=%v\n", testCase.Kind, allowed)
-		}
+		})
 	}
 
-	if numTestCases == 0 {
-		return fmt.Errorf("no test cases found in %s", dataDir)
-	}
-
-	return errors.Join(errs...)
+	req.Positive(numTestCases, "no test cases found in %s", dataDir)
 }
 
 func setupRegistry(registryAddr string, testImages map[string]testImage) (map[string]string, error) {
@@ -240,4 +184,57 @@ func generatePolicy(ctx context.Context, runner *genpolicy.Runner, yaml []byte) 
 		return policy, nil
 	}
 	return "", fmt.Errorf("policy.rego not found in initdata")
+}
+
+func runTest(t *testing.T, runner *genpolicy.Runner, imageReplacements map[string]string, workDir, dataDir, name string) {
+	t.Run(name, func(t *testing.T) {
+		req := require.New(t)
+		yaml, err := os.ReadFile(filepath.Join(dataDir, name, "resource.yml"))
+		req.NoError(err)
+		for k, v := range imageReplacements {
+			yaml = bytes.ReplaceAll(yaml, []byte(k), []byte(v))
+		}
+		req.NoError(os.WriteFile(filepath.Join(workDir, "resource.yml"), yaml, 0o644))
+		policy, err := generatePolicy(t.Context(), runner, yaml)
+		req.NoError(err)
+
+		baseData, err := os.ReadFile(filepath.Join(dataDir, name, "base.json"))
+		req.NoError(err)
+		files, err := os.ReadDir(filepath.Join(dataDir, name))
+		req.NoError(err)
+
+		require.True(t, t.Run("base.json", func(t *testing.T) {
+			runTestCase(t, policy, baseData)
+		}), "base.json test case needs to succeed for other subtests to run")
+
+		for _, file := range files {
+			if file.Name() == "base.json" || filepath.Ext(file.Name()) != ".json" {
+				continue
+			}
+			t.Run(file.Name(), func(t *testing.T) {
+				require := require.New(t)
+				patchData, err := os.ReadFile(filepath.Join(dataDir, name, file.Name()))
+				require.NoError(err)
+				patch, err := jsonpatch.DecodePatch(patchData)
+				require.NoError(err)
+				testData, err := patch.Apply(baseData)
+				require.NoError(err)
+				runTestCase(t, policy, testData)
+			})
+		}
+	})
+}
+
+func runTestCase(t *testing.T, policy string, data []byte) {
+	require := require.New(t)
+	var tc []TestCase
+	require.NoError(json.Unmarshal(data, &tc))
+	p, err := NewOPAPolicy(policy)
+	require.NoError(err)
+	for _, testCase := range tc {
+		allowed, prints, err := p.AllowRequest(t.Context(), testCase)
+		require.NoError(err, prints)
+		t.Logf("%s: %v", testCase.Kind, allowed)
+		require.Equal(testCase.Allowed, allowed, "policy mismatch for %s:\n%s", testCase.Kind, prints)
+	}
 }

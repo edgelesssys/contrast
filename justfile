@@ -577,7 +577,7 @@ unit:
 
 # Run the policy test suite.
 policy:
-    nix run -L .#base.policy-test
+    nix shell .#base.policy-test --command policy-test.test -test.v
 
 policy-rpc: debugshell
     #!/usr/bin/env bash
