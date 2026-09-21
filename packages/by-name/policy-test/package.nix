@@ -61,6 +61,8 @@ buildGoModule (_finalAttrs: {
   pname = "policy-test";
   version = builtins.readFile ../../../version.txt;
 
+  buildTestBinaries = true;
+
   src =
     let
       inherit (lib) fileset path;
@@ -80,7 +82,7 @@ buildGoModule (_finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-0UzopcWVzB/VjRqsjG4uoMUIYERMRJY4RBlAXz4dyqc=";
+  vendorHash = "sha256-LStK/EcmyKKoVRncwKaQMk4l6S8Leg7OG4zP8ViRUD4=";
 
   modRoot = "policy-test";
 
@@ -102,5 +104,5 @@ buildGoModule (_finalAttrs: {
 
   tags = [ "contrast_unstable_api" ];
 
-  meta = lib.contrast.ourMeta { mainProgram = "policy-test"; };
+  meta = lib.contrast.ourMeta { };
 })
