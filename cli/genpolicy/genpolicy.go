@@ -37,7 +37,7 @@ func New(rulesPath, settingsPath, cachePath string, insecureRegistries []string,
 	if err != nil {
 		return nil, fmt.Errorf("installing genpolicy: %w", err)
 	}
-	if err := os.MkdirAll(filepath.Dir(cachePath), 0o777); err != nil {
+	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		return nil, fmt.Errorf("creating cache file: %w", err)
 	}
 
