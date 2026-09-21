@@ -20,6 +20,11 @@ const sidebars = {
       id: "intro",
     },
     {
+      type: "doc",
+      label: "Why Contrast?",
+      id: "why-contrast",
+    },
+    {
       type: "category",
       label: "Getting started",
       collapsed: false,

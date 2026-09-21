@@ -18,13 +18,15 @@ You can use your existing containers without modification, enabling easy adoptio
 Contrast leverages a technology called confidential computing. If you're new to confidential computing, check out our [whitepaper](https://content.edgeless.systems/hubfs/Confidential%20Computing%20Whitepaper.pdf) for an overview.
 :::
 
-## Why use Contrast?
+## Why confidential containers?
 
-Contrast keeps your data encrypted at all times, ensuring it remains inaccessible from the underlying infrastructure.
-It effectively removes the infrastructure provider, including datacenter employees, privileged cloud administrators, cluster operators, and potential attackers, from your trusted computing base (TCB).
+Confidential computing keeps your data encrypted at all times, ensuring it remains inaccessible from the underlying infrastructure.
+This can effectively remove the infrastructure provider, including datacenter employees, privileged cloud administrators, cluster operators, and potential attackers, from your trusted computing base (TCB).
 This protects your workloads even from sophisticated threats like malicious co-tenants attempting privilege escalation.
 
-Contrast integrates seamlessly into your existing Kubernetes workflows. It can be deployed into your existing Kubernetes cluster, and requires minimal adjustments to your existing processes.
+Contrast integrates confidential computing seamlessly into your existing Kubernetes workflows. It can be deployed into your existing Kubernetes cluster, and requires minimal adjustments to your existing processes.
+
+To learn what sets Contrast apart from other confidential-computing solutions, see [Why Contrast?](./why-contrast.md).
 
 ## Key use cases
 
@@ -50,6 +52,8 @@ For production use and support, you can [get a commercial license](https://www.e
 ## Getting started
 
 Use these entry points to quickly explore Contrast:
+
+- **Why Contrast?**: Learn [what sets Contrast apart](./why-contrast.md) from other confidential computing solutions.
 
 - **Hands-on example**: The [Getting Started](./getting-started/overview.md) section walks you step-by-step through securing a deployment using Contrast, in a practical and beginner-friendly way.
 

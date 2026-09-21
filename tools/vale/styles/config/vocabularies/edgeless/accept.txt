@@ -45,6 +45,7 @@ CRLs?
 CSPs?
 CVMs?
 cyber
+cybersecurity
 datacenter
 Datadog
 deallocate
