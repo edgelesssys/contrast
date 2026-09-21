@@ -84,19 +84,8 @@ func execute(c *cobra.Command, _ []string) error {
 		return fmt.Errorf("setup registry: %w", err)
 	}
 
-	imageReplacementsFile, err := os.CreateTemp("", "image-replacements-*")
-	if err != nil {
-		return fmt.Errorf("create temp file: %w", err)
-	}
-	defer os.Remove(imageReplacementsFile.Name())
 	for k, v := range imageReplacements {
-		if _, err := fmt.Fprintf(imageReplacementsFile, "%s=%s\n", k, v); err != nil {
-			return fmt.Errorf("write image replacements: %w", err)
-		}
 		podYaml = bytes.ReplaceAll(podYaml, []byte(k), []byte(v))
-	}
-	if err := imageReplacementsFile.Close(); err != nil {
-		return fmt.Errorf("close image replacements file: %w", err)
 	}
 
 	workDir, err := os.MkdirTemp("", "contrast-policy-test-*")
