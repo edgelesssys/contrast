@@ -34,6 +34,11 @@ mapfile -t nightly_jobs < <(
 )
 mapfile -t nightly_tests < <(yq ".jobs.test_matrix.strategy.matrix.test-name[]" "$nightly_platform_workflow")
 
+if [[ ${#nightly_jobs[@]} -eq 0 ]] || [[ ${#nightly_tests[@]} -eq 0 ]]; then
+  echo "Could not discover the nightly matrix, the workflows were probably restructured." >&2
+  exit 1
+fi
+
 for job in "${nightly_jobs[@]}"; do
   IFS=$'\t' read -r platform debug_set_test <<<"$job"
   for test in "${nightly_tests[@]}"; do
@@ -52,6 +57,11 @@ echo "Processing $regression_workflow at path $regression_matrix" >&2
 
 mapfile -t regression_tests < <(yq ".$regression_matrix.test-name[]" "$regression_workflow")
 platform_count=$(yq ".$regression_matrix.platform | length" "$regression_workflow")
+
+if [[ ${#regression_tests[@]} -eq 0 ]] || [[ $platform_count -eq 0 ]]; then
+  echo "Could not discover the regression matrix, the workflow was probably restructured." >&2
+  exit 1
+fi
 
 for ((i = 0; i < platform_count; i++)); do
   name=$(yq ".$regression_matrix.platform[$i].name" "$regression_workflow")
