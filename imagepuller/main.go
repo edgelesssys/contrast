@@ -66,7 +66,7 @@ func run(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
 
 	socketPath := cmd.Flag("listen").Value.String()
-	if err := os.MkdirAll(filepath.Dir(socketPath), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(socketPath), 0o700); err != nil {
 		return fmt.Errorf("creating directory for socket: %w", err)
 	}
 	if err := os.Remove(socketPath); err != nil && !errors.Is(err, os.ErrNotExist) {

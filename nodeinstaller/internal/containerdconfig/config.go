@@ -87,7 +87,7 @@ func (c *Config) Write() error {
 
 	if len(c.raw) != 0 {
 		t := time.Now().Unix()
-		if err := os.WriteFile(fmt.Sprintf("%s.%d.bak", c.path, t), c.raw, 0o666); err != nil {
+		if err := os.WriteFile(fmt.Sprintf("%s.%d.bak", c.path, t), c.raw, 0o600); err != nil {
 			return fmt.Errorf("backing up existing config: %w", err)
 		}
 		log.Printf("Created backup of existing containerd config at %s.%d.bak\n", c.path, t)
@@ -108,9 +108,6 @@ func (c *Config) Write() error {
 	}
 	if _, err = tmpFile.Write(rawConfig); err != nil {
 		return fmt.Errorf("writing to temporary file: %w", err)
-	}
-	if err := os.Chmod(tmpFile.Name(), 0o666); err != nil {
-		return fmt.Errorf("chmod %q: %w", tmpFile.Name(), err)
 	}
 	if err := os.Rename(tmpFile.Name(), c.path); err != nil {
 		return fmt.Errorf("renaming temporary file to %q: %w", c.path, err)

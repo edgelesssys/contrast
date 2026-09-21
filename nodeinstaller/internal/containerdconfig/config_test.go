@@ -70,6 +70,10 @@ func TestPatchContainerdConfig(t *testing.T) {
 			configData, err := os.ReadFile(configPath)
 			require.NoError(err)
 			assert.Equal(string(tc.expected), string(configData))
+
+			info, err := os.Stat(configPath)
+			require.NoError(err)
+			require.Zero(info.Mode().Perm()&2, "containerd config is world-writable")
 		})
 	}
 }

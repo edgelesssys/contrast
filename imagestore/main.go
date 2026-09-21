@@ -50,7 +50,7 @@ func run(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintf(os.Stderr, "Contrast imagestore %s\n", version)
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
 
-	if err := os.MkdirAll(filepath.Dir(katacomponents.SecuremountSocket), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(katacomponents.SecuremountSocket), 0o700); err != nil {
 		return fmt.Errorf("creating directory for socket: %w", err)
 	}
 	if err := os.Remove(katacomponents.SecuremountSocket); err != nil && !errors.Is(err, os.ErrNotExist) {

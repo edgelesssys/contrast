@@ -17,7 +17,7 @@ type RegularInstaller struct {
 // If prefix is empty, a temporary directory will be used.
 func (r *RegularInstaller) Install(prefix string, contents []byte) (Installed, error) {
 	if prefix != "" {
-		if err := r.fs.MkdirAll(prefix, 0o777); err != nil {
+		if err := r.fs.MkdirAll(prefix, 0o755); err != nil {
 			return nil, err
 		}
 	}

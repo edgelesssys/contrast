@@ -139,7 +139,7 @@ func installFiles(
 
 		log.Printf("Fetching %q to %q\n", file.URL, targetPath)
 
-		if err := os.MkdirAll(filepath.Dir(filepath.Join(hostMount, targetPath)), 0o777); err != nil {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(hostMount, targetPath)), 0o755); err != nil {
 			return fmt.Errorf("creating directory %q: %w", filepath.Dir(targetPath), err)
 		}
 
@@ -182,7 +182,7 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
 		return fmt.Errorf("creating directory %q: %w", filepath.Dir(configPath), err)
 	}
-	if err := os.WriteFile(configPath, rawConfig, 0o666); err != nil {
+	if err := os.WriteFile(configPath, rawConfig, 0o644); err != nil {
 		return fmt.Errorf("writing kata runtime config to %q: %w", configPath, err)
 	}
 	return nil
@@ -278,7 +278,7 @@ func installImagepullerConfig(
 		return "", nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(configPathHost), 0o777); err != nil {
+	if err := os.MkdirAll(filepath.Dir(configPathHost), 0o755); err != nil {
 		return "", fmt.Errorf("creating imagepuller source configuration parent dir %q: %w", filepath.Dir(configPathHost), err)
 	}
 
