@@ -4,6 +4,11 @@
 
 set -euo pipefail
 
+# Runs the tests that gate a release, as defined by the workflows called in
+# release.yml (excluding the release test itself).
+#
+# Set DRY_RUN=1 to print the discovered matrix without running anything.
+
 # Create an associative array to hold platform.name -> test list
 declare -A platform_tests
 
@@ -63,6 +68,11 @@ echo "Discovered the following test matrix:" >&2
 for platform in "${!platform_tests[@]}"; do
   echo "$platform:${platform_tests[$platform]}" >&2
 done
+
+if [[ ${DRY_RUN:-} == "1" ]]; then
+  echo "DRY_RUN is set, not running any tests." >&2
+  exit 0
+fi
 
 # Run tests
 for platform in "${!platform_tests[@]}"; do
