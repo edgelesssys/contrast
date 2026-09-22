@@ -108,6 +108,11 @@ if [[ ${DRY_RUN:-} == "1" ]]; then
 fi
 
 # Run tests
+
+# just exits normally when it catches SIGINT, so without this an interrupt
+# would only end the running test and the sweep would continue.
+trap 'echo "Interrupted, stopping the sweep." >&2; exit 130' INT TERM
+
 failures=()
 
 # Keep going by default, because the CI matrices this mirrors run with
