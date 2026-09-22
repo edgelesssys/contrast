@@ -10,6 +10,7 @@ set -euo pipefail
 # Set DRY_RUN=1 to print the discovered matrix without running anything.
 # Set FAIL_FAST=1 to stop at the first failure instead of finishing the matrix.
 # Set PLATFORMS to a comma-separated subset of platform names to skip the others.
+# Set TESTS to a comma-separated subset of test names, for example to resume an interrupted run.
 
 nightly_workflow=".github/workflows/e2e_nightly.yml"
 nightly_platform_workflow=".github/workflows/e2e_nightly_platform.yml"
@@ -92,6 +93,25 @@ if [[ -n ${PLATFORMS:-} ]]; then
   done
   if [[ ${#platform_tests[@]} -eq 0 ]]; then
     echo "No platform in the matrix matched PLATFORMS=$PLATFORMS." >&2
+    exit 1
+  fi
+fi
+
+if [[ -n ${TESTS:-} ]]; then
+  wanted=" ${TESTS//,/ } "
+  for platform in "${!platform_tests[@]}"; do
+    kept=""
+    for test in ${platform_tests[$platform]}; do
+      [[ $wanted == *" $test "* ]] && kept+=" $test"
+    done
+    if [[ -z $kept ]]; then
+      unset "platform_tests[$platform]"
+    else
+      platform_tests[$platform]="$kept"
+    fi
+  done
+  if [[ ${#platform_tests[@]} -eq 0 ]]; then
+    echo "No test in the matrix matched TESTS=$TESTS." >&2
     exit 1
   fi
 fi
