@@ -176,7 +176,7 @@ func FromDevice(devicePath, magic string) (Raw, error) {
 		return nil, fmt.Errorf("reading magic number: %w", err)
 	}
 	size := binary.LittleEndian.Uint64(buf)
-	const maxSize = 128 * 1024 * 1024 * 1024
+	const maxSize = 128 * 1024 * 1024
 	if size > maxSize {
 		return nil, fmt.Errorf("%w: expected at most 128MiB, got %d byte", errTooLarge, size)
 	}
