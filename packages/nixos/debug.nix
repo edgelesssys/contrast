@@ -25,7 +25,10 @@ in
       coreutils
       curlMinimal
       findutils
+      iproute2
+      iputils
       ncurses
+      netcat
       pciutils
       strace
       tpm2-tools
