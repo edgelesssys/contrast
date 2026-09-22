@@ -19,16 +19,18 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
+      # keep-sorted start
       busybox
-      tpm2-tools
-      ncurses
-      findutils
-      curlMinimal
-      util-linux
-      coreutils
-      strace
       contrastPkgs.tdx-tools
+      coreutils
+      curlMinimal
+      findutils
+      ncurses
       pciutils
+      strace
+      tpm2-tools
+      util-linux
+      # keep-sorted end
     ];
 
     services.getty.autologinUser = "root";
