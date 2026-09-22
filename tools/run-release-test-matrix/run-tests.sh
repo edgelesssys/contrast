@@ -9,6 +9,7 @@ set -euo pipefail
 #
 # Set DRY_RUN=1 to print the discovered matrix without running anything.
 # Set FAIL_FAST=1 to stop at the first failure instead of finishing the matrix.
+# Set PLATFORMS to a comma-separated subset of platform names to skip the others.
 
 nightly_workflow=".github/workflows/e2e_nightly.yml"
 nightly_platform_workflow=".github/workflows/e2e_nightly_platform.yml"
@@ -83,6 +84,17 @@ for ((j = 0; j < include_count; j++)); do
   test=$(yq ".$regression_matrix.include[$j].test-name" "$regression_workflow")
   add_test "$name" "$test"
 done
+
+if [[ -n ${PLATFORMS:-} ]]; then
+  wanted=" ${PLATFORMS//,/ } "
+  for platform in "${!platform_tests[@]}"; do
+    [[ $wanted == *" $platform "* ]] || unset "platform_tests[$platform]"
+  done
+  if [[ ${#platform_tests[@]} -eq 0 ]]; then
+    echo "No platform in the matrix matched PLATFORMS=$PLATFORMS." >&2
+    exit 1
+  fi
+fi
 
 # Output merged results
 echo "Discovered the following test matrix:" >&2
