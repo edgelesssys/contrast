@@ -112,8 +112,10 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}
 
 	requestCert := func() (*meshapi.NewMeshCertResponse, error) {
-		// Supply a nil validator, as the coordinator does not need to be
-		// validated by the initializer.
+		// Supply a nil validator as there's no trustworthy manifest here to
+		// derive one from. Also the mesh CA, root CA and workload secret all come
+		// from this one response, so a pod answered by an impersonator ends
+		// up isolated from the genuine deployment, not a way into it.
 		dial := dialer.NewWithKey(issuer, nil, atls.NoMetrics, nil, privKey, log)
 		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, meshapi.Port))
 		if err != nil {
