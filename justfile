@@ -213,6 +213,7 @@ e2e-release source platform=default_platform set=default_set: soft-clean k8s-log
             --platform {{ platform }} \
             --node-installer-target-conf ${node_installer_target_conf_type} \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
+            --bin-name "contrast-$(nix eval --raw --impure --expr builtins.currentSystem)" \
             --use-loadbalancer=true
 
 # Generate policies, apply Kubernetes manifests.
