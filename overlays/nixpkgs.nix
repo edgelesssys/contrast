@@ -159,4 +159,12 @@ final: prev:
       nativeBuildInputs = old.nativeBuildInputs ++ [ final.pkg-config ];
     });
   };
+
+  # Build e2fsprogs without libarchive and fuse support we don't need.
+  e2fsprogs = (prev.e2fsprogs.override { withFuse = false; }).overrideAttrs (prevAttrs: {
+    buildInputs = builtins.filter (p: p.pname or "" != "libarchive") prevAttrs.buildInputs;
+    configureFlags =
+      (builtins.filter (flag: builtins.match ".*libarchive.*" flag == null) prevAttrs.configureFlags)
+      ++ [ "--without-libarchive" ];
+  });
 }
