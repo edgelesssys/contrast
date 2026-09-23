@@ -7,6 +7,7 @@ layers-cache.json
 justfile.env
 workspace
 workspace.cache
+.golangci-lint-cache/
 .direnv/
 go.work.sum
 node_modules

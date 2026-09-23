@@ -158,11 +158,16 @@
   golangci-lint = writeShellApplication {
     name = "golangci-lint";
     runtimeInputs = with pkgs; [
+      git
       go
       golangci-lint
     ];
     text = ''
       exitcode=0
+
+      # The cache stores issues with absolute paths, so a cache shared by several worktrees
+      # replays other worktrees' issues under paths the generated-file filter can't open.
+      export GOLANGCI_LINT_CACHE="''${GOLANGCI_LINT_CACHE:-$(git rev-parse --show-toplevel)/.golangci-lint-cache}"
 
       tags="${lib.concatStringsSep "," contrastPkgs.contrast.contrast.tags}"
       while IFS= read -r dir; do
