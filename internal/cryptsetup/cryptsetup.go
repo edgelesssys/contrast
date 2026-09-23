@@ -16,6 +16,20 @@ import (
 	"strings"
 )
 
+const (
+	// sectorSize is the size of a sector on the dm-crypt disk.
+	//
+	// This size needs to be the same for LUKS2 and EXT4, otherwise the kernel might read
+	// uninitialized data and cause an integrity failure.
+	sectorSize = 4096
+
+	// pbkdfMemoryKiB is the memory usage parameter for Argon2i.
+	//
+	// We set it to 10 MiB so it won't fail in low-memory pods. The actual memory might be
+	// lower due to benchmarking.
+	pbkdfMemoryKiB = 10240
+)
+
 // Device is a LUKS device.
 type Device struct {
 	devicePath  string
@@ -62,13 +76,13 @@ func (d *Device) Format(ctx context.Context) error {
 	}
 	args := []string{
 		"luksFormat",
-		"--type=luks2",                          // Use LUKS2 header format.
-		"--cipher=aes-xts-plain64",              // Use AES-XTS cipher.
-		"--pbkdf=argon2id",                      // Use Argon2id as the key derivation function.
-		"--pbkdf-memory=10240",                  // Memory usage for Argon2i, limit to 10 MiB so it won't fail in low-memory pods.
-		"--integrity=hmac-sha256",               // Use HMAC-SHA256 for integrity protection via dm-integrity.
-		"--integrity-no-wipe",                   // Don't wipe the device. This leaves all blocks invalid until they are first written.
-		"--sector-size=4096",                    // Use 4 KiB sector size.
+		"--type=luks2",             // Use LUKS2 header format.
+		"--cipher=aes-xts-plain64", // Use AES-XTS cipher.
+		"--pbkdf=argon2id",         // Use Argon2id as the key derivation function.
+		fmt.Sprintf("--pbkdf-memory=%d", pbkdfMemoryKiB),
+		"--integrity=hmac-sha256", // Use HMAC-SHA256 for integrity protection via dm-integrity.
+		"--integrity-no-wipe",     // Don't wipe the device. This leaves all blocks invalid until they are first written.
+		fmt.Sprintf("--sector-size=%d", sectorSize),
 		"--batch-mode",                          // Suppresses all confirmation questions.
 		fmt.Sprintf("--key-file=%s", d.keyPath), // Path to the key file.
 		d.devicePath,
@@ -216,8 +230,24 @@ func (d *Device) verifyHeader(header cryptsetupMetadata) (retErr error) {
 	if key.KDF.Type != "argon2id" {
 		return fmt.Errorf("expected KDF type 'argon2id', got '%s'", key.KDF.Type)
 	}
-	if key.KDF.Salt == "" {
-		return fmt.Errorf("expected KDF salt to be non-empty")
+	// CPUs depends on the defaults and may change, we only do a sanity check for the documented
+	// range.
+	if key.KDF.CPUs < 1 || key.KDF.CPUs > 4 {
+		return fmt.Errorf("expected KDF CPUs between 1 and 4, got %d", key.KDF.CPUs)
+	}
+	// Memory is only guaranteed to be at most --pbkdf-memory, but may be benchmarked below. The
+	// documented minimum is 32 KiB.
+	if key.KDF.Memory < 32 || key.KDF.Memory > pbkdfMemoryKiB {
+		return fmt.Errorf("expected KDF memory between 32k and %dk, got %dk", pbkdfMemoryKiB, key.KDF.Memory)
+	}
+	// Time (really, iteration count) depends on defaults which may change, so just check that
+	// it's not excessive. 4 is the documented lower bound for argon2id. 500 is a benchmarked value
+	// corresponding to 2s evaluation time, allow at most 10x.
+	if key.KDF.Time < 4 || key.KDF.Time > 5000 {
+		return fmt.Errorf("expected KDF time between 4 and 5000, got %dk", key.KDF.Time)
+	}
+	if len(key.KDF.Salt) != 44 {
+		return fmt.Errorf("expected KDF salt to be 32 base-64 encoded bytes, got %q", key.KDF.Salt)
 	}
 	if len(header.Segments) != 1 {
 		return fmt.Errorf("expected exactly one segment, got %d", len(header.Segments))
@@ -247,6 +277,12 @@ func (d *Device) verifyHeader(header cryptsetupMetadata) (retErr error) {
 	if segment.Integrity.JournalIntegrity != "none" {
 		return fmt.Errorf("expected segment integrity journal integrity 'none', got '%s'", segment.Integrity.JournalIntegrity)
 	}
+	if segment.Integrity.KeySize != nil {
+		return fmt.Errorf("expected segment integrity key size to be unset, got %d", *segment.Integrity.KeySize)
+	}
+	if segment.SectorSize != sectorSize {
+		return fmt.Errorf("expected segment sector size %d, got %d", sectorSize, segment.SectorSize)
+	}
 	if len(header.Digests) != 1 {
 		return fmt.Errorf("expected exactly one digest, got %d", len(header.Digests))
 	}
@@ -272,8 +308,20 @@ func (d *Device) verifyHeader(header cryptsetupMetadata) (retErr error) {
 	if digest.Digest == "" {
 		return fmt.Errorf("expected digest to be non-empty")
 	}
+	// Digest iterations are benchmarked and can vary, so just do a sanity check. 1000 is the lower
+	// bound from LUKS_MKD_ITERATIONS_MIN, 350k is benchmarked to 125ms so we can allow a lot more,
+	// in this case 7M amounting to 3s.
+	if digest.Iterations < 1000 || digest.Iterations > 7000000 {
+		return fmt.Errorf("expected digest iterations between 1000 and 7000000, got %d", digest.Iterations)
+	}
 	if len(header.Tokens) != 0 {
 		return fmt.Errorf("expected no tokens, got %d", len(header.Tokens))
+	}
+	if header.Config.Flags != nil {
+		return fmt.Errorf("expected no config flags, got %v", header.Config.Flags)
+	}
+	if header.Config.Requirements != nil {
+		return fmt.Errorf("expected no config requirements, got %v", header.Config.Requirements)
 	}
 	return nil
 }
@@ -292,24 +340,24 @@ type cryptsetupMetadata struct {
 		} `json:"af"`
 		Area struct {
 			Type       string `json:"type"`
-			Offset     string `json:"offset"`
-			Size       string `json:"size"`
+			Offset     string `json:"offset"` // not checked because it varies
+			Size       string `json:"size"`   // not checked because it varies
 			Encryption string `json:"encryption"`
 			KeySize    int    `json:"key_size"`
 		} `json:"area"`
 		KDF struct {
 			Type   string `json:"type"`
-			Time   int    `json:"time"`
-			Memory int    `json:"memory"`
-			CPUs   int    `json:"cpus"`
+			Time   int    `json:"time"`   // only checked for sanity
+			Memory int    `json:"memory"` // only checked for sanity
+			CPUs   int    `json:"cpus"`   // only checked for sanity
 			Salt   string `json:"salt"`
 		} `json:"kdf"`
 	} `json:"keyslots"`
 	Tokens   map[string]struct{} `json:"tokens"`
 	Segments map[string]struct {
 		Type       string   `json:"type"`
-		Offset     string   `json:"offset"`
-		Size       string   `json:"size"`
+		Offset     string   `json:"offset"` // not checked because it varies
+		Size       string   `json:"size"`   // not checked because it varies
 		Flags      []string `json:"flags,omitempty"`
 		IVTweak    string   `json:"iv_tweak"`
 		Encryption string   `json:"encryption"`
@@ -318,7 +366,7 @@ type cryptsetupMetadata struct {
 			Type              string `json:"type"`
 			JournalEncryption string `json:"journal_encryption"`
 			JournalIntegrity  string `json:"journal_integrity"`
-			KeySize           int    `json:"key_size"`
+			KeySize           *int   `json:"key_size,omitempty"` // should be absent, hence a pointer
 		} `json:"integrity"`
 	} `json:"segments"`
 	Digests map[string]struct {
@@ -326,13 +374,15 @@ type cryptsetupMetadata struct {
 		Keyslots   []string `json:"keyslots"`
 		Segments   []string `json:"segments"`
 		Hash       string   `json:"hash"`
-		Iterations int      `json:"iterations"`
+		Iterations int      `json:"iterations"` // only checked for sanity
 		Salt       string   `json:"salt"`
 		Digest     string   `json:"digest"`
 	} `json:"digests"`
 	Config struct {
-		JSONSize     string `json:"json_size"`
-		KeyslotsSize string `json:"keyslots_size"`
+		JSONSize     string `json:"json_size"`     // not checked because it varies
+		KeyslotsSize string `json:"keyslots_size"` // not checked because it varies
+		Flags        []any  `json:"flags,omitempty"`
+		Requirements []any  `json:"requirements,omitempty"`
 	}
 }
 
