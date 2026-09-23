@@ -483,7 +483,7 @@
 
   cleanup-containerd = writeShellApplication {
     name = "cleanup-containerd";
-    runtimeInputs = with pkgs; [ containerd ];
+    runtimeInputs = with pkgs; [ cri-tools ];
     text = ''
       declare address
       if [[ -S "/host/run/k3s/containerd/containerd.sock" ]]; then
@@ -494,13 +494,7 @@
         echo "No containerd socket found at /run/containerd/containerd.sock or /run/k3s/containerd/containerd.sock"
         exit 1
       fi
-      while read -r image; do
-        ctr --address "$address" --namespace k8s.io image rm --sync "$image"
-      done < <(
-        ctr --address "$address" --namespace k8s.io image list |
-          tail -n +2 |
-          cut -d' ' -f1
-      )
+      crictl --runtime-endpoint "unix://$address" rmi --prune
     '';
   };
 
