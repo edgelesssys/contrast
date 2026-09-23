@@ -66,7 +66,7 @@ var numsRegexp = regexp.MustCompile(`\d+`)
 
 func wipeExt4Blocks(ctx context.Context, devPath string) error {
 	// Run mkfs.ext4 in dry-run mode to get the blocks that would be used by the filesystem.
-	cmd := exec.CommandContext(ctx, "mkfs.ext4", "-F", "-n", devPath)
+	cmd := exec.CommandContext(ctx, "mkfs.ext4", "-b", strconv.Itoa(sectorSize), "-F", "-n", devPath)
 	out, err := cmd.Output()
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
@@ -115,18 +115,16 @@ func zeroBlocksDirect(path string, indices []int64) error {
 	}
 	defer unix.Close(fd)
 
-	const blockSize = 4096
-
 	// Page-aligned zero buffer, required for O_DIRECT.
-	buf, err := unix.Mmap(-1, 0, blockSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_ANONYMOUS|unix.MAP_PRIVATE)
+	buf, err := unix.Mmap(-1, 0, sectorSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_ANONYMOUS|unix.MAP_PRIVATE)
 	if err != nil {
 		return fmt.Errorf("allocating zero buffer via mmap: %w", err)
 	}
 	defer func() { _ = unix.Munmap(buf) }()
 
 	for _, index := range indices {
-		offset := index * blockSize
-		for written := 0; written < blockSize; {
+		offset := index * sectorSize
+		for written := 0; written < sectorSize; {
 			n, err := unix.Pwrite(fd, buf[written:], offset+int64(written))
 			if err != nil {
 				return fmt.Errorf("writing zero block at index %d (offset %d): %w", index, offset, err)
@@ -140,7 +138,7 @@ func zeroBlocksDirect(path string, indices []int64) error {
 
 // mkfsExt4 wraps the mkfs.ext4 command and creates an ext4 file system on the device.
 func mkfsExt4(ctx context.Context, devPath string) error {
-	cmd := exec.CommandContext(ctx, "mkfs.ext4", devPath)
+	cmd := exec.CommandContext(ctx, "mkfs.ext4", "-b", strconv.Itoa(sectorSize), devPath)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("mkfs.ext4: %w, output: %q", err, out)
