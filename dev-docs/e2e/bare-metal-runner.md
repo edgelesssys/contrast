@@ -245,6 +245,11 @@ ufw status
 ufw app list
 ufw allow 22
 ufw allow OpenSSH
+# Allow pods to contact the API server at its public IP, mostly for the registry mirror.
+# Make sure to pick the right pod CIDR and Kubernetes API port!
+pod_cidr=10.42.0.0/16
+k8s_api_port=6443
+ufw allow proto tcp from "${pod_cidr}" to any port "${k8s_api_port}"
 ufw show added
 ufw enable
 ```
