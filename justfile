@@ -592,7 +592,7 @@ policy-rpc: debugshell
         --namespace "$ns" \
         --rules "$rules/genpolicy-rules.rego" \
         --settings "$settings/genpolicy-settings.json" \
-        --yaml ./policy-test/assets/pod.yml \
+        --yaml ./policy-test/testdata/pod/resource.yml \
         --output ./{{ workspace_dir }}/policy.jsonl
 
 # Check links.
