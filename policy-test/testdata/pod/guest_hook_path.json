@@ -1,0 +1,17 @@
+[
+  {
+    "op": "test",
+    "path": "/2/kind",
+    "value": "CreateSandboxRequest"
+  },
+  {
+    "op": "replace",
+    "path": "/2/request/guest_hook_path",
+    "value": "/evil/path"
+  },
+  {
+    "op": "replace",
+    "path": "/2/allowed",
+    "value": false
+  }
+]
