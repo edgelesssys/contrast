@@ -3,6 +3,10 @@
 Vulnerabilities in Contrast are remediated and published using the [GHSA workflow].
 The goal of the process is to minimize the time between disclosure and availability of a fixed release, while allowing for collaboration among the team and external contributors (where appropriate).
 
+This document discusses advisories for security vulnerabilities in Contrast proper.
+There may be other reasons to publish advisories, such as critical dependency vulnerabilities or confidential computing concerns.
+The process for these may be different and isn't bound to the description below.
+
 [GHSA workflow]: https://docs.github.com/en/code-security/security-advisories/working-with-repository-security-advisories/about-repository-security-advisories
 
 ## Life of a GHSA
@@ -17,6 +21,7 @@ If a vulnerability is discovered, we create an associated GHSA depending on the 
    2. through another channel (for example, via email): a team member opens the GHSA on the finders behalf and adds credit as appropriate.
 
 After creation, at least the _Impact_ section needs to be properly populated.
+As soon as the overall description is plausible, request a CVE assignment using the button on the GHSA.
 
 ### Resolve
 
@@ -50,7 +55,6 @@ Follow the checklist below to publish the advisory.
    You will need to tick the _bypass branch protections_ box. That's okay.
 3. Create a [patch release](release.md#patch) for the latest released version.
 4. From the advisory's drop-down menu, select _Publish Advisory_ and click the button.
-   We don't usually request CVE assignments through GitHub.
 
 ## FAQ
 
