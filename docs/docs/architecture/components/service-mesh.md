@@ -194,7 +194,7 @@ spec:
 
 Setting the `contrast.edgeless.systems/servicemesh-egress` annotation without a value will result in an error during `contrast generate`.
 
-## Public key Infrastructure
+## Public key infrastructure
 
 The Coordinator establishes a public key infrastructure (PKI) for all workloads defined in the manifest. It holds three types of certificates:
 
