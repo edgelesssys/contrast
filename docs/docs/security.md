@@ -21,6 +21,37 @@ This section outlines the types of threats Contrast is designed to mitigate.
 > - Hardware-level attacks on Confidential Computing (for example side-channel exploits)
 > - Denial-of-service (DoS) and other availability-focused attacks
 
+### Protected personas in a Contrast deployment
+
+The personas listed below are protected by Contrast in some way.
+Although they can be entirely separate, they can overlap.
+For example, a workload owner can also be a data owner and an operator.
+
+#### Data owner
+
+Data owners are end users of a Contrast application.
+They verify that the Coordinator enforces a trustworthy and expected manifest history and receive a [mesh CA certificate].
+Contrast ensures that all workloads that receive a leaf certificate signed by that CA are authorized according to the corresponding manifest.
+
+[mesh CA certificate]: architecture/components/service-mesh.md#public-key-infrastructure
+
+#### Workload owner
+
+Workload owners manage the manifests enforced by the Coordinator and are stewards of the [secret seed].
+They're often also providers of the container images and the Kubernetes resource definitions.
+Contrast ensures that the secret seed is only accessible to authorized Coordinators and that workloads in the [PKI] are authorized by the workload owner's manifests.
+Workload owners don't necessarily need to be trusted by data owners.
+
+[secret seed]: architecture/secrets.md
+[PKI]: architecture/components/service-mesh.md#public-key-infrastructure
+
+#### Workload operator
+
+Workload operators own the Kubernetes cluster and often manage the runtime.
+They're usually untrusted by data owners and workload owners.
+Contrast ensures that the runtime and the guest don't pose a risk to the host environment.
+However, workload operators need to understand and authorize all resources applied to their cluster.
+
 ### Threat actors
 
 Contrast protects against five main types of attackers:
