@@ -51,6 +51,10 @@ Follow the checklist below to publish the advisory.
    2. _Workaround_ section exists, even if it only states that no workaround is possible.
    3. _Patches_ section describes how the vulnerability was fixed.
    4. _Severity_ calculation uses CVSSv3 and matches the impact description.
+   5. _Ecosystem_ should be `Other` and `Contrast`, unless the vulnerability is in a supported and versioned Go library.
+   6. _Affected versions_ either lists all versions explicitly, or a range including the affected version published last.
+   7. _Patched versions_ contains the version of the patch release about to be created.
+      We don't add the next minor release to this field.
 2. Merge all PRs on the temporary fork.
    You will need to tick the _bypass branch protections_ box. That's okay.
 3. Create a [patch release](release.md#patch) for the latest released version.
