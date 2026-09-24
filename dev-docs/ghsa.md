@@ -64,3 +64,10 @@ This can happen if the vulnerability is evident in a bug report, for example, or
 It sometimes makes sense to use a private fork to avoid further leaks, unless it was the fix itself that accidentally disclosed the vulnerability.
 Use your best judgement to trade off between risk and ease of development.
 In any case, a GHSA needs to be published, following the [Publish](#publish) section reasonably close.
+
+### Do we treat confidential computing vulnerabilities differently?
+
+Vulnerabilities are treated according to the process above, regardless of them affecting guest or host security.
+However, it helps users if we include a prominent paragraph in the impact section that explains who is affected.
+We usually differentiate between data owner, workload owner and workload operator personas, see [`security.md`](../docs/docs/security.md#protected-personas-in-a-contrast-deployment).
+The CVSS score should be calculated from the perspective of the most affected persona.
