@@ -89,6 +89,21 @@ final: prev:
     }
   );
 
+  # TODO(sespiros): drop once nixpkgs has golangci-lint >= 2.13.2, which stops replaying
+  # cached issues with another worktree's paths (golangci/golangci-lint#6762).
+  golangci-lint = prev.golangci-lint.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "2.14.0";
+      src = final.fetchFromGitHub {
+        owner = "golangci";
+        repo = "golangci-lint";
+        tag = "v${finalAttrs.version}";
+        hash = "sha256-HATA7JKHwEouM+8jYZbQrkX7p4gut4IpyTvcBexu/4o=";
+      };
+      vendorHash = "sha256-ekP/zDhYMpMG+tYAyYHNfLOCt/JkxrXUw1jHUEfsM8k=";
+    }
+  );
+
   yq-go = prev.yq-go.overrideAttrs (
     finalAttrs: _prevAttrs: {
       version = "4.53.2";
