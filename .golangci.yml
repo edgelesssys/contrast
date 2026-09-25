@@ -78,6 +78,12 @@ linters:
     warn-unused: true
     presets:
       - std-error-handling
+    rules:
+      # The SEV-SNP and TDX clients are stubs that always return an error on macOS.
+      - path: initdata-processor/validator/validator\.go
+        linters:
+          - staticcheck
+        text: SA4023
 issues:
   max-issues-per-linter: 0
   max-same-issues: 20
