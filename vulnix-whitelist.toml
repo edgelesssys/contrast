@@ -60,3 +60,15 @@ comment = [
   "CVE-2026-56391: out-of-bounds read in uniq requires attacker-controlled arguments. We don't seem to use uniq at all.",
   "CVE-2026-56392: heap overflow in unexpand requires attacker-controlled arguments. We don't seem to use unexpand at all.",
 ]
+
+["pcre2"]
+cve = [ "CVE-2026-89156", "CVE-2026-89157", "CVE-2026-89158", "CVE-2026-89160", "CVE-2026-89161", "CVE-2026-89162" ]
+comment = [
+  "pcre2 is used by grep, less and systemd.",
+  "CVE-2026-89156: DoS attack from crafted input data",
+  "CVE-2026-89157: OOB write through large attacker-supplied pattern. We should not be using attacker-supplied patterns anywhere.",
+  "CVE-2026-89158: OOB write in pattern compilation. We should not be using attacker-supplied patterns anywhere.",
+  "CVE-2026-89160: OOB read through invalid UTF-8 in input. We should not be playing grep results back to an attacker.",
+  "CVE-2026-89161: Incorrect free in pcre2_jit_match. systemd is not using the function.",
+  "CVE-2026-89162: quote: 'pcre2_serialize_encode might disclose two bytes to an adversary, typically in a situation where the access available to the adversary is already unsafe'",
+]
