@@ -22,17 +22,14 @@ in
       # keep-sorted start
       busybox
       contrastPkgs.tdx-tools
-      coreutils
       curlMinimal
       findutils
       iproute2
       iputils
-      ncurses
       netcat
       pciutils
       strace
       tpm2-tools
-      util-linux
       # keep-sorted end
     ];
 
