@@ -17,6 +17,11 @@ on:
         type: boolean
         required: false
         default: false
+      skip_platforms:
+        description: Comma or space separated bare metal platforms to skip, e.g. Metal-QEMU-TDX-GPU. Use only when a runner is broken, and tell Privatemode which platforms weren't tested.
+        type: string
+        required: false
+        default: ""
       checkout_main_ref:
         description: Checkout this git ref as main branch (some workflows run on this state)
         type: string
@@ -46,6 +51,8 @@ jobs:
       MAJOR_MINOR_PATCH: ${{ steps.version-info.outputs.major_minor_patch }}
       RELEASE_BRANCH: ${{ steps.version-info.outputs.release_branch }}
       WORKING_BRANCH: ${{ steps.branch.outputs.value }}
+      SKIP_PLATFORMS: ${{ steps.platforms.outputs.skip_platforms }}
+      RELEASE_TEST_PLATFORMS: ${{ steps.platforms.outputs.release_test_platforms }}
       NEXT_MINOR: ${{ steps.version-info.outputs.next_minor }}
       NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.next_minor_pre_without_v }}
       NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.next_patch_pre_without_v }}
@@ -85,6 +92,11 @@ jobs:
             echo "Workflow can only be triggered from a temporary branch in the form of tmp/vX.Y.Z"
             exit 1
           fi
+      - name: Resolve platforms
+        id: platforms
+        uses: ./.github/actions/release_platforms
+        with:
+          skip_platforms: ${{ inputs.skip_platforms }}
       - name: Parse version
         id: version-info
         uses: ./.github/actions/parse_version
@@ -134,7 +146,10 @@ jobs:
 
   nightly:
     name: "release-requirement: e2e nightly"
+    needs: process-inputs
     uses: ./.github/workflows/e2e_nightly.yml
+    with:
+      skip-platforms: ${{ needs.process-inputs.outputs.SKIP_PLATFORMS }}
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -175,23 +190,7 @@ jobs:
   test:
     strategy:
       matrix:
-        platform:
-          - name: Metal-QEMU-SNP
-            node-installer-target-conf: none
-            linux-runner: SNP
-            is-public: true
-          - name: Metal-QEMU-SNP-GPU
-            node-installer-target-conf: k3s
-            linux-runner: SNP-GPU
-            is-public: false
-          - name: Metal-QEMU-TDX
-            node-installer-target-conf: k3s
-            linux-runner: TDX
-            is-public: false
-          - name: Metal-QEMU-TDX-GPU
-            node-installer-target-conf: none
-            linux-runner: TDX-GPU
-            is-public: true
+        platform: ${{ fromJSON(needs.process-inputs.outputs.RELEASE_TEST_PLATFORMS) }}
         cli-arch:
           - x86_64-linux
           - aarch64-darwin

@@ -1,0 +1,54 @@
+name: Release platforms
+description: Resolves which bare metal platforms a release run tests, given the platforms to skip
+
+inputs:
+  skip_platforms:
+    description: Comma or space separated platform names to skip, e.g. Metal-QEMU-TDX-GPU
+    required: false
+    default: ""
+
+outputs:
+  skip_platforms:
+    description: JSON array of the platforms to skip
+    value: ${{ steps.resolve.outputs.skip_platforms }}
+  release_test_platforms:
+    description: JSON array of the release test matrix entries for the platforms that aren't skipped
+    value: ${{ steps.resolve.outputs.release_test_platforms }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve platforms
+      id: resolve
+      shell: bash
+      env:
+        SKIP_PLATFORMS: ${{ inputs.skip_platforms }}
+      run: |
+        # Platforms of e2e_nightly.yml. Metal-QEMU-SNP-DEV only runs maintenance there.
+        nightly_platforms='["Metal-QEMU-SNP", "Metal-QEMU-SNP-GPU", "Metal-QEMU-TDX", "Metal-QEMU-TDX-GPU", "Metal-QEMU-SNP-DEV"]'
+        release_test_platforms='[
+          {"name": "Metal-QEMU-SNP", "node-installer-target-conf": "none", "linux-runner": "SNP", "is-public": true},
+          {"name": "Metal-QEMU-SNP-GPU", "node-installer-target-conf": "k3s", "linux-runner": "SNP-GPU", "is-public": false},
+          {"name": "Metal-QEMU-TDX", "node-installer-target-conf": "k3s", "linux-runner": "TDX", "is-public": false},
+          {"name": "Metal-QEMU-TDX-GPU", "node-installer-target-conf": "none", "linux-runner": "TDX-GPU", "is-public": true}
+        ]'
+
+        skip=$(tr ', ' '\n\n' <<<"${SKIP_PLATFORMS}" | jq -R 'select(. != "")' | jq -cs 'unique')
+        unknown=$(jq -r --argjson known "${nightly_platforms}" '.[] | select(. as $p | $known | index($p) | not)' <<<"${skip}")
+        if [[ -n "${unknown}" ]]; then
+          echo "::error::Unknown platform(s) to skip: ${unknown//$'\n'/, }. Known platforms: $(jq -r 'join(", ")' <<<"${nightly_platforms}")"
+          exit 1
+        fi
+
+        {
+          echo "skip_platforms=${skip}"
+          echo "release_test_platforms=$(jq -c --argjson skip "${skip}" 'map(select(.name as $n | $skip | index($n) | not))' <<<"${release_test_platforms}")"
+        } | tee -a "$GITHUB_OUTPUT"
+
+        if [[ "${skip}" != "[]" ]]; then
+          {
+            echo "### :warning: Skipped platforms"
+            echo
+            echo "These platforms are not tested in this run: $(jq -r 'join(", ")' <<<"${skip}")."
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
