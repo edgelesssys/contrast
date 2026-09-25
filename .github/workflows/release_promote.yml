@@ -3,6 +3,11 @@ name: release promote
 on:
   workflow_dispatch:
     inputs:
+      skip_platforms:
+        description: Comma or space separated bare metal platforms that the nightly skipped and that may stay untested in this release, e.g. Metal-QEMU-TDX-GPU.
+        type: string
+        required: false
+        default: ""
       checkout_main_ref:
         description: Checkout this git ref as main branch (some workflows run on this state)
         type: string
@@ -70,8 +75,14 @@ jobs:
           echo "FULL_VERSION=${FULL_VERSION}" | tee -a "$GITHUB_ENV"
           echo "value=${FULL_VERSION}" >> "$GITHUB_OUTPUT"
           echo "nightly_version=${FULL_VERSION}-${NIGHTLY_DATE}" >> "$GITHUB_OUTPUT"
+      - name: Resolve platforms
+        id: platforms
+        uses: ./.github/actions/release_platforms
+        with:
+          skip_platforms: ${{ inputs.skip_platforms }}
       - name: Verify nightly tests passed
         env:
+          SKIP_PLATFORMS: ${{ steps.platforms.outputs.skip_platforms }}
           NIGHTLY_RUN_ID: ${{ steps.nightly-info.outputs.nightly_run_id }}
           GH_REPO: ${{ github.repository }}
         run: |
@@ -90,6 +101,14 @@ jobs:
             "release-requirement: e2e nightly / Metal-QEMU-TDX-GPU "
             "release-requirement: e2e release on "
           )
+          # A platform skipped on purpose has no nightly jobs, or only skipped ones.
+          mapfile -t skipped < <(jq -r '.[] | "release-requirement: e2e nightly / \(.) "' <<<"${SKIP_PLATFORMS}")
+          for prefix in "${skipped[@]}"; do
+            for i in "${!expected[@]}"; do
+              [[ "${expected[i]}" == "${prefix}" ]] && unset 'expected[i]'
+            done
+          done
+          expected=("${expected[@]}")
           missing=()
           for prefix in "${expected[@]}"; do
             if ! jq -e -s --arg p "${prefix}" 'any(.[]; .name | startswith($p))' <<<"${release_requirement_jobs}" >/dev/null; then

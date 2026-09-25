@@ -2,7 +2,19 @@ name: e2e test nightly
 
 on:
   workflow_dispatch:
+    inputs:
+      skip-platforms:
+        description: JSON array of platform names to skip, e.g. ["Metal-QEMU-TDX-GPU"].
+        type: string
+        required: false
+        default: "[]"
   workflow_call:
+    inputs:
+      skip-platforms:
+        description: JSON array of platform names to skip, e.g. ["Metal-QEMU-TDX-GPU"].
+        type: string
+        required: false
+        default: "[]"
     secrets:
       GITHUB_TOKEN_IN:
         required: true
@@ -28,6 +40,8 @@ jobs:
 
   snp-maintenance:
     name: maintenance Metal-QEMU-SNP
+    # The platform's e2e jobs need this job, so they are skipped along with it.
+    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -40,6 +54,7 @@ jobs:
 
   tdx-maintenance:
     name: maintenance Metal-QEMU-TDX
+    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -52,6 +67,7 @@ jobs:
 
   snp-gpu-maintenance:
     name: maintenance Metal-QEMU-SNP-GPU
+    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-GPU') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -64,6 +80,7 @@ jobs:
 
   snp-dev-maintenance:
     name: maintenance Metal-QEMU-SNP-DEV
+    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-SNP-DEV') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -76,6 +93,7 @@ jobs:
 
   tdx-gpu-maintenance:
     name: maintenance Metal-QEMU-TDX-GPU
+    if: ${{ !contains(fromJSON(inputs.skip-platforms || '[]'), 'Metal-QEMU-TDX-GPU') }}
     needs: build-image
     uses: ./.github/workflows/bm_maintenance_platform.yml
     with:
@@ -208,6 +226,7 @@ jobs:
           NIX_GC_SNP_DEV: ${{ needs.snp-dev-maintenance.outputs.nix-gc }}
           NIX_GC_TDX_GPU: ${{ needs.tdx-gpu-maintenance.outputs.nix-gc }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          SKIP_PLATFORMS: ${{ inputs.skip-platforms || '[]' }}
         run: |
           if [[ -z "${IMAGE_BUILD_RESULT}" ]]; then
             echo 'json=[{"title": "Job ID", "value": "build-image"}]' >> "$GITHUB_OUTPUT"
@@ -243,6 +262,14 @@ jobs:
             [[ "${CLEANUP_CONTAINERD_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup-containerd")
             [[ "${CLEANUP_CONTAINERD_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup-containerd")
           fi
+
+          # Skipped platforms have no maintenance outputs, which would read as failures.
+          skipped() { jq -e --arg p "$1" 'index($p) != null' <<<"${SKIP_PLATFORMS}" >/dev/null; }
+          skipped Metal-QEMU-SNP && snp=()
+          skipped Metal-QEMU-TDX && tdx=()
+          skipped Metal-QEMU-SNP-GPU && snp_gpu=()
+          skipped Metal-QEMU-SNP-DEV && snp_dev=()
+          skipped Metal-QEMU-TDX-GPU && tdx_gpu=()
 
           if [[ "${#snp[@]}" -gt 0 ]]; then
             entries+=("{\"title\": \"Metal-QEMU-SNP\", \"value\": \"$(str="${snp[*]}"; echo "${str// /, }")\"}")
