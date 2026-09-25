@@ -46,7 +46,7 @@ const cryptsetupHeaderDump = `{
       "size":"dynamic",
       "iv_tweak":"0",
       "encryption":"aes-xts-plain64",
-      "sector_size":512,
+      "sector_size":4096,
       "integrity":{
         "type":"hmac(sha256)",
         "journal_encryption":"none",
@@ -141,6 +141,38 @@ func TestVerifyHeader(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		"unexpected kdf time": {
+			mutator: func(m *cryptsetupMetadata) {
+				slot := m.KeySlots["0"]
+				slot.KDF.Time = 20000
+				m.KeySlots["0"] = slot
+			},
+			wantErr: true,
+		},
+		"unexpected kdf memory": {
+			mutator: func(m *cryptsetupMetadata) {
+				slot := m.KeySlots["0"]
+				slot.KDF.Memory = 500000
+				m.KeySlots["0"] = slot
+			},
+			wantErr: true,
+		},
+		"unexpected kdf cpus": {
+			mutator: func(m *cryptsetupMetadata) {
+				slot := m.KeySlots["0"]
+				slot.KDF.CPUs = 10
+				m.KeySlots["0"] = slot
+			},
+			wantErr: true,
+		},
+		"unexpected kdf salt": {
+			mutator: func(m *cryptsetupMetadata) {
+				slot := m.KeySlots["0"]
+				slot.KDF.Salt = ""
+				m.KeySlots["0"] = slot
+			},
+			wantErr: true,
+		},
 		"unexpected tokens": {
 			mutator: func(m *cryptsetupMetadata) {
 				m.Tokens = map[string]struct{}{"0": {}}
@@ -183,6 +215,14 @@ func TestVerifyHeader(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		"unexpected segment sector size": {
+			mutator: func(m *cryptsetupMetadata) {
+				seg := m.Segments["0"]
+				seg.SectorSize = 1024
+				m.Segments["0"] = seg
+			},
+			wantErr: true,
+		},
 		"no digests": {
 			mutator: func(m *cryptsetupMetadata) {
 				m.Digests = nil
@@ -216,6 +256,34 @@ func TestVerifyHeader(t *testing.T) {
 				digest := m.Digests["0"]
 				digest.Segments = []string{"1"}
 				m.Digests["0"] = digest
+			},
+			wantErr: true,
+		},
+		"unexpected digest iterations": {
+			mutator: func(m *cryptsetupMetadata) {
+				digest := m.Digests["0"]
+				digest.Iterations = 1
+				m.Digests["0"] = digest
+			},
+			wantErr: true,
+		},
+		"unexpected integrity key size": {
+			mutator: func(m *cryptsetupMetadata) {
+				seg := m.Segments["0"]
+				seg.Integrity.KeySize = new(1)
+				m.Segments["0"] = seg
+			},
+			wantErr: true,
+		},
+		"unexpected config flags": {
+			mutator: func(m *cryptsetupMetadata) {
+				m.Config.Flags = []any{"foo"}
+			},
+			wantErr: true,
+		},
+		"unexpected config requirements": {
+			mutator: func(m *cryptsetupMetadata) {
+				m.Config.Requirements = []any{"foo"}
 			},
 			wantErr: true,
 		},
