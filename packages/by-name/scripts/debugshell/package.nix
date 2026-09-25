@@ -3,6 +3,7 @@
 
 {
   writeShellApplication,
+  runCommand,
   symlinkJoin,
   cri-tools,
   gnused,
@@ -37,9 +38,6 @@ let
     name = "debugshell";
     runtimeInputs = [ openssh ];
     text = ''
-      if [[ ! -f /etc/passwd ]]; then
-          echo "root:x:0:0:root:/root:/bin/bash" > /etc/passwd
-      fi
       if [[ ! -f ./id_ed25519 ]]; then
           ssh-keygen -t ed25519 -f ./id_ed25519 -N ""
       fi
@@ -51,11 +49,22 @@ let
           "$@"
     '';
   };
+
+  # debugshell-rootfs provides the expected directory structure and content for ssh to work.
+  debugshell-rootfs = runCommand "debugshell-rootfs" { } ''
+    mkdir -p \
+      $out/etc \
+      $out/tmp
+
+    echo "root:x:0:0::/tmp:/bin/sh" > $out/etc/passwd
+    echo "root:x:0:root" > $out/etc/group
+  '';
 in
 symlinkJoin {
   name = "debugshell-tools";
   paths = [
     debugshell-host
     debugshell-guest
+    debugshell-rootfs
   ];
 }
