@@ -36,7 +36,7 @@ func New(log *slog.Logger, collateralProxy string) (atls.Issuer, error) {
 			return nil, fmt.Errorf("checking insecure attestation opt-in: %w", err)
 		}
 		if !allowed {
-			return nil, fmt.Errorf("unsupported platform: %T", cpuid.CPU)
+			return nil, fmt.Errorf("unsupported platform: vendor=%q, brand=%q, family=%d, model=%d", cpuid.CPU.VendorString, cpuid.CPU.BrandName, cpuid.CPU.Family, cpuid.CPU.Model)
 		}
 		log.Warn("No TEE platform detected, using insecure attestation issuer")
 		return insecure.NewIssuer(), nil
