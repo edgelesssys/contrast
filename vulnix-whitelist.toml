@@ -45,7 +45,7 @@ comment = [
 ]
 
 ["sqlite"]
-cve = [ "CVE-2026-11822", "CVE-2026-11824" ]
+comment = [ "sqlite is only used by lastlog2, which is only used by PAM modules. None of our production flows use PAM modules." ]
 
 # CVEs disclosed after the initial baseline (stopgap; prefer fixing over growing this).
 ["gawk"]
