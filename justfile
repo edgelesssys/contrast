@@ -577,7 +577,7 @@ unit:
 
 # Run the policy test suite.
 policy:
-    nix run -L .#base.policy-test
+    nix shell .#base.policy-test --command policy-test.test -test.v
 
 policy-rpc: debugshell
     #!/usr/bin/env bash
@@ -592,7 +592,7 @@ policy-rpc: debugshell
         --namespace "$ns" \
         --rules "$rules/genpolicy-rules.rego" \
         --settings "$settings/genpolicy-settings.json" \
-        --yaml ./policy-test/assets/pod.yml \
+        --yaml ./policy-test/testdata/pod/resource.yml \
         --output ./{{ workspace_dir }}/policy.jsonl
 
 # Check links.
