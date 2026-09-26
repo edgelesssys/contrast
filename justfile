@@ -579,7 +579,7 @@ unit:
 policy:
     nix run -L .#base.policy-test
 
-policy-rpc: debugshell
+policy-rpc target="policy-rpc": soft-clean (runtime target) (write-namespace target) (apply "runtime" target) debugshell
     #!/usr/bin/env bash
     set -euo pipefail
     rc=$(yq 'select(.kind == "RuntimeClass") | .metadata.name' ./{{ workspace_dir }}/runtime/runtime.yml)
@@ -588,12 +588,14 @@ policy-rpc: debugshell
     settings=$(nix build .#base.kata.genpolicy.settings --no-link --print-out-paths)
     nix run -L .#base.scripts.get-agent-rpcs -- \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
+        --target-conf-type "${node_installer_target_conf_type}" \
         --runtime-class "$rc" \
         --namespace "$ns" \
         --rules "$rules/genpolicy-rules.rego" \
         --settings "$settings/genpolicy-settings.json" \
         --yaml ./policy-test/assets/pod.yml \
         --output ./{{ workspace_dir }}/policy.jsonl
+    nix run .#base.scripts.normalize-agent-rpcs -- ./{{ workspace_dir }}/policy.jsonl > ./policy-test/testdata/testcase.json
 
 # Check links.
 check-links config="external":

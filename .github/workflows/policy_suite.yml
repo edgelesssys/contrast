@@ -1,0 +1,75 @@
+name: run policy test suite
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/policy_suite.yml
+      - packages/by-name/kata/source/**
+      - packages/by-name/scripts/get-agent-rpcs/**
+      - packages/by-name/scripts/normalize-agent-rpcs/**
+
+env:
+  container_registry: ghcr.io/edgelesssys
+
+jobs:
+  get-testcases:
+    name: Get policy suite test cases
+    runs-on: SNP
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PLATFORM: Metal-QEMU-SNP
+      NODE_INSTALLER_TARGET_CONF_TYPE: none
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
+      SET: base
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+      - name: Create justfile.env
+        run: |
+          id=$(uuidgen | cut -d- -f1)
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          default_platform=${PLATFORM}
+          node_installer_target_conf_type=${NODE_INSTALLER_TARGET_CONF_TYPE}
+          namespace_suffix="-$id-ci"
+          set="${SET}"
+          EOF
+      - name: Get test cases
+        run: |
+          just policy-rpc
+      - name: Check for modifications, commit changes on renovate PRs
+        uses: ./.github/actions/pushdiff
+        with:
+          error: Testcases need to be updated, check the GitHub run summary for the diff.
+          suggested-fix: Run \`just policy-rpc\` to fetch new testcases.
+          renovate-commit-msg: "fixup: update policy suite testcases"
+      - name: Cleanup
+        if: always()
+        run: |
+          just undeploy
+
+  test:
+    name: Run policy suite tests
+    needs: get-testcases
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Run policy suite tests
+        run: |
+          just policy
