@@ -91,7 +91,7 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 	oldState, err := s.guard.GetState(ctx)
 	switch {
 	case errors.Is(err, stateguard.ErrStaleState):
-		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
+		return nil, statusErr(codes.FailedPrecondition, ErrNeedsRecovery)
 	case errors.Is(err, stateguard.ErrNoState):
 		// This is fine, we are going to set the initial manifest.
 	case err != nil:
@@ -111,7 +111,7 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		// Subsequent SetManifest call, check permissions of caller.
 		if err := validateSignature(oldManifest.WorkloadOwnerPubKeys, oldState.LatestTransition().TransitionHash, req); err != nil && !errors.Is(err, errNoSignature) {
 			s.logger.Warn("SetManifest signature validation failed", "err", err)
-			return nil, status.Errorf(codes.PermissionDenied, "validating manifest signature: %v", err)
+			return nil, statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
 		} else if errors.Is(err, errNoSignature) {
 			if err := validatePeer(ctx, oldManifest.WorkloadOwnerPubKeys); err != nil {
 				s.logger.Warn("SetManifest peer validation failed", "err", err)
@@ -124,18 +124,18 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 			return nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
 		}
 		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(oldState.LatestTransition().TransitionHash[:], req.GetPreviousTransitionHash()) {
-			return nil, status.Errorf(codes.FailedPrecondition, "previous transition hash '%x' does not match latest state '%x'", req.GetPreviousTransitionHash(), oldState.LatestTransition().TransitionHash)
+			return nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' does not match latest state '%x'", req.GetPreviousTransitionHash(), oldState.LatestTransition().TransitionHash)
 		}
 	} else {
 		// First SetManifest call, initialize seed engine.
 		if req.Signature != nil {
 			if err := validateSignature(m.WorkloadOwnerPubKeys, [history.HashSize]byte{}, req); err != nil {
 				s.logger.Warn("SetManifest signature validation failed for initial manifest", "err", err)
-				return nil, status.Errorf(codes.PermissionDenied, "validating manifest signature: %v", err)
+				return nil, statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
 			}
 		}
 		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(req.GetPreviousTransitionHash(), make([]byte, history.HashSize)) {
-			return nil, status.Errorf(codes.FailedPrecondition, "previous transition hash '%x' requested but manifest history is empty", req.GetPreviousTransitionHash())
+			return nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' requested but manifest history is empty", req.GetPreviousTransitionHash())
 		}
 		seed, err := cryptohelpers.GenerateRandomBytes(constants.SecretSeedSize)
 		if err != nil {
@@ -162,7 +162,7 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 
 	if err := s.checkManifestSecurity(m); err != nil {
 		s.logger.Warn("SetManifest rejected the manifest", "err", err)
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, statusErr(codes.InvalidArgument, err)
 	}
 
 	state, err := s.guard.UpdateState(ctx, oldState, se, req.GetManifest(), req.GetPolicies())
@@ -171,7 +171,7 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		if errors.Is(err, stateguard.ErrConcurrentUpdate) {
 			code = codes.FailedPrecondition
 		}
-		return nil, status.Errorf(code, "updating Coordinator state: %v", err)
+		return nil, statusErrf(code, err, "updating Coordinator state: %v", err)
 	}
 	resp.MeshCA = state.CA().GetMeshCACert()
 	resp.RootCA = state.CA().GetRootCACert()
@@ -186,9 +186,9 @@ func (s *Server) GetManifests(ctx context.Context, _ *userapi.GetManifestsReques
 	state, err := s.guard.GetState(ctx)
 	switch {
 	case errors.Is(err, stateguard.ErrNoState):
-		return nil, status.Error(codes.FailedPrecondition, ErrNoManifest.Error())
+		return nil, statusErr(codes.FailedPrecondition, ErrNoManifest)
 	case errors.Is(err, stateguard.ErrStaleState):
-		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
+		return nil, statusErr(codes.FailedPrecondition, ErrNeedsRecovery)
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	}
@@ -226,11 +226,11 @@ func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*use
 	case errors.Is(err, stateguard.ErrStaleState):
 		// This is fine, we want to recover anyway.
 	case errors.Is(err, stateguard.ErrNoState):
-		return nil, status.Error(codes.FailedPrecondition, "no state to recover from")
+		return nil, statusErr(codes.FailedPrecondition, ErrNoStateToRecover)
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	default:
-		return nil, status.Error(codes.FailedPrecondition, ErrAlreadyRecovered.Error())
+		return nil, statusErr(codes.FailedPrecondition, ErrAlreadyRecovered)
 	}
 
 	if !req.Force {
@@ -389,5 +389,34 @@ var (
 	// configured to accept only insecure manifests.
 	ErrSecureNotAllowed = errors.New("secure manifest is not allowed when the coordinator is configured for insecure manifests")
 
+	// ErrInvalidSignature is returned when the caller is not authorized to change the manifest.
+	ErrInvalidSignature = errors.New("manifest signature is invalid")
+
+	// ErrTransitionMismatch is returned when the requested previous transition hash does not match
+	// the Coordinator's latest transition, i.e. the compare-and-swap guarding the update failed.
+	ErrTransitionMismatch = errors.New("previous transition hash does not match the latest state")
+
+	// ErrNoStateToRecover is returned when recovery is requested but the Coordinator has no state.
+	ErrNoStateToRecover = errors.New("no state to recover from")
+
 	errNoSignature = errors.New("manifest signature is empty")
 )
+
+func statusErr(code codes.Code, err error) error {
+	return &statusError{status: status.New(code, err.Error()), err: err}
+}
+
+func statusErrf(code codes.Code, err error, format string, args ...any) error {
+	return &statusError{status: status.New(code, fmt.Sprintf(format, args...)), err: err}
+}
+
+type statusError struct {
+	status *status.Status
+	err    error
+}
+
+func (e *statusError) Error() string { return e.status.Err().Error() }
+
+func (e *statusError) GRPCStatus() *status.Status { return e.status }
+
+func (e *statusError) Unwrap() error { return e.err }
