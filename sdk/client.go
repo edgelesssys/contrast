@@ -31,11 +31,18 @@ type Client struct {
 
 	log *slog.Logger
 
-	// negotiateMu guards negotiatedVersion.
+	// negotiateMu guards negotiatedVersion and capabilitiesDigest.
 	negotiateMu sync.Mutex
 	// negotiatedVersion caches the API version agreed on with the Coordinator,
 	// empty until negotiated or pinned via [Client.WithAPIVersion].
 	negotiatedVersion string
+	// capabilitiesDigest is the SHA-256 digest of the raw capabilities response body received
+	// from the Coordinator, nil until one was fetched.
+	capabilitiesDigest []byte
+
+	// expectedManifest, if set, provides the reference values the Coordinator is validated
+	// against, instead of the manifest the Coordinator reports.
+	expectedManifest *manifest.Manifest
 
 	// validatorsFromManifestOverride is used by tests to replace the validators.
 	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error)
@@ -93,6 +100,17 @@ func (c *Client) WithSlog(log *slog.Logger) *Client {
 // WithHTTPClient replaces the Client's default [http.Client].
 func (c *Client) WithHTTPClient(httpClient *http.Client) *Client {
 	c.httpapi.HTTPClient = httpClient
+	return c
+}
+
+// WithExpectedManifest makes [Client.ValidateAttestation] derive the Coordinator's reference
+// values from the given manifest, instead of from the manifest the Coordinator reports.
+//
+// Callers that know which manifest the Coordinator is supposed to run should set this. Without
+// it, validation only proves that the Coordinator runs *some* manifest it vouches for itself,
+// and the caller has to compare the returned manifest against its expectation.
+func (c *Client) WithExpectedManifest(m *manifest.Manifest) *Client {
+	c.expectedManifest = m
 	return c
 }
 
