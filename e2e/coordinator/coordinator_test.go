@@ -199,13 +199,12 @@ func TestCoordinator(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		t.Cleanup(cancel)
 
-		client := sdk.New()
-		client.WithSlog(slog.Default())
-
 		nonce := [32]byte{}
+		var client *sdk.Client
 		var report []byte
 		require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator-ready", apitypes.Port, func(addr string) error {
-			r, err := client.GetAttestation(ctx, fmt.Sprintf("http://%s/attest", addr), nonce[:])
+			client = sdk.New(fmt.Sprintf("http://%s", addr)).WithSlog(slog.Default())
+			r, err := client.GetAttestation(ctx, nonce[:])
 			if err != nil {
 				return err
 			}
