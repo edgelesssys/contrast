@@ -70,11 +70,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, fmt.Errorf("creating validator from manifest: %w", err)
 	}
 
-	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validator, c.attestationFailuresCounter)
-	if err != nil {
-		log.Error("Could not create TLS config", "error", err)
-		return nil, nil, err
-	}
+	serverCfg := atls.CreateAttestationServerTLSConfig(c.issuer, validator, c.attestationFailuresCounter)
 
 	conn := tls.Server(rawConn, serverCfg)
 	if err := conn.HandshakeContext(ctx); err != nil {

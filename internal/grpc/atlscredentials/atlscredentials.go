@@ -74,11 +74,7 @@ func (c *Credentials) ClientHandshake(ctx context.Context, authority string, raw
 func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	c.logger.Debug("ServerHandshake", "peer", rawConn.RemoteAddr())
 
-	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, c.validator, c.attestationFailures)
-	if err != nil {
-		c.logger.Error("Error creating server TLS config", "error", err)
-		return nil, nil, err
-	}
+	serverCfg := atls.CreateAttestationServerTLSConfig(c.issuer, c.validator, c.attestationFailures)
 
 	ctx, cancel := context.WithTimeout(context.Background(), constants.ATLSServerHandshakeTimeout)
 	defer cancel()

@@ -44,15 +44,10 @@ var (
 // CreateAttestationServerTLSConfig creates a tls.Config object with a self-signed certificate and an embedded attestation document.
 // If issuer is nil, no attestation will be embedded.
 // If validator is nil, no attestation will be requested from the peer. Otherwise, use mutual TLS.
-func CreateAttestationServerTLSConfig(issuer Issuer, validator validators.Validator, attestationFailures prometheus.Counter) (*tls.Config, error) {
-	getConfigForClient, err := getATLSConfigForClientFunc(issuer, validator, attestationFailures)
-	if err != nil {
-		return nil, fmt.Errorf("get aTLS config for client: %w", err)
-	}
-
+func CreateAttestationServerTLSConfig(issuer Issuer, validator validators.Validator, attestationFailures prometheus.Counter) *tls.Config {
 	return &tls.Config{
-		GetConfigForClient: getConfigForClient,
-	}, nil
+		GetConfigForClient: getATLSConfigForClientFunc(issuer, validator, attestationFailures),
+	}
 }
 
 // CreateAttestationClientTLSConfig creates a tls.Config object that verifies a certificate with an embedded attestation document.
@@ -103,19 +98,16 @@ type Issuer interface {
 
 // getATLSConfigForClientFunc returns a config setup function that is called once for every client connecting to the server.
 // This allows for different server configuration for every client.
-// In aTLS this is used to generate unique nonces for every client.
+// In aTLS this is used to generate unique nonces and keys for every session.
 //
 // As a special case, client certificates are not required if the input validator is nil.
-func getATLSConfigForClientFunc(issuer Issuer, validator validators.Validator, attestationFailures prometheus.Counter) (func(*tls.ClientHelloInfo) (*tls.Config, error), error) {
-	// generate key for the server
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("generate key: %w", err)
-	}
-
+func getATLSConfigForClientFunc(issuer Issuer, validator validators.Validator, attestationFailures prometheus.Counter) func(*tls.ClientHelloInfo) (*tls.Config, error) {
 	// this function will be called once for every client
 	return func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
-		// generate nonce for this connection
+		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return nil, fmt.Errorf("generate key: %w", err)
+		}
 		serverNonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
 		if err != nil {
 			return nil, fmt.Errorf("generate nonce: %w", err)
@@ -151,7 +143,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validator validators.Validator, a
 		}
 
 		return cfg, nil
-	}, nil
+	}
 }
 
 // getCertificate creates a client or server certificate for aTLS connections.
