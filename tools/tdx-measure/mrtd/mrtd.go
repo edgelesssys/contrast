@@ -105,6 +105,10 @@ func (l *LaunchContext) WriteRegion(gpa uint64, data []byte, dataLen uint64, ext
 	if dataLen%pageSize != 0 {
 		return fmt.Errorf("data length 0x%X is not a multiple of page size 0x%X", dataLen, pageSize)
 	}
+	// Only extended pages read from data, pages that are just added may exceed it.
+	if extend && dataLen > uint64(len(data)) {
+		return fmt.Errorf("data length 0x%X exceeds available data 0x%X", dataLen, len(data))
+	}
 
 	for i := range dataLen / pageSize {
 		pageOffset := i * pageSize
