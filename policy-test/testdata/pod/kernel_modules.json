@@ -1,12 +1,12 @@
 [
   {
     "op": "test",
-    "path": "/2/kind",
+    "path": "/1/kind",
     "value": "CreateSandboxRequest"
   },
   {
     "op": "replace",
-    "path": "/2/request/kernel_modules",
+    "path": "/1/request/kernel_modules",
     "value": [
       {
         "name": "evil"
@@ -15,7 +15,7 @@
   },
   {
     "op": "replace",
-    "path": "/2/allowed",
+    "path": "/1/allowed",
     "value": false
   }
 ]
