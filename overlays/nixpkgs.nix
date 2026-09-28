@@ -167,4 +167,11 @@ final: prev:
       (builtins.filter (flag: builtins.match ".*libarchive.*" flag == null) prevAttrs.configureFlags)
       ++ [ "--without-libarchive" ];
   });
+
+  # composefs tests fail when building with nix >=2.35 due to tighter sandboxing.
+  # Ignore the tests until upstream reaches a solution for this.
+  # Upstream issue: https://github.com/NixOS/nixpkgs/issues/567933.
+  composefs = prev.composefs.overrideAttrs (_prevAttrs: {
+    doCheck = false;
+  });
 }
