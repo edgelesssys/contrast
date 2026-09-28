@@ -72,11 +72,18 @@ func TestParseTdvfSectionsMalformed(t *testing.T) {
 		{DataOffset: 0, RawDataSize: 0xffffffff},
 	})
 
+	// An extended section whose MemoryDataSize (one page) exceeds its
+	// RawDataSize, so measuring it would read past the section's data.
+	extendBeyondRawData := buildTDVF([]tdvfSection{
+		{DataOffset: 0, RawDataSize: 256, MemoryDataSize: 4096, Attributes: mrExtend},
+	})
+
 	testCases := map[string][]byte{
 		"empty":                               nil,
 		"sub-48-byte":                         make([]byte, 32),
 		"footer present, inconsistent length": inconsistentTableLength,
 		"section data range exceeds firmware": badSectionRange,
+		"extended section exceeds raw data":   extendBeyondRawData,
 	}
 
 	for name, firmware := range testCases {
@@ -88,5 +95,17 @@ func TestParseTdvfSectionsMalformed(t *testing.T) {
 				t.Errorf("CalculateMrTd(%s) = (_, nil), want an error", name)
 			}
 		})
+	}
+}
+
+// TestCalculateMrTdUnextendedSection ensures a section that is only added to
+// memory, not extended into the MRTD, may be larger than its raw data. OVMF's
+// TempMem and TD_HOB sections have RawDataSize 0 and a non-zero MemoryDataSize.
+func TestCalculateMrTdUnextendedSection(t *testing.T) {
+	firmware := buildTDVF([]tdvfSection{
+		{DataOffset: 0, RawDataSize: 0, MemoryDataSize: 4096},
+	})
+	if _, err := CalculateMrTd(firmware, ""); err != nil {
+		t.Errorf("CalculateMrTd() = (_, %v), want no error", err)
 	}
 }
