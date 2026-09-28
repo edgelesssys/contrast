@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+// maxResponseSize bounds the allocation for a QGS response. Collateral is usually tens of KiB,
+// this leaves ample room for growing CRLs.
+const maxResponseSize = 16 * 1024 * 1024 // 16 MiB
+
 // Client facilitates RPCs with the Intel QGS.
 //
 // Create instances with NewClient.
@@ -91,6 +95,11 @@ func (c *Client) GetCollateral(ctx context.Context, req *GetCollateralRequest) (
 		var length uint32
 		if err := binary.Read(c.conn, binary.BigEndian, &length); err != nil {
 			readErr = fmt.Errorf("reading response length: %w", err)
+			return
+		}
+
+		if length > maxResponseSize {
+			readErr = fmt.Errorf("response length %d exceeds maximum %d", length, maxResponseSize)
 			return
 		}
 
