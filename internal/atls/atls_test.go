@@ -12,9 +12,14 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net"
+	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls/reportdata"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
@@ -291,4 +296,109 @@ func TestGetNonce(t *testing.T) {
 			assert.NoError(err)
 		})
 	}
+}
+
+// TestUniqueKeys ensures that the config returned from CreateAttestationServerTLSConfig creates a new key per session.
+func TestUniqueKeys(t *testing.T) {
+	require := require.New(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	issuer := &stubIssuer{}
+	validator := validators.ValidatorFunc(func(context.Context, asn1.ObjectIdentifier, []byte, []byte) error {
+		return nil
+	})
+	clientConfig, err := CreateAttestationClientTLSConfig(ctx, issuer, validator, nil)
+	require.NoError(err)
+	serverConfig := CreateAttestationServerTLSConfig(issuer, validator, NoMetrics)
+
+	const n = 5
+	serverCerts := make(map[string]struct{})
+
+	for i := range n {
+		t.Run(fmt.Sprintf("handshake-%d", i), func(t *testing.T) {
+			assert := assert.New(t)
+			clientConn, serverConn := socketPair(t)
+			t.Cleanup(func() {
+				clientConn.Close()
+				serverConn.Close()
+			})
+			clientTLSConn := tls.Client(clientConn, clientConfig)
+			serverTLSConn := tls.Server(serverConn, serverConfig)
+
+			wg := &sync.WaitGroup{}
+			wg.Go(func() {
+				assert.NoError(serverTLSConn.HandshakeContext(ctx))
+			})
+			wg.Go(func() {
+				assert.NoError(clientTLSConn.HandshakeContext(ctx))
+			})
+			wg.Wait()
+
+			s := clientTLSConn.ConnectionState().PeerCertificates
+			if !assert.Len(s, 1) {
+				return
+			}
+
+			pk, err := x509.MarshalPKIXPublicKey(s[0].PublicKey)
+			if !assert.NoError(err) {
+				return
+			}
+			ski := hex.EncodeToString(pk)
+			t.Log(ski)
+			serverCerts[ski] = struct{}{}
+		})
+	}
+
+	require.Len(serverCerts, n)
+}
+
+type stubIssuer struct{}
+
+func (stubIssuer) Issue(context.Context, [64]byte) ([]byte, error) {
+	return []byte("report"), nil
+}
+
+func (stubIssuer) OID() asn1.ObjectIdentifier {
+	// Needs to be a real OID to pass verifyEmbeddedReport.
+	return oid.RawInsecureReport
+}
+
+// socketPair creates a pair of connected net.Conn objects.
+//
+// This works around issues with net.Pair, which is completely unbuffered and makes TLS handshakes
+// time out. Uses concrete UNIX domain sockets in a temp dir, since abstract ones are Linux-only.
+func socketPair(t *testing.T) (net.Conn, net.Conn) {
+	net.Pipe()
+	t.Helper()
+	require := require.New(t)
+	assert := assert.New(t)
+
+	d := t.TempDir()
+	sock := filepath.Join(d, "tmp.sock")
+
+	var clientConn, serverConn net.Conn
+	wg := sync.WaitGroup{}
+	doneCh := make(chan struct{})
+	wg.Go(func() {
+		listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock})
+		if assert.NoError(err) {
+			close(doneCh)
+			serverConn, err = listener.Accept()
+			assert.NoError(err)
+		}
+		assert.NoError(listener.Close())
+	})
+	wg.Go(func() {
+		<-doneCh
+		var err error
+		clientConn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: sock})
+		assert.NoError(err)
+	})
+	wg.Wait()
+
+	require.NotNil(serverConn)
+	require.NotNil(clientConn)
+
+	return clientConn, serverConn
 }
