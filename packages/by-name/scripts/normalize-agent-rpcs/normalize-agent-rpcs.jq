@@ -1,6 +1,5 @@
 [
     "UpdateInterfaceRequest",
-    "UpdateRoutesRequest",
     "CreateSandboxRequest",
     "CreateContainerRequest",
     "RemoveContainerRequest",
