@@ -141,6 +141,9 @@ func (r *GetCollateralResponse) unmarshalBinary(data []byte) error {
 	offset := uint32(fixedDataLen)
 	for i, recv := range receivers {
 		size := binary.LittleEndian.Uint32(data[(i+1)*4 : (i+2)*4])
+		if size > uint32(len(data))-offset {
+			return fmt.Errorf("field %d: size %d exceeds remaining %d bytes", i, size, uint32(len(data))-offset)
+		}
 		*recv = data[offset : offset+size]
 		offset += size
 	}

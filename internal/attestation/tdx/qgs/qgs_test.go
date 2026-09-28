@@ -5,6 +5,8 @@ package qgs
 
 import (
 	_ "embed"
+	"encoding/binary"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -74,4 +76,38 @@ func TestToTDXGuest(t *testing.T) {
 	assert.NotZero(collateral.QeIdentity)
 	assert.NotNil(collateral.EnclaveIdentityBody)
 	assert.NotNil(collateral.RootCaCrl)
+}
+
+func TestResponseUnmarshalling_Malformed(t *testing.T) {
+	// body builds a response body with the given blob sizes and payload length.
+	body := func(payload int, sizes ...uint32) []byte {
+		buf := binary.LittleEndian.AppendUint16(nil, 1)
+		buf = binary.LittleEndian.AppendUint16(buf, 0)
+		for _, s := range sizes {
+			buf = binary.LittleEndian.AppendUint32(buf, s)
+		}
+		return append(buf, make([]byte, payload)...)
+	}
+
+	testCases := map[string][]byte{
+		"too short":           body(0, 0, 0, 0),
+		"blob exceeds body":   body(4, 0, 0, 0, 0, 0, 0, 5),
+		"blob sizes overflow": body(4, 4, math.MaxUint32, 0, 0, 0, 0, 0),
+		"trailing bytes":      body(4, 0, 0, 0, 0, 0, 0, 3),
+	}
+
+	for name, data := range testCases {
+		t.Run(name, func(t *testing.T) {
+			var resp GetCollateralResponse
+			assert.Error(t, resp.unmarshalBinary(data))
+		})
+	}
+}
+
+func FuzzResponseUnmarshalling(f *testing.F) {
+	f.Add(getCollateralResponse[lenHeader:])
+	f.Fuzz(func(_ *testing.T, data []byte) {
+		var resp GetCollateralResponse
+		_ = resp.unmarshalBinary(data)
+	})
 }

@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
+	"math"
 	"net"
 	"testing"
 	"time"
@@ -52,6 +53,39 @@ func TestClient(t *testing.T) {
 	require.Equal(getCollateralRequest, spy.observedRequest)
 }
 
+func TestClient_OversizedResponse(t *testing.T) {
+	require := require.New(t)
+
+	c, s := net.Pipe()
+	t.Cleanup(func() { _ = s.Close() })
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	// Announce a response of maximal size, but never send it.
+	spy := spyConn{
+		conn:           s,
+		responseLength: math.MaxUint32,
+	}
+
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return spy.Run(ctx)
+	})
+
+	client := NewClient(c)
+	t.Cleanup(func() { _ = client.Close() })
+
+	req := &GetCollateralRequest{
+		FMSPC:  [lenFSMPC]byte{0x90, 0xc0, 0x6f, 0x00, 0x00, 0x00},
+		CAType: CATypePlatform,
+	}
+
+	_, err := client.GetCollateral(ctx, req)
+	require.ErrorContains(err, "exceeds maximum")
+	require.NoError(eg.Wait())
+}
+
 func TestClient_UnresponsiveServer(t *testing.T) {
 	require := require.New(t)
 
@@ -78,6 +112,8 @@ type spyConn struct {
 	conn net.Conn
 	// response will be sent, prefixed by the big-endian size header
 	response []byte
+	// responseLength overrides the size header, if set.
+	responseLength uint32
 	// observedRequest will be filled with the serialized request object.
 	observedRequest []byte
 }
@@ -92,7 +128,11 @@ func (c *spyConn) Run(context.Context) error {
 		return err
 	}
 
-	if err := binary.Write(c.conn, binary.BigEndian, uint32(len(c.response))); err != nil {
+	length := c.responseLength
+	if length == 0 {
+		length = uint32(len(c.response))
+	}
+	if err := binary.Write(c.conn, binary.BigEndian, length); err != nil {
 		return err
 	}
 	if _, err := io.Copy(c.conn, bytes.NewBuffer(c.response)); err != nil {
