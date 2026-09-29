@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -161,6 +162,7 @@ func TestGetAndVerifyImage(t *testing.T) {
 					tc.imageRef,
 					tc.digest,
 				),
+				directSource(t),
 			)
 
 			assert.ErrorIs(err, tc.wantErr)
@@ -218,6 +220,7 @@ func TestStoreAndVerifyLayers(t *testing.T) {
 					server.Listener.Addr().String(),
 					registry.ManifestDigest(),
 				),
+				directSource(t),
 			)
 			require.NoError(err)
 
@@ -273,6 +276,7 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 					server.Listener.Addr().String(),
 					tc.digest,
 				),
+				directSource(t),
 			)
 			require.NoError(err)
 
@@ -405,4 +409,13 @@ func (e *timeoutError) Temporary() bool { return true }
 
 func (e *timeoutError) Is(err error) bool {
 	return err == context.DeadlineExceeded
+}
+
+// directSource returns the source for an image registry without any configuration.
+func directSource(t *testing.T) auth.Source {
+	t.Helper()
+	sources, err := (&auth.Config{}).SourcesFor("registry.invalid/image@sha256:"+strings.Repeat("0", 64), slog.Default())
+	require.NoError(t, err)
+	require.Len(t, sources, 1)
+	return sources[0]
 }

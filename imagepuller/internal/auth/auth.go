@@ -123,6 +123,34 @@ func newTransport(registry Registry, log *slog.Logger) *http.Transport {
 	return transport
 }
 
+// Source is a location to pull an image from, with the authentication and transport to use.
+type Source struct {
+	// Name identifies the source in logs and errors.
+	Name          string
+	Authenticator authn.Authenticator
+	Transport     http.RoundTripper
+}
+
+// SourcesFor returns the sources to try, in order, when pulling the given image.
+//
+// If the image's registry has a mirror, the image is pulled through the mirror.
+func (c *Config) SourcesFor(imageRef string, log *slog.Logger) ([]Source, error) {
+	authenticator, rt, err := c.AuthTransportFor(imageRef, log)
+	if err != nil {
+		return nil, err
+	}
+	ref, err := name.ParseReference(imageRef)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errUnparseableRef, err)
+	}
+	registry := c.registryFor(ref.Context().RegistryStr())
+	if registry.Mirror == "" {
+		return []Source{{Name: "registry", Authenticator: *authenticator, Transport: rt}}, nil
+	}
+
+	return []Source{{Name: "mirror", Authenticator: *authenticator, Transport: rt}}, nil
+}
+
 // ApplyEnvVars applies the envvar-based proxy configuration in ExtraEnv.
 func (c *Config) ApplyEnvVars() {
 	allowedEnvVars := []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY"}

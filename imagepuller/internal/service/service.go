@@ -86,7 +86,11 @@ func (s *ImagePullerService) PullImage(
 		return &katacomponents.ImagePullResponse{}, nil
 	}
 
-	finalLayer, err := s.pullLayers(ctx, log, r.ImageUrl)
+	sources, err := s.AuthConfig.SourcesFor(r.ImageUrl, log)
+	if err != nil {
+		return nil, fmt.Errorf("obtaining sources for %s: %w", r.ImageUrl, err)
+	}
+	finalLayer, err := s.pullLayers(ctx, log, r.ImageUrl, sources[0])
 	if err != nil {
 		return nil, err
 	}
@@ -113,10 +117,10 @@ func (s *ImagePullerService) PullImage(
 	return &katacomponents.ImagePullResponse{}, nil
 }
 
-// pullLayers fetches and verifies the image and puts its layers into the store.
+// pullLayers fetches and verifies the image from the given source and puts its layers into the store.
 // It returns the ID of the image's top layer.
-func (s *ImagePullerService) pullLayers(ctx context.Context, log *slog.Logger, imageURL string) (string, error) {
-	remoteImg, err := s.getAndVerifyImage(ctx, log, imageURL)
+func (s *ImagePullerService) pullLayers(ctx context.Context, log *slog.Logger, imageURL string, src auth.Source) (string, error) {
+	remoteImg, err := s.getAndVerifyImage(ctx, log, imageURL, src)
 	if err != nil {
 		return "", fmt.Errorf("obtaining and verifying image: %w", err)
 	}
