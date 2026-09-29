@@ -82,6 +82,9 @@ If you need to include new changes merged into main since the last successful ni
 
 1. Ensure all needed PRs were backported to the current release branch, and all backport PRs were merged.
 
+   The release runs the release branch's copy of the workflows and actions, so fixes to the release process merged on main after the branch was cut are missing unless they were backported.
+   Check with `git fetch origin && git diff origin/release/vX.Y origin/main -- .github/workflows .github/actions` and backport the relevant fixes before continuing.
+
 2. Export the release you want to make:
 
     ```sh
