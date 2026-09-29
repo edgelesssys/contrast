@@ -90,7 +90,9 @@ func (s *ImagePullerService) PullImage(
 	if err != nil {
 		return nil, fmt.Errorf("obtaining sources for %s: %w", r.ImageUrl, err)
 	}
-	finalLayer, err := s.pullLayers(ctx, log, r.ImageUrl, sources[0])
+	finalLayer, err := pullFromSources(ctx, log, sources, func(log *slog.Logger, src auth.Source) (string, error) {
+		return s.pullLayers(ctx, log, r.ImageUrl, src)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +119,25 @@ func (s *ImagePullerService) PullImage(
 	return &katacomponents.ImagePullResponse{}, nil
 }
 
+// pullFromSources calls pull for each source in order until one succeeds.
+// It doesn't try further sources when the failure doesn't depend on the source.
+func pullFromSources(ctx context.Context, log *slog.Logger, sources []auth.Source, pull func(*slog.Logger, auth.Source) (string, error)) (string, error) {
+	var errs []error
+	for i, src := range sources {
+		srcLog := log.With(slog.String("source", src.Name))
+		finalLayer, err := pull(srcLog, src)
+		if err == nil {
+			return finalLayer, nil
+		}
+		errs = append(errs, fmt.Errorf("pulling from %s: %w", src.Name, err))
+		if errors.Is(err, errInsufficientStorage) || ctx.Err() != nil || i == len(sources)-1 {
+			break
+		}
+		srcLog.Warn("Pull failed, trying the next source", "err", err)
+	}
+	return "", errors.Join(errs...)
+}
+
 // pullLayers fetches and verifies the image from the given source and puts its layers into the store.
 // It returns the ID of the image's top layer.
 func (s *ImagePullerService) pullLayers(ctx context.Context, log *slog.Logger, imageURL string, src auth.Source) (string, error) {
@@ -136,7 +157,8 @@ func (s *ImagePullerService) pullLayers(ctx context.Context, log *slog.Logger, i
 	}
 	if availableStorage < requiredStorage {
 		return "", fmt.Errorf(
-			"insufficient storage: pulling %q would require at least %s, but only %s are currently available. Increase the memory limit or image store size",
+			"%w: pulling %q would require at least %s, but only %s are currently available. Increase the memory limit or image store size",
+			errInsufficientStorage,
 			imageURL,
 			formatBytes(requiredStorage),
 			formatBytes(availableStorage),
@@ -150,6 +172,9 @@ func (s *ImagePullerService) pullLayers(ctx context.Context, log *slog.Logger, i
 	log.Info("Verified and put in store layers")
 	return finalLayer, nil
 }
+
+// errInsufficientStorage is returned when the image doesn't fit into the store, regardless of where it's pulled from.
+var errInsufficientStorage = errors.New("insufficient storage")
 
 // cleanupOrphanedContainers removes store containers whose bundle has been torn down by the kata agent.
 // Image pulls always create new store containers with their own read-write layer. The agent only unmounts and removes the bundle rootfs on teardown.
