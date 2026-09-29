@@ -78,6 +78,28 @@ func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Aut
 		log.Info("accessing registry anonymously")
 	}
 
+	transport := newTransport(registry, log)
+
+	var rt http.RoundTripper = transport
+	if registry.Mirror != "" {
+		mirror, err := url.Parse(registry.Mirror)
+		if err != nil {
+			return nil, nil, fmt.Errorf("parsing registry mirror URL: %w", err)
+		}
+		rt = &MirroringRoundTripper{
+			address: mirror,
+			rt:      transport,
+		}
+		log.Info("using mirror registry", "mirror", registry.Mirror)
+	} else {
+		log.Info("using direct connection to registry")
+	}
+
+	return &authenticator, rt, nil
+}
+
+// newTransport constructs the HTTP transport for a registry configuration.
+func newTransport(registry Registry, log *slog.Logger) *http.Transport {
 	transport := &http.Transport{
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: registry.InsecureSkipVerify},
 		Proxy:                 http.ProxyFromEnvironment,
@@ -98,23 +120,7 @@ func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Aut
 	} else {
 		log.Info("using default CA certificates")
 	}
-
-	var rt http.RoundTripper = transport
-	if registry.Mirror != "" {
-		mirror, err := url.Parse(registry.Mirror)
-		if err != nil {
-			return nil, nil, fmt.Errorf("parsing registry mirror URL: %w", err)
-		}
-		rt = &MirroringRoundTripper{
-			address: mirror,
-			rt:      transport,
-		}
-		log.Info("using mirror registry", "mirror", registry.Mirror)
-	} else {
-		log.Info("using direct connection to registry")
-	}
-
-	return &authenticator, rt, nil
+	return transport
 }
 
 // ApplyEnvVars applies the envvar-based proxy configuration in ExtraEnv.
