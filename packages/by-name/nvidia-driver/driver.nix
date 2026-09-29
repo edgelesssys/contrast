@@ -21,9 +21,9 @@
     persistencedSha256 = nvidiaPackages.production.persistenced.src.outputHash;
     useSettings = false;
   }).override
-  {
-    disable32Bit = true;
-  }
+    {
+      disable32Bit = true;
+    }
 ).overrideAttrs
   (_oldAttrs: {
     # We strip the driver package from its dependencies on desktop software like Wayland and X11.

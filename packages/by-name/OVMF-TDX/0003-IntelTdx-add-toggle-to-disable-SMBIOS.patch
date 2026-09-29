@@ -10,10 +10,10 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  2 files changed, 13 insertions(+), 3 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.dsc b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
-index 7294a071ec953bb72b49941882ebfbbed48f6f6c..0fafb76a8398b56601392a300df304db22ed02c1 100644
+index a20270aaa39b2131b7de9e6b460e3821611da0bf..47826c25f470e4c577cfecaf15a8e9c4b3c4929a 100644
 --- a/OvmfPkg/IntelTdx/IntelTdxX64.dsc
 +++ b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
-@@ -510,9 +510,11 @@
+@@ -525,9 +525,11 @@
    gEfiMdeModulePkgTokenSpaceGuid.PcdSetupVideoHorizontalResolution|640
    gEfiMdeModulePkgTokenSpaceGuid.PcdSetupVideoVerticalResolution|480
  
@@ -25,7 +25,7 @@ index 7294a071ec953bb72b49941882ebfbbed48f6f6c..0fafb76a8398b56601392a300df304db
  
    # Noexec settings for DXE.
    gEfiMdeModulePkgTokenSpaceGuid.PcdSetNxForStack|TRUE
-@@ -695,11 +697,13 @@
+@@ -712,11 +714,13 @@
    #
    # SMBIOS Support
    #
@@ -39,7 +39,7 @@ index 7294a071ec953bb72b49941882ebfbbed48f6f6c..0fafb76a8398b56601392a300df304db
  
    #
    # ACPI Support
-@@ -760,4 +764,6 @@
+@@ -777,4 +781,6 @@
    #
    # Smbios Measurement support
    #
@@ -47,10 +47,10 @@ index 7294a071ec953bb72b49941882ebfbbed48f6f6c..0fafb76a8398b56601392a300df304db
    MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.inf
 +!endif
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.fdf b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-index 238ff73d7ae7bfb08ebdaf14063c7496632f2f96..914c7b72dfe597fb9d15254925f5dd3ab9a467f1 100644
+index c52a466ef3058682d56b58ff667d7d59e13dbc2b..92ecdb0b95c016ffca7d7083def7974d2145befa 100644
 --- a/OvmfPkg/IntelTdx/IntelTdxX64.fdf
 +++ b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-@@ -236,8 +236,10 @@ INF  MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
+@@ -237,8 +237,10 @@ INF  MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
  INF  OvmfPkg/SioBusDxe/SioBusDxe.inf
  INF  MdeModulePkg/Bus/Pci/PciSioSerialDxe/PciSioSerialDxe.inf
  
@@ -63,7 +63,7 @@ index 238ff73d7ae7bfb08ebdaf14063c7496632f2f96..914c7b72dfe597fb9d15254925f5dd3a
  
  INF  MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
  INF  OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
-@@ -263,7 +265,9 @@ INF OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.inf
+@@ -264,7 +266,9 @@ INF OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.inf
    #
    # Smbios Measurement support
    #
@@ -72,5 +72,5 @@ index 238ff73d7ae7bfb08ebdaf14063c7496632f2f96..914c7b72dfe597fb9d15254925f5dd3a
 +  INF MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.inf
 +!endif
  
- ################################################################################
- 
+ !if $(BUILD_FIRMWARE_UI) == TRUE
+   INF MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf

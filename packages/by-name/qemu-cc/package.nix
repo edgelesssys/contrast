@@ -61,6 +61,6 @@
     ++ lib.optionals (!gpuSupport) [
       # If we're not building with GPU support, we can omit the PCI-related ACPI tables
       # to achieve stable TDX RTMRs.
-      ./0006-i386-omit-some-unneeded-ACPI-tables.patch
+      ./0005-i386-omit-some-unneeded-ACPI-tables.patch
     ];
   })

@@ -27,10 +27,11 @@ edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
     acpica-tools
   ];
 
-  # When applying these patches with `git am`, use `--ignore-space-change`
+  # When applying these patches with `git am`, use `--ignore-space-change` and `--keep-cr`
   # to ignore CRLF conversion changes. When creating the patches, you should
   # still set your VSCode or editor to use CRLF line endings to match the
-  # upstream style and create a sane diff.
+  # upstream style and create a sane diff. Don't set `--ignore-space-change` with
+  # `git format-patch`!
   patches = [
     # Skip the measurement of the guest-memory-dependent TD HOBs and verify
     # them in the measured firmware instead.

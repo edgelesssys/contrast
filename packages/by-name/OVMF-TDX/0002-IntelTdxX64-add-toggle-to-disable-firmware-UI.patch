@@ -7,15 +7,15 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
 Co-authored-by: Spyros Seimenis <sse@edgeless.systems>
 ---
  OvmfPkg/IntelTdx/IntelTdxX64.dsc                     | 10 ++++++++++
- OvmfPkg/IntelTdx/IntelTdxX64.fdf                     |  6 ++++--
+ OvmfPkg/IntelTdx/IntelTdxX64.fdf                     |  8 ++++++--
  OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c | 11 +++++++++++
- 3 files changed, 25 insertions(+), 2 deletions(-)
+ 3 files changed, 27 insertions(+), 2 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.dsc b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
-index 18fd116311e14f611be609d202339c1deb52a7fb..7294a071ec953bb72b49941882ebfbbed48f6f6c 100644
+index be2ddacaac9085c4cee8ad4853b5f9b08a492608..a20270aaa39b2131b7de9e6b460e3821611da0bf 100644
 --- a/OvmfPkg/IntelTdx/IntelTdxX64.dsc
 +++ b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
-@@ -36,6 +36,9 @@
+@@ -37,6 +37,9 @@
    #
    DEFINE BUILD_SHELL             = TRUE
  
@@ -25,7 +25,7 @@ index 18fd116311e14f611be609d202339c1deb52a7fb..7294a071ec953bb72b49941882ebfbbe
    #
    # Device drivers
    #
-@@ -458,7 +461,12 @@
+@@ -471,7 +474,12 @@
    gEfiShellPkgTokenSpaceGuid.PcdShellFileOperationSize|0x20000
  
    # Point to the MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
@@ -38,7 +38,7 @@ index 18fd116311e14f611be609d202339c1deb52a7fb..7294a071ec953bb72b49941882ebfbbe
  
    #
    # PcdFirstTimeWakeUpAPsBySipi determines whether to employ
-@@ -623,6 +631,7 @@
+@@ -637,6 +645,7 @@
        XenPlatformLib|OvmfPkg/Library/XenPlatformLib/XenPlatformLib.inf
    }
    MdeModulePkg/Logo/LogoDxe.inf
@@ -46,7 +46,7 @@ index 18fd116311e14f611be609d202339c1deb52a7fb..7294a071ec953bb72b49941882ebfbbe
    MdeModulePkg/Application/UiApp/UiApp.inf {
      <LibraryClasses>
        NULL|MdeModulePkg/Library/DeviceManagerUiLib/DeviceManagerUiLib.inf
-@@ -630,6 +639,7 @@
+@@ -644,6 +653,7 @@
        NULL|MdeModulePkg/Library/BootMaintenanceManagerUiLib/BootMaintenanceManagerUiLib.inf
    }
    MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
@@ -55,24 +55,33 @@ index 18fd116311e14f611be609d202339c1deb52a7fb..7294a071ec953bb72b49941882ebfbbe
      <LibraryClasses>
        NULL|OvmfPkg/Library/BlobVerifierLibNull/BlobVerifierLibNull.inf
 diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.fdf b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-index da48f67fb34279ca74636bd42825696db296bb75..238ff73d7ae7bfb08ebdaf14063c7496632f2f96 100644
+index 53f2b51f62eb6b85f932480a34ba90f4eba3cad4..c52a466ef3058682d56b58ff667d7d59e13dbc2b 100644
 --- a/OvmfPkg/IntelTdx/IntelTdxX64.fdf
 +++ b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
-@@ -216,8 +216,10 @@ INF  MdeModulePkg/Universal/Console/ConPlatformDxe/ConPlatformDxe.inf
- INF  MdeModulePkg/Universal/Console/ConSplitterDxe/ConSplitterDxe.inf
- INF  MdeModulePkg/Universal/Console/TerminalDxe/TerminalDxe.inf
- INF  MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
--INF  MdeModulePkg/Application/UiApp/UiApp.inf
+@@ -266,7 +266,9 @@ INF OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.inf
+   #
+ INF MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.inf
+ 
 -INF  MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
 +!if $(BUILD_FIRMWARE_UI) == TRUE
-+  INF MdeModulePkg/Application/UiApp/UiApp.inf
 +  INF MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
 +!endif
- INF  OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.inf
- INF  MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
- INF  MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
+ 
+ INF  OvmfPkg/PlatformDxe/Platform.inf
+ 
+@@ -312,7 +314,9 @@ INF  OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
+ 
+ INF  MdeModulePkg/Logo/LogoDxe.inf
+ 
+-INF  MdeModulePkg/Application/UiApp/UiApp.inf
++!if $(BUILD_FIRMWARE_UI) == TRUE
++  INF MdeModulePkg/Application/UiApp/UiApp.inf
++!endif
+ 
+ #
+ # Usb Support
 diff --git a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
-index b696f1b3389b38757621f7dd289b53a15a7fa8c0..153f509eb7057b884ecff44434dc819cf40e797f 100644
+index 3edb92fabcb75a27440d8dc18b096a0f954372c7..ae38a8b4e37584d23ba6b24b71c62be6316e4a53 100644
 --- a/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
 +++ b/OvmfPkg/Library/PlatformBootManagerLib/BdsPlatform.c
 @@ -152,6 +152,17 @@ PlatformRegisterOptionsAndKeys (
