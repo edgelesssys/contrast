@@ -30,6 +30,7 @@ in
     # However, we do not use the repart unit, as we don't want
     # dynamic repartitioning at run- / boot-time.
     image.repart = {
+      enable = true;
       name = "image-podvm-gpu";
       inherit (config.system.image) version;
 

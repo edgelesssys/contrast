@@ -128,9 +128,7 @@ final: prev:
     withDocumentation = false;
     withFido2 = false;
     withHomed = false;
-    # TODO(burgerdev): uncomment after
-    # https://github.com/NixOS/nixpkgs/commit/ccc474fdb4007ac2788533b50ec26740d47e9a56
-    # withImds = false;
+    withImds = false;
     withImportd = false;
     withLibBPF = false;
     withLibarchive = false;
@@ -191,4 +189,18 @@ final: prev:
   libbsd = prev.libbsd.overrideAttrs (
     final.lib.optionalAttrs prev.stdenv.hostPlatform.isMusl { doCheck = false; }
   );
+
+  # crane forbids reading blobs from symlinks since v0.22. The motivation for this change is not
+  # clear, but in our case the blob directories are trusted, so just revert the commit
+  # 7f937fe593c4e8c7c858adcac46615955430346a.
+  # Upstream PR: https://github.com/google/go-containerregistry/pull/2462
+  crane = prev.crane.overrideAttrs (prevAttrs: {
+    patches = prevAttrs.patches or [ ] ++ [
+      (final.fetchpatch {
+        # This is from github.com/anguslees/go-containerregistry.
+        url = "https://github.com/google/go-containerregistry/commit/cab04e6968ff9c413544ce6da273be895491474b.patch";
+        hash = "sha256-dnyk2QsAONz9K/uzsPCtKPlul6marBhOTXXBtsJKLok=";
+      })
+    ];
+  });
 }

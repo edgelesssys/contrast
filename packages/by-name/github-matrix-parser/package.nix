@@ -6,7 +6,7 @@
   stdenv,
   fetchFromGitHub,
   nodejs,
-  pnpm_9,
+  pnpm_11,
   pnpmConfigHook,
   fetchPnpmDeps,
   makeWrapper,
@@ -25,16 +25,16 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     nodejs
-    pnpm_9
+    pnpm_11
     pnpmConfigHook
     makeWrapper
   ];
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
-    pnpm = pnpm_9;
-    fetcherVersion = 3;
-    hash = "sha256-mQysvhSwfjrVSbUnCNFgW4k25YZmuFtxaKtYqP+17nk=";
+    pnpm = pnpm_11;
+    fetcherVersion = 4;
+    hash = "sha256-6b2/AVxBzZB2rH6ROVMOypD8RpWJiwxjJnw1+aC91us=";
   };
 
   dontBuild = true;

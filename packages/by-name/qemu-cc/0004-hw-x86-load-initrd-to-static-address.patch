@@ -22,10 +22,10 @@ Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/hw/i386/x86-common.c b/hw/i386/x86-common.c
-index f77e2e63046ff56d079363e411a9ee0eca365291..32ae87005069f90f71d6e554b84ea42b067863c7 100644
+index 8f9419e7d3681a029a48cbbc4cf3d9271019b50c..ecce076e170f2a9f6c2c064463dddc43868a1916 100644
 --- a/hw/i386/x86-common.c
 +++ b/hw/i386/x86-common.c
-@@ -899,7 +899,7 @@ void x86_load_linux(X86MachineState *x86ms,
+@@ -895,7 +895,7 @@ void x86_load_linux(X86MachineState *x86ms,
          sev_load_ctx.initrd_data = initrd_data;
          sev_load_ctx.initrd_size = initrd_size;
  

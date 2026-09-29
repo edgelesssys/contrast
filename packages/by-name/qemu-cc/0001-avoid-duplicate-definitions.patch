@@ -53,25 +53,25 @@ index f87b6f046ccff814cce966804bd03980dbeb352d..c5a9d781d95b40d3b8eda15f69fd1bc7
      calculated = iov_crc32c(calculated ^ 0xffffffff, vec + 1, vec_len - 1);
      valid = calculated == le32_to_cpu(original);
 diff --git a/hw/uefi/var-service-core.c b/hw/uefi/var-service-core.c
-index 6ab8df091aaf4d5ef6fd085d034eb80972db2fb9..fbd8649d08ae59d3493c0c384e992ea22f0586b9 100644
+index 65da71029a6084072a62d6aef225bc49c79948e2..9a87d536c3055d7abc1e4c987c05c2944e196942 100644
 --- a/hw/uefi/var-service-core.c
 +++ b/hw/uefi/var-service-core.c
-@@ -230,7 +230,7 @@ static uint64_t uefi_vars_read(void *opaque, hwaddr addr, unsigned size)
-         uv->pio_xfer_offset += size;
-         break;
-     case UEFI_VARS_REG_PIO_BUFFER_CRC32C:
+@@ -251,7 +251,7 @@ static uint64_t uefi_vars_read(void *opaque, hwaddr addr, unsigned size)
+             retval = 0;
+             break;
+         }
 -        retval = crc32c(0xffffffff, uv->pio_xfer_buffer, uv->pio_xfer_offset);
 +        retval = __crc32c(0xffffffff, uv->pio_xfer_buffer, uv->pio_xfer_offset);
          break;
      case UEFI_VARS_REG_FLAGS:
          retval = 0;
 diff --git a/include/qemu/crc32c.h b/include/qemu/crc32c.h
-index 88b4d2b3b3304803456f5b23ef42dbf530381ec5..52ba066c2e784b8ea3d88671f3d7944062a3660e 100644
+index 3d5ba189ef41a9a3a42fef68379e1bcf51255333..6951b13dc15e85cd3f9dc4d36f9ef4a781e74d74 100644
 --- a/include/qemu/crc32c.h
 +++ b/include/qemu/crc32c.h
-@@ -29,7 +29,7 @@
- #define QEMU_CRC32C_H
+@@ -30,7 +30,7 @@
  
+ extern const uint32_t crc32c_table[256];
  
 -uint32_t crc32c(uint32_t crc, const uint8_t *data, unsigned int length);
 +uint32_t __crc32c(uint32_t crc, const uint8_t *data, unsigned int length);
@@ -79,10 +79,10 @@ index 88b4d2b3b3304803456f5b23ef42dbf530381ec5..52ba066c2e784b8ea3d88671f3d79440
  
  #endif
 diff --git a/target/arm/tcg/helper-a64.c b/target/arm/tcg/helper-a64.c
-index ba1d775d818eb4b8d94f0c286ccf95fefa6f7227..07b6dcaab192ebdf15afcf7a74b465c4acc4038e 100644
+index 05ab9ab6d31b638606c4dd79bedbfbb0b69748ff..d8d04c9d5cc8a2e5a16ef892f5211771d2da9f96 100644
 --- a/target/arm/tcg/helper-a64.c
 +++ b/target/arm/tcg/helper-a64.c
-@@ -406,7 +406,7 @@ AH_MINMAX_HELPER(sme2_ah_fmax_b16, bfloat16, bfloat16, max)
+@@ -411,7 +411,7 @@ AH_MINMAX_HELPER(sme2_ah_fmax_b16, bfloat16, bfloat16, max)
  AH_MINMAX_HELPER(sme2_ah_fmin_b16, bfloat16, bfloat16, min)
  
  /* 64-bit versions of the CRC helpers. Note that although the operation
@@ -91,7 +91,7 @@ index ba1d775d818eb4b8d94f0c286ccf95fefa6f7227..07b6dcaab192ebdf15afcf7a74b465c4
   * 32 bits of the accumulator and result are used, we pass and return
   * uint64_t for convenience of the generated code. Unlike the 32-bit
   * instruction set versions, val may genuinely have 64 bits of data in it.
-@@ -430,7 +430,7 @@ uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
+@@ -435,7 +435,7 @@ uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
      stq_le_p(buf, val);
  
      /* Linux crc32c converts the output to one's complement.  */
@@ -101,10 +101,10 @@ index ba1d775d818eb4b8d94f0c286ccf95fefa6f7227..07b6dcaab192ebdf15afcf7a74b465c4
  
  /*
 diff --git a/target/loongarch/tcg/op_helper.c b/target/loongarch/tcg/op_helper.c
-index 16ac0d43bc9cfe002a4e74f394d962471f3b3934..7d18c66ae22733a36b72911ddc0fb390a777d134 100644
+index e63ac66daae545d51fab6578feb88de4f9c1ca2a..b6214758fa37b8cab88e799d6aba98e2eee3844c 100644
 --- a/target/loongarch/tcg/op_helper.c
 +++ b/target/loongarch/tcg/op_helper.c
-@@ -76,7 +76,7 @@ target_ulong helper_crc32c(target_ulong val, target_ulong m, uint64_t sz)
+@@ -80,7 +80,7 @@ target_ulong helper_crc32c(target_ulong val, target_ulong m, uint64_t sz)
      target_ulong mask = ((sz * 8) == 64) ? -1ULL : ((1ULL << (sz * 8)) - 1);
      m &= mask;
      stq_le_p(buf, m);
@@ -114,10 +114,10 @@ index 16ac0d43bc9cfe002a4e74f394d962471f3b3934..7d18c66ae22733a36b72911ddc0fb390
  
  target_ulong helper_cpucfg(CPULoongArchState *env, target_ulong rj)
 diff --git a/util/crc32c.c b/util/crc32c.c
-index ea7f345de86073998250f54a5a19aef0a5bf164f..d6b5fab1379641d88f230448e71c24e8396020bb 100644
+index f40597f80df75dd318090c2b5b47ed6ff51803a5..d865c9d05fe5ea66bf2e1c3d3ad3d3cbe0e2e6ff 100644
 --- a/util/crc32c.c
 +++ b/util/crc32c.c
-@@ -105,7 +105,7 @@ static const uint32_t crc32c_table[256] = {
+@@ -105,7 +105,7 @@ const uint32_t crc32c_table[256] = {
  };
  
  
