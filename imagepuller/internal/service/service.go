@@ -86,34 +86,10 @@ func (s *ImagePullerService) PullImage(
 		return &katacomponents.ImagePullResponse{}, nil
 	}
 
-	remoteImg, err := s.getAndVerifyImage(ctx, log, r.ImageUrl)
+	finalLayer, err := s.pullLayers(ctx, log, r.ImageUrl)
 	if err != nil {
-		return nil, fmt.Errorf("obtaining and verifying image: %w", err)
+		return nil, err
 	}
-	log.Info("Validated image")
-
-	requiredStorage, err := s.minimumRequiredStorage(remoteImg)
-	if err != nil {
-		return nil, fmt.Errorf("determining required storage: %w", err)
-	}
-	availableStorage, err := s.availableStorage()
-	if err != nil {
-		return nil, fmt.Errorf("determining available storage: %w", err)
-	}
-	if availableStorage < requiredStorage {
-		return nil, fmt.Errorf(
-			"insufficient storage: pulling %q would require at least %s, but only %s are currently available. Increase the memory limit or image store size",
-			r.ImageUrl,
-			formatBytes(requiredStorage),
-			formatBytes(availableStorage),
-		)
-	}
-
-	finalLayer, err := s.storeAndVerifyLayers(log, remoteImg)
-	if err != nil {
-		return nil, fmt.Errorf("verifying and putting layers in store: %w", err)
-	}
-	log.Info("Verified and put in store layers")
 
 	newImg, err := s.Store.CreateImage("", nil, finalLayer, "", nil)
 	if err != nil {
@@ -135,6 +111,40 @@ func (s *ImagePullerService) PullImage(
 	log.Info("Pulled and mounted image", "mount_path", rootfs)
 
 	return &katacomponents.ImagePullResponse{}, nil
+}
+
+// pullLayers fetches and verifies the image and puts its layers into the store.
+// It returns the ID of the image's top layer.
+func (s *ImagePullerService) pullLayers(ctx context.Context, log *slog.Logger, imageURL string) (string, error) {
+	remoteImg, err := s.getAndVerifyImage(ctx, log, imageURL)
+	if err != nil {
+		return "", fmt.Errorf("obtaining and verifying image: %w", err)
+	}
+	log.Info("Validated image")
+
+	requiredStorage, err := s.minimumRequiredStorage(remoteImg)
+	if err != nil {
+		return "", fmt.Errorf("determining required storage: %w", err)
+	}
+	availableStorage, err := s.availableStorage()
+	if err != nil {
+		return "", fmt.Errorf("determining available storage: %w", err)
+	}
+	if availableStorage < requiredStorage {
+		return "", fmt.Errorf(
+			"insufficient storage: pulling %q would require at least %s, but only %s are currently available. Increase the memory limit or image store size",
+			imageURL,
+			formatBytes(requiredStorage),
+			formatBytes(availableStorage),
+		)
+	}
+
+	finalLayer, err := s.storeAndVerifyLayers(log, remoteImg)
+	if err != nil {
+		return "", fmt.Errorf("verifying and putting layers in store: %w", err)
+	}
+	log.Info("Verified and put in store layers")
+	return finalLayer, nil
 }
 
 // cleanupOrphanedContainers removes store containers whose bundle has been torn down by the kata agent.
