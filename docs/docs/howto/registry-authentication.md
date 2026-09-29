@@ -103,6 +103,7 @@ For each individual registry `registry.corp`, the following options are availabl
 | `insecure-skip-verify` | disable transport security |
 | `auth` | base64-encoded HTTP basic auth credentials authenticating the user with the registry |
 | `mirror` | OCI registry mirror to use instead of the actual registry |
+| `mirror-fallback` | pull from the actual registry if a pull through the `mirror` fails |
 
 The `auth` credentials use the same format as shown above for the Contrast CLI.
 The following script generates a valid configuration file and makes it available to the node installer.
@@ -130,6 +131,10 @@ If your cluster uses an OCI registry mirror, you can configure the imagepuller t
 The mirror address is a full HTTP URL, like `https://mirror.example.com:6443`.
 If the `mirror` field is set, the other configuration options (credentials, CA certificates) apply to the connection to this mirror, not the original registry.
 The mirror registry needs to implement the [relevant parts of the OCI spec](https://github.com/opencontainers/distribution-spec/blob/5e57cc0a07ea002e507a65d4757e823f133fcb52/spec.md?plain=1#L735-L753).
+By default, a pull fails if the mirror doesn't have the image.
+Set `mirror-fallback = true` to pull the image from the original registry instead, as containerd does.
+This pull uses no credentials and the default web PKI, since the configured credentials and CA certificates belong to the mirror.
+Every layer is verified against the image digest in the policy, regardless of where it's pulled from, but the original registry and the network can see which images are pulled.
 
 A number of example configurations for various use-case scenarios are shown below.
 
@@ -215,13 +220,14 @@ insecure-skip-verify = true
 ##### Example 4
 
 In this scenario, we're using the [mirror registry provided by k3s](https://docs.k3s.io/installation/registry-mirror).
-All images running in Contrast should be pulled through that mirror.
+All images running in Contrast should be pulled through that mirror, and from the original registries if the mirror doesn't have them, since the k3s mirror only serves images that are already on a node.
 For convenience, we're using the name of a single node to refer to that registry and switch off TLS certificate validation.
 
 ```toml
 [registries."."]
 mirror = "https://my-k3s-node-1:6443"
 insecure-skip-verify = true
+mirror-fallback = true
 ```
 
 ##### Example 5
