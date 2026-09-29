@@ -264,6 +264,7 @@ jobs:
     environment: release-publish
     permissions:
       contents: write
+      attestations: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -301,6 +302,11 @@ jobs:
         env:
           WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
         run: git push origin --delete "${WORKING_BRANCH}" || true
+      - name: Verify release attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
+        run: gh release verify "${VERSION}" --repo "${{ github.repository }}"
 
   prepare-github-release:
     name: Create backport label and milestone
