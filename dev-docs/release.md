@@ -24,7 +24,7 @@ This draft release can be promoted to actual release.
 
 7. Approve the `Publish release` job in the GitHub Actions workflow run.
 
-8. Check that the publish job succeeds.
+8. Check that the publish job succeeds. Verify its release attestation with `gh release verify vX.Y.Z --repo edgelesssys/contrast`.
 
 9. Review and merge the auto generated update PR for `main`. It advertises the new version in `contrast-releases.json` and the docs, so merging it earlier means reverting it if the release fails.
 
@@ -64,7 +64,7 @@ If you need to include new changes merged into main since the last successful ni
 
 9. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
 
-10. Check that the release publish action succeeds.
+10. Check that the release publish action succeeds. Verify its release attestation with `gh release verify "$REL_VER" --repo edgelesssys/contrast`.
 
 11. Review and merge the auto generated update PR for main.
 
@@ -114,7 +114,7 @@ If you need to include new changes merged into main since the last successful ni
 
 9. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
 
-10. Check that the release publish action succeeds.
+10. Check that the release publish action succeeds. Verify its release attestation with `gh release verify "$REL_VER" --repo edgelesssys/contrast`.
 
 11. Review and merge the auto generated update PR for main.
 
