@@ -36,6 +36,8 @@ type Registry struct {
 	CACerts            string `toml:"ca-certs"`
 	InsecureSkipVerify bool   `toml:"insecure-skip-verify"`
 	Mirror             string `toml:"mirror"`
+	// MirrorFallback enables pulling from the registry itself when a pull through the mirror fails.
+	MirrorFallback bool `toml:"mirror-fallback"`
 }
 
 // ReadInsecureConfig reads the auth config from the specified TOML file.
@@ -133,7 +135,10 @@ type Source struct {
 
 // SourcesFor returns the sources to try, in order, when pulling the given image.
 //
-// If the image's registry has a mirror, the image is pulled through the mirror.
+// If the image's registry has a mirror, the mirror comes first, followed by the registry
+// itself if mirror-fallback is set. The registry is accessed anonymously and with the
+// default CA certificates, since the credentials and certificates of a mirrored registry
+// configuration apply to the mirror.
 func (c *Config) SourcesFor(imageRef string, log *slog.Logger) ([]Source, error) {
 	authenticator, rt, err := c.AuthTransportFor(imageRef, log)
 	if err != nil {
@@ -148,7 +153,15 @@ func (c *Config) SourcesFor(imageRef string, log *slog.Logger) ([]Source, error)
 		return []Source{{Name: "registry", Authenticator: *authenticator, Transport: rt}}, nil
 	}
 
-	return []Source{{Name: "mirror", Authenticator: *authenticator, Transport: rt}}, nil
+	sources := []Source{{Name: "mirror", Authenticator: *authenticator, Transport: rt}}
+	if registry.MirrorFallback {
+		sources = append(sources, Source{
+			Name:          "registry",
+			Authenticator: authn.Anonymous,
+			Transport:     newTransport(Registry{}, log),
+		})
+	}
+	return sources, nil
 }
 
 // ApplyEnvVars applies the envvar-based proxy configuration in ExtraEnv.

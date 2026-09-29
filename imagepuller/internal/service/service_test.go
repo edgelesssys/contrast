@@ -5,12 +5,21 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
+	"github.com/edgelesssys/contrast/imagepuller/internal/test/registry"
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/opencontainers/go-digest"
 
 	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
 	"github.com/stretchr/testify/assert"
@@ -193,6 +202,79 @@ func TestPullFromSources(t *testing.T) {
 			}
 			for _, wantErr := range tc.wantErrs {
 				assert.ErrorIs(err, wantErr)
+			}
+		})
+	}
+}
+
+// TestPullLayersMirrorFallback pulls through a mirror that has the manifest but lost the layers,
+// like the k3s embedded registry after an image was removed from the node.
+func TestPullLayersMirrorFallback(t *testing.T) {
+	testCases := map[string]struct {
+		fallback bool
+		wantErr  bool
+	}{
+		"without fallback the pull fails":              {wantErr: true},
+		"with fallback the registry serves the layers": {fallback: true},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+			log := slog.Default()
+
+			var registryAuth []string
+			upstream := registry.New()
+			registrySrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				registryAuth = append(registryAuth, r.Header.Get("Authorization"))
+				upstream.ServeHTTP(w, r)
+			}))
+			t.Cleanup(registrySrv.Close)
+
+			var mirrorAuth []string
+			mirrored := registry.New()
+			mirrorSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mirrorAuth = append(mirrorAuth, r.Header.Get("Authorization"))
+				if strings.Contains(r.URL.Path, "/blobs/") {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				mirrored.ServeHTTP(w, r)
+			}))
+			t.Cleanup(mirrorSrv.Close)
+
+			cfg := auth.Config{Registries: map[string]auth.Registry{
+				".": {
+					AuthConfig:     authn.AuthConfig{Username: "mirror-user", Password: "mirror-password"},
+					Mirror:         mirrorSrv.URL,
+					MirrorFallback: tc.fallback,
+				},
+			}}
+			imageURL := fmt.Sprintf("%s/busybox:v0.0.1@%s", registrySrv.Listener.Addr().String(), registry.ManifestDigest())
+			sources, err := cfg.SourcesFor(imageURL, log)
+			require.NoError(err)
+
+			store := &stubStore{
+				putLayerDigest: digest.NewDigestFromEncoded(digest.SHA256, registry.BlobDigest()[7:]),
+				graphRoot:      t.TempDir(),
+			}
+			s := ImagePullerService{Logger: log, Store: store, Remote: remote.DefaultRemote{}}
+			_, err = pullFromSources(t.Context(), log, sources, func(log *slog.Logger, src auth.Source) (string, error) {
+				return s.pullLayers(t.Context(), log, imageURL, src)
+			})
+
+			assert.NotEmpty(mirrorAuth, "the pull must go through the mirror first")
+			if tc.wantErr {
+				assert.Error(err)
+				assert.Empty(registryAuth, "without fallback the registry must not be contacted")
+				return
+			}
+			require.NoError(err)
+			assert.NotEmpty(registryAuth, "the fallback must contact the registry")
+			assert.Contains(mirrorAuth, "Basic "+base64.StdEncoding.EncodeToString([]byte("mirror-user:mirror-password")), "the mirror must receive its credentials")
+			for _, header := range registryAuth {
+				assert.Empty(header, "the mirror's credentials must not reach the registry")
 			}
 		})
 	}
