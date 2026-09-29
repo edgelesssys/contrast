@@ -298,6 +298,7 @@ jobs:
     environment: release-publish
     permissions:
       contents: write
+      attestations: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -331,3 +332,8 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           gh release delete "${NIGHTLY_VERSION}" --repo "${GH_REPO}" --yes || true
+      - name: Verify release attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+        run: gh release verify "${VERSION}" --repo "${{ github.repository }}"
