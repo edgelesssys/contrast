@@ -77,7 +77,7 @@ gcloud iam workload-identity-pools create "${POOL}" \
 
 ## 4. Create the OIDC provider in the pool
 
-This tells GCP "trust OIDC tokens issued by GitHub and translate certain fields of those tokens into attributes you can use in IAM policies".
+This tells GCP "trust OIDC tokens issued by GitHub and translate certain fields of those tokens into attributes you can use in IAM policies."
 
 ```bash
 gcloud iam workload-identity-pools providers create-oidc "${PROVIDER}" \
