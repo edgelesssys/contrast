@@ -45,7 +45,7 @@ The Coordinator runs inside a CVM and verifies attestation reports from other po
 Only pods whose attestation evidence matches the manifest are accepted into the trusted service mesh.
 The Coordinator is verifier for all workloads of a Contrast deployment and issues certificates as attestation result, is therefore the certificate authority for a deployment.
 
-The Contrast Coordinator itself also runs as a confidential pod and is attested using the Contrast CLI.
+The Contrast Coordinator itself also runs as a confidential pod and is verified by the Contrast CLI.
 The CLI includes embedded reference values for the Coordinator, allowing it to verify the Coordinator's identity and integrity during attestation.
 Because these reference values are part of the CLI build, the CLI effectively serves as the root of trust for the deployment.
 Verifying the CLI's integrity and authenticity is therefore essential.
