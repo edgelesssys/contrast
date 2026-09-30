@@ -16,20 +16,20 @@
 # Collect sandbox/container IDs
 | {
     rpcs: .,
-	ids: reduce (
-		.[]
-		| .request.sandbox_id?,
-		  .request.container_id?
-		| select(. != null and . != "")
-	) as $id
-		([];
-		 if index($id) == null then . + [$id] else . end
-	),
-	namespaces: [
-		.[]
-		| .request.OCI.Annotations["io.kubernetes.cri.sandbox-namespace"]?
-		| select(. != null and . != "")
-	] | unique
+    ids: reduce (
+        .[]
+        | .request.sandbox_id?,
+          .request.container_id?
+        | select(. != null and . != "")
+    ) as $id
+        ([];
+         if index($id) == null then . + [$id] else . end
+    ),
+    namespaces: [
+        .[]
+        | .request.OCI.Annotations["io.kubernetes.cri.sandbox-namespace"]?
+        | select(. != null and . != "")
+    ] | unique
 } as $data
 
 # Normalize everything
@@ -75,10 +75,10 @@
             )
         )
 
-		# Namespaces
-		| reduce $data.namespaces[] as $namespace (.;
-			gsub($namespace; "default")
-		)
+        # Namespaces
+        | reduce $data.namespaces[] as $namespace (.;
+            gsub($namespace; "default")
+        )
 
         # UUIDs
         | gsub(
@@ -98,8 +98,8 @@
             "-0000000000000000-"
         )
 
-		# IPv4 addresses
-		| gsub(
+        # IPv4 addresses
+        | gsub(
             "([0-9]{1,3}\\.){3}[0-9]{1,3}";
             "10.0.0.0"
         )
