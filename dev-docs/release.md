@@ -26,7 +26,7 @@ This draft release can be promoted to actual release.
 
 7. Approve the `Publish release` job in the GitHub Actions workflow run.
 
-8. Check that the publish job succeeds.
+8. Check that the publish job succeeds. Verify its release attestation with `gh release verify vX.Y.Z --repo edgelesssys/contrast`.
 
 9. Review and merge the auto generated update PR for `main`. It advertises the new version in `contrast-releases.json` and the docs, so merging it earlier means reverting it if the release fails.
 
@@ -68,7 +68,7 @@ If you need to include new changes merged into main since the last successful ni
 
 9. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
 
-10. Check that the release publish action succeeds.
+10. Check that the release publish action succeeds. Verify its release attestation with `gh release verify "$REL_VER" --repo edgelesssys/contrast`.
 
 11. Review and merge the auto generated update PR for main.
 
@@ -81,6 +81,9 @@ If you need to include new changes merged into main since the last successful ni
 > the proper label to gets listed in the release notes.
 
 1. Ensure all needed PRs were backported to the current release branch, and all backport PRs were merged.
+
+   The release runs the release branch's copy of the workflows and actions, so fixes to the release process merged on main after the branch was cut are missing unless they were backported.
+   Check with `git diff origin/release/vX.Y origin/main -- .github/workflows .github/actions` and backport the relevant fixes before continuing.
 
 2. Export the release you want to make:
 
@@ -120,7 +123,7 @@ If you need to include new changes merged into main since the last successful ni
 
 9. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
 
-10. Check that the release publish action succeeds.
+10. Check that the release publish action succeeds. Verify its release attestation with `gh release verify "$REL_VER" --repo edgelesssys/contrast`.
 
 11. Review and merge the auto generated update PR for main.
 
