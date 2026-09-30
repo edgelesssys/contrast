@@ -182,4 +182,13 @@ final: prev:
       }
     );
   };
+
+  # Disable the libbsd tests when building with musl to work around an issue with acceptable sizes
+  # for sigaltstack, and hope that nothing uses those on affected machines, such as our INTEL(R)
+  # XEON(R) SILVER 4514Y test runner.
+  # Discussion: https://www.openwall.com/lists/musl/2026/07/29/2
+  # Unclear who's to blame here and whether and when this can be removed.
+  libbsd = prev.libbsd.overrideAttrs (
+    final.lib.optionalAttrs prev.stdenv.hostPlatform.isMusl { doCheck = false; }
+  );
 }
