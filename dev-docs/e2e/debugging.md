@@ -43,7 +43,7 @@ workspace/logs/
 │   ├── kernel.log                 # journalctl -k (SEV-ES termination, VFIO/IOMMU)
 │   ├── k3s.log                    # journalctl -u k3s (k3s-specific kubelet/containerd)
 │   ├── kubelet.log                # journalctl -u kubelet (non-k3s runners)
-│   ├── containerd.log             # journalctl -u containerd (non-k3s runners)
+│   ├── containerd.log             # journalctl -u containerd, or k3s containerd.log file on k3s runners
 │   └── kata.log                   # journalctl -t kata (QEMU lifecycle, register dumps)
 ├── metadata/<node-name>/
 │   └── sandbox-map.txt            # CVM pod name -> kata sandbox ID

@@ -102,6 +102,7 @@ func LogCollector() []any {
 											VolumeMount().WithName("journal-volume").WithMountPath("/journal").WithReadOnly(true),
 											VolumeMount().WithName("containerd-run").WithMountPath("/run/containerd").WithReadOnly(true),
 											VolumeMount().WithName("k3s-containerd-run").WithMountPath("/run/k3s/containerd").WithReadOnly(true),
+											VolumeMount().WithName("k3s-containerd-root").WithMountPath("/var/lib/rancher/k3s/agent/containerd").WithReadOnly(true),
 										).
 										WithEnv(
 											EnvVar().WithName("POD_NAMESPACE").
@@ -125,6 +126,8 @@ func LogCollector() []any {
 										WithHostPath(HostPathVolumeSource().WithPath("/run/containerd").WithType(corev1.HostPathDirectoryOrCreate)),
 									Volume().WithName("k3s-containerd-run").
 										WithHostPath(HostPathVolumeSource().WithPath("/run/k3s/containerd").WithType(corev1.HostPathDirectoryOrCreate)),
+									Volume().WithName("k3s-containerd-root").
+										WithHostPath(HostPathVolumeSource().WithPath("/var/lib/rancher/k3s/agent/containerd").WithType(corev1.HostPathDirectoryOrCreate)),
 								),
 						),
 				),

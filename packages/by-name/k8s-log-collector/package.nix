@@ -7,6 +7,8 @@
   inotify-tools,
   coreutils,
   findutils,
+  gawk,
+  gzip,
   gnused,
   gnugrep,
   systemdMinimal,
@@ -35,6 +37,8 @@ let
     name = "collect-host-logs";
     runtimeInputs = [
       coreutils
+      gawk
+      gzip
       systemdWithJournal
       cri-tools
       jq
