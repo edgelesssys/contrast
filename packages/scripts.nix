@@ -437,6 +437,7 @@
       go
       findutils
       coreutils
+      gnused
     ];
     text = ''
       set -euo pipefail
@@ -550,8 +551,9 @@
 
   update-kata-protos = writeShellApplication {
     name = "update-kata-protos";
-    runtimeInputs = [
-      pkgs.git
+    runtimeInputs = with pkgs; [
+      git
+      gnused
     ];
     text = # bash
       ''
@@ -645,6 +647,7 @@
     runtimeInputs = with pkgs; [
       curl
       jq
+      gnused
     ];
     text = ''
       readonly url="https://www.nvidia.com/content/dam/en-zz/Solutions/data-center/solutions/confidential-computing/compatibility-matrix/secure-ai-compatibility-matrix-v0.01.js"
