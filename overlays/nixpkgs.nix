@@ -166,4 +166,20 @@ final: prev:
   composefs = prev.composefs.overrideAttrs (_prevAttrs: {
     doCheck = false;
   });
+
+  # Pin the Microsoft vale style to an older release - the current nixpkgs version adds hundreds of findings for our docs.
+  # TODO(CON-389): remove pin and fix docs
+  valeStyles = prev.valeStyles // {
+    microsoft = prev.valeStyles.microsoft.overrideAttrs (
+      finalAttrs: _prevAttrs: {
+        version = "0.14.2";
+        src = final.fetchFromGitHub {
+          owner = "errata-ai";
+          repo = "Microsoft";
+          rev = "v${finalAttrs.version}";
+          hash = "sha256-Sie4bBeKPOFOJhgd+mLbiz4vG+xpKL0LnwnRQHzOw+Q=";
+        };
+      }
+    );
+  };
 }
