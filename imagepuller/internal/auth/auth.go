@@ -174,6 +174,7 @@ func (c *Config) registryFor(name string) Registry {
 }
 
 func normalizeDomain(domain string) string {
+	domain = strings.ToLower(domain)
 	if strings.HasSuffix(domain, ".") {
 		return domain
 	}
