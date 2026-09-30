@@ -169,6 +169,9 @@
         rules:
           secrets-outside-env:
             disable: true
+          self-repository:
+            # TODO(CON-390): re-enable and fix once actionlint is compatible
+            disable: true
       '')
     ];
     # keep-sorted end
