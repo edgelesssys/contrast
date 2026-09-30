@@ -135,7 +135,7 @@ The _outer annotations_, which were consumed above, are removed in order to not 
 
 If you payed close attention, you might have noticed the following:
 
-* The CDI annotation requests a _specific_ resource, identified by vendor, class and name.
+* The CDI annotation requests a _specific_ resource, identified by vendor, class, and name.
 * The extended resource requests an _anonymous_ resource by vendor and class.
 
 This soon leads to problems, for example when there are multiple GPUs on a single node.
