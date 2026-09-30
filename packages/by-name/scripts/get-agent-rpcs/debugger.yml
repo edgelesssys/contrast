@@ -17,7 +17,7 @@ spec:
   volumes:
     - name: ctr
       hostPath:
-        path: /var/run/k3s/containerd/containerd.sock
+        path: "@@REPLACE_CTR_PATH@@"
         type: Socket
     - name: sbs
       hostPath:
