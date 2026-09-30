@@ -40,7 +40,7 @@ kubectl get namespaces --no-headers | while read -r ns _; do
   if [[ $time -lt "$(($(date +%s) - 3600))" ]]; then
     echo "Deleting namespace: $ns"
     sync_ticket=$(kubectl get namespace "$ns" -o jsonpath='{.metadata.labels.contrast\.edgeless\.systems/sync-ticket}')
-    kubectl delete namespace "$ns" --ignore-not-found
+    kubectl delete namespace "$ns" --ignore-not-found --wait=false
     if [[ -n $sync_ticket ]]; then
       fifo release "$sync_ticket" || echo "Warning: failed to release sync ticket for namespace $ns" >&2
     fi
