@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"slices"
 	"strings"
 	"time"
 
@@ -32,6 +31,10 @@ type Config struct {
 }
 
 // Registry represents authentication configuration for a single registry.
+//
+// An empty registry is valid and uses default settings: unauthenticated pull,
+// certificate validation according to the standard web PKI and no mirror
+// configuration.
 type Registry struct {
 	authn.AuthConfig
 	CACerts            string `toml:"ca-certs"`
@@ -140,34 +143,41 @@ func (c *Config) ApplyEnvVars() {
 //
 // Matching always respects DNS label boundaries to prevent accidental match
 // on a different domain sharing the same suffix.
+//
+// If no match is found, an empty Registry is returned.
 func (c *Config) registryFor(name string) Registry {
 	var registry Registry
-	specificityMax := -1 // "." has 0 matching labels.
-	nameLabels := strings.Split(strings.TrimSuffix(name, "."), ".")
-	slices.Reverse(nameLabels)
-	specificityName := len(nameLabels)
+	matchLength := 0 // "." has 1 matching characters.
 
-OUTER:
+	normalizedName := normalizeDomain(name)
+
 	for fqdn, registryCandidate := range c.Registries {
-		fqdnLabels := strings.Split(strings.TrimSuffix(fqdn, "."), ".")
-		slices.Reverse(fqdnLabels)
-
-		specificityFqdn := len(fqdnLabels)
-		if specificityFqdn > specificityName || specificityFqdn <= specificityMax {
+		normalizedCandidate := normalizeDomain(fqdn)
+		n := len(normalizedCandidate)
+		if n < matchLength {
+			// We already found a better match.
 			continue
 		}
-
-		for i := range specificityFqdn {
-			// allow empty string (artifact of leading `.` in fqdn) only in last position
-			if fqdnLabels[i] != nameLabels[i] && (i != specificityFqdn-1 || fqdnLabels[i] != "") {
-				continue OUTER
-			}
+		subdomain, hasSuffix := strings.CutSuffix(normalizedName, normalizedCandidate)
+		if !hasSuffix {
+			// Does not match.
+			continue
 		}
-
+		if subdomain != "" && subdomain[len(subdomain)-1] != '.' && normalizedCandidate[0] != '.' {
+			// This is not a subdomain, but a sibling.
+			continue
+		}
+		matchLength = n
 		registry = registryCandidate
-		specificityMax = specificityFqdn
 	}
 	return registry
+}
+
+func normalizeDomain(domain string) string {
+	if strings.HasSuffix(domain, ".") {
+		return domain
+	}
+	return domain + "."
 }
 
 // MirroringRoundTripper modifies the target URL of all incoming requests to a mirror URL,
