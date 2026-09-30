@@ -41,11 +41,12 @@ metadata:
   namespace: maintenance-namespace-cleanup
 spec:
   schedule: "*/15 * * * *" # Every 15 minutes
-  concurrencyPolicy: Replace
+  concurrencyPolicy: Forbid
   failedJobsHistoryLimit: 1
   successfulJobsHistoryLimit: 1
   jobTemplate:
     spec:
+      activeDeadlineSeconds: 600
       template:
         spec:
           nodeSelector:
