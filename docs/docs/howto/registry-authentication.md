@@ -167,7 +167,7 @@ auth = "YnVyZ2VyZGV2OnRoaXNpc25vdG15cGFzc3dvcmQ="
 
 In this scenario, all container images are served from a public registry.
 However, the image owner wants to make sure that the traffic can't be intercepted by rogue CAs.
-Other registries are strictly forbidden.
+Registry domains other than `very-secure.registri.es` are strictly forbidden.
 
 ```toml
 [registries."very-secure.registri.es."]
@@ -198,7 +198,10 @@ Zm9dwbeTbrKysrGXAiEA8ce6iyJUCZCZVVJs/HDLcPbOKc2EPZvdcGGjIlGXulo=
 '''
 
 [registries."."]
-ca-certs = "no PEM here means no CA certificates"
+ca-certs = "no PEM here means no CA certificates, so other registries always fail the TLS handshake"
+
+[registries.".very-secure.registri.es."]
+ca-certs = "this entry disables all subdomains of very-secure.registri.es."
 ```
 
 ##### Example 3
@@ -231,7 +234,7 @@ If no image puller configuration is provided or if it's empty, the behavior for 
 #### Registry matching and subdomains
 
 Registry domains are specified as fully qualified domain names.
-Note the trailing dot in the examples above.
+Note the trailing dot in the examples above - it's mandatory!
 For a registry-specific configuration to be applied to a pull request, the image's registry must end exactly in the configuration's name.
 A configuration above for `registries.".registry.corp."` will be applied to any and all registries available on subdomains of `registry.corp`, but not to `registry.corp` itself.
 Pulling the image `example.registry.corp/example/image@sha256:...` will use the configuration given under `registries.".registry.corp."`, but `registry.corp/example/image@sha256:...` won't.
