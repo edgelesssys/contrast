@@ -474,3 +474,50 @@ func TestMirrorRegistry(t *testing.T) {
 	assert.Equal("ns=registry.invalid", capturedRequest.URL.RawQuery)
 	assert.Equal("/v2/foo/manifests/1", capturedRequest.URL.Path)
 }
+
+func TestSourcesFor(t *testing.T) {
+	testCases := map[string]struct {
+		registries map[string]Registry
+		wantNames  []string
+	}{
+		"no config": {
+			wantNames: []string{"registry"},
+		},
+		"credentials without mirror": {
+			registries: map[string]Registry{"ghcr.io": {AuthConfig: authn.AuthConfig{Username: "u", Password: "p"}}},
+			wantNames:  []string{"registry"},
+		},
+		"mirror without fallback": {
+			registries: map[string]Registry{".": {Mirror: "https://mirror.invalid"}},
+			wantNames:  []string{"mirror"},
+		},
+		"mirror with fallback": {
+			registries: map[string]Registry{".": {Mirror: "https://mirror.invalid", MirrorFallback: true, AuthConfig: authn.AuthConfig{Username: "u", Password: "p"}}},
+			wantNames:  []string{"mirror", "registry"},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			cfg := Config{Registries: tc.registries}
+			sources, err := cfg.SourcesFor("ghcr.io/edgelesssys/contrast/coordinator@sha256:"+strings.Repeat("0", 64), slog.Default())
+			require.NoError(err)
+
+			var names []string
+			for _, src := range sources {
+				names = append(names, src.Name)
+			}
+			assert.Equal(tc.wantNames, names)
+
+			if len(sources) == 2 {
+				// The fallback must not send the mirror's credentials to the registry.
+				assert.Equal(authn.Anonymous, sources[1].Authenticator)
+				_, isMirror := sources[1].Transport.(*MirroringRoundTripper)
+				assert.False(isMirror)
+			}
+		})
+	}
+}

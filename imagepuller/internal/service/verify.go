@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
+
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -63,20 +65,16 @@ func (s *ImagePullerService) retryPredicate(err error) (ret bool) {
 	return false
 }
 
-func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Logger, imageURL string) (gcr.Image, error) {
+func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Logger, imageURL string, src auth.Source) (gcr.Image, error) {
 	ref, err := name.NewDigest(imageURL)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errParseDigest, err)
 	}
+	authenticator := src.Authenticator
 
-	authenticator, transportConfig, err := s.AuthConfig.AuthTransportFor(imageURL, log)
-	if err != nil {
-		return nil, fmt.Errorf("obtaining authenticator and transport for %s: %w", imageURL, err)
-	}
+	tr := transport.NewRetry(src.Transport, transport.WithRetryBackoff(retryBackoff), transport.WithRetryPredicate(s.retryPredicate))
 
-	tr := transport.NewRetry(transportConfig, transport.WithRetryBackoff(retryBackoff), transport.WithRetryPredicate(s.retryPredicate))
-
-	desc, err := s.Remote.Head(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(*authenticator))
+	desc, err := s.Remote.Head(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(authenticator))
 	if err != nil {
 		return nil, fmt.Errorf("obtaining descriptor: %w", err)
 	}
@@ -87,7 +85,7 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 	case desc.MediaType.IsIndex():
 		log.Info("Received manifest list")
 
-		remoteImgIndex, err := s.Remote.Index(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(*authenticator))
+		remoteImgIndex, err := s.Remote.Index(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(authenticator))
 		if err != nil {
 			return nil, fmt.Errorf("obtaining remote image index: %w", err)
 		}
@@ -112,7 +110,7 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 
 		remoteImg, imgErr = remoteImgIndex.Image(*digestFound)
 	case desc.MediaType.IsImage():
-		remoteImg, imgErr = s.Remote.Image(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(*authenticator))
+		remoteImg, imgErr = s.Remote.Image(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(authenticator))
 	default:
 		return nil, fmt.Errorf("%w: %q", errUnexpectedMediaType, desc.MediaType)
 	}

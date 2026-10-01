@@ -36,6 +36,8 @@ type Registry struct {
 	CACerts            string `toml:"ca-certs"`
 	InsecureSkipVerify bool   `toml:"insecure-skip-verify"`
 	Mirror             string `toml:"mirror"`
+	// MirrorFallback enables pulling from the registry itself when a pull through the mirror fails.
+	MirrorFallback bool `toml:"mirror-fallback"`
 }
 
 // ReadInsecureConfig reads the auth config from the specified TOML file.
@@ -78,6 +80,28 @@ func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Aut
 		log.Info("accessing registry anonymously")
 	}
 
+	transport := newTransport(registry, log)
+
+	var rt http.RoundTripper = transport
+	if registry.Mirror != "" {
+		mirror, err := url.Parse(registry.Mirror)
+		if err != nil {
+			return nil, nil, fmt.Errorf("parsing registry mirror URL: %w", err)
+		}
+		rt = &MirroringRoundTripper{
+			address: mirror,
+			rt:      transport,
+		}
+		log.Info("using mirror registry", "mirror", registry.Mirror)
+	} else {
+		log.Info("using direct connection to registry")
+	}
+
+	return &authenticator, rt, nil
+}
+
+// newTransport constructs the HTTP transport for a registry configuration.
+func newTransport(registry Registry, log *slog.Logger) *http.Transport {
 	transport := &http.Transport{
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: registry.InsecureSkipVerify},
 		Proxy:                 http.ProxyFromEnvironment,
@@ -98,23 +122,46 @@ func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Aut
 	} else {
 		log.Info("using default CA certificates")
 	}
+	return transport
+}
 
-	var rt http.RoundTripper = transport
-	if registry.Mirror != "" {
-		mirror, err := url.Parse(registry.Mirror)
-		if err != nil {
-			return nil, nil, fmt.Errorf("parsing registry mirror URL: %w", err)
-		}
-		rt = &MirroringRoundTripper{
-			address: mirror,
-			rt:      transport,
-		}
-		log.Info("using mirror registry", "mirror", registry.Mirror)
-	} else {
-		log.Info("using direct connection to registry")
+// Source is a location to pull an image from, with the authentication and transport to use.
+type Source struct {
+	// Name identifies the source in logs and errors.
+	Name          string
+	Authenticator authn.Authenticator
+	Transport     http.RoundTripper
+}
+
+// SourcesFor returns the sources to try, in order, when pulling the given image.
+//
+// If the image's registry has a mirror, the mirror comes first, followed by the registry
+// itself if mirror-fallback is set. The registry is accessed anonymously and with the
+// default CA certificates, since the credentials and certificates of a mirrored registry
+// configuration apply to the mirror.
+func (c *Config) SourcesFor(imageRef string, log *slog.Logger) ([]Source, error) {
+	authenticator, rt, err := c.AuthTransportFor(imageRef, log)
+	if err != nil {
+		return nil, err
+	}
+	ref, err := name.ParseReference(imageRef)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errUnparseableRef, err)
+	}
+	registry := c.registryFor(ref.Context().RegistryStr())
+	if registry.Mirror == "" {
+		return []Source{{Name: "registry", Authenticator: *authenticator, Transport: rt}}, nil
 	}
 
-	return &authenticator, rt, nil
+	sources := []Source{{Name: "mirror", Authenticator: *authenticator, Transport: rt}}
+	if registry.MirrorFallback {
+		sources = append(sources, Source{
+			Name:          "registry",
+			Authenticator: authn.Anonymous,
+			Transport:     newTransport(Registry{}, log),
+		})
+	}
+	return sources, nil
 }
 
 // ApplyEnvVars applies the envvar-based proxy configuration in ExtraEnv.

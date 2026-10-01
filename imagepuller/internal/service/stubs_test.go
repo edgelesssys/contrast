@@ -23,8 +23,13 @@ type stubStore struct {
 	containersErr error
 	unmounted     []string
 	deleted       []string
+	graphRoot     string
 
 	storage.Store
+}
+
+func (s *stubStore) GraphRoot() string {
+	return s.graphRoot
 }
 
 func (s *stubStore) PutLayer(_, _ string, _ []string, _ string, _ bool, _ *storage.LayerOptions, _ io.Reader) (*storage.Layer, int64, error) {
