@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -406,12 +408,12 @@ func TestRegistryFor(t *testing.T) {
 	tests := map[string]string{
 		"unknown":                ".",
 		"example.org":            ".",
-		"example.com":            ".com",
-		"some.example.com":       ".example.com",
-		"some.example.com.":      ".example.com",
-		"other.example.com":      ".example.com",
-		"some.other.example.com": ".example.com",
-		"other.some.example.com": ".some.example.com",
+		"example.com":            ".com.",
+		"some.example.com":       ".example.com.",
+		"some.example.com.":      ".example.com.",
+		"other.example.com":      ".example.com.",
+		"some.other.example.com": ".example.com.",
+		"other.some.example.com": ".some.example.com.",
 	}
 	for name, fqdn := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -428,9 +430,9 @@ func TestRegistryFor(t *testing.T) {
 
 var exampleFQDNs = []string{
 	".",
-	".com",
-	".example.com",
-	".some.example.com",
+	".com.",
+	".example.com.",
+	".some.example.com.",
 }
 
 func generateRegistries(t *testing.T, fqdn string) map[string]Registry {
@@ -473,4 +475,42 @@ func TestMirrorRegistry(t *testing.T) {
 	assert.Equal(http.StatusTeapot, resp.StatusCode)
 	assert.Equal("ns=registry.invalid", capturedRequest.URL.RawQuery)
 	assert.Equal("/v2/foo/manifests/1", capturedRequest.URL.Path)
+}
+
+func TestReadInsecureConfig(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	dir := t.TempDir()
+	file := filepath.Join(dir, "auth.toml")
+
+	content := []byte(`
+	[extra-env]
+	HTTP_PROXY = "http://proxy.corp"
+	HTTPS_PROXY = "https://proxy.corp"
+	NO_PROXY = ".corp"
+
+	[registries."registry.corp."]
+	ca-certs = '''disabled'''
+
+	[registries."ghcr.io."]
+	auth = "dGVzdDpwdw=="
+
+	[registries."unqualified.domain.yolo"]
+	# This should not make it to the parsed Config.
+	ca-certs = "disabled"
+	`)
+
+	require.NoError(os.WriteFile(file, content, 0o644))
+	cfg, err := ReadInsecureConfig(file, slog.New(slog.DiscardHandler))
+	require.NoError(err)
+
+	require.NotNil(cfg)
+	assert.Len(cfg.ExtraEnv, 3)
+	assert.Equal("http://proxy.corp", cfg.ExtraEnv["HTTP_PROXY"])
+	assert.Equal("https://proxy.corp", cfg.ExtraEnv["HTTPS_PROXY"])
+	assert.Equal(".corp", cfg.ExtraEnv["NO_PROXY"])
+	assert.Len(cfg.Registries, 2)
+	assert.Equal(Registry{CACerts: "disabled"}, cfg.Registries["registry.corp."])
+	assert.Equal(Registry{AuthConfig: authn.AuthConfig{Auth: "dGVzdDpwdw=="}}, cfg.Registries["ghcr.io."])
 }

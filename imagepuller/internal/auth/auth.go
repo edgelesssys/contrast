@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"net/url"
@@ -55,6 +56,14 @@ func ReadInsecureConfig(path string, log *slog.Logger) (*Config, error) {
 		return nil, fmt.Errorf("parsing insecure config TOML: %w", err)
 	}
 	log.Info("Found and parsed imagepuller auth config")
+
+	maps.DeleteFunc(cfg.Registries, func(reg string, _ Registry) bool {
+		if !strings.HasSuffix(reg, ".") {
+			log.Warn("skipping registry configuration for unqualified domain", "domain", reg)
+			return true
+		}
+		return false
+	})
 
 	return &cfg, nil
 }
