@@ -149,6 +149,7 @@ The link is dead until the GHSA is published, which is OK.
 
 If a bare metal runner is broken, set the `skip_platforms` input of the release workflow (for example `Metal-QEMU-TDX-GPU`) instead of disabling the platform in the workflows.
 For a minor release, set the `SKIP_PLATFORMS` repository variable so the scheduled nightly skips the platform, for example `gh variable set SKIP_PLATFORMS --body Metal-QEMU-TDX-GPU`, and delete it with `gh variable delete SKIP_PLATFORMS` once the runner works again.
+The variable also drops the platform from the e2e tests of pull requests.
 Pass the same value as `skip_platforms` to `release_promote.yml`, which otherwise rejects the skipped jobs.
 A skipped job looks the same as one skipped because its platform's maintenance failed, so promoting with an untested platform has to be stated explicitly.
 The run summary lists the skipped platforms, and the message to Privatemode must say which platforms weren't tested.
