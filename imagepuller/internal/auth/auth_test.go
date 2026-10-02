@@ -416,6 +416,9 @@ func TestRegistryFor(t *testing.T) {
 		"other.some.example.com": ".some.example.com.",
 		"awesome.example.com":    "awesome.example.com.",
 		"y.awesome.example.com":  ".awesome.example.com.",
+		"AwEsOmE.EXAMPLE.COM":    "awesome.example.com.",
+		"example.COM":            ".com.",
+		"poneria.isi.edu":        "poneria.ISI.EDU.",
 	}
 	for name, fqdn := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -437,6 +440,7 @@ var exampleFQDNs = []string{
 	".some.example.com.",
 	"awesome.example.com.",
 	".awesome.example.com.",
+	"poneria.ISI.EDU.",
 }
 
 func generateRegistries(t *testing.T, fqdn string) map[string]Registry {
