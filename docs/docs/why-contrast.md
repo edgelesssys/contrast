@@ -3,12 +3,6 @@
 Contrast isn't the only software that runs containers in confidential VMs.
 However, we believe that Contrast has some unique advantages that you should know about, which are listed in the following sections.
 
-## The team
-
-Contrast was created by Edgeless Systems, the confidential computing pioneers from Germany.
-We've been scaling confidential computing since 2020, with a team of cybersecurity and system engineering experts.
-Contrast is our third product at the intersection of confidential computing and Kubernetes, and our designs draw from this vast experience.
-
 ## Ready for production
 
 Contrast is stable and secure software you can rely on in production.
@@ -45,3 +39,9 @@ Contrast aims to comply with standards and established practice, in order to eas
 Contrast verification is X.509 based, making it compatible with most software stacks in existence.
 Standard OCI images and registry authentication are supported out-of-the-box.
 Adding a Vault to manage your secrets is straightforward and fully integrated into attestation.
+
+## The team
+
+Contrast was created by Edgeless Systems, the confidential computing pioneers from Germany.
+We've been scaling confidential computing since 2020, with a team of cybersecurity and system engineering experts.
+Contrast is our third product at the intersection of confidential computing and Kubernetes, and our designs draw from this vast experience.
