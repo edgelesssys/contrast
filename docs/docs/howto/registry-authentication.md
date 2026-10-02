@@ -237,9 +237,9 @@ Registry domains are specified as fully qualified domain names.
 Note the trailing dot in the examples above - it's mandatory!
 For a registry-specific configuration to be applied to a pull request, the image's registry must end exactly in the configuration's name.
 A configuration above for `.registry.corp.` will be applied to any and all registries available on subdomains of `registry.corp`, but not to `registry.corp` itself.
-An entry `registry.corp` will be applied to both `registry.corp` and all its subdomains.
+An entry `registry.corp.` will be applied to both `registry.corp` and all its subdomains.
 If only the domain itself should match, create an entry for the subdomains (with a leading dot) that disables them as shown in [example 2](#example-2).
-Suffix matching always considers the domain label boundary: an entry for `registry.corp` doesn't match `my-registry.corp`.
+Suffix matching always considers the domain label boundary: an entry for `registry.corp.` doesn't match `my-registry.corp`.
 Pulling the image `example.registry.corp/example/image@sha256:...` will use the configuration given under `registries.".registry.corp."`, but `registry.corp/example/image@sha256:...` won't.
 
 Additionally, `example.registry.corp` must be able to prove its identity by successfully completing a TLS handshake using one of the explicitly configured certificates.
@@ -249,7 +249,7 @@ If no certificates are configured, the hosts default web PKI certificates are us
 
 If multiple matching registry configurations exist, for example if both `registries.".registry.corp."` and `registries.".corp."` have configuration values set, then the most specific match will be chosen.
 In the example, this would be `registries.".registry.corp."`.
-Concrete registry domains are always more specific than a wildcard with a leading dot.
+If both `registries."registry.corp."` and `registries.".registry.corp."` exist, `registry.corp` uses the concrete entry and its subdomains, such as `eu.registry.corp`, use the wildcard.
 
 To specify a catch-all configuration, use the key `registries."."`.
 The option `registries.".".ca-certs` can be used to disable authentication with all unknown registries:
