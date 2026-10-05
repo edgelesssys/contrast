@@ -32,6 +32,7 @@ stdenvNoCC.mkDerivation {
 
   buildPhase = ''
     mkdir $out
+    cmdline=$(cat "${cmdline}")
     ${lib.getExe sev-snp-measure} \
       --mode snp \
       --ovmf ${ovmf-snp} \
@@ -39,7 +40,7 @@ stdenvNoCC.mkDerivation {
       --vcpu-type EPYC-Milan \
       --kernel ${kernel} \
       --initrd ${initrd} \
-      --append "${cmdline}" \
+      --append "$cmdline" \
       --output-format hex > $out/milan.hex
     ${lib.getExe sev-snp-measure} \
       --mode snp \
@@ -48,7 +49,7 @@ stdenvNoCC.mkDerivation {
       --vcpu-type EPYC-Genoa \
       --kernel ${kernel} \
       --initrd ${initrd} \
-      --append "${cmdline}" \
+      --append "$cmdline" \
       --output-format hex > $out/genoa.hex
 
     # cut newlines
