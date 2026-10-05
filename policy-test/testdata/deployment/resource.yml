@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-deployment
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-deployment
+    spec:
+      containers:
+        - name: test
+          image: busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616
+          command: ["sh", "-c", "sleep inf"]
+      restartPolicy: Always
+      runtimeClassName: contrast-cc
