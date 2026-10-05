@@ -99,15 +99,18 @@ func index() digested {
 	return fmt.Appendf(nil, indexTemplate, manifest.digest(), len(manifest))
 }
 
+// manifestForWrongBlob declares the size of the blob that's actually served,
+// so that the only thing wrong with the layer is its digest.
 func manifestForWrongBlob() digested {
+	blob := blob()
 	config := digested(config)
-	return fmt.Appendf(nil, manifestTemplate, config.digest(), len(config), WrongBlobDigest(), 0)
+	return fmt.Appendf(nil, manifestTemplate, config.digest(), len(config), WrongBlobDigest(), len(blob))
 }
 
 func manifestForWrongBlobTwoLayers() digested {
 	blob := blob()
 	config := digested(config)
-	return fmt.Appendf(nil, twoLayerManifestTemplate, config.digest(), len(config), blob.digest(), len(blob), WrongBlobDigest(), 0)
+	return fmt.Appendf(nil, twoLayerManifestTemplate, config.digest(), len(config), blob.digest(), len(blob), WrongBlobDigest(), len(blob))
 }
 
 func indexForWrongManifest() digested {
