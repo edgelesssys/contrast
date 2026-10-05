@@ -3,6 +3,7 @@
 
 {
   writeShellApplication,
+  scripts,
   kata,
   kubectl,
   yq-go,
@@ -13,6 +14,7 @@
 writeShellApplication {
   name = "get-agent-rpcs";
   runtimeInputs = [
+    scripts.normalize-agent-rpcs
     kata.genpolicy
     kubectl
     yq-go
