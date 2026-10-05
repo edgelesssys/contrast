@@ -10,16 +10,13 @@
   symlinkJoin,
   lib,
   jq,
+  buildRootFS,
 }:
 
 nixos-config:
 
 let
-  image = nixos-config.image.overrideAttrs (oldAttrs: {
-    passthru = oldAttrs.passthru // {
-      imageFileName = "${oldAttrs.pname}_${oldAttrs.version}.raw";
-    };
-  });
+  image = buildRootFS nixos-config.config;
 in
 
 lib.throwIf
@@ -53,12 +50,11 @@ lib.throwIf
     '';
 
     passthru = {
-      inherit (image) imageFileName;
       inherit (nixos-config.config.system.build)
-        image
         kernel
         initialRamdisk
         toplevel
         ;
+      inherit image;
     };
   }

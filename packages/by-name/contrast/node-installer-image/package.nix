@@ -126,7 +126,7 @@ let
   kata-container-img = ociLayerTar {
     files = [
       {
-        source = "${os-image.image}/${os-image.imageFileName}";
+        source = "${os-image.image}/image.raw";
         destination = "/opt/edgeless/share/kata-containers.img";
       }
       {
