@@ -7,6 +7,8 @@
   ociImageLayout,
   writers,
   hashDirs,
+  runCommand,
+  jq,
   kata,
   nodeinstaller,
   node-installer-image,
@@ -52,63 +54,70 @@ let
     ];
   };
 
+  eval-time-config = writers.writeJSON "contrast-node-install.json" {
+    files = [
+      {
+        url = "file:///opt/edgeless/share/kata-containers.img";
+        path = "/opt/edgeless/@@runtimeName@@/share/kata-containers.img";
+      }
+      {
+        url = "file:///opt/edgeless/share/kata-kernel";
+        path = "/opt/edgeless/@@runtimeName@@/share/kata-kernel";
+      }
+      {
+        url = "file:///opt/edgeless/share/kata-initrd.zst";
+        path = "/opt/edgeless/@@runtimeName@@/share/kata-initrd.zst";
+      }
+      {
+        url = "file:///opt/edgeless/bin/qemu-system-x86_64";
+        path = "/opt/edgeless/@@runtimeName@@/bin/qemu-system-x86_64";
+        executable = true;
+      }
+      {
+        url = "file:///opt/edgeless/snp/share/OVMF.fd";
+        path = "/opt/edgeless/@@runtimeName@@/snp/share/OVMF.fd";
+      }
+      {
+        url = "file:///opt/edgeless/tdx/share/OVMF.fd";
+        path = "/opt/edgeless/@@runtimeName@@/tdx/share/OVMF.fd";
+      }
+      {
+        url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
+        path = "/opt/edgeless/@@runtimeName@@/bin/containerd-shim-contrast-cc-v2";
+        executable = true;
+      }
+      {
+        url = "file:///opt/edgeless/bin/kata-runtime";
+        path = "/opt/edgeless/@@runtimeName@@/bin/kata-runtime";
+        executable = true;
+      }
+      {
+        url = "file:///opt/edgeless/share/qemu/kvmvapic.bin";
+        path = "/opt/edgeless/@@runtimeName@@/share/qemu/kvmvapic.bin";
+      }
+      {
+        url = "file:///opt/edgeless/share/qemu/linuxboot_dma.bin";
+        path = "/opt/edgeless/@@runtimeName@@/share/qemu/linuxboot_dma.bin";
+      }
+      {
+        url = "file:///opt/edgeless/share/qemu/efi-virtio.rom";
+        path = "/opt/edgeless/@@runtimeName@@/share/qemu/efi-virtio.rom";
+      }
+    ]
+    ++ withExtraInstallFilesConfig;
+    debugRuntime = withDebug;
+  };
+
+  installer-config-json = runCommand "installer-config-json" { nativeBuildInputs = [ jq ]; } ''
+    jq <"${eval-time-config}" >"$out" \
+      --rawfile cmdline "${os-image}/cmdline" \
+      '.qemuExtraKernelParams = $cmdline'
+  '';
+
   installer-config = ociLayerTar {
     files = [
       {
-        source = writers.writeJSON "contrast-node-install.json" {
-          files = [
-            {
-              url = "file:///opt/edgeless/share/kata-containers.img";
-              path = "/opt/edgeless/@@runtimeName@@/share/kata-containers.img";
-            }
-            {
-              url = "file:///opt/edgeless/share/kata-kernel";
-              path = "/opt/edgeless/@@runtimeName@@/share/kata-kernel";
-            }
-            {
-              url = "file:///opt/edgeless/share/kata-initrd.zst";
-              path = "/opt/edgeless/@@runtimeName@@/share/kata-initrd.zst";
-            }
-            {
-              url = "file:///opt/edgeless/bin/qemu-system-x86_64";
-              path = "/opt/edgeless/@@runtimeName@@/bin/qemu-system-x86_64";
-              executable = true;
-            }
-            {
-              url = "file:///opt/edgeless/snp/share/OVMF.fd";
-              path = "/opt/edgeless/@@runtimeName@@/snp/share/OVMF.fd";
-            }
-            {
-              url = "file:///opt/edgeless/tdx/share/OVMF.fd";
-              path = "/opt/edgeless/@@runtimeName@@/tdx/share/OVMF.fd";
-            }
-            {
-              url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
-              path = "/opt/edgeless/@@runtimeName@@/bin/containerd-shim-contrast-cc-v2";
-              executable = true;
-            }
-            {
-              url = "file:///opt/edgeless/bin/kata-runtime";
-              path = "/opt/edgeless/@@runtimeName@@/bin/kata-runtime";
-              executable = true;
-            }
-            {
-              url = "file:///opt/edgeless/share/qemu/kvmvapic.bin";
-              path = "/opt/edgeless/@@runtimeName@@/share/qemu/kvmvapic.bin";
-            }
-            {
-              url = "file:///opt/edgeless/share/qemu/linuxboot_dma.bin";
-              path = "/opt/edgeless/@@runtimeName@@/share/qemu/linuxboot_dma.bin";
-            }
-            {
-              url = "file:///opt/edgeless/share/qemu/efi-virtio.rom";
-              path = "/opt/edgeless/@@runtimeName@@/share/qemu/efi-virtio.rom";
-            }
-          ]
-          ++ withExtraInstallFilesConfig;
-          debugRuntime = withDebug;
-          qemuExtraKernelParams = os-image.cmdline;
-        };
+        source = installer-config-json;
         destination = "/config/contrast-node-install.json";
       }
     ];

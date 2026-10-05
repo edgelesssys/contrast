@@ -9,6 +9,7 @@
 {
   symlinkJoin,
   lib,
+  jq,
 }:
 
 nixos-config:
@@ -39,27 +40,25 @@ lib.throwIf
       image
     ];
 
-    passthru =
-      let
-        roothash = builtins.head (
-          lib.map (e: e.roothash) (builtins.fromJSON (builtins.readFile "${image}/repart-output.json"))
-        );
-      in
-      {
-        cmdline = lib.concatStringsSep " " (
-          nixos-config.config.boot.kernelParams
-          ++ [
-            "init=${nixos-config.config.system.build.toplevel}/init"
-            "roothash=${roothash}"
-            "cgroup_no_v1=all"
-          ]
-        );
-        inherit (image) imageFileName;
-        inherit (nixos-config.config.system.build)
-          image
-          kernel
-          initialRamdisk
-          toplevel
-          ;
-      };
+    # Calculate the kernel commandline and store it alongside the outputs it depends on.
+    nativeBuildInputs = [ jq ];
+    postBuild = ''
+      roothash=$(jq --exit-status --raw-output '.[0].roothash' <"${image}/repart-output.json")
+
+      echo -n >"$out/cmdline" \
+        ${lib.escapeShellArgs nixos-config.config.boot.kernelParams} \
+        "init=${nixos-config.config.system.build.toplevel}/init" \
+        "roothash=$roothash" \
+        "cgroup_no_v1=all"
+    '';
+
+    passthru = {
+      inherit (image) imageFileName;
+      inherit (nixos-config.config.system.build)
+        image
+        kernel
+        initialRamdisk
+        toplevel
+        ;
+    };
   }

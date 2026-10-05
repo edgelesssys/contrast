@@ -5,7 +5,8 @@
   lib,
   kata,
   contrastPkgs,
-  writeText,
+  jq,
+  runCommand,
 }:
 
 let
@@ -13,11 +14,15 @@ let
 
   make =
     { os-image, withDebug }:
-    lib.strings.concatStringsSep " " (
-      kata.runtime.cmdline.prefix withDebug
-      ++ [ os-image.cmdline ]
-      ++ kata.runtime.cmdline.suffix withDebug
-    );
+    runCommand "cmdline" { } ''
+      echo -n > "$out" \
+        "${lib.concatStringsSep " " (kata.runtime.cmdline.prefix withDebug)}" \
+        "$(cat "${os-image}/cmdline")"
+      suffix="${lib.concatStringsSep " " (kata.runtime.cmdline.suffix withDebug)}"
+      if [[ -n $suffix ]]; then
+        echo -n " $suffix" >>"$out"
+      fi
+    '';
 
   cmdline = make { inherit os-image withDebug; };
   cmdlineGPU = make {
@@ -26,12 +31,17 @@ let
   };
 in
 
-(writeText "cmdline" (
-  builtins.toJSON {
-    GPU = cmdlineGPU;
-    noGPU = cmdline;
+(runCommand "cmdlines"
+  {
+    nativeBuildInputs = [ jq ];
   }
-))
+  ''
+    jq -n >"$out" \
+      --rawfile gpu ${cmdlineGPU} \
+      --rawfile nogpu ${cmdline} \
+      '{ GPU: $gpu, noGPU: $nogpu }'
+  ''
+)
 // {
   inherit make;
 }
