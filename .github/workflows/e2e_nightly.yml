@@ -15,11 +15,6 @@ on:
         type: string
         required: false
         default: "[]"
-      notify:
-        description: Notify the Teams channel about failures even when not running on a schedule (used by chained patch nightlies).
-        type: boolean
-        required: false
-        default: false
       skip-maintenance:
         description: Skip bare-metal maintenance. Maintenance a run from a release branch would roll the shared clusters back to that branch's versions. Set for patch nightlies.
         type: boolean
@@ -210,7 +205,7 @@ jobs:
       - tdx
       - snp-gpu
       - tdx-gpu
-    if: always() && (github.event_name == 'schedule' || inputs.notify) && github.run_attempt == 1
+    if: always() && github.event_name == 'schedule' && github.run_attempt == 1
     permissions:
       contents: read
     steps:
@@ -243,61 +238,41 @@ jobs:
           NIX_GC_TDX_GPU: ${{ needs.tdx-gpu-maintenance.outputs.nix-gc }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
           SKIP_PLATFORMS: ${{ inputs.skip-platforms || '[]' }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          SKIP_MAINTENANCE: ${{ inputs.skip-maintenance }}
-          E2E_SNP: ${{ needs.snp.result }}
-          E2E_TDX: ${{ needs.tdx.result }}
-          E2E_SNP_GPU: ${{ needs.snp-gpu.result }}
-          E2E_TDX_GPU: ${{ needs.tdx-gpu.result }}
         run: |
+          if [[ -z "${IMAGE_BUILD_RESULT}" ]]; then
+            echo 'json=[{"title": "Job ID", "value": "build-image"}]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           declare -a entries snp tdx snp_gpu snp_dev tdx_gpu
 
-          # e2e.yml posts a card per failing test, but only for scheduled runs. Report the e2e jobs here for
-          # everything else, so failures of dispatched runs (chained patch nightlies) don't go unnoticed.
-          if [[ "${GITHUB_EVENT_NAME}" != "schedule" ]]; then
-            [[ "${E2E_SNP}" == "success" ]] || snp+=("e2e")
-            [[ "${E2E_TDX}" == "success" ]] || tdx+=("e2e")
-            [[ "${E2E_SNP_GPU}" == "success" ]] || snp_gpu+=("e2e")
-            [[ "${E2E_TDX_GPU}" == "success" ]] || tdx_gpu+=("e2e")
+          [[ "${UPDATE_RESOURCES_SNP}" != "success" ]] && snp+=("update-resources")
+          [[ "${CLEANUP_SNP}" != "success" ]] && snp+=("cleanup")
+          [[ "${NIX_GC_SNP}" != "success" ]] && snp+=("nix-gc")
+
+          [[ "${UPDATE_RESOURCES_TDX}" != "success" ]] && tdx+=("update-resources")
+          [[ "${CLEANUP_TDX}" != "success" ]] && tdx+=("cleanup")
+          [[ "${NIX_GC_TDX}" != "success" ]] && tdx+=("nix-gc")
+
+          [[ "${UPDATE_RESOURCES_SNP_GPU}" != "success" ]] && snp_gpu+=("update-resources")
+          [[ "${CLEANUP_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup")
+          [[ "${NIX_GC_SNP_GPU}" != "success" ]] && snp_gpu+=("nix-gc")
+
+          [[ "${UPDATE_RESOURCES_SNP_DEV}" != "success" ]] && snp_dev+=("update-resources")
+          [[ "${CLEANUP_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup")
+          [[ "${NIX_GC_SNP_DEV}" != "success" ]] && snp_dev+=("nix-gc")
+
+          [[ "${UPDATE_RESOURCES_TDX_GPU}" != "success" ]] && tdx_gpu+=("update-resources")
+          [[ "${CLEANUP_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup")
+          [[ "${NIX_GC_TDX_GPU}" != "success" ]] && tdx_gpu+=("nix-gc")
+
+          if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 5" ]]; then
+            [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup-containerd")
           fi
-
-          # The maintenance jobs are skipped for patch nightlies, so only the e2e results are reported for those.
-          if [[ "${SKIP_MAINTENANCE}" != "true" ]]; then
-            if [[ -z "${IMAGE_BUILD_RESULT}" ]]; then
-              echo 'json=[{"title": "Job ID", "value": "build-image"}]' >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-
-            [[ "${UPDATE_RESOURCES_SNP}" != "success" ]] && snp+=("update-resources")
-            [[ "${CLEANUP_SNP}" != "success" ]] && snp+=("cleanup")
-            [[ "${NIX_GC_SNP}" != "success" ]] && snp+=("nix-gc")
-
-            [[ "${UPDATE_RESOURCES_TDX}" != "success" ]] && tdx+=("update-resources")
-            [[ "${CLEANUP_TDX}" != "success" ]] && tdx+=("cleanup")
-            [[ "${NIX_GC_TDX}" != "success" ]] && tdx+=("nix-gc")
-
-            [[ "${UPDATE_RESOURCES_SNP_GPU}" != "success" ]] && snp_gpu+=("update-resources")
-            [[ "${CLEANUP_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup")
-            [[ "${NIX_GC_SNP_GPU}" != "success" ]] && snp_gpu+=("nix-gc")
-
-            [[ "${UPDATE_RESOURCES_SNP_DEV}" != "success" ]] && snp_dev+=("update-resources")
-            [[ "${CLEANUP_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup")
-            [[ "${NIX_GC_SNP_DEV}" != "success" ]] && snp_dev+=("nix-gc")
-
-            [[ "${UPDATE_RESOURCES_TDX_GPU}" != "success" ]] && tdx_gpu+=("update-resources")
-            [[ "${CLEANUP_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup")
-            [[ "${NIX_GC_TDX_GPU}" != "success" ]] && tdx_gpu+=("nix-gc")
-
-            if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 5" ]]; then
-              [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
-              [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
-              [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
-              [[ "${CLEANUP_CONTAINERD_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup-containerd")
-              [[ "${CLEANUP_CONTAINERD_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup-containerd")
-            fi
-          fi
-          # `&&` chains above leave a non-zero status behind when nothing was appended.
-          true
 
           # Skipped platforms have no maintenance outputs, which would read as failures.
           skipped() { jq -e --arg p "$1" 'index($p) != null' <<<"${SKIP_PLATFORMS}" >/dev/null; }

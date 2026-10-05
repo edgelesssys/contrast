@@ -10,26 +10,12 @@ on:
         type: string
         required: false
         default: ""
-      queue:
-        description: JSON array of release branches to dispatch patch nightlies for after this run. Normally only set by chained dispatches.
-        type: string
-        required: false
-        default: "[]"
-      dispatch_next:
-        description: Dispatch follow-up patch nightlies after this run (decided on main, dequeued from `queue` on release branches).Set by chained dispatches.
-        type: boolean
-        required: false
-        default: false
-      notify:
-        description: Notify the Teams channel about e2e failures. Set by chained dispatches, where nobody watches the run.
-        type: boolean
-        required: false
-        default: false
 
 env:
   container_registry: ghcr.io/edgelesssys
   DO_NOT_TRACK: 1
 
+# Queue minor and patch runs behind each other. Cancel the in-progress run if a patch release is urgent.
 concurrency:
   group: release-nightly
   cancel-in-progress: false
@@ -193,7 +179,6 @@ jobs:
     uses: ./.github/workflows/e2e_nightly.yml
     with:
       skip-platforms: ${{ needs.process-inputs.outputs.SKIP_PLATFORMS }}
-      notify: ${{ inputs.notify == true }}
       skip-maintenance: ${{ needs.process-inputs.outputs.KIND == 'patch' }}
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
@@ -250,131 +235,12 @@ jobs:
           tailscale_client_secret: ${{ secrets.TAILSCALE_CLIENT_SECRET }}
           log_collector_image: ${{ needs.release-x86_64-linux.outputs.LOG_COLLECTOR_IMAGE }}
 
-  dispatch-next:
-    name: Dispatch next patch nightly
-    runs-on: ubuntu-24.04
-    needs: [release-x86_64-linux, release-aarch64-darwin, nightly, test]
-    if: always() && (github.event_name == 'schedule' || inputs.dispatch_next)
-    permissions:
-      contents: write # delete orphaned draft releases
-      actions: write # dispatch the next release_nightly run
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-tags: true
-          fetch-depth: 0
-      - name: Decide patch nightlies
-        if: github.ref_name == 'main'
-        id: decide
-        env:
-          DEPTH: ${{ vars.PATCH_NIGHTLY_MINOR_DEPTH || 1 }}
-        run: |
-          current_base=$(sed 's/-.*$//' version.txt)
-          current_minor="${current_base%.*}"
-
-          considered=()
-          for branch in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/v*' \
-              | sed 's#^origin/##' | grep -E '^release/v[0-9]+\.[0-9]+$' | sort -Vr); do
-            [[ "${#considered[@]}" -ge "${DEPTH}" ]] && break
-            minor="${branch#release/v}"
-            # Only branches strictly below the current minor are patch candidates.
-            newest=$(printf '%s\n%s\n' "${minor}" "${current_minor}" | sort -V | tail -1)
-            if [[ "${newest}" == "${current_minor}" && "${minor}" != "${current_minor}" ]]; then
-              considered+=("${branch}")
-            fi
-          done
-
-          drafts=$(gh release list --repo "${GH_REPO}" --limit 100 --json tagName,isDraft \
-            --jq '.[] | select(.isDraft) | .tagName')
-
-          valid_bases=("v${current_base}")
-          eligible=()
-          for branch in "${considered[@]}"; do
-            series="v${branch#release/v}"
-            head_sha=$(git rev-parse "origin/${branch}")
-            latest=$(git tag --list "${series}.*" | sort -V | tail -1)
-            if [[ -z "${latest}" ]]; then
-              echo "::warning::${branch} has no release tag, skipping."
-              continue
-            fi
-            without_v="${latest#v}"
-            next_patch="v${without_v%.*}.$((${without_v##*.} + 1))"
-            valid_bases+=("${next_patch}")
-            if [[ "${head_sha}" == "$(git rev-parse "${latest}^{commit}")" ]]; then
-              echo "${branch}: no unreleased changes since ${latest}."
-              continue
-            fi
-            # Skip if the last completed nightly on this branch succeeded on this exact commit and its draft is still around.
-            last_run=$(gh run list --repo "${GH_REPO}" --workflow=release_nightly.yml \
-              --branch "${branch}" --status completed --limit 1 --json headSha,conclusion)
-            last_sha=$(jq -r '.[0].headSha // empty' <<<"${last_run}")
-            last_conclusion=$(jq -r '.[0].conclusion // empty' <<<"${last_run}")
-            if [[ "${last_sha}" == "${head_sha}" && "${last_conclusion}" == "success" ]] \
-                && grep -q "^${next_patch//./\\.}-" <<<"${drafts}"; then
-              echo "${branch}: unchanged since the last successful patch nightly."
-              continue
-            fi
-            eligible+=("${branch}")
-          done
-
-          if [[ "${#eligible[@]}" -eq 0 ]]; then
-            queue="[]"
-          else
-            queue=$(printf '%s\n' "${eligible[@]}" | jq -R . | jq -cs .)
-          fi
-          echo "queue=${queue}" | tee -a "$GITHUB_OUTPUT"
-          echo "valid_bases=${valid_bases[*]}" | tee -a "$GITHUB_OUTPUT"
-      - name: Clean up orphaned nightly drafts
-        if: github.ref_name == 'main'
-        env:
-          VALID_BASES: ${{ steps.decide.outputs.valid_bases }}
-        run: |
-          gh release list --repo "${GH_REPO}" --limit 100 --json tagName,isDraft \
-            | jq -r '.[] | select(.isDraft == true) | .tagName' \
-            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-[0-9]{4}-[0-9]{2}-[0-9]{2}$' \
-            | while IFS= read -r draft; do
-                base="${draft%-*-*-*}"
-                for valid in ${VALID_BASES}; do
-                  [[ "${base}" == "${valid}" ]] && continue 2
-                done
-                echo "Deleting orphaned nightly draft release: ${draft}"
-                gh release delete "${draft}" --repo "${GH_REPO}" --yes
-              done
-      - name: Take queue from input
-        if: github.ref_name != 'main'
-        id: input-queue
-        env:
-          INPUT_QUEUE: ${{ inputs.queue }}
-        run: |
-          queue="${INPUT_QUEUE:-[]}"
-          jq -e 'type == "array"' <<<"${queue}" >/dev/null
-          echo "queue=$(jq -c . <<<"${queue}")" | tee -a "$GITHUB_OUTPUT"
-      - name: Dispatch next patch nightly
-        env:
-          QUEUE: ${{ steps.decide.outputs.queue || steps.input-queue.outputs.queue }}
-        run: |
-          next=$(jq -r '.[0] // empty' <<<"${QUEUE}")
-          if [[ -z "${next}" ]]; then
-            echo "No further patch nightlies to dispatch."
-            exit 0
-          fi
-          rest=$(jq -c '.[1:]' <<<"${QUEUE}")
-          echo "Dispatching patch nightly on ${next} (queue after it: ${rest})."
-          # The dispatched run uses the release branch's copy of this workflow, of e2e_nightly.yml and of the
-          # actions they call, so changes to any of those only reach patch nightlies once they're backported.
-          gh workflow run release_nightly.yml --repo "${GH_REPO}" --ref "${next}" \
-            -f queue="${rest}" -f notify=true -f dispatch_next=true
-
   notify-teams:
     name: Notify teams channel of failure
     runs-on: ubuntu-24.04
     # `nightly` is left out: e2e_nightly.yml notifies about its own failures.
-    needs: [process-inputs, cleanup-nightly-drafts, release-x86_64-linux, release-aarch64-darwin, test, dispatch-next]
-    if: always() && (github.event_name == 'schedule' || inputs.notify) && github.run_attempt == 1
+    needs: [process-inputs, cleanup-nightly-drafts, release-x86_64-linux, release-aarch64-darwin, test]
+    if: always() && github.event_name == 'schedule' && github.run_attempt == 1
     permissions:
       contents: read
     steps:

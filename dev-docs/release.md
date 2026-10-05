@@ -33,6 +33,14 @@ This draft release can be promoted to actual release.
 
 9. Review and merge the auto generated update PR for `main`. It advertises the new version in `contrast-releases.json` and the docs, so merging it earlier means reverting it if the release fails.
 
+## Minor, manually
+
+If you need to include changes merged into `main` since the last nightly, dispatch the nightly yourself and promote it as described [above](#minor):
+
+```sh
+gh workflow run release_nightly.yml --ref main --repo edgelesssys/contrast
+```
+
 ## Patch
 
 > [!NOTE]
@@ -41,15 +49,23 @@ This draft release can be promoted to actual release.
 > merged, the backport action can be triggered by adding a `/backport` comment. Ensure the backport PR has
 > the proper label to gets listed in the release notes.
 
-A patch release works exactly like a minor one, except that the nightly runs on the release branch instead of `main`.
-After the nightly on `main` finishes, it dispatches a nightly for the newest supported release branch that has unreleased
-commits, so a backport merged during the day is built the same night without any manual step.
+A patch release works exactly like a minor one, except that it needs to run off the release branch instead of `main` on demand.
+
+> [!IMPORTANT]
+> The dispatched run uses the release branch's copy of `release_nightly.yml`, of `e2e_nightly.yml` and of the actions they call.
+> It therefore only works on release branches that carry the unified release pipeline.
+> A release branch that was cut before the pipeline was unified needs a one-time backport of these workflows first.
 
 1. Ensure all needed PRs were backported to the current release branch, and all backport PRs were merged.
 
-2. Wait for the next night, or trigger the patch nightly yourself as described [below](#manual).
+2. Dispatch the nightly on the release branch:
 
-3. Check that in that nightly, all checks and tests passed, and that a draft release `vX.Y.Z-yyyy-mm-dd` with artifacts exists.
+    ```sh
+    export REL_BRANCH=release/v0.1
+    gh workflow run release_nightly.yml --ref "$REL_BRANCH" --repo edgelesssys/contrast
+    ```
+
+3. Check that in that run, all checks and tests passed, and that a draft release `vX.Y.Z-yyyy-mm-dd` with artifacts exists.
 
 4. Trigger the promote workflow with the explicit version (without one, it promotes the latest *minor* nightly from `main`):
 
@@ -69,19 +85,20 @@ commits, so a backport merged during the day is built the same night without any
 
 10. Review and merge the auto generated update PR for `main`.
 
-## Manual
+## Concurrent release runs
 
-If you find yourself in the situation that you can't wait for the next nightly run, you can always do
+All `release_nightly.yml` runs share one concurrency group.
+This allows queueing an additional release run, for example to have them run subsequently overnight.
+
+The downside is that a dispatched run waits for a run that's already in progress, which can take a *while*.
+If a patch release is urgent, cancel the in-progress nightly:
+
 ```sh
-gh workflow run release_nightly.yml --ref main
-```
-or
-```sh
-export REL_BRANCH=release/v0.1
-gh workflow run release_nightly.yml --ref "$REL_BRANCH" --repo edgelesssys/contrast
+gh run list --workflow release_nightly.yml --status in_progress --repo edgelesssys/contrast
+gh run cancel <run-id> --repo edgelesssys/contrast
 ```
 
-to start the `release_nightly.yml` workflow manually.
+GitHub keeps at most one pending run per concurrency group, so dispatching a third run while one is running and one is waiting cancels the waiting one.
 
 ## Editing the release notes
 
