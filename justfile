@@ -593,9 +593,7 @@ policy-rpc target="policy-rpc": soft-clean (runtime target) (write-namespace tar
         --namespace "$ns" \
         --rules "$rules/genpolicy-rules.rego" \
         --settings "$settings/genpolicy-settings.json" \
-        --yaml ./policy-test/testdata/pod/resource.yml \
-        --output ./{{ workspace_dir }}/policy.jsonl
-    nix run .#base.scripts.normalize-agent-rpcs -- ./{{ workspace_dir }}/policy.jsonl > ./policy-test/testdata/pod/base.json
+        --testdata ./policy-test/testdata
 
 # Check links.
 check-links config="external":

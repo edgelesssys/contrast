@@ -29,7 +29,8 @@
         .[]
         | .request.OCI.Annotations["io.kubernetes.cri.sandbox-namespace"]?
         | select(. != null and . != "")
-    ] | unique
+    ] | unique,
+    hostname: first(.[] | select(.kind == "CreateSandboxRequest") | .request.hostname)
 } as $data
 
 # Normalize everything
@@ -64,11 +65,20 @@
 | walk(
     if type == "string" then
 
+        # Generated hostnames for deployments etc. include random suffix
+        # and are of the form <name>-<random>-<random>.
+        if ($data.hostname | test("^.+-.+-.+$")) then
+            ($data.hostname | capture("^(?<prefix>.+)-.+-.+$").prefix) as $prefix
+            | gsub($data.hostname; $prefix + "-ffff-ffff")
+        else
+            .
+        end
+
         # Replace IDs with deterministic 64-character values:
         # first ID -> 0000...
         # second ID -> 1111...
         # third ID -> 2222...
-        reduce ($data.ids | to_entries[]) as $entry (.;
+        | reduce ($data.ids | to_entries[]) as $entry (.;
             gsub(
                 $entry.value;
                 (($entry.key | tostring) * 64)
