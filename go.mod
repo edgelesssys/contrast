@@ -16,7 +16,7 @@ require (
 	github.com/distribution/reference v0.6.0
 	github.com/elazarl/goproxy v1.8.2
 	github.com/evanphx/json-patch/v5 v5.9.11
-	github.com/google/go-containerregistry v0.21.2
+	github.com/google/go-containerregistry v0.22.0
 	github.com/google/go-github/v85 v85.0.0
 	github.com/google/go-sev-guest v0.14.2-0.20251119154202-af1c107a648f
 	github.com/google/go-tdx-guest v0.3.2-0.20260104162950-32866d7a678f
@@ -79,7 +79,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.7 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mdlayher/socket v0.6.1 // indirect
