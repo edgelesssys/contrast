@@ -37,7 +37,7 @@
         ""
       ],
       "guest_hook_path": "",
-      "hostname": "test",
+      "hostname": "test-pod",
       "kernel_modules": [],
       "sandbox_id": "0000000000000000000000000000000000000000000000000000000000000000",
       "sandbox_pidns": false,
@@ -75,15 +75,15 @@
           "io.kubernetes.cri.sandbox-cpu-quota": "0",
           "io.kubernetes.cri.sandbox-cpu-shares": "2",
           "io.kubernetes.cri.sandbox-id": "0000000000000000000000000000000000000000000000000000000000000000",
-          "io.kubernetes.cri.sandbox-log-directory": "/var/log/pods/default_test_00000000-0000-0000-0000-000000000000",
+          "io.kubernetes.cri.sandbox-log-directory": "/var/log/pods/default_test-pod_00000000-0000-0000-0000-000000000000",
           "io.kubernetes.cri.sandbox-memory": "0",
-          "io.kubernetes.cri.sandbox-name": "test",
+          "io.kubernetes.cri.sandbox-name": "test-pod",
           "io.kubernetes.cri.sandbox-namespace": "default",
           "io.kubernetes.cri.sandbox-uid": "00000000-0000-0000-0000-000000000000",
           "nerdctl/network-namespace": "/var/run/netns/cni-00000000-0000-0000-0000-000000000000"
         },
         "Hooks": null,
-        "Hostname": "test",
+        "Hostname": "test-pod",
         "Linux": {
           "CgroupsPath": "kubepods-besteffort-pod00000000_0000_0000_0000_000000000000.slice:cri-containerd:0000000000000000000000000000000000000000000000000000000000000000",
           "Devices": [],
@@ -345,7 +345,7 @@
           "io.kubernetes.cri.container-type": "container",
           "io.kubernetes.cri.image-name": "busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616",
           "io.kubernetes.cri.sandbox-id": "0000000000000000000000000000000000000000000000000000000000000000",
-          "io.kubernetes.cri.sandbox-name": "test",
+          "io.kubernetes.cri.sandbox-name": "test-pod",
           "io.kubernetes.cri.sandbox-namespace": "default",
           "io.kubernetes.cri.sandbox-uid": "00000000-0000-0000-0000-000000000000"
         },
@@ -611,7 +611,7 @@
           "ConsoleSize": null,
           "Cwd": "/",
           "Env": [
-            "HOSTNAME=test",
+            "HOSTNAME=test-pod",
             "KUBERNETES_PORT=tcp://10.0.0.0:443",
             "KUBERNETES_PORT_443_TCP=tcp://10.0.0.0:443",
             "KUBERNETES_PORT_443_TCP_ADDR=10.0.0.0",

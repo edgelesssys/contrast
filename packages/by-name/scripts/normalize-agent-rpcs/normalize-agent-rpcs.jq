@@ -29,7 +29,8 @@
         .[]
         | .request.OCI.Annotations["io.kubernetes.cri.sandbox-namespace"]?
         | select(. != null and . != "")
-    ] | unique
+    ] | unique,
+    hostname: first(.[] | select(.kind == "CreateSandboxRequest") | .request.hostname)
 } as $data
 
 # Normalize everything
@@ -64,11 +65,27 @@
 | walk(
     if type == "string" then
 
+        # Hostnames of pods created by controllers end in generated segments
+        # using the alphabet of k8s.io/apimachinery/pkg/util/rand: a 5-character
+        # random suffix (<name>-<random>, e.g. DaemonSets, Jobs), preceded by
+        # the pod-template-hash for ReplicaSets (<name>-<hash>-<random>).
+        gsub(
+            $data.hostname;
+            $data.hostname
+            # The random suffix is always 5 characters long.
+            # https://github.com/kubernetes/apiserver/blob/f6c8a21a437e3f6ed8a8bd0d520aba8578c51ede/pkg/storage/names/generate.go#L45
+            | sub("-[bcdfghjklmnpqrstvwxz2456789]{5}$"; "-fffff")
+            # The pod-template-hash is derived from the integer representation of a 32-bit hash, encoded as alphanumeric characters.
+            # This integer representation is at most 10 characters long.
+            # https://github.com/kubernetes/kubernetes/blob/def85dfe8aabea42fa1569ad5c4f60de5b976fdd/pkg/controller/controller_utils.go#L1413
+            | sub("-[bcdfghjklmnpqrstvwxz2456789]{1,10}-fffff$"; "-ffffffffff-fffff")
+        )
+
         # Replace IDs with deterministic 64-character values:
         # first ID -> 0000...
         # second ID -> 1111...
         # third ID -> 2222...
-        reduce ($data.ids | to_entries[]) as $entry (.;
+        | reduce ($data.ids | to_entries[]) as $entry (.;
             gsub(
                 $entry.value;
                 (($entry.key | tostring) * 64)
