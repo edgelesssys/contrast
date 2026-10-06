@@ -107,7 +107,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
 
-	selector := SelectorLabels(name, component)
+	selector := ContrastSelectorLabels(name, component)
 	selector[ContrastRoleLabelKey] = string(manifest.RoleNodeInstaller)
 
 	d := DaemonSet(name, namespace).
@@ -251,7 +251,7 @@ func PortForwarder(name, namespace string) *PortForwarderConfig {
 	name = "port-forwarder-" + name
 
 	p := Pod(name, namespace).
-		WithLabels(ContrastLabels(name, "test-resources")).
+		WithLabels(WorkloadLabels(name, "test-resources")).
 		WithSpec(
 			PodSpec().
 				WithContainers(
@@ -293,7 +293,7 @@ type CoordinatorConfig struct {
 
 // Coordinator constructs a new CoordinatorConfig.
 func Coordinator(namespace string) *CoordinatorConfig {
-	labelSelector := SelectorLabels("coordinator", "coordinator")
+	labelSelector := ContrastSelectorLabels("coordinator", "coordinator")
 	labelSelector[ContrastRoleLabelKey] = string(manifest.RoleCoordinator)
 
 	c := StatefulSet("coordinator", namespace).
@@ -635,25 +635,31 @@ func GetPodCPUCount(spec *applycorev1.PodSpecApplyConfiguration) uint64 {
 	return uint64(totalCPUs)
 }
 
-// ContrastLabels should be applied to top-level resources.
-// In addition to name and component, it also labels part-of and version with compile-time constants.
+// ContrastLabels should be applied to Contrast's own top-level resources, such
+// as the Coordinator or the node installer. In addition to name and component,
+// it also labels part-of and version with compile-time constants.
 func ContrastLabels(name, component string) map[string]string {
+	labels := ContrastSelectorLabels(name, component)
 	// The version must be a label-safe semver: strip the leading "v", and assume
 	// no "+build" metadata, since '+' is invalid in a label value.
-	version, _ := strings.CutPrefix(constants.Version, "v")
-	return map[string]string{
-		KubernetesAppNameLabel:      name,
-		KubernetesAppComponentLabel: component,
-		KubernetesAppPartOfLabel:    "contrast",
-		KubernetesAppVersionLabel:   version,
-	}
+	labels[KubernetesAppVersionLabel], _ = strings.CutPrefix(constants.Version, "v")
+	return labels
 }
 
-// SelectorLabels should be used to construct pod selectors, for example in a Deployment.
-func SelectorLabels(name, component string) map[string]string {
+// ContrastSelectorLabels should be used to construct pod selectors for Contrast's own
+// resources, for example in a Deployment.
+func ContrastSelectorLabels(name, component string) map[string]string {
+	labels := WorkloadLabels(name, component)
+	labels[KubernetesAppPartOfLabel] = "contrast"
+	return labels
+}
+
+// WorkloadLabels should be applied to resources that aren't part of Contrast
+// itself, for example workloads used for demos or in testing. In these cases,
+// it can also be used to construct their pod selectors.
+func WorkloadLabels(name, component string) map[string]string {
 	return map[string]string{
 		KubernetesAppNameLabel:      name,
 		KubernetesAppComponentLabel: component,
-		KubernetesAppPartOfLabel:    "contrast",
 	}
 }
