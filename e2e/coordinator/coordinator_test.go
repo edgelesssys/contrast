@@ -281,7 +281,7 @@ func modifyCoordinator(t *testing.T, rs []any) any {
 		}
 		s.Name = toPtr(alternativeCoordinatorName)
 		s.Spec.Template.Spec.Containers[0].WithEnv(kuberesource.EnvVar().WithName("ONLY_FOR_POLICY").WithValue("foo"))
-		selector := kuberesource.SelectorLabels(alternativeCoordinatorName, alternativeCoordinatorName)
+		selector := kuberesource.ContrastSelectorLabels(alternativeCoordinatorName, alternativeCoordinatorName)
 		selector[kuberesource.ContrastRoleLabelKey] = string(manifest.RoleCoordinator)
 		s.Spec.WithSelector(kuberesource.LabelSelector().WithMatchLabels(selector))
 		s.Spec.Template.WithLabels(selector)

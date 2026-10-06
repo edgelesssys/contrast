@@ -68,7 +68,7 @@ func LogCollector() []any {
 		priorityClassName = "high-priority-logcollector"
 	)
 
-	labels := SelectorLabels(name, component)
+	labels := WorkloadLabels(name, component)
 
 	tolerations := []*applycorev1.TolerationApplyConfiguration{
 		applycorev1.Toleration().
@@ -82,7 +82,7 @@ func LogCollector() []any {
 	}
 
 	ds := DaemonSet(name, "").
-		WithLabels(ContrastLabels(name, component)).
+		WithLabels(WorkloadLabels(name, component)).
 		WithSpec(
 			DaemonSetSpec().
 				WithSelector(LabelSelector().WithMatchLabels(labels)).
@@ -150,17 +150,17 @@ func OpenSSL() []any {
 	)
 	ns := ""
 	backend := Deployment(backendName, ns).
-		WithLabels(ContrastLabels(backendName, component)).
+		WithLabels(WorkloadLabels(backendName, component)).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
 				WithSelector(
 					LabelSelector().
-						WithMatchLabels(SelectorLabels(backendName, component)),
+						WithMatchLabels(WorkloadLabels(backendName, component)),
 				).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(backendName, component)).
+						WithLabels(WorkloadLabels(backendName, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -192,17 +192,17 @@ func OpenSSL() []any {
 	backendService := ServiceForDeployment(backend)
 
 	frontend := Deployment(frontendName, ns).
-		WithLabels(ContrastLabels(frontendName, component)).
+		WithLabels(WorkloadLabels(frontendName, component)).
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
 				WithSelector(
 					LabelSelector().
-						WithMatchLabels(SelectorLabels(frontendName, component)),
+						WithMatchLabels(WorkloadLabels(frontendName, component)),
 				).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(frontendName, component)).
+						WithLabels(WorkloadLabels(frontendName, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -248,17 +248,17 @@ func MultiCPU() []any {
 	const name = "multi-cpu"
 	return []any{
 		Deployment(name, "").
-			WithLabels(ContrastLabels(name, name)).
+			WithLabels(WorkloadLabels(name, name)).
 			WithSpec(
 				DeploymentSpec().
 					WithReplicas(1).
 					WithSelector(
 						LabelSelector().
-							WithMatchLabels(SelectorLabels(name, name)),
+							WithMatchLabels(WorkloadLabels(name, name)),
 					).
 					WithTemplate(
 						PodTemplateSpec().
-							WithLabels(SelectorLabels(name, name)).
+							WithLabels(WorkloadLabels(name, name)).
 							WithSpec(
 								PodSpec().
 									WithContainers(
@@ -607,11 +607,11 @@ func VolumeStatefulSet() []any {
 					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
 					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, name))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(name, name))).
 				WithServiceName(name).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(name, name)).
+						WithLabels(WorkloadLabels(name, name)).
 						WithAnnotations(map[string]string{SecurePVAnnotationKey: "state:share"}).
 						WithSpec(
 							PodSpec().
@@ -670,11 +670,11 @@ func MySQL() []any {
 					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
 					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(backendName, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(backendName, component))).
 				WithServiceName("mysql-backend").
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(backendName, component)).
+						WithLabels(WorkloadLabels(backendName, component)).
 						WithAnnotations(map[string]string{
 							SmIngressConfigAnnotationKey: "",
 							SecurePVAnnotationKey:        "state:share",
@@ -754,10 +754,10 @@ done
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(clientName, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(clientName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(clientName, component)).
+						WithLabels(WorkloadLabels(clientName, component)).
 						WithAnnotations(map[string]string{SmEgressConfigAnnotationKey: "mysql-backend#127.137.0.1:3306#mysql-backend:3306"}).
 						WithSpec(
 							PodSpec().
@@ -814,10 +814,10 @@ func GPU(name string, gpuClass string, gpuQuantity int64, withBlockDevice bool) 
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(name, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(name, component)).
+						WithLabels(WorkloadLabels(name, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -949,11 +949,11 @@ seal "transit" {
 					WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
 					WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(serverName, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(serverName, component))).
 				WithServiceName("vault").
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(serverName, component)).
+						WithLabels(WorkloadLabels(serverName, component)).
 						WithAnnotations(map[string]string{
 							WorkloadSecretIDAnnotationKey: "vault_unsealing",
 							SecurePVAnnotationKey:         "state:share",
@@ -1040,10 +1040,10 @@ seal "transit" {
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(clientName, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(clientName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(clientName, component)).
+						WithLabels(WorkloadLabels(clientName, component)).
 						WithSpec(
 							PodSpec().
 								WithVolumes(
@@ -1099,10 +1099,10 @@ func MemDump() []any {
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(listenerName, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(listenerName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(listenerName, component)).
+						WithLabels(WorkloadLabels(listenerName, component)).
 						WithAnnotations(map[string]string{
 							SmIngressConfigAnnotationKey: "netcat#8000#false",
 						}).
@@ -1142,10 +1142,10 @@ func MemDump() []any {
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(senderName, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(senderName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(senderName, component)).
+						WithLabels(WorkloadLabels(senderName, component)).
 						WithAnnotations(map[string]string{
 							SmEgressConfigAnnotationKey: "netcat#127.137.0.1:8000#listener:8000",
 						}).
@@ -1184,10 +1184,10 @@ func MemDumpTester() []any {
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(name, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(name, component)).
+						WithLabels(WorkloadLabels(name, component)).
 						WithSpec(
 							PodSpec().
 								WithHostPID(true).
@@ -1224,10 +1224,10 @@ func AuthenticatedPullTester(name string) any {
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(name, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(name, component)).
+						WithLabels(WorkloadLabels(name, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -1255,10 +1255,10 @@ func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApply
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(runcName, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(runcName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(runcName, component)).
+						WithLabels(WorkloadLabels(runcName, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -1280,10 +1280,10 @@ func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApply
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(ccName, component))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(ccName, component))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(ccName, component)).
+						WithLabels(WorkloadLabels(ccName, component)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -1310,10 +1310,10 @@ func IPSec() []any {
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(2).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, name))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(name, name))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(name, name)).
+						WithLabels(WorkloadLabels(name, name)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
@@ -1339,10 +1339,10 @@ func DeploymentWithRuntimeClass(name, runtimeClassName string) any {
 		WithSpec(
 			DeploymentSpec().
 				WithReplicas(1).
-				WithSelector(LabelSelector().WithMatchLabels(SelectorLabels(name, name))).
+				WithSelector(LabelSelector().WithMatchLabels(WorkloadLabels(name, name))).
 				WithTemplate(
 					PodTemplateSpec().
-						WithLabels(SelectorLabels(name, name)).
+						WithLabels(WorkloadLabels(name, name)).
 						WithSpec(
 							PodSpec().
 								WithContainers(
