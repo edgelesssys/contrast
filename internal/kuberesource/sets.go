@@ -324,9 +324,9 @@ func Emojivoto(smMode serviceMeshMode) []any {
 
 	labels := func(name string) map[string]string {
 		return map[string]string{
-			KubernetesAppNameLabel:      name,
-			KubernetesAppPartOfLabel:    "emojivoto",
-			"app.kubernetes.io/version": "v11",
+			KubernetesAppNameLabel:    name,
+			KubernetesAppPartOfLabel:  "emojivoto",
+			KubernetesAppVersionLabel: "v11",
 		}
 	}
 
