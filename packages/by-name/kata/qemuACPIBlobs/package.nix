@@ -11,7 +11,7 @@
 
 {
   # MADT depends on the vCPU count.
-  vcpus,
+  maxVcpus,
   legacySerial ? false,
   # qemu-cc omits memory-dependent ACPI data; 130 MiB is the DMA minimum.
   memoryMiB ? 1024,
@@ -32,9 +32,9 @@ let
     };
   });
 
-  mkBlob =
+  mkBlobs =
     {
-      vcpus,
+      maxVcpus,
       legacySerial,
       memoryMiB,
     }:
@@ -109,24 +109,21 @@ let
         "memory-backend-ram,id=dimm1,size=${mem}"
         "-numa"
         "node,memdev=dimm1"
-        # Kata lets QEMU infer one socket per vCPU for confidential guests.
-        "-smp"
-        "${toString vcpus},cores=1,threads=1"
       ];
 
       manifest = builtins.toJSON {
-        inherit vcpus legacySerial memoryMiB;
+        inherit legacySerial memoryMiB;
         kataVersion = source.version;
       };
     in
     assert lib.assertMsg (source.version == mirroredKataVersion)
       "qemu-acpi-blobs mirrors Kata ${mirroredKataVersion}; review qemuArgs before updating to ${source.version}";
-    assert lib.assertMsg (vcpus > 0) "qemu-acpi-blobs requires vcpus > 0";
+    assert lib.assertMsg (maxVcpus > 0) "qemu-acpi-blobs requires maxVcpus > 0";
     assert lib.assertMsg (
       memoryMiB >= 130
     ) "qemu-acpi-blobs requires memoryMiB >= 130 for fw_cfg DMA scratch space";
     stdenvNoCC.mkDerivation {
-      name = "qemu-acpi-blobs${lib.optionalString legacySerial "-legacy-serial"}-${toString vcpus}vcpu";
+      name = "qemu-acpi-blobs${lib.optionalString legacySerial "-legacy-serial"}";
 
       dontUnpack = true;
 
@@ -138,12 +135,16 @@ let
       buildPhase = ''
         runHook preBuild
 
-        mkdir -p "$out"
-        qemu-acpi-dump \
-          --output "$out" \
-          --qemu ${qemu-cc}/bin/qemu-system-x86_64 \
-          --metadata-json ${lib.escapeShellArg manifest} \
-          -- ${lib.escapeShellArgs qemuArgs}
+        for vcpus in $(seq 1 ${toString maxVcpus}); do
+          mkdir -p "$out/$vcpus"
+          # Kata lets QEMU infer one socket per vCPU for confidential guests.
+          qemu-acpi-dump \
+            --output "$out/$vcpus" \
+            --qemu ${qemu-cc}/bin/qemu-system-x86_64 \
+            --metadata-json ${lib.escapeShellArg manifest} \
+            -- ${lib.escapeShellArgs qemuArgs} \
+            -smp "$vcpus,cores=1,threads=1"
+        done
 
         runHook postBuild
       '';
@@ -151,4 +152,4 @@ let
       dontInstall = true;
     };
 in
-mkBlob { inherit vcpus legacySerial memoryMiB; }
+mkBlobs { inherit maxVcpus legacySerial memoryMiB; }

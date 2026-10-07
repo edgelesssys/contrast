@@ -52,31 +52,27 @@ let
     }:
     (
       let
-        vcpuCounts = if withGPU then [ 1 ] else lib.range 1 220;
-        launchDigests = map (
-          vcpus:
-          kata.calculateTdxLaunchDigests {
-            inherit
-              os-image
-              ovmf
-              withGPU
-              vcpus
-              ;
-            inherit (node-installer-image) withDebug;
-            rtmr0Only = vcpus != 1;
-          }
-        ) vcpuCounts;
+        maxVcpus = if withGPU then 1 else 220;
+        vcpuCounts = lib.range 1 maxVcpus;
+        launchDigests = kata.calculateTdxLaunchDigests {
+          inherit
+            os-image
+            ovmf
+            withGPU
+            maxVcpus
+            ;
+          inherit (node-installer-image) withDebug;
+        };
       in
       runCommand "tdx-reference-values.json" { nativeBuildInputs = [ jq ]; } ''
         set -o pipefail
-        sharedLaunchDigests=${builtins.head launchDigests}
-        for launchDigests in ${lib.escapeShellArgs (map toString launchDigests)}; do
+        for vcpus in ${lib.escapeShellArgs (map toString vcpuCounts)}; do
           jq -n \
-            --rawfile mrTd "$sharedLaunchDigests/mrtd.hex" \
-            --rawfile rtmr0 "$launchDigests/rtmr0.hex" \
-            --rawfile rtmr1 "$sharedLaunchDigests/rtmr1.hex" \
-            --rawfile rtmr2 "$sharedLaunchDigests/rtmr2.hex" \
-            --rawfile rtmr3 "$sharedLaunchDigests/rtmr3.hex" \
+            --rawfile mrTd ${launchDigests}/mrtd.hex \
+            --rawfile rtmr0 "${launchDigests}/rtmr0/$vcpus.hex" \
+            --rawfile rtmr1 ${launchDigests}/rtmr1.hex \
+            --rawfile rtmr2 ${launchDigests}/rtmr2.hex \
+            --rawfile rtmr3 ${launchDigests}/rtmr3.hex \
             '{
               mrTd: $mrTd,
               rtmrs: [$rtmr0, $rtmr1, $rtmr2, $rtmr3],

@@ -8,12 +8,12 @@
 
 tdx-measure.overrideAttrs (_old: {
   pname = "qemu-acpi-blobs-test";
-  ACPI_BLOBS_DEFAULT_DIR = qemuACPIBlobs {
-    vcpus = 1;
-  };
-  ACPI_BLOBS_LEGACY_SERIAL_DIR = qemuACPIBlobs {
-    vcpus = 1;
-    legacySerial = true;
-  };
+  ACPI_BLOBS_DEFAULT_DIR = "${qemuACPIBlobs { maxVcpus = 1; }}/1";
+  ACPI_BLOBS_LEGACY_SERIAL_DIR = "${
+    qemuACPIBlobs {
+      maxVcpus = 1;
+      legacySerial = true;
+    }
+  }/1";
   doCheck = true;
 })
