@@ -145,8 +145,8 @@ func run() (retErr error) {
 	meshapi.RegisterMeshAPIServer(meshAPIServer, meshapiserver.New(logger))
 	serverMetrics.InitializeMetrics(meshAPIServer)
 
-	metricsServer := &http.Server{}
-	httpAPIServer := &http.Server{}
+	metricsServer := newHTTPServer()
+	httpAPIServer := newHTTPServer()
 
 	var userapiStarted, meshapiStarted, recoveryStarted atomic.Bool
 
@@ -344,4 +344,14 @@ func gracefulStopGRPC(ctx context.Context, wg *sync.WaitGroup, server *grpc.Serv
 		case <-cleanupDone:
 		}
 	})
+}
+
+func newHTTPServer() *http.Server {
+	return &http.Server{
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 16, // 64 KB
+	}
 }
