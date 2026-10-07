@@ -48,7 +48,7 @@ This is the replacement mechanism for aTLS binding the TLS key into the report, 
 The key is generated ephemerally per exchange.
 A fresh report is minted on every call regardless, since the client's nonce is in it, so per-exchange generation introduces little extra attestation cost.
 The Coordinator holds the private key in a two minutes TTL-bounded, size-bounded pending-key cache until the follow-up request arrives.
-Per requirement 4, losing this cache is benign.
+Per requirement 3, losing this cache is benign.
 The follow-up request fails with a distinguishable error and the client repeats the exchange.
 
 For the algorithmic primitives, [HPKE](https://www.rfc-editor.org/rfc/rfc9180.html) base mode with the post-quantum hybrid KEM `MLKEM768-X25519` from [`draft-ietf-hpke-pq`](https://datatracker.ietf.org/doc/draft-ietf-hpke-pq/), `HKDF-SHA256`, and `AES-256-GCM` is chosen.
@@ -57,6 +57,7 @@ An implementation exists in [`crypto/hpke`](https://pkg.go.dev/crypto/hpke).
 Note that the key isn't bound to Coordinator state.
 Therefore a Coordinator awaiting recovery can still issue one, which is what [`POST /v1/recover`](#post-v1recover-recover) depends on.
 The Coordinator doesn't prove possession of the private key, see [Proof of possession](#proof-of-possession) for the reasoning.
+The state digests are bound into the report directly rather than signed with an attested key, see [Signing the state with an attested key](#signing-the-state-with-an-attested-key).
 
 ### Case 2: Client authenticates itself to the Coordinator (User API)
 
@@ -70,13 +71,24 @@ Manifest updates reuse the existing signature scheme.
 Recovery has no such scheme to reuse.
 Seed share owners authenticate currently by presenting their key as an mTLS client certificate, which `validatePeer` compares against `SeedshareOwnerPubKeys`.
 Because seed share owner keys are RSA-4096 (while workload owner keys are ECDSA P-384), the manifest-update scheme can't be copied directly.
-The new signature should instead be [RSA-PSS](https://www.rfc-editor.org/rfc/rfc8017.html#section-8.1) with SHA-256.
+
+The new signature is instead [RSA-PSS](https://www.rfc-editor.org/rfc/rfc8017.html#section-8.1) with SHA-256 for the RSA keys in use today.
+The request carries it as an opaque byte string, and the Coordinator determines the algorithm from the type of the key listed in the manifest, so a future seed share owner key type needs no new request format.
+Introducing such a new key type is [out of scope](#out-of-scope).
 
 #### Setting the initial manifest
 
 Currently setting the initial manifest requires no authentication of the client to the Coordinator, following the trust-on-first-use model of [RFC 002](002-secure-set-manifest-endpoint.md).
 The Coordinator trusts the first manifest it's given, and the client then verifies, among everything else, that the manifest now in force is the one it set.
 An attacker who races the legitimate client and sets a manifest first causes that verification to fail.
+
+This model stays, but the existing gRPC API should first apply the same authorization rule to the initial manifest as to updates.
+Today `SetManifest` runs `validateSignature` and `validatePeer` only when a manifest is already in force, against that manifest's `WorkloadOwnerPubKeys`.
+With the change, the initial call runs the same two checks against the `WorkloadOwnerPubKeys` of the incoming manifest, with an all-zero previous transition hash for the signature.
+A manifest without workload owner keys can still be set unauthenticated, since there is no key to check against.
+
+The HTTP API then has no special case to port.
+The only difference to gRPC is that the peer-key alternative is dropped.
 
 ### Case 3: Client authenticates itself to the Coordinator (Mesh API)
 
@@ -99,7 +111,7 @@ The `Authorization` header only echoes the nonce.
 The evidence itself goes into the request body, since servers and intermediaries limit header sizes, commonly to a few KiB, and a report with its certificate chain can exceed that.
 
 The Coordinator holds issued nonces in a TTL-bounded, size-bounded nonce cache.
-Per requirement 4, losing the cache is benign. The retry fails with `401` and the client starts over.
+Per requirement 3, losing the cache is benign. The retry fails with `401` and the client starts over.
 This is the same state-handling pattern as the pending HPKE keys, and the two caches can share an implementation.
 
 The client's report binds two client keys to the challenge:
@@ -158,7 +170,7 @@ Security is unchanged. The added key and `Status`, encoded as a single byte, are
 
 #### `POST /v1/manifest` (SetManifest)
 
-The body carries the manifest, the policies, the previous transition hash, and a workload owner signature, using the existing scheme unchanged:
+The body carries a client nonce, the manifest, the policies, the previous transition hash, and a workload owner signature, using the existing scheme unchanged:
 
 ```
 h  = Transition{ManifestHash: sha256(manifest), PreviousTransitionHash: prev}.Digest()
@@ -166,14 +178,44 @@ h' = sha256(hex(h))
 sig = ECDSA-Sign(workloadOwnerKey, h')
 ```
 
-The initial manifest requires no signature.
-The client confirms the result with a follow-up `/v1/attest`.
+```go
+type SetManifestRequestV1 struct {
+    Nonce                  []byte   `json:"nonce"`
+    Manifest               []byte   `json:"manifest"`
+    Policies               [][]byte `json:"policies"`
+    PreviousTransitionHash []byte   `json:"previous_transition_hash"`
+    // Signature may only be empty for an initial manifest that lists no workload owner keys.
+    Signature []byte `json:"signature"`
+}
 
-The mTLS peer-key path (`validatePeer` against `WorkloadOwnerPubKeys`) is dropped, meaning the signature becomes the only authorization mechanism for updates.
+type SetManifestResponseV1 struct {
+    Version           string                `json:"version"`
+    RawAttestationDoc []byte                `json:"raw_attestation_doc"`
+    AttestationType   asn1.ObjectIdentifier `json:"attestation_type"`
+    // SeedSharesDoc is the JSON-encoded seed share document. It's only set for the initial manifest.
+    SeedSharesDoc []byte `json:"seed_shares_doc,omitempty"`
+
+    CoordinatorState
+}
+```
+
+Updates are verified against the `WorkloadOwnerPubKeys` of the manifest currently in force.
+The initial manifest is verified against its own `WorkloadOwnerPubKeys`, see [Setting the initial manifest](#setting-the-initial-manifest).
+
+The mTLS peer-key path (`validatePeer` against `WorkloadOwnerPubKeys`) is dropped, meaning the signature becomes the only authorization mechanism.
 The gRPC path accepts either today, so this doesn't introduce a new mechanism.
-The Coordinator is no longer attested during the call, verification moves to the set-then-verify sequence the CLI effectively performs anyway.
 
-Security is unchanged for updates.
+The response is attested in the same way as `/v1/attest`, under a label of its own and additionally covering the seed share document:
+
+```
+reportData = sha256("contrast manifest v1" || nonce || transitionHash || sha256(rootCA) || sha256(meshCA) || sha256(seedSharesDoc))
+```
+
+`seedSharesDoc` is hashed as transmitted, and is the empty string for updates.
+`Status` and HPKE key don't need to be included, as a successful call always leaves the Coordinator active and no secret is sent to it afterward.
+
+Returning the attested state from the call itself, instead of having the client follow up with `/v1/attest`, keeps the guarantee the gRPC method gives today, namely that the CA certificates received belong to the manifest just set.
+Since `/v1/attest` doesn't return it, this is also the only way to authenticate the seed share document.
 
 #### `POST /v1/recover` (Recover)
 
@@ -190,7 +232,8 @@ type RecoverRequestV1 struct {
     Nonce []byte `json:"nonce"`
     // {seed, salt} sealed to the Coordinator's HPKE key, as returned by hpke.Seal.
     Ciphertext []byte `json:"ciphertext"`
-    // RSA-PSS-SHA256 over sha256("contrast recover v1" || nonce || hpkePubKey || force || ciphertext).
+    // Signature by a seed share owner key over sha256("contrast recover v1" || nonce || hpkePubKey || force || ciphertext).
+    // The algorithm follows from the key type, RSA-PSS-SHA256 for the currently used RSA keys.
     Signature []byte `json:"signature"`
     Force     bool   `json:"force"`
 }
@@ -213,6 +256,9 @@ The seed is readable only by a Coordinator that produced a valid report over the
 - Coordinator-to-Coordinator traffic, in particular `meshapi.Recover` as used by `peerrecovery`, keeps using aTLS, per [RFC 014](014-backwards-compatibility.md).
 - The transit engine API, which is already HTTP-only and has an authentication model of its own.
 - Hardening the trust-on-first-use on the initial `SetManifest`, as established in [RFC 002](002-secure-set-manifest-endpoint.md).
+- Replacing RSA seed share owner keys.
+  Seed shares are currently encrypted with RSA-OAEP, but moving them to HPKE with a post-quantum KEM is desirable.
+  This requires a manifest change, and isn't strictly required for the topic of this RFC, hence deemed out-of-scope.
 
 ## Alternatives considered
 
@@ -225,11 +271,23 @@ Neither the Coordinator's HPKE key nor the initializer's `certPubKey` comes with
 - An attacker who replays an older report fails the nonce check.
 - A key bound into the report but not held by its producer could only be placed there by a malicious workload, which measurements are what exclude.
 
+For the HPKE key, a proof also isn't readily available.
+An ECDSA key can be converted with [`PrivateKey.ECDH`](https://pkg.go.dev/crypto/ecdsa#PrivateKey.ECDH) and used as a DHKEM key, so that a single key serves for both signing and key agreement.
+That limits the KEM to a classical one instead of a post-quantum secure one.
+With the hybrid KEM, the ML-KEM half can't sign, and proving possession of the X25519 half alone doesn't prove possession of the other.
+ML-DSA isn't part of the Go standard library.
+
 If an explicit confirmation is wanted anyway, a separate ephemeral signing key could be covered by the same report data, and the Coordinator could sign the response with it.
-Signing with the KEM key itself isn't an option, as an ML-KEM key can't sign.
-It's also unclear how possession of a post-quantum hybrid key would be proven, as ML-DSA isn't part of the Go standard library.
 
 For certificate enrollment, [`draft-reddy-rats-key-binding-02`](https://datatracker.ietf.org/doc/html/draft-reddy-rats-key-binding-02) describes a protocol-level proof of possession, but it builds on EAT structures Contrast doesn't implement.
+
+### Signing the state with an attested key
+
+The report data could cover only `nonce || pubKey`, with the Coordinator signing the reported state with the corresponding private key.
+This would keep the report data layout independent of what's being reported.
+
+The attested key is a KEM key and can't sign, so this needs a second attested key, for the reasons given under [Proof of possession](#proof-of-possession).
+Binding the state digests into the report data directly therefore gives the same guarantee with one primitive less.
 
 ### Deriving freshness from a rotating server key instead of a per-request nonce
 
