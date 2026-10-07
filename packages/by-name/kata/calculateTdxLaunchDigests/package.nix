@@ -13,8 +13,7 @@
   ovmf,
   withGPU ? false,
   withDebug ? false,
-  vcpus ? 1,
-  rtmr0Only ? false,
+  maxVcpus ? 1,
 }:
 
 let
@@ -27,14 +26,11 @@ let
   gpuFlag = lib.optionalString withGPU "-g b200";
   # withDebug enables Kata's legacy serial topology, which changes ACPI.
   # GPU VMs currently measure no ACPI tables.
-  acpiBlobsFlag =
-    lib.optionalString (!withGPU)
-      "--acpi-blobs ${
-        kata.qemuACPIBlobs {
-          legacySerial = withDebug;
-          inherit vcpus;
-        }
-      }";
+  acpiBlobs = kata.qemuACPIBlobs {
+    legacySerial = withDebug;
+    inherit maxVcpus;
+  };
+  acpiBlobsFlag = lib.optionalString (!withGPU) "--acpi-blobs ${acpiBlobs}/$vcpus";
 in
 
 stdenvNoCC.mkDerivation {
@@ -44,18 +40,19 @@ stdenvNoCC.mkDerivation {
   dontUnpack = true;
 
   buildPhase = ''
-    mkdir $out
+    mkdir -p $out/rtmr0
 
     cmdline=$(cat "${cmdline}")
-    ${lib.getExe tdx-measure} rtmr ${gpuFlag} ${acpiBlobsFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c "$cmdline" 0 > $out/rtmr0.hex
-    ${lib.optionalString (!rtmr0Only) ''
-      ${lib.getExe tdx-measure} mrtd -f ${ovmf-tdx} --eventlog-dir eventlogs > $out/mrtd.hex
-      ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c "$cmdline" 1 > $out/rtmr1.hex
-      ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c "$cmdline" 2 > $out/rtmr2.hex
-      ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c "$cmdline" 3 > $out/rtmr3.hex
+    for vcpus in $(seq 1 ${toString maxVcpus}); do
+      ${lib.getExe tdx-measure} rtmr ${gpuFlag} ${acpiBlobsFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c "$cmdline" 0 > $out/rtmr0/$vcpus.hex
+    done
 
-      cp -r eventlogs $out/
-      echo "Eventlog available in $out/eventlogs/"
-    ''}
+    ${lib.getExe tdx-measure} mrtd -f ${ovmf-tdx} --eventlog-dir eventlogs > $out/mrtd.hex
+    ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c "$cmdline" 1 > $out/rtmr1.hex
+    ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c "$cmdline" 2 > $out/rtmr2.hex
+    ${lib.getExe tdx-measure} rtmr ${gpuFlag} -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c "$cmdline" 3 > $out/rtmr3.hex
+
+    cp -r eventlogs $out/
+    echo "Eventlog available in $out/eventlogs/"
   '';
 }
