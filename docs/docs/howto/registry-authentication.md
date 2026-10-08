@@ -105,6 +105,13 @@ For each individual registry `registry.corp`, the following options are availabl
 | `mirror` | OCI registry mirror to use instead of the actual registry |
 
 The `auth` credentials use the same format as shown above for the Contrast CLI.
+
+:::note
+
+The registry name must be a fully-qualified domain name, including the trailing dot, in lower case.
+
+:::
+
 The following script generates a valid configuration file and makes it available to the node installer.
 
 ```sh
@@ -233,9 +240,8 @@ If no image puller configuration is provided or if it's empty, the behavior for 
 
 #### Registry matching and subdomains
 
-Registry domains are specified as fully qualified domain names.
-Note the trailing dot in the examples above - it's mandatory!
-For a registry-specific configuration to be applied to a pull request, the image's registry must end exactly in the configuration's name.
+The registry from the incoming image pull request is normalized to a fully-qualified domain and lower case.
+For a registry-specific configuration to be applied to a pull request, that normalized registry must end exactly in the configuration's name.
 A configuration above for `.registry.corp.` will be applied to any and all registries available on subdomains of `registry.corp`, but not to `registry.corp` itself.
 An entry `registry.corp` will be applied to both `registry.corp` and all its subdomains.
 If only the domain itself should match, create an entry for the subdomains (with a leading dot) that disables them as shown in [example 2](#example-2).
