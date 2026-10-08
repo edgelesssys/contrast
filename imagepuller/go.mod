@@ -18,6 +18,8 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
+require google.golang.org/grpc v1.83.2
+
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
@@ -48,6 +50,5 @@ require (
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/vbatts/tar-split v0.12.3 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260610212136-7ab31c22f7ad // indirect
-	google.golang.org/grpc v1.83.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

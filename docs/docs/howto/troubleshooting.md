@@ -164,6 +164,23 @@ crictl rmi $IMAGE
 
 Unfortunately, this bug won't be fixed for containerd versions before `v2.0.0`.
 
+### Registry configuration can't be parsed
+
+If the configuration file for the image puller is syntactically invalid or contains unexpected entries, you will see an error like this:
+
+```
+  Type     Reason     Age      From               Message
+  ----     ------     ----     ----               -------
+  Warning  Failed     20s      kubelet            spec.containers{coordinator}: Error: failed to create containerd task: failed to create shim task: invalid imagepuller-config: ...
+```
+
+Follow the [registry authentication how-to](registry-authentication.md) to create a valid configuration file, deploy it as a secret to the node installer namespace, and finally restart the node installer:
+
+```sh
+kubectl -n contrast-system rollout restart daemonset/contrast-cc-metal-qemu-snp-deadbeef-nodeinstaller
+kubectl -n contrast-system rollout status -w daemonset/contrast-cc-metal-qemu-snp-deadbeef-nodeinstaller
+```
+
 ## VM runs out of memory
 
 Since pod VMs are statically sized, it's easier to run out of memory due to misconfigurations.
