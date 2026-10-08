@@ -19,7 +19,7 @@ You don't need to interact with remote attestation unless you want to, and you c
 
 Our software is developed in the open, without hidden components or gated enterprise features.
 With access to the source code you can convince yourself of its security, and security researchers are invited to do so, too.
-Our build system ensures outputs are reproducible, so you can verify binary artifacts yourself and don't need to trust our processes.
+Our build system ensures outputs are reproducible, so you can [verify binary artifacts yourself](./howto/reproducible-build.md) and don't need to trust our processes.
 
 ## Measurements included
 
