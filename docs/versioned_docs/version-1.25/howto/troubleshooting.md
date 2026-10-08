@@ -105,11 +105,11 @@ contrast --version
 contrast version v1.XX.X
 
 container image versions:
-    ghcr.io/edgelesssys/contrast/coordinator:v1.XX.X@sha256:...
-    ghcr.io/edgelesssys/contrast/initializer:v1.XX.X@sha256:...
-    ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.XX.X@sha256:...
-    ghcr.io/edgelesssys/contrast/node-installer-kata:v1.XX.X@sha256:...
-    ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:v1.XX.X@sha256:...
+    ghcr.io/edgelesssys/contrast/coordinator:v1.25.0@sha256:e22b353f6a9b7eb6d4b351a28cc5362dab3364c44c5271aa9c10364d3678dd65
+    ghcr.io/edgelesssys/contrast/initializer:v1.25.0@sha256:6cee39d7eab372aee6e24b366be7a40a214b6b23e7f8c7d32ab05cffa748b816
+    ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.25.0@sha256:8750382f4a38d422d8cda9da8f182ed01f77fa799754da98c7da9c8609e3474b
+    ghcr.io/edgelesssys/contrast/node-installer-kata:v1.25.0@sha256:4f6245926c33a5bd31c212220c283fb5b3e65d6c25af7d4dd67d36dad0aefc16
+    ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:v1.25.0@sha256:2120991d95f08a8b74141527ba9b97712563b8ffd031bd59ab63f89df15b5421
 
 reference values for Metal-QEMU-SNP platform:
     runtime handler:      contrast-cc-metal-qemu-snp-7173acb5
