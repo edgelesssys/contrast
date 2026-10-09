@@ -147,7 +147,7 @@ func (c *Config) ApplyEnvVars() {
 // If no match is found, an empty Registry is returned.
 func (c *Config) registryFor(name string) Registry {
 	var registry Registry
-	matchLength := 0 // "." has 1 matching characters.
+	matchLength := 0 // "." has 1 matching character.
 
 	normalizedName := normalizeDomain(name)
 
