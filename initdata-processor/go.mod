@@ -4,6 +4,10 @@ go 1.26.0
 
 replace github.com/edgelesssys/contrast => ..
 
+replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249
+
+replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5
+
 require (
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
 	github.com/google/go-sev-guest v0.14.2-0.20251119154202-af1c107a648f
