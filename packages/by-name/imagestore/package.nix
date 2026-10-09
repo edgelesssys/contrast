@@ -30,7 +30,7 @@ buildGoModule (finalAttrs: {
   sourceRoot = "${finalAttrs.src.name}/imagestore";
 
   proxyVendor = true;
-  vendorHash = "sha256-XRc9Wjn64nEWeWnHpaMFbFO14kNiIj9QHli1zzpuq2U=";
+  vendorHash = "sha256-dSm5dMV66Fx9NLuirGAMRdtkECQgS5kke7GcoCKwtJE=";
 
   env.CGO_ENABLED = 0;
   dontFixup = true;
