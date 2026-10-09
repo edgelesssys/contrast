@@ -48,7 +48,7 @@ jobs:
           echo "value=v${base}-$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
       - name: Resolve platforms
         id: platforms
-        uses: ./.github/actions/release_platforms
+        uses: ./.github/actions/skip_platforms
         with:
           # Scheduled runs take no inputs, so they read the repository variable.
           skip_platforms: ${{ inputs.skip_platforms || vars.SKIP_PLATFORMS }}
