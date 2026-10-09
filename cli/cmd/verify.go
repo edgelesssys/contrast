@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/fsstore"
@@ -49,6 +50,8 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 	addCollateralProxyFlag(cmd)
+	cmd.Flags().String("minimum-api-version", "", "oldest Coordinator HTTP API version to accept, for example v1")
+	must(cmd.Flags().MarkHidden("minimum-api-version"))
 
 	return cmd
 }
@@ -76,7 +79,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	resp, err := getCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, flags.collateralProxyURL, log)
+	resp, err := getCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, flags.collateralProxyURL, flags.minimumAPIVersion, log)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
 	}
@@ -135,6 +138,7 @@ type verifyFlags struct {
 	coordinator        string
 	workspaceDir       string
 	collateralProxyURL string
+	minimumAPIVersion  string
 }
 
 func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
@@ -154,6 +158,15 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	minimumAPIVersion, err := cmd.Flags().GetString("minimum-api-version")
+	if err != nil {
+		return nil, err
+	}
+	if minimumAPIVersion != "" {
+		if _, err := apitypes.ParseAPIVersion(minimumAPIVersion); err != nil {
+			return nil, fmt.Errorf("invalid minimum-api-version: %w", err)
+		}
+	}
 
 	if workspaceDir != "" {
 		// Prepend default path with workspaceDir
@@ -167,6 +180,7 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 		coordinator:        coordinator,
 		workspaceDir:       workspaceDir,
 		collateralProxyURL: collateralProxyURL,
+		minimumAPIVersion:  minimumAPIVersion,
 	}, nil
 }
 
@@ -185,14 +199,28 @@ func writeFilelist(dir string, filelist map[string][]byte) error {
 	return nil
 }
 
+func checkMinimumAPIVersion(manifestPin, flagPin string) error {
+	source, pin := "the minimum-api-version flag", flagPin
+	if pin == "" {
+		source, pin = "the manifest", manifestPin
+	}
+	if pin == "" {
+		return nil
+	}
+	return fmt.Errorf("%w: %s requires at least API version %s, but the CLI uses the gRPC API", sdk.ErrMinimumAPIVersionUnmet, source, pin)
+}
+
 // getCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
-func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint, collateralProxy string, log *slog.Logger) (sdk.CoordinatorState, error) {
+func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint, collateralProxy, minimumAPIVersion string, log *slog.Logger) (sdk.CoordinatorState, error) {
 	var m manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
 		return sdk.CoordinatorState{}, fmt.Errorf("unmarshalling manifest: %w", err)
 	}
 	if err := m.Validate(); err != nil {
 		return sdk.CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
+	}
+	if err := checkMinimumAPIVersion(m.MinimumAPIVersion, minimumAPIVersion); err != nil {
+		return sdk.CoordinatorState{}, err
 	}
 
 	kdsCache := fsstore.New(afero.NewBasePathFs(afero.NewOsFs(), kdsDir), log.WithGroup("kds-cache"))
