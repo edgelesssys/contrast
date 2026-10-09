@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 
 	"github.com/edgelesssys/contrast/apitypes"
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
@@ -44,13 +43,13 @@ func (c *Client) GetAttestation(ctx context.Context, nonce []byte) ([]byte, erro
 			return nil, fmt.Errorf("%w (negotiating API version: %w)", pinErr, err)
 		}
 		c.log.Debug("Negotiating API version failed, using the unversioned attestation endpoint", "err", err)
-		return c.httpapi.DoJSON(ctx, http.MethodPost, apitypesv1.LegacyAttestPath, &apitypesv1.AttestationRequest{Nonce: nonce})
+		return c.httpapi.DoJSON(ctx, apitypesv1.AttestMethod, apitypesv1.LegacyAttestPath, &apitypesv1.AttestationRequest{Nonce: nonce})
 	}
 
 	switch version {
 	case apiv1.Version:
 		// TODO(charludo): change to c.V1().GetAttestation(...) when sdk/apiv1/attest.go is re-added.
-		return c.httpapi.DoJSON(ctx, http.MethodPost, apitypesv1.AttestPath, &apitypesv1.AttestationRequest{Nonce: nonce})
+		return c.httpapi.DoJSON(ctx, apitypesv1.AttestMethod, apitypesv1.AttestPath, &apitypesv1.AttestationRequest{Nonce: nonce})
 	default:
 		return nil, fmt.Errorf("GetAttestation is not implemented for API version %q", version)
 	}
