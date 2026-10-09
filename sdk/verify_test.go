@@ -332,7 +332,7 @@ func TestGetAttestationEndpoint(t *testing.T) {
 func coordinatorHandler(versions []string, gotAttestPath *string) http.Handler {
 	mux := http.NewServeMux()
 	if versions != nil {
-		mux.Handle(capabilitiesPath, capabilitiesHandler(versions))
+		mux.Handle(apitypes.CapabilitiesPath, capabilitiesHandler(versions))
 	}
 	for _, path := range []string{apitypesv1.LegacyAttestPath, apitypesv1.AttestPath} {
 		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
