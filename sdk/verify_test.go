@@ -86,14 +86,14 @@ func TestGetAttestation(t *testing.T) {
 			srv := tc.getServer(tc.handler)
 			t.Cleanup(srv.Close)
 
-			client := New().
+			client := New(srv.URL).
 				WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), t.TempDir()))
 
 			if srv.TLS != nil {
 				client = client.WithHTTPClient(srv.Client())
 			}
 
-			att, err := client.GetAttestation(t.Context(), srv.URL, tc.nonce)
+			att, err := client.GetAttestation(t.Context(), tc.nonce)
 			if tc.wantErr != "" {
 				assert.ErrorContains(err, tc.wantErr)
 				assert.Nil(att)
@@ -156,7 +156,8 @@ func TestValidateAttestation(t *testing.T) {
 			attestation, err := json.Marshal(tc.resp)
 			require.NoError(err)
 
-			c := New()
+			// ValidateAttestation is offline, so no Coordinator URL is needed.
+			c := New("")
 
 			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error) {
 				return &stubValidator{err: tc.validateErr}, nil
