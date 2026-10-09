@@ -193,7 +193,7 @@ func TestNegotiateAPIVersionManifestPin(t *testing.T) {
 
 func capabilitiesHandler(versions []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != capabilitiesPath || r.Method != http.MethodGet {
+		if r.URL.Path != apitypes.CapabilitiesPath || r.Method != apitypes.CapabilitiesMethod {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

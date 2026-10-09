@@ -49,7 +49,7 @@ func (h *CapabilitiesHandler) Digest() [32]byte {
 
 // ServeHTTP implements [http.Handler].
 func (h *CapabilitiesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	if r.Method != apitypes.CapabilitiesMethod {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}

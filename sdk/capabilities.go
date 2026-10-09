@@ -10,19 +10,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"slices"
 
 	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/sdk/apiv1"
 )
-
-// capabilitiesPath is the path of the Coordinator's capabilities endpoint.
-//
-// This endpoint is deliberately unversioned. It's how clients discover which versions
-// exist, so it must be reachable without knowing a version first.
-const capabilitiesPath = "/capabilities"
 
 // supportedAPIVersions are the API versions this SDK can speak, newest first.
 var supportedAPIVersions = []string{apiv1.Version}
@@ -48,7 +41,7 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 		return c.negotiatedVersion, nil
 	}
 
-	body, err := c.httpapi.DoJSON(ctx, http.MethodGet, capabilitiesPath, nil)
+	body, err := c.httpapi.DoJSON(ctx, apitypes.CapabilitiesMethod, apitypes.CapabilitiesPath, nil)
 	if err != nil {
 		return "", fmt.Errorf("getting capabilities: %w", err)
 	}
