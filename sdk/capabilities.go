@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"slices"
 
 	"github.com/edgelesssys/contrast/apitypes"
@@ -18,14 +17,14 @@ import (
 	"github.com/edgelesssys/contrast/sdk/apiv1"
 )
 
-// capabilitiesPath is the path of the Coordinator's capabilities endpoint.
+// SupportedAPIVersions are the API versions this SDK can speak, newest first.
 //
-// This endpoint is deliberately unversioned. It's how clients discover which versions
-// exist, so it must be reachable without knowing a version first.
-const capabilitiesPath = "/capabilities"
+// The Coordinator advertises this list on its capabilities endpoint.
+// TODO(charludo): empty because the Coordinator serves no versioned endpoint yet.
+var SupportedAPIVersions = []string{}
 
-// supportedAPIVersions are the API versions this SDK can speak, newest first.
-var supportedAPIVersions = []string{apiv1.Version}
+// ErrNoCommonAPIVersion is returned if the SDK and the Coordinator share no API version.
+var ErrNoCommonAPIVersion = errors.New("no common API version")
 
 // ErrMinimumAPIVersionUnmet is returned if the API version in use is older than the pinned minimum API version.
 var ErrMinimumAPIVersionUnmet = errors.New("minimum API version not met")
@@ -36,6 +35,7 @@ var ErrAPIVersionDowngrade = errors.New("API version was downgraded")
 // NegotiateAPIVersion returns the newest API version supported by both this SDK and the Coordinator.
 //
 // If the expected manifest pins a MinimumAPIVersion, negotiation fails with [ErrMinimumAPIVersionUnmet].
+// If there is no shared version, it fails with [ErrNoCommonAPIVersion].
 //
 // The first successful result is cached, so this costs at most one successful request per [Client].
 func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
@@ -48,7 +48,7 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 		return c.negotiatedVersion, nil
 	}
 
-	body, err := c.httpapi.DoJSON(ctx, http.MethodGet, capabilitiesPath, nil)
+	body, err := c.httpapi.DoJSON(ctx, apitypes.CapabilitiesMethod, apitypes.CapabilitiesPath, nil)
 	if err != nil {
 		return "", fmt.Errorf("getting capabilities: %w", err)
 	}
@@ -59,7 +59,7 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 
 	version, ok := newestCommonAPIVersion(&caps)
 	if !ok {
-		return "", fmt.Errorf("no common API version: Coordinator supports %v, SDK supports %v", caps.APIVersions, supportedAPIVersions)
+		return "", fmt.Errorf("%w: Coordinator supports %v, SDK supports %v", ErrNoCommonAPIVersion, caps.APIVersions, SupportedAPIVersions)
 	}
 	if err := enforceMinimumAPIVersion(version, c.expectedManifest); err != nil {
 		return "", fmt.Errorf("refusing to negotiate: %w", err)
@@ -72,8 +72,8 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 // newestCommonAPIVersion returns the newest API version supported by both this SDK and
 // a Coordinator with the given capabilities.
 func newestCommonAPIVersion(caps *apitypes.CapabilitiesResponse) (string, bool) {
-	// supportedAPIVersions is ordered newest first, so the first match is the best one.
-	for _, version := range supportedAPIVersions {
+	// SupportedAPIVersions is ordered newest first, so the first match is the best one.
+	for _, version := range SupportedAPIVersions {
 		if slices.Contains(caps.APIVersions, version) {
 			return version, true
 		}

@@ -114,6 +114,8 @@ func (c *Client) WithHTTPClient(httpClient *http.Client) *Client {
 // Callers that know which manifest the Coordinator is supposed to run should set this. Without
 // it, validation only proves that the Coordinator runs *some* manifest it vouches for itself,
 // and the caller has to compare the returned manifest against its expectation.
+//
+// If the manifest pins a MinimumAPIVersion, the Client refuses to use older API versions.
 func (c *Client) WithExpectedManifest(m *manifest.Manifest) *Client {
 	c.expectedManifest = m
 	return c

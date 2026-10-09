@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 
 	"github.com/edgelesssys/contrast/apitypes"
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
@@ -44,7 +43,7 @@ func (c *Client) GetAttestation(ctx context.Context, nonce []byte) ([]byte, erro
 			return nil, fmt.Errorf("%w (negotiating API version: %w)", pinErr, err)
 		}
 		c.log.Debug("Negotiating API version failed, using the unversioned attestation endpoint", "err", err)
-		return c.httpapi.DoJSON(ctx, http.MethodPost, apitypesv1.LegacyAttestPath, &apitypesv1.AttestationRequest{Nonce: nonce})
+		return c.httpapi.DoJSON(ctx, apitypesv1.AttestMethod, apitypesv1.LegacyAttestPath, &apitypesv1.AttestationRequest{Nonce: nonce})
 	}
 
 	switch version {
@@ -101,7 +100,11 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 	if c.validatorsFromManifestOverride != nil {
 		validatorsFromManifest = c.validatorsFromManifestOverride
 	}
-	validator, err := validatorsFromManifest(kdsGetter, &latestManifest, c.log)
+	referenceManifest := &latestManifest
+	if c.expectedManifest != nil {
+		referenceManifest = c.expectedManifest
+	}
+	validator, err := validatorsFromManifest(kdsGetter, referenceManifest, c.log)
 	if err != nil {
 		return nil, fmt.Errorf("getting validators: %w", err)
 	}

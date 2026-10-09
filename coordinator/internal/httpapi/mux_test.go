@@ -53,7 +53,7 @@ func TestMuxAttestation(t *testing.T) {
 		require := require.New(t)
 
 		var resp apitypesv1.AttestationResponse
-		require.NoError(json.Unmarshal(do(t, http.MethodPost, apitypesv1.LegacyAttestPath, attestRequest), &resp))
+		require.NoError(json.Unmarshal(do(t, apitypesv1.AttestMethod, apitypesv1.LegacyAttestPath, attestRequest), &resp))
 		require.Nil(resp.CapabilitiesDigest)
 		require.Equal(apitypesv1.ConstructReportData(nonce, transitionDigest, &resp.CoordinatorState), issuer.gotReportData)
 	})
