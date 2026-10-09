@@ -1,5 +1,5 @@
-name: Release platforms
-description: Resolves which bare metal platforms a release run tests, given the platforms to skip
+name: Skip platforms
+description: Parses the bare metal platforms to skip and lists the release test platforms without them
 
 inputs:
   skip_platforms:
