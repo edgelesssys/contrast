@@ -93,7 +93,7 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ap
 }
 
 func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != apitypesv1.AttestMethod {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
