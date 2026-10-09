@@ -51,6 +51,7 @@ func TestAttestationHandler(t *testing.T) {
 		"wrong HTTP method": {
 			method:    http.MethodGet,
 			expStatus: http.StatusMethodNotAllowed,
+			expErr:    errMethodNotAllowed,
 		},
 		"no body": {
 			request:   &apitypesv1.AttestationRequest{},
