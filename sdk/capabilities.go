@@ -20,6 +20,9 @@ import (
 // supportedAPIVersions are the API versions this SDK can speak, newest first.
 var supportedAPIVersions = []string{apiv1.Version}
 
+// ErrNoCommonAPIVersion is returned if the SDK and the Coordinator share no API version.
+var ErrNoCommonAPIVersion = errors.New("no common API version")
+
 // ErrMinimumAPIVersionUnmet is returned if the API version in use is older than the pinned minimum API version.
 var ErrMinimumAPIVersionUnmet = errors.New("minimum API version not met")
 
@@ -29,6 +32,7 @@ var ErrAPIVersionDowngrade = errors.New("API version was downgraded")
 // NegotiateAPIVersion returns the newest API version supported by both this SDK and the Coordinator.
 //
 // If the expected manifest pins a MinimumAPIVersion, negotiation fails with [ErrMinimumAPIVersionUnmet].
+// If there is no shared version, it fails with [ErrNoCommonAPIVersion].
 //
 // The first successful result is cached, so this costs at most one successful request per [Client].
 func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
@@ -52,7 +56,7 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 
 	version, ok := newestCommonAPIVersion(&caps)
 	if !ok {
-		return "", fmt.Errorf("no common API version: Coordinator supports %v, SDK supports %v", caps.APIVersions, supportedAPIVersions)
+		return "", fmt.Errorf("%w: Coordinator supports %v, SDK supports %v", ErrNoCommonAPIVersion, caps.APIVersions, supportedAPIVersions)
 	}
 	if err := enforceMinimumAPIVersion(version, c.expectedManifest); err != nil {
 		return "", fmt.Errorf("refusing to negotiate: %w", err)
