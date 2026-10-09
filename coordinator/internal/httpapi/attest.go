@@ -22,6 +22,7 @@ import (
 )
 
 var (
+	errMethodNotAllowed   = errors.New("method not allowed")
 	errContentType        = errors.New("invalid Content-Type")
 	errNonceLength        = errors.New("invalid nonce length")
 	errGettingState       = errors.New("getting state")
@@ -94,7 +95,8 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ap
 
 func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != apitypesv1.AttestMethod {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Header().Set("Allow", apitypesv1.AttestMethod)
+		writeJSONError(w, http.StatusMethodNotAllowed, errMethodNotAllowed)
 		return
 	}
 
