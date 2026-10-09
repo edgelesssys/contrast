@@ -77,7 +77,7 @@ jobs:
           echo "nightly_version=${FULL_VERSION}-${NIGHTLY_DATE}" >> "$GITHUB_OUTPUT"
       - name: Resolve platforms
         id: platforms
-        uses: ./.github/actions/release_platforms
+        uses: ./.github/actions/skip_platforms
         with:
           skip_platforms: ${{ inputs.skip_platforms }}
       - name: Verify nightly tests passed

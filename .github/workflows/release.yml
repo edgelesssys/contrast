@@ -94,7 +94,7 @@ jobs:
           fi
       - name: Resolve platforms
         id: platforms
-        uses: ./.github/actions/release_platforms
+        uses: ./.github/actions/skip_platforms
         with:
           skip_platforms: ${{ inputs.skip_platforms }}
       - name: Parse version
