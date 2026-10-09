@@ -25,6 +25,7 @@ func TestNegotiateAPIVersion(t *testing.T) {
 
 		wantVersion string
 		wantErr     string
+		wantErrIs   error
 	}{
 		"coordinator supports v1": {
 			coordinatorVersions: []string{apiv1.Version},
@@ -37,6 +38,7 @@ func TestNegotiateAPIVersion(t *testing.T) {
 		"no common version": {
 			coordinatorVersions: []string{"v99"},
 			wantErr:             "no common API version",
+			wantErrIs:           ErrNoCommonAPIVersion,
 		},
 		"coordinator has no capabilities endpoint": {
 			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -67,6 +69,9 @@ func TestNegotiateAPIVersion(t *testing.T) {
 			if tc.wantErr != "" {
 				require.Error(err)
 				assert.Contains(err.Error(), tc.wantErr)
+				if tc.wantErrIs != nil {
+					assert.ErrorIs(err, tc.wantErrIs)
+				}
 				return
 			}
 			require.NoError(err)
