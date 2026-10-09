@@ -16,6 +16,16 @@ import (
 // ReportDataSize is the size of the SNP/TDX REPORTDATA fields.
 const ReportDataSize = 64
 
+const (
+	// AttestPath is the path of the attestation endpoint.
+	AttestPath = "/v1/attest"
+	// LegacyAttestPath is the path of the unversioned attestation endpoint, which predates API versioning.
+	//
+	// It shares the request and response types of [AttestPath], but its response carries no
+	// capabilities digest and its report data doesn't bind it, see [ConstructReportData].
+	LegacyAttestPath = "/attest"
+)
+
 // AttestationRequest is the wire-format for incoming /attest requests.
 // The nonce is expected to be base64-encoded.
 type AttestationRequest struct {
@@ -37,6 +47,12 @@ type AttestationResponse struct {
 	//
 	// Outside of unit tests, this will always be an OID from the internal/oid package.
 	AttestationType asn1.ObjectIdentifier `json:"attestation_type"`
+	// CapabilitiesDigest is the digest of the Coordinator's capabilities, see [apitypes.CapabilitiesResponse.Digest].
+	//
+	// It is bound into the report data, see [ConstructReportDataWithCapabilities].
+	// Clients must use it to validate the API version they negotiated.
+	// The unversioned [LegacyAttestPath] endpoint doesn't set this field.
+	CapabilitiesDigest []byte `json:"capabilities_digest,omitempty"`
 
 	CoordinatorState
 }
@@ -93,10 +109,22 @@ type CoordinatorState struct {
 	MeshCA []byte `json:"mesh_ca"`
 }
 
-// ConstructReportData constructs an extended report data digest,
-// intended for use with application-level verification.
+// ConstructReportData constructs the extended report data digest of the [LegacyAttestPath] endpoint.
 func ConstructReportData(nonce []byte, transitionDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
 	// reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mesh-ca))
+	return constructReportData(nonce, transitionDigest, nil, state)
+}
+
+// ConstructReportDataWithCapabilities constructs the extended report data digest of the [AttestPath] endpoint.
+//
+// capabilitiesDigest is the digest of the capabilities, see [apitypes.CapabilitiesResponse.Digest].
+// Binding it into the report data lets clients detect tampering with the unauthenticated capabilities endpoint.
+func ConstructReportDataWithCapabilities(nonce []byte, transitionDigest []byte, capabilitiesDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
+	// reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mesh-ca) || sha256(capabilities))
+	return constructReportData(nonce, transitionDigest, capabilitiesDigest, state)
+}
+
+func constructReportData(nonce []byte, transitionDigest []byte, capabilitiesDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
 	rootCADigest := sha256.Sum256(state.RootCA)
 	meshCADigest := sha256.Sum256(state.MeshCA)
 
@@ -104,6 +132,7 @@ func ConstructReportData(nonce []byte, transitionDigest []byte, state *Coordinat
 	reportdata = append(reportdata, transitionDigest...)
 	reportdata = append(reportdata, rootCADigest[:]...)
 	reportdata = append(reportdata, meshCADigest[:]...)
+	reportdata = append(reportdata, capabilitiesDigest...)
 	hash32 := sha256.Sum256(reportdata)
 
 	var hash64 [64]byte

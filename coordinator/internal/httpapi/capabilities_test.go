@@ -32,7 +32,7 @@ func TestCapabilitiesHandler(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
 
-			handler := &CapabilitiesHandler{}
+			handler := NewCapabilitiesHandler()
 
 			req := httptest.NewRequestWithContext(t.Context(), tc.method, "/capabilities", nil)
 			rec := httptest.NewRecorder()
@@ -47,8 +47,25 @@ func TestCapabilitiesHandler(t *testing.T) {
 				require.Equal("application/json", res.Header.Get("Content-Type"))
 				var resp apitypes.CapabilitiesResponse
 				require.NoError(json.NewDecoder(res.Body).Decode(&resp))
-				require.Contains(resp.APIVersions, apitypes.APIVersionV1)
+				require.Empty(resp.APIVersions)
 			}
 		})
 	}
+}
+
+// TestCapabilitiesDigest ensures the digest bound into report data matches the served capabilities.
+func TestCapabilitiesDigest(t *testing.T) {
+	require := require.New(t)
+
+	handler := NewCapabilitiesHandler()
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/capabilities", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	res := rec.Result()
+	defer res.Body.Close()
+
+	var resp apitypes.CapabilitiesResponse
+	require.NoError(json.NewDecoder(res.Body).Decode(&resp))
+	require.Equal(resp.Digest(), handler.Digest())
 }

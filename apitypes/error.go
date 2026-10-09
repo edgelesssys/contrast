@@ -83,6 +83,12 @@ const (
 	// HTTP 412.
 	ErrorCodeManifestConflict ErrorCode = "manifest_conflict"
 
+	// ErrorCodeAPIVersionTooOld means the deployment's manifest pins a minimum API version,
+	// and the request used an older version or an unversioned legacy endpoint.
+	// Retrying the identical request will fail again. Retry against a newer API version.
+	// HTTP 403.
+	ErrorCodeAPIVersionTooOld ErrorCode = "api_version_too_old"
+
 	// ErrorCodeInternal means the Coordinator failed for a reason that is not the caller's fault.
 	// Retrying is reasonable.
 	// HTTP 5xx.
