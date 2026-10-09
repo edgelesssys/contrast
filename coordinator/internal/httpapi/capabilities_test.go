@@ -4,9 +4,7 @@
 package httpapi
 
 import (
-	"crypto/sha256"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -55,7 +53,7 @@ func TestCapabilitiesHandler(t *testing.T) {
 	}
 }
 
-// TestCapabilitiesDigest ensures the digest bound into report data matches the served body.
+// TestCapabilitiesDigest ensures the digest bound into report data matches the served capabilities.
 func TestCapabilitiesDigest(t *testing.T) {
 	require := require.New(t)
 
@@ -67,7 +65,7 @@ func TestCapabilitiesDigest(t *testing.T) {
 	res := rec.Result()
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	require.NoError(err)
-	require.Equal(sha256.Sum256(body), handler.Digest())
+	var resp apitypes.CapabilitiesResponse
+	require.NoError(json.NewDecoder(res.Body).Decode(&resp))
+	require.Equal(resp.Digest(), handler.Digest())
 }

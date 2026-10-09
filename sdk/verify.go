@@ -6,6 +6,7 @@
 package sdk
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
@@ -55,15 +57,14 @@ func (c *Client) GetAttestation(ctx context.Context, nonce []byte) ([]byte, erro
 
 // ValidateAttestation validates the Coordinator state returned by [Client.GetAttestation].
 //
-// The input for this function should be the nonce passed into GetAttestation and the byte slice
-// returned by it.
+// The input for this function should be the nonce passed into GetAttestation and the byte slice returned by it.
 //
 // If this function returns nil, validation passed and the caller can rely on the state.MeshCA
 // issuing certificates according to the last entry of state.Manifests.
 //
-// On the versioned attestation endpoint, the Coordinator binds the digest of its capabilities
-// response into the report data, so validation also proves that the capabilities this Client
-// received weren't tampered with.
+// Attestations from a versioned endpoint carry the digest of the Coordinator's capabilities, which is bound into the report data.
+// If the Client negotiated the API version, validation compares that digest against the capabilities used for the negotiation.
+// It fails with [ErrAPIVersionDowngrade] if they differ, or if they contain a newer API version this SDK supports than the one that was used.
 //
 // If the expected manifest or the Coordinator's latest manifest pins a MinimumAPIVersion that is
 // newer than the API version the attestation was fetched with, validation fails with
@@ -108,23 +109,33 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 	transitions := history.BuildTransitionChain(resp.Manifests)
 	transitionDigest := transitions[len(transitions)-1].Digest()
 
-	attestationVersion := c.attestationVersion()
+	attestationVersion, negotiatedCapabilities := c.negotiation()
 	var reportData [apitypesv1.ReportDataSize]byte
 	switch attestationVersion {
 	case legacyAPIVersion:
 		reportData = apitypesv1.ConstructReportData(nonce, transitionDigest[:], &resp.CoordinatorState)
 	case apiv1.Version:
-		capabilitiesDigest, err := c.getCapabilitiesDigest(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("getting capabilities digest: %w", err)
+		if len(resp.CapabilitiesDigest) == 0 {
+			return nil, fmt.Errorf("attestation for API version %s doesn't include a capabilities digest", attestationVersion)
 		}
-		reportData = apitypesv1.ConstructReportDataWithCapabilities(nonce, transitionDigest[:], capabilitiesDigest, &resp.CoordinatorState)
+		reportData = apitypesv1.ConstructReportDataWithCapabilities(nonce, transitionDigest[:], resp.CapabilitiesDigest, &resp.CoordinatorState)
 	default:
 		return nil, fmt.Errorf("ValidateAttestation is not implemented for API version %q", attestationVersion)
 	}
 
 	if err := validator.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+
+	// The capabilities digest is authenticated now, so it tells whether the negotiation can be trusted.
+	if attestationVersion != legacyAPIVersion && negotiatedCapabilities != nil {
+		negotiatedDigest := negotiatedCapabilities.Digest()
+		if !bytes.Equal(negotiatedDigest[:], resp.CapabilitiesDigest) {
+			return nil, fmt.Errorf("%w: the capabilities used for negotiation don't match the capabilities the Coordinator attested to", ErrAPIVersionDowngrade)
+		}
+		if newestVersion, _ := newestCommonAPIVersion(negotiatedCapabilities); newestVersion != attestationVersion {
+			return nil, fmt.Errorf("%w: attestation was fetched with API version %s, but the Coordinator also supports %s", ErrAPIVersionDowngrade, attestationVersion, newestVersion)
+		}
 	}
 
 	for _, m := range []*manifest.Manifest{c.expectedManifest, &latestManifest} {
@@ -142,10 +153,10 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 	return &state, nil
 }
 
-func (c *Client) attestationVersion() string {
+func (c *Client) negotiation() (string, *apitypes.CapabilitiesResponse) {
 	c.negotiateMu.Lock()
 	defer c.negotiateMu.Unlock()
-	return c.negotiatedVersion
+	return c.negotiatedVersion, c.negotiatedCapabilities
 }
 
 // CoordinatorState represents the state of the Contrast Coordinator at a fixed point in time.

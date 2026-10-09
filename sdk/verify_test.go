@@ -6,9 +6,7 @@
 package sdk
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/asn1"
 	"encoding/json"
 	"log/slog"
@@ -122,83 +120,97 @@ func TestValidateAttestation(t *testing.T) {
 		require.NoError(t, err)
 		return out
 	}
+	digest := func(versions ...string) []byte {
+		d := apitypes.CapabilitiesResponse{APIVersions: versions}.Digest()
+		return d[:]
+	}
+	response := func(capabilitiesDigest []byte, manifests ...[]byte) *apitypesv1.AttestationResponse {
+		return &apitypesv1.AttestationResponse{
+			AttestationType:    testOID,
+			RawAttestationDoc:  testNonce,
+			CapabilitiesDigest: capabilitiesDigest,
+			CoordinatorState: apitypesv1.CoordinatorState{
+				Manifests: manifests,
+			},
+		}
+	}
 
 	for name, tc := range map[string]struct {
-		nonce       []byte
-		versions    []string
-		resp        *apitypesv1.AttestationResponse
-		validateErr error
-		wantErr     string
+		nonce          []byte
+		versions       []string
+		offlineVersion string
+		sdkVersions    []string
+		resp           *apitypesv1.AttestationResponse
+		validateErr    error
+		wantErr        string
+		wantErrIs      error
 	}{
 		"success": {
 			nonce:    testNonce,
 			versions: []string{apiv1.Version},
-			resp: &apitypesv1.AttestationResponse{
-				AttestationType:   testOID,
-				RawAttestationDoc: testNonce,
-				CoordinatorState: apitypesv1.CoordinatorState{
-					Manifests: [][]byte{testManifest},
-				},
-			},
+			resp:     response(digest(apiv1.Version), testManifest),
 		},
 		"success on legacy endpoint": {
 			nonce: testNonce,
-			resp: &apitypesv1.AttestationResponse{
-				AttestationType:   testOID,
-				RawAttestationDoc: testNonce,
-				CoordinatorState: apitypesv1.CoordinatorState{
-					Manifests: [][]byte{testManifest},
-				},
-			},
+			resp:  response(nil, testManifest),
+		},
+		"coordinator supports a newer version than the SDK": {
+			nonce:    testNonce,
+			versions: []string{"v2", apiv1.Version},
+			resp:     response(digest("v2", apiv1.Version), testManifest),
+		},
+		"attestation relayed to a Client that didn't fetch it": {
+			nonce:          testNonce,
+			offlineVersion: apiv1.Version,
+			resp:           response(digest("v2", apiv1.Version), testManifest),
 		},
 		"no manifests": {
 			nonce:    testNonce,
 			versions: []string{apiv1.Version},
-			resp: &apitypesv1.AttestationResponse{
-				AttestationType:   testOID,
-				RawAttestationDoc: testNonce,
-				CoordinatorState:  apitypesv1.CoordinatorState{},
-			},
-			wantErr: "coordinator state does not include manifests",
+			resp:     response(digest(apiv1.Version)),
+			wantErr:  "coordinator state does not include manifests",
 		},
 		"bad nonce": {
 			wantErr: "want 32",
 		},
 		"failed validation": {
-			nonce:    testNonce,
-			versions: []string{apiv1.Version},
-			resp: &apitypesv1.AttestationResponse{
-				AttestationType:   testOID,
-				RawAttestationDoc: testNonce,
-				CoordinatorState: apitypesv1.CoordinatorState{
-					Manifests: [][]byte{testManifest},
-				},
-			},
+			nonce:       testNonce,
+			versions:    []string{apiv1.Version},
+			resp:        response(digest(apiv1.Version), testManifest),
 			validateErr: assert.AnError,
 			wantErr:     assert.AnError.Error(),
 		},
-		"manifest pins a newer API version": {
+		"versioned attestation without capabilities digest": {
 			nonce:    testNonce,
 			versions: []string{apiv1.Version},
-			resp: &apitypesv1.AttestationResponse{
-				AttestationType:   testOID,
-				RawAttestationDoc: testNonce,
-				CoordinatorState: apitypesv1.CoordinatorState{
-					Manifests: [][]byte{manifestWithMinAPIVersion("v2")},
-				},
-			},
-			wantErr: "older than the minimum",
+			resp:     response(nil, testManifest),
+			wantErr:  "doesn't include a capabilities digest",
+		},
+		"negotiated with forged capabilities": {
+			nonce:     testNonce,
+			versions:  []string{apiv1.Version},
+			resp:      response(digest("v2", apiv1.Version), testManifest),
+			wantErrIs: ErrAPIVersionDowngrade,
+		},
+		"newer common version exists": {
+			nonce:       testNonce,
+			versions:    []string{"v2", apiv1.Version},
+			sdkVersions: []string{"v2", apiv1.Version},
+			resp:        response(digest("v2", apiv1.Version), testManifest),
+			wantErrIs:   ErrAPIVersionDowngrade,
+		},
+		"manifest pins a newer API version": {
+			nonce:     testNonce,
+			versions:  []string{apiv1.Version},
+			resp:      response(digest(apiv1.Version), manifestWithMinAPIVersion("v2")),
+			wantErr:   "older than the minimum",
+			wantErrIs: ErrMinimumAPIVersionUnmet,
 		},
 		"manifest pins an API version, but the legacy endpoint was used": {
-			nonce: testNonce,
-			resp: &apitypesv1.AttestationResponse{
-				AttestationType:   testOID,
-				RawAttestationDoc: testNonce,
-				CoordinatorState: apitypesv1.CoordinatorState{
-					Manifests: [][]byte{manifestWithMinAPIVersion("v1")},
-				},
-			},
-			wantErr: "older than the minimum",
+			nonce:     testNonce,
+			resp:      response(nil, manifestWithMinAPIVersion("v1")),
+			wantErr:   "older than the minimum",
+			wantErrIs: ErrMinimumAPIVersionUnmet,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -208,20 +220,33 @@ func TestValidateAttestation(t *testing.T) {
 			attestation, err := json.Marshal(tc.resp)
 			require.NoError(err)
 
-			srv := httptest.NewServer(coordinatorHandler(tc.versions, nil))
-			t.Cleanup(srv.Close)
-			c := New(srv.URL)
-			// Fetch an attestation to make the Client settle on an endpoint. The stub's response is replaced below.
-			_, err = c.GetAttestation(t.Context(), testNonce)
-			require.NoError(err)
+			c := New("").WithAPIVersion(tc.offlineVersion)
+			if tc.offlineVersion == "" {
+				srv := httptest.NewServer(coordinatorHandler(tc.versions, nil))
+				t.Cleanup(srv.Close)
+				c = New(srv.URL)
+				// Fetch an attestation to make the Client settle on an API version.
+				_, err = c.GetAttestation(t.Context(), testNonce)
+				require.NoError(err)
+				srv.Close()
+			}
+			if tc.sdkVersions != nil {
+				orig := supportedAPIVersions
+				supportedAPIVersions = tc.sdkVersions
+				t.Cleanup(func() { supportedAPIVersions = orig })
+			}
 
 			validator := &stubValidator{err: tc.validateErr}
 			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error) {
 				return validator, nil
 			}
 			state, err := c.ValidateAttestation(t.Context(), tc.nonce, attestation)
-			if tc.wantErr != "" {
+			if tc.wantErr != "" || tc.wantErrIs != nil {
+				require.Error(err)
 				assert.ErrorContains(err, tc.wantErr)
+				if tc.wantErrIs != nil {
+					assert.ErrorIs(err, tc.wantErrIs)
+				}
 				assert.Nil(state)
 				return
 			}
@@ -239,11 +264,8 @@ func TestValidateAttestation(t *testing.T) {
 			assert.Equal(expected, state)
 
 			wantReportData := apitypesv1.ConstructReportData(tc.nonce, latestTransitionHash[:], &tc.resp.CoordinatorState)
-			if tc.versions != nil {
-				var capsBody bytes.Buffer
-				require.NoError(json.NewEncoder(&capsBody).Encode(apitypes.CapabilitiesResponse{APIVersions: tc.versions}))
-				capsDigest := sha256.Sum256(capsBody.Bytes())
-				wantReportData = apitypesv1.ConstructReportDataWithCapabilities(tc.nonce, latestTransitionHash[:], capsDigest[:], &tc.resp.CoordinatorState)
+			if tc.resp.CapabilitiesDigest != nil {
+				wantReportData = apitypesv1.ConstructReportDataWithCapabilities(tc.nonce, latestTransitionHash[:], tc.resp.CapabilitiesDigest, &tc.resp.CoordinatorState)
 			}
 			assert.Equal(wantReportData[:], validator.gotReportData)
 		})

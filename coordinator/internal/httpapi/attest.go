@@ -37,8 +37,10 @@ type StateGuard interface {
 
 // AttestationHandler handles POST requests to the attestation endpoints.
 type AttestationHandler struct {
-	Issuer             atls.Issuer
-	StateGuard         StateGuard
+	Issuer     atls.Issuer
+	StateGuard StateGuard
+	// CapabilitiesDigest is the digest of the capabilities, see [apitypes.CapabilitiesResponse.Digest].
+	// It is returned with the attestation and bound into the report data if using the versioned endpoint.
 	CapabilitiesDigest []byte
 }
 
@@ -80,10 +82,11 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ap
 	}
 
 	resp := &apitypesv1.AttestationResponse{
-		Version:           constants.Version,
-		AttestationType:   h.Issuer.OID(),
-		RawAttestationDoc: attestation,
-		CoordinatorState:  *coordinatorState,
+		Version:            constants.Version,
+		AttestationType:    h.Issuer.OID(),
+		RawAttestationDoc:  attestation,
+		CapabilitiesDigest: h.CapabilitiesDigest,
+		CoordinatorState:   *coordinatorState,
 	}
 
 	return resp, http.StatusOK, nil

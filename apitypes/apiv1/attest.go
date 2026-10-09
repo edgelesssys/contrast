@@ -21,8 +21,8 @@ const (
 	AttestPath = "/v1/attest"
 	// LegacyAttestPath is the path of the unversioned attestation endpoint, which predates API versioning.
 	//
-	// It shares the request and response types of [AttestPath], but its report data
-	// doesn't bind the capabilities response, see [ConstructReportData].
+	// It shares the request and response types of [AttestPath], but its response carries no
+	// capabilities digest and its report data doesn't bind it, see [ConstructReportData].
 	LegacyAttestPath = "/attest"
 )
 
@@ -47,6 +47,12 @@ type AttestationResponse struct {
 	//
 	// Outside of unit tests, this will always be an OID from the internal/oid package.
 	AttestationType asn1.ObjectIdentifier `json:"attestation_type"`
+	// CapabilitiesDigest is the digest of the Coordinator's capabilities, see [apitypes.CapabilitiesResponse.Digest].
+	//
+	// It is bound into the report data, see [ConstructReportDataWithCapabilities].
+	// Clients must use it to validate the API version they negotiated.
+	// The unversioned [LegacyAttestPath] endpoint doesn't set this field.
+	CapabilitiesDigest []byte `json:"capabilities_digest,omitempty"`
 
 	CoordinatorState
 }
@@ -111,7 +117,8 @@ func ConstructReportData(nonce []byte, transitionDigest []byte, state *Coordinat
 
 // ConstructReportDataWithCapabilities constructs the extended report data digest of the [AttestPath] endpoint.
 //
-// capabilitiesDigest is the SHA-256 digest of the raw capabilities response body.
+// capabilitiesDigest is the digest of the capabilities, see [apitypes.CapabilitiesResponse.Digest].
+// Binding it into the report data lets clients detect tampering with the unauthenticated capabilities endpoint.
 func ConstructReportDataWithCapabilities(nonce []byte, transitionDigest []byte, capabilitiesDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
 	// reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mesh-ca) || sha256(capabilities))
 	return constructReportData(nonce, transitionDigest, capabilitiesDigest, state)

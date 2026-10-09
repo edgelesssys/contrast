@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestMuxAttestation ensures the endpoints are wired up so that clients can reproduce the report data:
+// the legacy endpoint keeps its released response and report data layout.
 func TestMuxAttestation(t *testing.T) {
 	meshKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
 	rootKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[2])
@@ -52,6 +54,7 @@ func TestMuxAttestation(t *testing.T) {
 
 		var resp apitypesv1.AttestationResponse
 		require.NoError(json.Unmarshal(do(t, http.MethodPost, apitypesv1.LegacyAttestPath, attestRequest), &resp))
+		require.Nil(resp.CapabilitiesDigest)
 		require.Equal(apitypesv1.ConstructReportData(nonce, transitionDigest, &resp.CoordinatorState), issuer.gotReportData)
 	})
 }

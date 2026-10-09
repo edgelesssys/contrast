@@ -25,7 +25,8 @@ var supportedAPIVersions = []string{}
 // This endpoint is deliberately NOT versioned, since it is used by clients to discover which versions exist.
 // The response body must only ever be extended.
 type CapabilitiesHandler struct {
-	body []byte
+	body   []byte
+	digest [sha256.Size]byte
 }
 
 // NewCapabilitiesHandler returns a [CapabilitiesHandler] advertising the supported API versions.
@@ -33,16 +34,17 @@ func NewCapabilitiesHandler() *CapabilitiesHandler {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
-	if err := enc.Encode(apitypes.CapabilitiesResponse{APIVersions: supportedAPIVersions}); err != nil {
+	resp := apitypes.CapabilitiesResponse{APIVersions: supportedAPIVersions}
+	if err := enc.Encode(resp); err != nil {
 		// The response is a fixed struct of strings; failing to encode it is a programming error.
 		panic(err)
 	}
-	return &CapabilitiesHandler{body: buf.Bytes()}
+	return &CapabilitiesHandler{body: buf.Bytes(), digest: resp.Digest()}
 }
 
-// Digest returns the SHA-256 digest of the exact response body this handler serves.
+// Digest returns the digest of the capabilities this handler serves, see [apitypes.CapabilitiesResponse.Digest].
 func (h *CapabilitiesHandler) Digest() [32]byte {
-	return sha256.Sum256(h.body)
+	return h.digest
 }
 
 // ServeHTTP implements [http.Handler].

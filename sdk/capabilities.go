@@ -7,7 +7,6 @@ package sdk
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,6 +30,9 @@ var supportedAPIVersions = []string{apiv1.Version}
 // ErrMinimumAPIVersionUnmet is returned if the API version in use is older than the pinned minimum API version.
 var ErrMinimumAPIVersionUnmet = errors.New("minimum API version not met")
 
+// ErrAPIVersionDowngrade is returned if the API version negotiation to doesn't match the capabilities the Coordinator attested to.
+var ErrAPIVersionDowngrade = errors.New("API version was downgraded")
+
 // NegotiateAPIVersion returns the newest API version supported by both this SDK and the Coordinator.
 //
 // If the expected manifest pins a MinimumAPIVersion, negotiation fails with [ErrMinimumAPIVersionUnmet].
@@ -46,49 +48,37 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 		return c.negotiatedVersion, nil
 	}
 
-	caps, err := c.getCapabilitiesLocked(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	for _, version := range supportedAPIVersions {
-		if !slices.Contains(caps.APIVersions, version) {
-			continue
-		}
-		if err := enforceMinimumAPIVersion(version, c.expectedManifest); err != nil {
-			return "", fmt.Errorf("refusing to negotiate: %w", err)
-		}
-		c.negotiatedVersion = version
-		return version, nil
-	}
-	return "", fmt.Errorf("no common API version: Coordinator supports %v, SDK supports %v", caps.APIVersions, supportedAPIVersions)
-}
-
-// getCapabilitiesLocked fetches and parses the Coordinator's capabilities.
-func (c *Client) getCapabilitiesLocked(ctx context.Context) (*apitypes.CapabilitiesResponse, error) {
 	body, err := c.httpapi.DoJSON(ctx, http.MethodGet, capabilitiesPath, nil)
 	if err != nil {
-		return nil, fmt.Errorf("getting capabilities: %w", err)
+		return "", fmt.Errorf("getting capabilities: %w", err)
 	}
 	var caps apitypes.CapabilitiesResponse
 	if err := json.Unmarshal(body, &caps); err != nil {
-		return nil, fmt.Errorf("unmarshalling capabilities: %w", err)
+		return "", fmt.Errorf("unmarshalling capabilities: %w", err)
 	}
-	digest := sha256.Sum256(body)
-	c.capabilitiesDigest = digest[:]
-	return &caps, nil
+
+	version, ok := newestCommonAPIVersion(&caps)
+	if !ok {
+		return "", fmt.Errorf("no common API version: Coordinator supports %v, SDK supports %v", caps.APIVersions, supportedAPIVersions)
+	}
+	if err := enforceMinimumAPIVersion(version, c.expectedManifest); err != nil {
+		return "", fmt.Errorf("refusing to negotiate: %w", err)
+	}
+	c.negotiatedVersion = version
+	c.negotiatedCapabilities = &caps
+	return version, nil
 }
 
-// getCapabilitiesDigest returns the SHA-256 digest of the raw capabilities response body.
-func (c *Client) getCapabilitiesDigest(ctx context.Context) ([]byte, error) {
-	c.negotiateMu.Lock()
-	defer c.negotiateMu.Unlock()
-	if c.capabilitiesDigest == nil {
-		if _, err := c.getCapabilitiesLocked(ctx); err != nil {
-			return nil, err
+// newestCommonAPIVersion returns the newest API version supported by both this SDK and
+// a Coordinator with the given capabilities.
+func newestCommonAPIVersion(caps *apitypes.CapabilitiesResponse) (string, bool) {
+	// supportedAPIVersions is ordered newest first, so the first match is the best one.
+	for _, version := range supportedAPIVersions {
+		if slices.Contains(caps.APIVersions, version) {
+			return version, true
 		}
 	}
-	return c.capabilitiesDigest, nil
+	return "", false
 }
 
 const legacyAPIVersion = ""

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/fsstore"
@@ -31,14 +32,14 @@ type Client struct {
 
 	log *slog.Logger
 
-	// negotiateMu guards negotiatedVersion and capabilitiesDigest.
+	// negotiateMu guards negotiatedVersion and negotiatedCapabilities.
 	negotiateMu sync.Mutex
 	// negotiatedVersion caches the API version agreed on with the Coordinator,
 	// empty until negotiated or pinned via [Client.WithAPIVersion].
 	negotiatedVersion string
-	// capabilitiesDigest is the SHA-256 digest of the raw capabilities response body received
-	// from the Coordinator, nil until one was fetched.
-	capabilitiesDigest []byte
+	// negotiatedCapabilities are the capabilities negotiatedVersion was negotiated with,
+	// nil if no version was negotiated, including if it was pinned via [Client.WithAPIVersion].
+	negotiatedCapabilities *apitypes.CapabilitiesResponse
 
 	// expectedManifest, if set, provides the reference values the Coordinator is validated
 	// against, instead of the manifest the Coordinator reports.
@@ -71,8 +72,12 @@ func New(baseURL string) *Client {
 // skipping negotiation with the Coordinator.
 //
 // Calls fail if the Coordinator doesn't support the pinned version.
+//
+// It also tells [Client.ValidateAttestation] which API version an attestation was fetched with,
+// if it wasn't fetched by this Client.
 func (c *Client) WithAPIVersion(version string) *Client {
 	c.negotiatedVersion = version
+	c.negotiatedCapabilities = nil
 	return c
 }
 
