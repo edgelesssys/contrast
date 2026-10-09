@@ -145,6 +145,7 @@ func TestNegotiateAPIVersionManifestPin(t *testing.T) {
 
 		wantVersion string
 		wantErr     string
+		wantErrIs   error
 	}{
 		"minimum matches the negotiated version": {
 			minimumAPIVersion: "v1",
@@ -153,11 +154,13 @@ func TestNegotiateAPIVersionManifestPin(t *testing.T) {
 		"minimum above all common versions": {
 			minimumAPIVersion: "v2",
 			wantErr:           "older than the minimum",
+			wantErrIs:         ErrMinimumAPIVersionUnmet,
 		},
 		"pinned version below the minimum": {
 			minimumAPIVersion: "v2",
 			pinnedVersion:     apiv1.Version,
 			wantErr:           "older than the minimum",
+			wantErrIs:         ErrMinimumAPIVersionUnmet,
 		},
 		"pinned version meets the minimum": {
 			minimumAPIVersion: "v1",
@@ -179,6 +182,7 @@ func TestNegotiateAPIVersionManifestPin(t *testing.T) {
 			version, err := client.NegotiateAPIVersion(t.Context())
 			if tc.wantErr != "" {
 				require.ErrorContains(err, tc.wantErr)
+				require.ErrorIs(err, tc.wantErrIs)
 				return
 			}
 			require.NoError(err)

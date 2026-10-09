@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -27,9 +28,12 @@ const capabilitiesPath = "/capabilities"
 // supportedAPIVersions are the API versions this SDK can speak, newest first.
 var supportedAPIVersions = []string{apiv1.Version}
 
+// ErrMinimumAPIVersionUnmet is returned if the API version in use is older than the pinned minimum API version.
+var ErrMinimumAPIVersionUnmet = errors.New("minimum API version not met")
+
 // NegotiateAPIVersion returns the newest API version supported by both this SDK and the Coordinator.
 //
-// If the expected manifest pins a MinimumAPIVersion, negotiation fails rather than settle on an older version.
+// If the expected manifest pins a MinimumAPIVersion, negotiation fails with [ErrMinimumAPIVersionUnmet].
 //
 // The first successful result is cached, so this costs at most one successful request per [Client].
 func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
@@ -87,7 +91,9 @@ func (c *Client) getCapabilitiesDigest(ctx context.Context) ([]byte, error) {
 	return c.capabilitiesDigest, nil
 }
 
-// enforceMinimumAPIVersion returns an error if version is older than the given manifest's optional MinimumAPIVersion pin.
+const legacyAPIVersion = ""
+
+// enforceMinimumAPIVersion returns [ErrMinimumAPIVersionUnmet] if version is older than the given manifest's optional MinimumAPIVersion pin.
 func enforceMinimumAPIVersion(version string, m *manifest.Manifest) error {
 	if m == nil || m.MinimumAPIVersion == "" {
 		return nil
@@ -96,12 +102,15 @@ func enforceMinimumAPIVersion(version string, m *manifest.Manifest) error {
 	if err != nil {
 		return fmt.Errorf("parsing the manifest's MinimumAPIVersion: %w", err)
 	}
+	if version == legacyAPIVersion {
+		return fmt.Errorf("%w: the unversioned legacy API is older than the minimum %s required by the manifest", ErrMinimumAPIVersionUnmet, m.MinimumAPIVersion)
+	}
 	v, err := apitypes.ParseAPIVersion(version)
 	if err != nil {
 		return fmt.Errorf("parsing API version %q: %w", version, err)
 	}
 	if v < minVersion {
-		return fmt.Errorf("API version %s is older than the minimum %s required by the manifest", version, m.MinimumAPIVersion)
+		return fmt.Errorf("%w: API version %s is older than the minimum %s required by the manifest", ErrMinimumAPIVersionUnmet, version, m.MinimumAPIVersion)
 	}
 	return nil
 }

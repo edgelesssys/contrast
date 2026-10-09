@@ -13,10 +13,11 @@ import (
 )
 
 // supportedAPIVersions are the HTTP API versions this Coordinator serves.
+// It is empty, because no versioned endpoint is served yet.
 //
 // Clients compare this against the versions they know and pick the newest shared one,
 // or fall back to the gRPC API on error or no matching supported versions.
-var supportedAPIVersions = []string{apitypes.APIVersionV1}
+var supportedAPIVersions = []string{}
 
 // CapabilitiesHandler handles GET requests to /capabilities.
 // It advertises which versions of the Contrast HTTP API the Coordinator supports.

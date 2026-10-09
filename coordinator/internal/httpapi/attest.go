@@ -35,7 +35,7 @@ type StateGuard interface {
 	GetHistory(ctx context.Context) ([][]byte, map[manifest.HexString][]byte, error)
 }
 
-// AttestationHandler handles POST requests to /attest.
+// AttestationHandler handles POST requests to the attestation endpoints.
 type AttestationHandler struct {
 	Issuer             atls.Issuer
 	StateGuard         StateGuard
@@ -70,7 +70,10 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ap
 	}
 
 	transitionHash := state.LatestTransition().TransitionHash
-	reportData := apitypesv1.ConstructReportData(nonce, transitionHash[:], h.CapabilitiesDigest, coordinatorState)
+	reportData := apitypesv1.ConstructReportData(nonce, transitionHash[:], coordinatorState)
+	if h.CapabilitiesDigest != nil {
+		reportData = apitypesv1.ConstructReportDataWithCapabilities(nonce, transitionHash[:], h.CapabilitiesDigest, coordinatorState)
+	}
 	attestation, err := h.Issuer.Issue(ctx, reportData)
 	if err != nil {
 		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingAttestation, err)

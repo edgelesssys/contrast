@@ -125,11 +125,23 @@ func TestValidateAttestation(t *testing.T) {
 
 	for name, tc := range map[string]struct {
 		nonce       []byte
+		versions    []string
 		resp        *apitypesv1.AttestationResponse
 		validateErr error
 		wantErr     string
 	}{
 		"success": {
+			nonce:    testNonce,
+			versions: []string{apiv1.Version},
+			resp: &apitypesv1.AttestationResponse{
+				AttestationType:   testOID,
+				RawAttestationDoc: testNonce,
+				CoordinatorState: apitypesv1.CoordinatorState{
+					Manifests: [][]byte{testManifest},
+				},
+			},
+		},
+		"success on legacy endpoint": {
 			nonce: testNonce,
 			resp: &apitypesv1.AttestationResponse{
 				AttestationType:   testOID,
@@ -140,7 +152,8 @@ func TestValidateAttestation(t *testing.T) {
 			},
 		},
 		"no manifests": {
-			nonce: testNonce,
+			nonce:    testNonce,
+			versions: []string{apiv1.Version},
 			resp: &apitypesv1.AttestationResponse{
 				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
@@ -152,7 +165,8 @@ func TestValidateAttestation(t *testing.T) {
 			wantErr: "want 32",
 		},
 		"failed validation": {
-			nonce: testNonce,
+			nonce:    testNonce,
+			versions: []string{apiv1.Version},
 			resp: &apitypesv1.AttestationResponse{
 				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
@@ -164,12 +178,24 @@ func TestValidateAttestation(t *testing.T) {
 			wantErr:     assert.AnError.Error(),
 		},
 		"manifest pins a newer API version": {
-			nonce: testNonce,
+			nonce:    testNonce,
+			versions: []string{apiv1.Version},
 			resp: &apitypesv1.AttestationResponse{
 				AttestationType:   testOID,
 				RawAttestationDoc: testNonce,
 				CoordinatorState: apitypesv1.CoordinatorState{
 					Manifests: [][]byte{manifestWithMinAPIVersion("v2")},
+				},
+			},
+			wantErr: "older than the minimum",
+		},
+		"manifest pins an API version, but the legacy endpoint was used": {
+			nonce: testNonce,
+			resp: &apitypesv1.AttestationResponse{
+				AttestationType:   testOID,
+				RawAttestationDoc: testNonce,
+				CoordinatorState: apitypesv1.CoordinatorState{
+					Manifests: [][]byte{manifestWithMinAPIVersion("v1")},
 				},
 			},
 			wantErr: "older than the minimum",
@@ -182,9 +208,12 @@ func TestValidateAttestation(t *testing.T) {
 			attestation, err := json.Marshal(tc.resp)
 			require.NoError(err)
 
-			srv := httptest.NewServer(capabilitiesHandler([]string{apiv1.Version}))
+			srv := httptest.NewServer(coordinatorHandler(tc.versions, nil))
 			t.Cleanup(srv.Close)
 			c := New(srv.URL)
+			// Fetch an attestation to make the Client settle on an endpoint. The stub's response is replaced below.
+			_, err = c.GetAttestation(t.Context(), testNonce)
+			require.NoError(err)
 
 			validator := &stubValidator{err: tc.validateErr}
 			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error) {
@@ -209,13 +238,89 @@ func TestValidateAttestation(t *testing.T) {
 
 			assert.Equal(expected, state)
 
-			var capsBody bytes.Buffer
-			require.NoError(json.NewEncoder(&capsBody).Encode(apitypes.CapabilitiesResponse{APIVersions: []string{apiv1.Version}}))
-			capsDigest := sha256.Sum256(capsBody.Bytes())
-			wantReportData := apitypesv1.ConstructReportData(tc.nonce, latestTransitionHash[:], capsDigest[:], &tc.resp.CoordinatorState)
+			wantReportData := apitypesv1.ConstructReportData(tc.nonce, latestTransitionHash[:], &tc.resp.CoordinatorState)
+			if tc.versions != nil {
+				var capsBody bytes.Buffer
+				require.NoError(json.NewEncoder(&capsBody).Encode(apitypes.CapabilitiesResponse{APIVersions: tc.versions}))
+				capsDigest := sha256.Sum256(capsBody.Bytes())
+				wantReportData = apitypesv1.ConstructReportDataWithCapabilities(tc.nonce, latestTransitionHash[:], capsDigest[:], &tc.resp.CoordinatorState)
+			}
 			assert.Equal(wantReportData[:], validator.gotReportData)
 		})
 	}
+}
+
+// TestGetAttestationEndpoint ensures the attestation is fetched from the newest endpoint both sides support.
+func TestGetAttestationEndpoint(t *testing.T) {
+	for name, tc := range map[string]struct {
+		versions          []string
+		minimumAPIVersion string
+
+		wantPath  string
+		wantErrIs error
+	}{
+		"coordinator supports v1": {
+			versions: []string{apiv1.Version},
+			wantPath: apitypesv1.AttestPath,
+		},
+		"coordinator predates API versioning": {
+			wantPath: apitypesv1.LegacyAttestPath,
+		},
+		"no common version": {
+			versions: []string{"v99"},
+			wantPath: apitypesv1.LegacyAttestPath,
+		},
+		"minimum met": {
+			versions:          []string{apiv1.Version},
+			minimumAPIVersion: "v1",
+			wantPath:          apitypesv1.AttestPath,
+		},
+		"minimum above all common versions": {
+			versions:          []string{apiv1.Version},
+			minimumAPIVersion: "v2",
+			wantErrIs:         ErrMinimumAPIVersionUnmet,
+		},
+		"minimum pinned, but coordinator predates API versioning": {
+			minimumAPIVersion: "v1",
+			wantErrIs:         ErrMinimumAPIVersionUnmet,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			var gotPath string
+			srv := httptest.NewServer(coordinatorHandler(tc.versions, &gotPath))
+			t.Cleanup(srv.Close)
+
+			client := New(srv.URL).WithExpectedManifest(&manifest.Manifest{MinimumAPIVersion: tc.minimumAPIVersion})
+			_, err := client.GetAttestation(t.Context(), make([]byte, 32))
+			if tc.wantErrIs != nil {
+				require.ErrorIs(err, tc.wantErrIs)
+				require.Empty(gotPath, "no attestation must be requested if the minimum API version isn't met")
+				return
+			}
+			require.NoError(err)
+			require.Equal(tc.wantPath, gotPath)
+		})
+	}
+}
+
+// coordinatorHandler stubs a Coordinator advertising the given API versions.
+// Without versions, it stubs a Coordinator that predates API versioning.
+func coordinatorHandler(versions []string, gotAttestPath *string) http.Handler {
+	mux := http.NewServeMux()
+	if versions != nil {
+		mux.Handle(capabilitiesPath, capabilitiesHandler(versions))
+	}
+	for _, path := range []string{apitypesv1.LegacyAttestPath, apitypesv1.AttestPath} {
+		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			if gotAttestPath != nil {
+				*gotAttestPath = r.URL.Path
+			}
+			attestationHandler(w, r)
+		})
+	}
+	return mux
 }
 
 var testManifest = []byte(`

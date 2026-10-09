@@ -49,7 +49,7 @@ func TestCapabilitiesHandler(t *testing.T) {
 				require.Equal("application/json", res.Header.Get("Content-Type"))
 				var resp apitypes.CapabilitiesResponse
 				require.NoError(json.NewDecoder(res.Body).Decode(&resp))
-				require.Contains(resp.APIVersions, apitypes.APIVersionV1)
+				require.Empty(resp.APIVersions)
 			}
 		})
 	}

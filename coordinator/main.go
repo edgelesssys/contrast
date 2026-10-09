@@ -165,17 +165,8 @@ func run() (retErr error) {
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {
-		capabilities := httpapi.NewCapabilitiesHandler()
-
-		mux := http.NewServeMux()
-		mux.Handle("/attest", &httpapi.APIVersionGate{Version: 0, StateGuard: meshAuth, Next: &httpapi.AttestationHandler{
-			Issuer:     issuer,
-			StateGuard: meshAuth,
-		}})
-		mux.Handle("/capabilities", capabilities)
-
 		httpAPIServer.Addr = ":" + apitypes.Port
-		httpAPIServer.Handler = mux
+		httpAPIServer.Handler = httpapi.NewMux(issuer, meshAuth)
 		if err := httpAPIServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Starting verify http server", "err", err)
 			return fmt.Errorf("starting verify http server: %w", err)

@@ -16,6 +16,16 @@ import (
 // ReportDataSize is the size of the SNP/TDX REPORTDATA fields.
 const ReportDataSize = 64
 
+const (
+	// AttestPath is the path of the attestation endpoint.
+	AttestPath = "/v1/attest"
+	// LegacyAttestPath is the path of the unversioned attestation endpoint, which predates API versioning.
+	//
+	// It shares the request and response types of [AttestPath], but its report data
+	// doesn't bind the capabilities response, see [ConstructReportData].
+	LegacyAttestPath = "/attest"
+)
+
 // AttestationRequest is the wire-format for incoming /attest requests.
 // The nonce is expected to be base64-encoded.
 type AttestationRequest struct {
@@ -93,13 +103,21 @@ type CoordinatorState struct {
 	MeshCA []byte `json:"mesh_ca"`
 }
 
-// ConstructReportData constructs an extended report data digest,
-// intended for use with application-level verification.
+// ConstructReportData constructs the extended report data digest of the [LegacyAttestPath] endpoint.
+func ConstructReportData(nonce []byte, transitionDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
+	// reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mesh-ca))
+	return constructReportData(nonce, transitionDigest, nil, state)
+}
+
+// ConstructReportDataWithCapabilities constructs the extended report data digest of the [AttestPath] endpoint.
 //
-// capabilitiesDigest is the SHA-256 digest of the raw /capabilities response body.
-// Binding it into the report data lets clients detect tampering with the unauthenticated capabilities endpoint.
-func ConstructReportData(nonce []byte, transitionDigest []byte, capabilitiesDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
+// capabilitiesDigest is the SHA-256 digest of the raw capabilities response body.
+func ConstructReportDataWithCapabilities(nonce []byte, transitionDigest []byte, capabilitiesDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
 	// reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mesh-ca) || sha256(capabilities))
+	return constructReportData(nonce, transitionDigest, capabilitiesDigest, state)
+}
+
+func constructReportData(nonce []byte, transitionDigest []byte, capabilitiesDigest []byte, state *CoordinatorState) [ReportDataSize]byte {
 	rootCADigest := sha256.Sum256(state.RootCA)
 	meshCADigest := sha256.Sum256(state.MeshCA)
 
