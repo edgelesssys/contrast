@@ -272,6 +272,29 @@ func TestValidateAttestation(t *testing.T) {
 	}
 }
 
+// TestValidateAttestationExpectedManifest ensures the reference values come from the expected manifest, if there is one.
+func TestValidateAttestationExpectedManifest(t *testing.T) {
+	require := require.New(t)
+
+	nonce := make([]byte, 32)
+	attestation, err := json.Marshal(&apitypesv1.AttestationResponse{
+		CoordinatorState: apitypesv1.CoordinatorState{Manifests: [][]byte{testManifest}},
+	})
+	require.NoError(err)
+
+	expected := &manifest.Manifest{}
+	c := New("").WithExpectedManifest(expected)
+	var got *manifest.Manifest
+	c.validatorsFromManifestOverride = func(_ *certcache.CachedHTTPSGetter, m *manifest.Manifest, _ *slog.Logger) (validators.Validator, error) {
+		got = m
+		return &stubValidator{}, nil
+	}
+
+	_, err = c.ValidateAttestation(t.Context(), nonce, attestation)
+	require.NoError(err)
+	require.Same(expected, got)
+}
+
 // TestGetAttestationEndpoint ensures the attestation is fetched from the newest endpoint both sides support.
 func TestGetAttestationEndpoint(t *testing.T) {
 	for name, tc := range map[string]struct {

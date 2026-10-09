@@ -100,7 +100,11 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 	if c.validatorsFromManifestOverride != nil {
 		validatorsFromManifest = c.validatorsFromManifestOverride
 	}
-	validator, err := validatorsFromManifest(kdsGetter, &latestManifest, c.log)
+	referenceManifest := &latestManifest
+	if c.expectedManifest != nil {
+		referenceManifest = c.expectedManifest
+	}
+	validator, err := validatorsFromManifest(kdsGetter, referenceManifest, c.log)
 	if err != nil {
 		return nil, fmt.Errorf("getting validators: %w", err)
 	}
