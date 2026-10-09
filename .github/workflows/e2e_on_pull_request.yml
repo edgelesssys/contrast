@@ -39,7 +39,7 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Resolve skipped platforms
         id: platforms
-        uses: ./.github/actions/release_platforms
+        uses: ./.github/actions/skip_platforms
         with:
           skip_platforms: ${{ vars.SKIP_PLATFORMS }}
       - name: Select relevant e2e tests
