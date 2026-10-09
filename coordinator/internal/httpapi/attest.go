@@ -151,6 +151,7 @@ func writeJSONError(w http.ResponseWriter, status int, err error) {
 	apiErr := &apitypes.AttestationError{
 		Version:    constants.Version,
 		StatusCode: status,
+		Code:       errorCode(err, status),
 		Err:        err.Error(),
 	}
 	if errEncode := json.NewEncoder(w).Encode(apiErr); errEncode != nil {
