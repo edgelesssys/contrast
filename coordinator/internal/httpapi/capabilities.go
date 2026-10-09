@@ -10,17 +10,15 @@ import (
 	"net/http"
 
 	"github.com/edgelesssys/contrast/apitypes"
+	"github.com/edgelesssys/contrast/sdk"
 )
 
-// supportedAPIVersions are the HTTP API versions this Coordinator serves.
-// It is empty, because no versioned endpoint is served yet.
+// CapabilitiesHandler handles GET requests to /capabilities.
+// It advertises which versions of the Contrast HTTP API the Coordinator supports,
+// which are the versions the SDK knows, see [sdk.SupportedAPIVersions].
 //
 // Clients compare this against the versions they know and pick the newest shared one,
 // or fall back to the gRPC API on error or no matching supported versions.
-var supportedAPIVersions = []string{}
-
-// CapabilitiesHandler handles GET requests to /capabilities.
-// It advertises which versions of the Contrast HTTP API the Coordinator supports.
 //
 // This endpoint is deliberately NOT versioned, since it is used by clients to discover which versions exist.
 // The response body must only ever be extended.
@@ -34,7 +32,7 @@ func NewCapabilitiesHandler() *CapabilitiesHandler {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
-	resp := apitypes.CapabilitiesResponse{APIVersions: supportedAPIVersions}
+	resp := apitypes.CapabilitiesResponse{APIVersions: sdk.SupportedAPIVersions}
 	if err := enc.Encode(resp); err != nil {
 		// The response is a fixed struct of strings; failing to encode it is a programming error.
 		panic(err)

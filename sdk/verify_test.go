@@ -231,9 +231,9 @@ func TestValidateAttestation(t *testing.T) {
 				srv.Close()
 			}
 			if tc.sdkVersions != nil {
-				orig := supportedAPIVersions
-				supportedAPIVersions = tc.sdkVersions
-				t.Cleanup(func() { supportedAPIVersions = orig })
+				orig := SupportedAPIVersions
+				SupportedAPIVersions = tc.sdkVersions
+				t.Cleanup(func() { SupportedAPIVersions = orig })
 			}
 
 			validator := &stubValidator{err: tc.validateErr}

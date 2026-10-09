@@ -17,8 +17,11 @@ import (
 	"github.com/edgelesssys/contrast/sdk/apiv1"
 )
 
-// supportedAPIVersions are the API versions this SDK can speak, newest first.
-var supportedAPIVersions = []string{apiv1.Version}
+// SupportedAPIVersions are the API versions this SDK can speak, newest first.
+//
+// The Coordinator advertises this list on its capabilities endpoint.
+// TODO(charludo): empty because the Coordinator serves no versioned endpoint yet.
+var SupportedAPIVersions = []string{}
 
 // ErrNoCommonAPIVersion is returned if the SDK and the Coordinator share no API version.
 var ErrNoCommonAPIVersion = errors.New("no common API version")
@@ -56,7 +59,7 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 
 	version, ok := newestCommonAPIVersion(&caps)
 	if !ok {
-		return "", fmt.Errorf("%w: Coordinator supports %v, SDK supports %v", ErrNoCommonAPIVersion, caps.APIVersions, supportedAPIVersions)
+		return "", fmt.Errorf("%w: Coordinator supports %v, SDK supports %v", ErrNoCommonAPIVersion, caps.APIVersions, SupportedAPIVersions)
 	}
 	if err := enforceMinimumAPIVersion(version, c.expectedManifest); err != nil {
 		return "", fmt.Errorf("refusing to negotiate: %w", err)
@@ -69,8 +72,8 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 // newestCommonAPIVersion returns the newest API version supported by both this SDK and
 // a Coordinator with the given capabilities.
 func newestCommonAPIVersion(caps *apitypes.CapabilitiesResponse) (string, bool) {
-	// supportedAPIVersions is ordered newest first, so the first match is the best one.
-	for _, version := range supportedAPIVersions {
+	// SupportedAPIVersions is ordered newest first, so the first match is the best one.
+	for _, version := range SupportedAPIVersions {
 		if slices.Contains(caps.APIVersions, version) {
 			return version, true
 		}
