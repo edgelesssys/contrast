@@ -24,6 +24,8 @@ import (
 	"github.com/spf13/cobra"
 	"go.podman.io/storage/pkg/reexec"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var version = "0.0.0-dev"
@@ -94,18 +96,24 @@ func run(cmd *cobra.Command, _ []string) error {
 	defer s.Close()
 
 	configPath := cmd.Flag("config").Value.String()
-	authConfig, err := auth.ReadInsecureConfig(configPath, log)
-	if err != nil {
-		return fmt.Errorf("reading auth config: %w", err)
+	if authConfig, err := auth.ReadInsecureConfig(configPath, log); err != nil {
+		// The config is user-provided and might contain errors. If we simply return the error
+		// here, it will be logged in the guest VM journal, but the user will simply see the image
+		// pull fail or time out. It's more helpful to spin up a server that returns that error to
+		// the agent, which then in turn forwards it to the runtime and eventually k8s.
+		log.Info("Bad imagepuller config, serving errors only", "error", err)
+		katacomponents.RegisterImagePullServiceService(s, &errorService{
+			Err: status.Errorf(codes.InvalidArgument, "invalid imagepuller-config: %v", err),
+		})
+	} else {
+		authConfig.ApplyEnvVars()
+		katacomponents.RegisterImagePullServiceService(s, &service.ImagePullerService{
+			Logger:            log,
+			StorePathOverride: cmd.Flag("storepath").Value.String(),
+			Remote:            remote.DefaultRemote{},
+			AuthConfig:        *authConfig,
+		})
 	}
-	authConfig.ApplyEnvVars()
-
-	katacomponents.RegisterImagePullServiceService(s, &service.ImagePullerService{
-		Logger:            log,
-		StorePathOverride: cmd.Flag("storepath").Value.String(),
-		Remote:            remote.DefaultRemote{},
-		AuthConfig:        *authConfig,
-	})
 
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
@@ -135,4 +143,13 @@ func run(cmd *cobra.Command, _ []string) error {
 	})
 
 	return eg.Wait()
+}
+
+// errorService answers every image pull request with the same error.
+type errorService struct {
+	Err error
+}
+
+func (s *errorService) PullImage(context.Context, *katacomponents.ImagePullRequest) (*katacomponents.ImagePullResponse, error) {
+	return nil, s.Err
 }

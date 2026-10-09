@@ -416,6 +416,9 @@ func TestRegistryFor(t *testing.T) {
 		"other.some.example.com": ".some.example.com.",
 		"awesome.example.com":    "awesome.example.com.",
 		"y.awesome.example.com":  ".awesome.example.com.",
+		"AwEsOmE.EXAMPLE.COM":    "awesome.example.com.",
+		"example.COM":            ".com.",
+		"poneria.isi.edu":        "poneria.ISI.EDU.",
 	}
 	for name, fqdn := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -437,6 +440,7 @@ var exampleFQDNs = []string{
 	".some.example.com.",
 	"awesome.example.com.",
 	".awesome.example.com.",
+	"poneria.ISI.EDU.",
 }
 
 func generateRegistries(t *testing.T, fqdn string) map[string]Registry {
@@ -499,10 +503,6 @@ func TestReadInsecureConfig(t *testing.T) {
 
 	[registries."ghcr.io."]
 	auth = "dGVzdDpwdw=="
-
-	[registries."unqualified.domain.yolo"]
-	# This should not make it to the parsed Config.
-	ca-certs = "disabled"
 	`)
 
 	require.NoError(os.WriteFile(file, content, 0o644))
@@ -517,4 +517,21 @@ func TestReadInsecureConfig(t *testing.T) {
 	assert.Len(cfg.Registries, 2)
 	assert.Equal(Registry{CACerts: "disabled"}, cfg.Registries["registry.corp."])
 	assert.Equal(Registry{AuthConfig: authn.AuthConfig{Auth: "dGVzdDpwdw=="}}, cfg.Registries["ghcr.io."])
+}
+
+func TestReadInsecureConfig_BadEntries(t *testing.T) {
+	dir := t.TempDir()
+	for name, config := range map[string]string{
+		"unqualified": `[registries."unqualified.domain.yolo"]`,
+		"uppercase":   `[registries."poneria.ISI.EDU."]`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+			file := filepath.Join(dir, name)
+			require.NoError(os.WriteFile(file, []byte(config), 0o644))
+			cfg, err := ReadInsecureConfig(file, slog.New(slog.DiscardHandler))
+			require.Error(err)
+			require.Nil(cfg)
+		})
+	}
 }

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"maps"
 	"net"
 	"net/http"
 	"net/url"
@@ -60,13 +59,16 @@ func ReadInsecureConfig(path string, log *slog.Logger) (*Config, error) {
 	}
 	log.Info("Found and parsed imagepuller auth config")
 
-	maps.DeleteFunc(cfg.Registries, func(reg string, _ Registry) bool {
-		if !strings.HasSuffix(reg, ".") {
-			log.Warn("skipping registry configuration for unqualified domain", "domain", reg)
-			return true
+	for registry := range cfg.Registries {
+		if !strings.HasSuffix(registry, ".") {
+			return nil, fmt.Errorf("registry %q lacks a trailing dot", registry)
 		}
-		return false
-	})
+		if lowerRegistry := strings.ToLower(registry); lowerRegistry != registry {
+			return nil, fmt.Errorf("registry %q is not in lower case (expected %q)", registry, lowerRegistry)
+		}
+	}
+
+	log.Info("Validated imagepuller auth config")
 
 	return &cfg, nil
 }
@@ -174,6 +176,7 @@ func (c *Config) registryFor(name string) Registry {
 }
 
 func normalizeDomain(domain string) string {
+	domain = strings.ToLower(domain)
 	if strings.HasSuffix(domain, ".") {
 		return domain
 	}
