@@ -147,6 +147,8 @@ func run() (retErr error) {
 
 	metricsServer := newHTTPServer()
 	httpAPIServer := newHTTPServer()
+	// The attestation handler can block on the issuer fetching optional endorsements.
+	httpAPIServer.WriteTimeout += constants.ATLSIssuerOptionalEndorsementFetchTimeout
 
 	var userapiStarted, meshapiStarted, recoveryStarted atomic.Bool
 
