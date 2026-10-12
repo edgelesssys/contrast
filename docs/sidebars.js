@@ -307,6 +307,11 @@ const sidebars = {
           label: "Node installer configuration",
           id: "reference/node-installer-configuration",
         },
+        {
+          type: "doc",
+          label: "Registry authentication",
+          id: "reference/registry-authentication",
+        },
       ],
     },
   ],
