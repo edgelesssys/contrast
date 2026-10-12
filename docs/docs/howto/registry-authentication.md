@@ -51,66 +51,10 @@ contrast generate "$@"
 
 ### Confidential guest VMs
 
-For the [Contrast image puller](../architecture/components/runtime.md#contrast-image-puller) to be able to pull images from a private registry, it must be configured with the required authentication details.
-Contrast uses its own `TOML`-based configuration format for this purpose.
-This configuration must be provided as a secret[^1] to the [node installer `DaemonSet`](../architecture/components/runtime.md#node-installer-daemonset).
-This secret must be named `contrast-node-installer-imagepuller-config` and deployed into the same namespace as the node installer (`contrast-system` by default).
-The node installer then handles installing the secret in the runtime directory on the host, from where the runtime then forwards it to the confidential pod VM, allowing the image puller to read it.
-
-[^1]: Kubernetes secrets are accessible to anyone with API access to the node, as well as anyone with access to `etcd` ([source](https://kubernetes.io/docs/concepts/configuration/secret/)).
-    Anyone with these permissions is additionally able to change the configuration's content, with no way for Contrast to verify the integrity of the configuration eventually received by the image puller.
-
-    This allows an attacker to redirect image pull requests and configure an attacker-controlled registry to appear as legitimate.
-    The attacker could then, for example, log which images are being pulled.
-
-    This does **not** allow an attacker to serve malicious images or alter the contents of valid images, since irrespective of the image puller's configuration,
-    pulled images are integrity-protected through their mandatory pinned digest.
-
-:::warning
-
-Since the image puller configuration is annotated to the pod, it can be retrieved by any role with `get` or `list` permission for pods.
-This may result in an unexpected leak of sensitive information.
-
-:::
-
-#### Limitations
-
-Currently, it's only possible to specify a single image puller auth configuration per runtime class, since only a single secret path can be configured for a runtime class.
-Conversely, if this secret is present on a node, every node install will use it, granting deployments access to the configured registries.
-This also extends to every newly installed runtime class.
-
-Per default, all runtime classes use the same auth configuration, derived from the `contrast-node-installer-imagepuller-config` secret.
-If you wish to use a different secret for a specific runtime class, you can change the `secretName` of the `DaemonSet` configuration in `runtime/runtime.yml` to a different name before applying the node installer, and put the image puller auth configuration into a secret with that name.
-
 #### Creating an image puller configuration
 
 Various configuration options are available, both globally and per-registry.
-The following table shows the available global configuration options.
-
-| Option                                                   | Description                                                                                                                           |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `extra-env.HTTP_PROXY` | proxy to use for plain HTTP requests |
-| `extra-env.HTTPS_PROXY` | proxy to use for HTTPS requests |
-| `extra-env.NO_PROXY` | registry domains for which the proxy should be bypassed |
-
-Please see [the Go `httpproxy` documentation](https://pkg.go.dev/golang.org/x/net/http/httpproxy#Config) for details on the usage and semantics of these environment variables.
-
-For each individual registry `registry.corp`, the following options are available under `registries."registry.corp."`:
-
-| Option                                                   | Description                                                                                                                           |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `ca-certs` | a newline-concatenated list of PEM-encoded certificates |
-| `insecure-skip-verify` | disable transport security |
-| `auth` | base64-encoded HTTP basic auth credentials authenticating the user with the registry |
-| `mirror` | OCI registry mirror to use instead of the actual registry |
-
-The `auth` credentials use the same format as shown above for the Contrast CLI.
-
-:::note
-
-The registry name must be a fully-qualified domain name, including the trailing dot, in lower case.
-
-:::
+These options are documented in the [image puller configuration reference](../reference/registry-authentication.md).
 
 The following script generates a valid configuration file and makes it available to the node installer.
 
@@ -129,14 +73,6 @@ EOF
 
 kubectl create secret generic -n contrast-system --from-file=contrast-imagepuller.toml=contrast-imagepuller.toml contrast-node-installer-imagepuller-config
 ```
-
-The ability to specify CA certificates mainly serves two purposes, namely allowing connections to registries that aren't publicly trusted in the web PKI,
-and to restrict who can ostensibly intercept and log traffic for metadata analysis.
-
-If your cluster uses an OCI registry mirror, you can configure the imagepuller to use that mirror, too.
-The mirror address is a full HTTP URL, like `https://mirror.example.com:6443`.
-If the `mirror` field is set, the other configuration options (credentials, CA certificates) apply to the connection to this mirror, not the original registry.
-The mirror registry needs to implement the [relevant parts of the OCI spec](https://github.com/opencontainers/distribution-spec/blob/5e57cc0a07ea002e507a65d4757e823f133fcb52/spec.md?plain=1#L735-L753).
 
 A number of example configurations for various use-case scenarios are shown below.
 
@@ -237,37 +173,3 @@ insecure-skip-verify = true
 ##### Example 5
 
 If no image puller configuration is provided or if it's empty, the behavior for all registries is to use no authentication, and to use and trust web PKI.
-
-#### Registry matching and subdomains
-
-The registry from the incoming image pull request is normalized to a fully-qualified domain and lower case.
-For a registry-specific configuration to be applied to a pull request, that normalized registry must end exactly in the configuration's name.
-A configuration above for `.registry.corp.` will be applied to any and all registries available on subdomains of `registry.corp`, but not to `registry.corp` itself.
-An entry `registry.corp` will be applied to both `registry.corp` and all its subdomains.
-If only the domain itself should match, create an entry for the subdomains (with a leading dot) that disables them as shown in [example 2](#example-2).
-Suffix matching always considers the domain label boundary: an entry for `registry.corp` doesn't match `my-registry.corp`.
-Pulling the image `example.registry.corp/example/image@sha256:...` will use the configuration given under `registries.".registry.corp."`, but `registry.corp/example/image@sha256:...` won't.
-
-Additionally, `example.registry.corp` must be able to prove its identity by successfully completing a TLS handshake using one of the explicitly configured certificates.
-If no certificates are configured, the hosts default web PKI certificates are used.
-
-#### Multiple matches and global configuration
-
-If multiple matching registry configurations exist, for example if both `registries.".registry.corp."` and `registries.".corp."` have configuration values set, then the most specific match will be chosen.
-In the example, this would be `registries.".registry.corp."`.
-Concrete registry domains are always more specific than a wildcard with a leading dot.
-
-To specify a catch-all configuration, use the key `registries."."`.
-The option `registries.".".ca-certs` can be used to disable authentication with all unknown registries:
-
-```toml
-[registries."."]
-ca-certs = '''
-This option set, but no certificates provided, means no TLS handshake will succeed.
-'''
-```
-
-#### IP addresses and ports
-
-Currently, IP- and port-based configuration isn't supported.
-Please use Kubernetes' built-in tools to assign unique domain names to IP addresses, and use these for image references instead.
