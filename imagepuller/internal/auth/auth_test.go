@@ -283,6 +283,33 @@ func TestAuthTransportFor(t *testing.T) {
 				},
 			},
 		},
+		"client cert is added to TLS config": {
+			imageRef: "ghcr.io/edgelesssys/contrast/coordinator",
+			config: Config{
+				Registries: map[string]Registry{
+					".": {
+						ClientCert: dummyClientCert,
+						ClientKey:  dummyClientKey,
+					},
+				},
+			},
+			wantTransport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					Certificates: getClientCert(t),
+				},
+			},
+		},
+		"missing client key fails": {
+			imageRef: "ghcr.io/edgelesssys/contrast/coordinator",
+			config: Config{
+				Registries: map[string]Registry{
+					".": {
+						ClientCert: dummyClientCert,
+					},
+				},
+			},
+			wantErr: errMissingKey,
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -316,6 +343,7 @@ func TestAuthTransportFor(t *testing.T) {
 				require.True(ok, "unexpected transport type: %T", transport)
 				assert.True(t.TLSClientConfig.RootCAs.Equal(httpTransport.TLSClientConfig.RootCAs))
 				assert.Equal(t.TLSClientConfig.InsecureSkipVerify, httpTransport.TLSClientConfig.InsecureSkipVerify)
+				assert.Equal(t.TLSClientConfig.Certificates, httpTransport.TLSClientConfig.Certificates)
 			case *MirroringRoundTripper:
 				mirrorTransport, ok := transport.(*MirroringRoundTripper)
 				require.True(ok, "unexpected transport type: %T", transport)
@@ -397,11 +425,40 @@ rg8wi5a3Un7POqWG1F+imgtRcNgxr9RzZ3SP0/gmZKGUYzsctaLBj2k=
 -----END CERTIFICATE-----
 `
 
+const dummyClientCert = `
+-----BEGIN CERTIFICATE-----
+MIIBiTCCATCgAwIBAgIUAaROfmv1c5bMFPuRqrqJ4LcdFYgwCgYIKoZIzj0EAwIw
+EDEOMAwGA1UEAwwFZHVtbXkwHhcNMjYxMDEyMDkxMzI0WhcNMzYxMDA5MDkxMzI0
+WjAQMQ4wDAYDVQQDDAVkdW1teTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKWH
+BwnGYLlulOGVe431qQW5VncrElKm3KIWrSymp4RmYtXSQYsGCKhTRhJSbwhDZ3jC
+kFCwFpxmPCJ6E9zJ+iyjaDBmMB0GA1UdDgQWBBTNY2Z1EXCwHTMnQwrGukgNkgQB
+YTAfBgNVHSMEGDAWgBTNY2Z1EXCwHTMnQwrGukgNkgQBYTAPBgNVHRMBAf8EBTAD
+AQH/MBMGA1UdJQQMMAoGCCsGAQUFBwMCMAoGCCqGSM49BAMCA0cAMEQCIHIGflwM
+EOqxM3nLHyowOpmcv1HPJMenfNAmW3MbjHq6AiB0czRM74vXEauWOvoFVkdOQjws
+fMyiR/mBqqWOGznfmQ==
+-----END CERTIFICATE-----
+`
+
+const dummyClientKey = `
+-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIKgf3jRgKSpJpzwVGoqbryZhV/oPUBbsLj9BBIoAJooUoAoGCCqGSM49
+AwEHoUQDQgAEpYcHCcZguW6U4ZV7jfWpBblWdysSUqbcohatLKanhGZi1dJBiwYI
+qFNGElJvCENneMKQULAWnGY8InoT3Mn6LA==
+-----END EC PRIVATE KEY-----
+`
+
 func getCerts(t *testing.T, certs ...string) *x509.CertPool {
 	t.Helper()
 	certpool := x509.NewCertPool()
 	certpool.AppendCertsFromPEM([]byte(strings.Join(certs, "\n")))
 	return certpool
+}
+
+func getClientCert(t *testing.T) []tls.Certificate {
+	t.Helper()
+	cert, err := tls.X509KeyPair([]byte(dummyClientCert), []byte(dummyClientKey))
+	require.NoError(t, err)
+	return []tls.Certificate{cert}
 }
 
 func TestRegistryFor(t *testing.T) {
