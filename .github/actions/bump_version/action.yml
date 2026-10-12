@@ -33,6 +33,10 @@ runs:
 
         current=$(<version.txt)
         echo -n "${INPUTS_VERSION}" > version.txt
+        # The apitypes and sdk Go modules are released together with Contrast, as v0.<minor>.<patch>.
+        release="${INPUTS_VERSION%%-*}"
+        sed -i -E "s#(edgelesssys/contrast) v[^ ]+#\1 v${release}#" sdk/go.mod
+        sed -i -E "s#(edgelesssys/contrast/(apitypes|sdk)) v[^ ]+#\1 v0.${release#*.}#" go.mod sdk/go.mod policy-test/go.mod
 
         commit_msg="flake: ${current} -> ${INPUTS_VERSION}"
         echo "commit-msg=${commit_msg}" | tee -a "$GITHUB_OUTPUT"
@@ -43,6 +47,6 @@ runs:
 
         git config --global user.name "edgelessci"
         git config --global user.email "edgelessci@users.noreply.github.com"
-        git add version.txt
+        git add -u -- version.txt go.mod '*/go.mod'
         git diff --staged --quiet || git commit -m "${commit_msg}"
         git push origin "$(git rev-parse --abbrev-ref HEAD)"
