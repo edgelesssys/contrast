@@ -30,6 +30,8 @@ buildGoModule (finalAttrs: {
         (path.append root "go.sum")
         (path.append root "apitypes/go.mod")
         (path.append root "apitypes/go.sum")
+        (path.append root "sdk/go.mod")
+        (path.append root "sdk/go.sum")
         (fileset.fileFilter (file: hasSuffix ".yaml" file.name) (
           path.append root "internal/kuberesource/assets"
         ))
