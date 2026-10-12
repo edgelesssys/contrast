@@ -311,8 +311,12 @@ jobs:
           REF: ${{ needs.prepare.outputs.nightly_ref }}
         run: |
           git fetch origin "${REF}"
+          # The apitypes and sdk Go modules are released together with Contrast, as v0.<minor>.<patch>.
+          module_version="v0.${VERSION#v*.}"
           git tag "${VERSION}" "${REF}"
-          git push origin "${VERSION}"
+          git tag "apitypes/${module_version}" "${REF}"
+          git tag "sdk/${module_version}" "${REF}"
+          git push --atomic origin "${VERSION}" "apitypes/${module_version}" "sdk/${module_version}"
       - name: Update release branch to nightly ref
         env:
           REF: ${{ needs.prepare.outputs.nightly_ref }}

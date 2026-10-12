@@ -574,6 +574,9 @@ lint:
 # Run Go unit tests.
 unit:
     CGO_ENABLED=1 go test -tags=contrast_unstable_api -v -race ./...
+    # apitypes and sdk are separate modules, so they are not covered by the pattern above.
+    CGO_ENABLED=1 go test -C apitypes -tags=contrast_unstable_api -v -race ./...
+    CGO_ENABLED=1 go test -C sdk -tags=contrast_unstable_api -v -race ./...
 
 # Run the policy test suite.
 policy:

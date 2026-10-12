@@ -281,8 +281,12 @@ jobs:
         run: |
           target=$(gh release view "${VERSION}" --repo "${GH_REPO}" --json targetCommitish --jq '.targetCommitish')
           git fetch origin "${target}"
+          # The apitypes and sdk Go modules are released together with Contrast, as v0.<minor>.<patch>.
+          module_version="v0.${VERSION#v*.}"
           git tag "${VERSION}" "${target}"
-          git push origin "${VERSION}"
+          git tag "apitypes/${module_version}" "${target}"
+          git tag "sdk/${module_version}" "${target}"
+          git push --atomic origin "${VERSION}" "apitypes/${module_version}" "sdk/${module_version}"
       - name: Update release branch to release tag
         env:
           VERSION: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
