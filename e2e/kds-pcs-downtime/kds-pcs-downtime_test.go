@@ -30,6 +30,10 @@ import (
 const (
 	kdsAddr = "kdsintf.amd.com:443"
 	pcsAddr = "api.trustedservices.intel.com:443"
+
+	// URLs used to check whether the upstream services are actually reachable.
+	kdsProbeURL = "https://kdsintf.amd.com/vcek/v1/Milan/cert_chain"
+	pcsProbeURL = "https://api.trustedservices.intel.com/tdx/certification/v4/qe/identity"
 )
 
 func TestKDSPCSDowntime(t *testing.T) {
@@ -129,6 +133,7 @@ func TestKDSPCSDowntime(t *testing.T) {
 		require.NoError(err, "updating /etc/hosts: stderr: %q", stderr)
 
 		// Set should succeed because coordinator can reach KDS.
+		requireUpstreamUp(t, kdsProbeURL)
 		require.NoError(ct.RunSet(ctx))
 
 		// Block coordinator access to KDS again.
@@ -154,6 +159,7 @@ func TestKDSPCSDowntime(t *testing.T) {
 		blockKDSPCS.Store(false)
 
 		// Recover should succeed because CLI can reach KDS.
+		requireUpstreamUp(t, kdsProbeURL)
 		require.NoError(ct.RunRecover(ctx))
 
 		// Block CLI access to KDS again.
@@ -209,6 +215,7 @@ func TestKDSPCSDowntime(t *testing.T) {
 		blockKDSPCS.Store(false)
 
 		// Set should succeed because the CLI can reach PCS.
+		requireUpstreamUp(t, pcsProbeURL)
 		require.NoError(ct.RunSet(ctx))
 
 		// Block CLI access to PCS again.
@@ -217,6 +224,33 @@ func TestKDSPCSDowntime(t *testing.T) {
 		// Verify should succeed because collateral is now cached by CLI.
 		require.NoError(ct.RunVerify(ctx))
 	})
+}
+
+// requireUpstreamUp fails the test if the upstream service behind url is down.
+// The request bypasses the test proxy.
+func requireUpstreamUp(t *testing.T, url string) {
+	t.Helper()
+	client := &http.Client{
+		Transport: &http.Transport{Proxy: nil},
+		Timeout:   10 * time.Second,
+	}
+	var lastErr error
+	for range 3 {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, nil)
+		require.NoError(t, err)
+		resp, err := client.Do(req)
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				return
+			}
+			err = fmt.Errorf("unexpected status %q", resp.Status)
+		}
+		lastErr = err
+		t.Logf("Upstream probe of %q failed: %v", url, err)
+		time.Sleep(2 * time.Second)
+	}
+	t.Fatalf("Upstream service is down, failing test: probing %q: %v", url, lastErr)
 }
 
 func TestMain(m *testing.M) {
