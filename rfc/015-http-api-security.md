@@ -261,22 +261,49 @@ type RecoverRequestV1 struct {
     Signature []byte `json:"signature"`
     Force     bool   `json:"force"`
 }
+
+type RecoverResponseV1 struct {
+    Version           string                `json:"version"`
+    RawAttestationDoc []byte                `json:"raw_attestation_doc"`
+    AttestationType   asn1.ObjectIdentifier `json:"attestation_type"`
+
+    CoordinatorState
+}
 ```
+
+The signature is computed over the following digest:
 
 ```
 digest = sha256(sha256("contrast recover v1") || nonce || sha256(hpkePubKey) || force || sha256(ciphertext))
 ```
 
 `force` is `0x01` if set and `0x00` otherwise.
+`ciphertext` is hashed as transmitted.
 
 Sealing to an HPKE key generates a fresh key pair on the client side and derives the AEAD key from it and the Coordinator's public key.
 The Coordinator needs the client's ephemeral public key to derive the same secret, so that value is encoded together with the ciphertext.
 The one-shot API in `crypto/hpke` concatenates the two, `Seal` returning the encapsulated key followed by the ciphertext and `Open` expecting the same.
 
-The exchange is bound into the seal itself by passing `"contrast recover v1" || nonce` as HPKE `info`, so a ciphertext lifted into a different exchange fails to decrypt rather than merely failing a signature check.
-The signature covers the Coordinator's HPKE public key, the `Force` flag, and the ciphertext, so an intermediary can't set `Force` to skip the Coordinator's sanity checks.
-The response is empty, as today.
-Success is confirmed by a follow-up `/v1/attest`.
+The exchange is bound into the seal itself through the HPKE `info` parameter, so a ciphertext lifted into a different exchange fails to decrypt in addition to failing a signature check:
+
+```
+info = sha256("contrast recover seal v1") || nonce
+```
+
+Both parts have a fixed length of 32 bytes, and the label differs from the one of the signature digest.
+
+The signature digest covers the nonce, the Coordinator's HPKE public key, the `Force` flag, and the ciphertext.
+An intermediary therefore can't set `Force` to skip the Coordinator's sanity checks, or move the signature to another exchange.
+
+The gRPC method returns an empty response.
+`/v1/recover` instead returns the state the Coordinator recovered to, with the nonce from the request and under a label of its own:
+
+```
+reportData = sha256(sha256("contrast recover response v1") || nonce || transitionHash || sha256(rootCA) || sha256(meshCA))
+```
+
+This saves the client a follow-up `/v1/attest` to confirm that recovery succeeded and to which state.
+`Status` and HPKE key don't need to be included, as a successful call always leaves the Coordinator active and no secret is sent to it afterward.
 
 Security is unchanged.
 The seed is readable only by a Coordinator that produced a valid report over the HPKE key in response to this client's nonce.
@@ -289,7 +316,7 @@ The second echoes the nonce in the `Authorization` header and carries the eviden
 
 ```go
 type MeshCertRequestV1 struct {
-    // CSR is a DER-encoded PKCS #10 certificate signing request. Only its public key is used.
+    // CSR is a DER-encoded PKCS #10 certificate signing request. Only its public key is used for now.
     CSR               []byte                `json:"csr"`
     RawAttestationDoc []byte                `json:"raw_attestation_doc"`
     AttestationType   asn1.ObjectIdentifier `json:"attestation_type"`
@@ -365,6 +392,8 @@ The workload secret is the only confidential part of `NewMeshCertResponse`, and 
   The initializer's report would bind an additional KEM key and the response would be sealed to it, for every workload, although most responses contain only certificates.
 - Serving it from the transit engine, which already authorizes by `WorkloadSecretID` through the mesh certificate.
   It only offers encryption and decryption today, while the initializer needs the secret itself, so it would need an additional endpoint.
+- Returning it from `/v1/mesh/cert` encrypted with the workload's transit engine key, for the initializer to decrypt through the transit engine with its new mesh certificate.
+  This needs neither a KEM key nor a new endpoint and could be added later, but it would further cement the role of the workload secret.
 
 The HTTP Mesh API doesn't deliver the workload secret for now, see [Out of scope](#out-of-scope).
 
