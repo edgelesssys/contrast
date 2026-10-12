@@ -1,7 +1,7 @@
 # Node installer configuration
 
 The Contrast node installer uses an optional `ConfigMap` to customize the installation process.
-Such a `CofigMap` must be called `contrast-node-installer-target-config` and reside in the same namespace as the node installer.
+Such a `ConfigMap` must be called `contrast-node-installer-target-config` and reside in the same namespace as the node installer.
 The `ConfigMap` is expected to contain one or more of the entries listed in the following sections.
 If an entry is absent, the documented default value will be used.
 Note that an absent entry may be different from an entry with an empty value.
@@ -21,8 +21,8 @@ This means that it must be applied before the runtime, applying it together with
 If you need to modify or add the configuration after applying the runtime, you need to restart the node installer:
 
 ```sh
-kubectl rollout restart daemonset/contrast-cc-metal-qemu-snp-deadbeef
-kubectl rollout status -w daemonset/contrast-cc-metal-qemu-snp-deadbeef
+kubectl rollout restart daemonset/contrast-cc-metal-qemu-snp-deadbeef-nodeinstaller
+kubectl rollout status -w daemonset/contrast-cc-metal-qemu-snp-deadbeef-nodeinstaller
 ```
 
 ## Configuration values
