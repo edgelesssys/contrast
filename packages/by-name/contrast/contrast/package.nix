@@ -35,6 +35,8 @@ buildGoModule (finalAttrs: {
         (path.append root "go.sum")
         (path.append root "apitypes/go.mod")
         (path.append root "apitypes/go.sum")
+        (path.append root "sdk/go.mod")
+        (path.append root "sdk/go.sum")
         (fileset.fileFilter (file: hasSuffix ".dat" file.name) (
           path.append root "internal/attestation/tdx/qgs/testdata"
         ))
@@ -83,8 +85,9 @@ buildGoModule (finalAttrs: {
   checkPhase = ''
     runHook preCheck
     go test -tags=${lib.concatStringsSep "," finalAttrs.tags} -race ./...
-    # apitypes is a separate module, so it is not covered by the pattern above.
+    # apitypes and sdk are separate modules, so they are not covered by the pattern above.
     go test -C apitypes -tags=${lib.concatStringsSep "," finalAttrs.tags} -race ./...
+    go test -C sdk -tags=${lib.concatStringsSep "," finalAttrs.tags} -race ./...
     runHook postCheck
   '';
 
