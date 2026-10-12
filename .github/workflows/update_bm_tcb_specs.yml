@@ -5,6 +5,7 @@ on:
     branches:
       - "main"
     paths:
+      - "dev-docs/e2e/**/contrast-imagepuller.toml"
       - "dev-docs/e2e/**/manifest.json"
   pull_request:
     paths:
