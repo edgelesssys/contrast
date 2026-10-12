@@ -409,10 +409,20 @@ Having the ConfigMap prevents using committed values in the e2e tests directly, 
 
 The `bm-tcb-specs` ConfigMap wraps the [`<host>/manifest.json`](../e2e), containing a JSON Patch file for the TDX or SNP bare-metal specifications for the configured host.
 Add a file [`dev-docs/e2e/<host>/manifest.json`](../e2e) with the values for the runner you've added.
-If the runner is using k3s and the embedded mirror registry, add a corresponding configuration file at `dev-docs/e2e/<host>/contrast-imagepuller.toml`.
-Push the branch and run the `update_bm_tcb_specs` workflow on that branch.
 
-These values will need to be updated after a host firmware upgrade or a TDX module change.
+If the runner is using k3s and the embedded mirror registry, add a stub configuration file at `dev-docs/e2e/<host>/contrast-imagepuller.toml` as shown below.
+The authentication fields will be filled by the update job.
+
+```toml
+[registries]
+[registries."."]
+mirror = "https://$NODE:6443"
+```
+
+Push the branch and run the `update_bm_tcb_specs` workflow on that branch.
+This adds the TCB reference values and the mirror configuration to the `default` namespace for e2es to pick up.
+
+The TCB reference values will need to be updated after a host firmware upgrade or a TDX module change.
 Updating a TDX host's firmware regenerates the platform's SGX provisioning keys, which changes the PIID, so `AllowedPIIDs` goes stale and the platform has to be re-registered with Intel before it can produce quotes again.
 Replacing the TDX module changes `MrSeam`.
 

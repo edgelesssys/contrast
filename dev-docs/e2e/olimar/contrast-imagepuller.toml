@@ -1,4 +1,3 @@
 [registries]
 [registries."."]
 mirror = "https://olimar:6443"
-insecure-skip-verify = true
