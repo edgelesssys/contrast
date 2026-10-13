@@ -18,6 +18,7 @@
     "systemd.verity=yes"
     "selinux=0"
     "pci=realloc,nocrs,assign-busses"
+    "systemd.gpt_auto=0"
   ];
   boot.supportedFilesystems = [
     "erofs"
