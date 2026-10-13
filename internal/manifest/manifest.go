@@ -209,13 +209,13 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 			PlatformInfo: &refVal.PlatformInfo,
 			GuestPolicy:  refVal.GuestPolicy,
 			VMPL:         new(int), // VMPL0
-			MinimumTCB: kds.TCBParts{
+			MinimumTCB: kds.TCBVersionV0{
 				BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
 				TeeSpl:   refVal.MinimumTCB.TEEVersion.UInt8(),
 				SnpSpl:   refVal.MinimumTCB.SNPVersion.UInt8(),
 				UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
 			},
-			MinimumLaunchTCB: kds.TCBParts{
+			MinimumLaunchTCB: kds.TCBVersionV0{
 				BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
 				TeeSpl:   refVal.MinimumTCB.TEEVersion.UInt8(),
 				SnpSpl:   refVal.MinimumTCB.SNPVersion.UInt8(),

@@ -6,7 +6,7 @@ replace github.com/edgelesssys/contrast => ..
 
 replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd
 
-replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5
+replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20261013132829-7a9ace10598e
 
 require (
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000

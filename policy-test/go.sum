@@ -28,8 +28,8 @@ github.com/docker/docker-credential-helpers v0.9.3 h1:gAm/VtF9wgqJMoxzT3Gj5p4AqI
 github.com/docker/docker-credential-helpers v0.9.3/go.mod h1:x+4Gbw9aGmChi3qTLZj8Dfn0TD20M/fuWy0E5+WDeCo=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
-github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5 h1:X8Zl2fYL+GEFYwOVSqS//yeiGsApDDHsAkxcIAdy1hc=
-github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
+github.com/edgelesssys/go-sev-guest v0.0.0-20261013132829-7a9ace10598e h1:5SFAZ8YbRNyQydHjHe/2qlrW6/efaQhXeUfSCjReXbQ=
+github.com/edgelesssys/go-sev-guest v0.0.0-20261013132829-7a9ace10598e/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
 github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd h1:6vFdIP4C0KZRR6Rq7xtzjQx8rMu9/UKrYY/+5xwgavw=
 github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd/go.mod h1:uHy3VaNXNXhl0fiPxKqTxieeouqQmW6A0EfLcaeCYBk=
 github.com/emicklei/go-restful/v3 v3.13.0 h1:C4Bl2xDndpU6nJ4bc1jXd+uTmYPVUwkD6bFY/oTyCes=
