@@ -30,8 +30,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5 h1:X8Zl2fYL+GEFYwOVSqS//yeiGsApDDHsAkxcIAdy1hc=
 github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
-github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249 h1:Tx0olMH9+rqQgXfX8dIzIDN8UadjSJeTev6t4Qcx+J8=
-github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249/go.mod h1:uHy3VaNXNXhl0fiPxKqTxieeouqQmW6A0EfLcaeCYBk=
+github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd h1:6vFdIP4C0KZRR6Rq7xtzjQx8rMu9/UKrYY/+5xwgavw=
+github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd/go.mod h1:uHy3VaNXNXhl0fiPxKqTxieeouqQmW6A0EfLcaeCYBk=
 github.com/emicklei/go-restful/v3 v3.13.0 h1:C4Bl2xDndpU6nJ4bc1jXd+uTmYPVUwkD6bFY/oTyCes=
 github.com/emicklei/go-restful/v3 v3.13.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/evanphx/json-patch/v5 v5.9.11 h1:/8HVnzMq13/3x9TPvjG08wUGqBTmZBsCWzjTM0wiaDU=

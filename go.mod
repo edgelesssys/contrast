@@ -3,7 +3,7 @@ module github.com/edgelesssys/contrast
 go 1.26.0
 
 // Upstream is poorly maintained, use edgelesssys fork instead.
-replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249
+replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd
 
 replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5
 

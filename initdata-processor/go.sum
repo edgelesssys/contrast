@@ -2,8 +2,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5 h1:X8Zl2fYL+GEFYwOVSqS//yeiGsApDDHsAkxcIAdy1hc=
 github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
-github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249 h1:Tx0olMH9+rqQgXfX8dIzIDN8UadjSJeTev6t4Qcx+J8=
-github.com/edgelesssys/go-tdx-guest v0.0.0-20260625102850-ea481d3db249/go.mod h1:uHy3VaNXNXhl0fiPxKqTxieeouqQmW6A0EfLcaeCYBk=
+github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd h1:6vFdIP4C0KZRR6Rq7xtzjQx8rMu9/UKrYY/+5xwgavw=
+github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd/go.mod h1:uHy3VaNXNXhl0fiPxKqTxieeouqQmW6A0EfLcaeCYBk=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/google/go-configfs-tsm v0.3.3 h1:8mrlZLYrFFxyc8PFpT1piBUFDEYBVsBjAkFCwqQ2f9Y=
