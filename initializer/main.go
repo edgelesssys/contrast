@@ -13,6 +13,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -59,6 +60,7 @@ func newRootCmd() *cobra.Command {
 	root.InitDefaultVersionFlag()
 	root.AddCommand(
 		NewCryptsetupCmd(),
+		NewReportCmd(),
 	)
 	return root
 }
@@ -77,10 +79,7 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 
 	log.Info("Initializer started")
 
-	collateralProxy := os.Getenv(constants.CollateralProxyEnvVar)
-	if collateralProxy != "" {
-		log.Info("routing attestation collateral through proxy", "proxy", collateralProxy)
-	}
+	collateralProxy := getCollateralProxy(log)
 
 	// If the service mesh is disabled, we don't have a service mesh sidecar
 	// container that installs its iptables rules. Therefore, we remove the
@@ -227,4 +226,12 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 func printPreface(cmd *cobra.Command, _ []string) {
 	fmt.Fprintf(cmd.ErrOrStderr(), "Contrast initializer %s\n", constants.Version)
 	fmt.Fprintln(cmd.ErrOrStderr(), "Report issues at https://github.com/edgelesssys/contrast/issues")
+}
+
+func getCollateralProxy(log *slog.Logger) string {
+	collateralProxy := os.Getenv(constants.CollateralProxyEnvVar)
+	if collateralProxy != "" {
+		log.Info("routing attestation collateral through proxy", "proxy", collateralProxy)
+	}
+	return collateralProxy
 }
