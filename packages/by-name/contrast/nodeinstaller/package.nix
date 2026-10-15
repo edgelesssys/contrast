@@ -34,6 +34,8 @@ buildGoModule (finalAttrs: {
         (path.append root "go.sum")
         (path.append root "apitypes/go.mod")
         (path.append root "apitypes/go.sum")
+        (path.append root "sdk/go.mod")
+        (path.append root "sdk/go.sum")
         (path.append root "nodeinstaller")
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
