@@ -16,6 +16,7 @@ require (
 	github.com/distribution/reference v0.6.0
 	github.com/elazarl/goproxy v1.8.2
 	github.com/evanphx/json-patch/v5 v5.9.11
+	github.com/google/go-configfs-tsm v0.3.3
 	github.com/google/go-containerregistry v0.22.0
 	github.com/google/go-github/v85 v85.0.0
 	github.com/google/go-sev-guest v0.14.2-0.20251119154202-af1c107a648f
@@ -72,7 +73,6 @@ require (
 	github.com/go-openapi/swag/yamlutils v0.26.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
-	github.com/google/go-configfs-tsm v0.3.3 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
