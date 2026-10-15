@@ -1,6 +1,5 @@
 [
     "UpdateInterfaceRequest",
-    "UpdateRoutesRequest",
     "CreateSandboxRequest",
     "CreateContainerRequest",
     "RemoveContainerRequest",
@@ -17,48 +16,69 @@
 # Collect sandbox/container IDs
 | {
     rpcs: .,
-	ids: reduce (
-		.[]
-		| .request.sandbox_id?,
-		  .request.container_id?
-		| select(. != null and . != "")
-	) as $id
-		([];
-		 if index($id) == null then . + [$id] else . end
-	),
-	namespaces: [
-		.[]
-		| .request.OCI.Annotations["io.kubernetes.cri.sandbox-namespace"]?
-		| select(. != null and . != "")
-	] | unique
+    ids: reduce (
+        .[]
+        | .request.sandbox_id?,
+          .request.container_id?
+        | select(. != null and . != "")
+    ) as $id
+        ([];
+         if index($id) == null then . + [$id] else . end
+    ),
+    namespaces: [
+        .[]
+        | .request.OCI.Annotations["io.kubernetes.cri.sandbox-namespace"]?
+        | select(. != null and . != "")
+    ] | unique
 } as $data
 
 # Normalize everything
 | $data.rpcs
+| map(
+    if .kind == "UpdateInterfaceRequest" then
+        .request.interface.mtu = 1500
+        | .request.interface.hwAddr = "11:22:33:44:55:66"
+        | .request.interface.IPAddresses |= map(
+            if .family == 1 then
+                .address = "1111::2222:3333:4444:5555"
+            else .
+            end
+        )
+    elif .kind == "CreateSandboxRequest" then
+        .request.dns[0] = "search default.svc.cluster.local svc.cluster.local cluster.local"
+    elif .kind == "CreateContainerRequest" then
+        # TODO(burgerdev): these fields should probably not be passed to the agent at all
+        # and should be removed from the OCI request
+        .request.OCI.Annotations |= with_entries(
+            if .key == "io.katacontainers.pkg.oci.bundle_path"
+                or .key == "io.kubernetes.cri.podsandbox.image-name"
+            then .value = ""
+            else .
+            end
+        )
+        | .request.OCI.Version = "1.3.0"
+    else
+        .
+    end
+)
 | walk(
     if type == "string" then
 
-        # Replace tailscale id
-        gsub(
-            "tail[0-9a-f]{5}";
-            "tail00000"
-        )
-
-		# Replace IDs with deterministic 64-character values:
+        # Replace IDs with deterministic 64-character values:
         # first ID -> 0000...
         # second ID -> 1111...
         # third ID -> 2222...
-        | reduce ($data.ids | to_entries[]) as $entry (.;
+        reduce ($data.ids | to_entries[]) as $entry (.;
             gsub(
                 $entry.value;
                 (($entry.key | tostring) * 64)
             )
         )
 
-		# Namespaces
-		| reduce $data.namespaces[] as $namespace (.;
-			gsub($namespace; "default")
-		)
+        # Namespaces
+        | reduce $data.namespaces[] as $namespace (.;
+            gsub($namespace; "default")
+        )
 
         # UUIDs
         | gsub(
@@ -78,22 +98,10 @@
             "-0000000000000000-"
         )
 
-		# IPv4 addresses
-		| gsub(
+        # IPv4 addresses
+        | gsub(
             "([0-9]{1,3}\\.){3}[0-9]{1,3}";
             "10.0.0.0"
-        )
-
-		# IPv6 addresses
-		| gsub(
-            "^([0-9a-f]{4}::?){1,7}[0-9a-f]{4}$";
-            "1111::2222:3333:4444:5555"
-        )
-
-		# MAC addresses
-		| gsub(
-            "^([0-9a-f]{2}:){5}[0-9a-f]{2}$";
-            "11:22:33:44:55:66"
         )
 
     else
