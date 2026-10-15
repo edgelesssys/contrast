@@ -231,9 +231,9 @@ func TestValidateAttestation(t *testing.T) {
 				srv.Close()
 			}
 			if tc.sdkVersions != nil {
-				orig := supportedAPIVersions
-				supportedAPIVersions = tc.sdkVersions
-				t.Cleanup(func() { supportedAPIVersions = orig })
+				orig := SupportedAPIVersions
+				SupportedAPIVersions = tc.sdkVersions
+				t.Cleanup(func() { SupportedAPIVersions = orig })
 			}
 
 			validator := &stubValidator{err: tc.validateErr}
@@ -270,6 +270,29 @@ func TestValidateAttestation(t *testing.T) {
 			assert.Equal(wantReportData[:], validator.gotReportData)
 		})
 	}
+}
+
+// TestValidateAttestationExpectedManifest ensures the reference values come from the expected manifest, if there is one.
+func TestValidateAttestationExpectedManifest(t *testing.T) {
+	require := require.New(t)
+
+	nonce := make([]byte, 32)
+	attestation, err := json.Marshal(&apitypesv1.AttestationResponse{
+		CoordinatorState: apitypesv1.CoordinatorState{Manifests: [][]byte{testManifest}},
+	})
+	require.NoError(err)
+
+	expected := &manifest.Manifest{}
+	c := New("").WithExpectedManifest(expected)
+	var got *manifest.Manifest
+	c.validatorsFromManifestOverride = func(_ *certcache.CachedHTTPSGetter, m *manifest.Manifest, _ *slog.Logger) (validators.Validator, error) {
+		got = m
+		return &stubValidator{}, nil
+	}
+
+	_, err = c.ValidateAttestation(t.Context(), nonce, attestation)
+	require.NoError(err)
+	require.Same(expected, got)
 }
 
 // TestGetAttestationEndpoint ensures the attestation is fetched from the newest endpoint both sides support.
@@ -332,7 +355,7 @@ func TestGetAttestationEndpoint(t *testing.T) {
 func coordinatorHandler(versions []string, gotAttestPath *string) http.Handler {
 	mux := http.NewServeMux()
 	if versions != nil {
-		mux.Handle(capabilitiesPath, capabilitiesHandler(versions))
+		mux.Handle(apitypes.CapabilitiesPath, capabilitiesHandler(versions))
 	}
 	for _, path := range []string{apitypesv1.LegacyAttestPath, apitypesv1.AttestPath} {
 		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {

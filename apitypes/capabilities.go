@@ -3,10 +3,23 @@
 
 package apitypes
 
-import "crypto/sha256"
+import (
+	"crypto/sha256"
+	"net/http"
+)
 
 // APIVersionV1 is the identifier of version 1 of the Contrast HTTP API.
 const APIVersionV1 = "v1"
+
+const (
+	// CapabilitiesPath is the path of the capabilities endpoint.
+	//
+	// The endpoint is deliberately unversioned. It is how clients discover which versions exist,
+	// so it must be reachable without knowing a version first.
+	CapabilitiesPath = "/capabilities"
+	// CapabilitiesMethod is the HTTP method of the capabilities endpoint.
+	CapabilitiesMethod = http.MethodGet
+)
 
 // CapabilitiesResponse is the response body of the GET /capabilities endpoint.
 //

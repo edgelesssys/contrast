@@ -11,12 +11,12 @@
 package apiv1
 
 import (
-	"github.com/edgelesssys/contrast/apitypes"
+	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/sdk/internal/httpapi"
 )
 
 // Version is the API version implemented by this package.
-const Version = apitypes.APIVersionV1
+const Version = apitypesv1.Version
 
 // API calls version v1 of the Coordinator's HTTP API.
 type API struct {

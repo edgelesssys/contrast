@@ -9,6 +9,7 @@ import (
 	"encoding/asn1"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/edgelesssys/contrast/apitypes"
 )
@@ -18,12 +19,14 @@ const ReportDataSize = 64
 
 const (
 	// AttestPath is the path of the attestation endpoint.
-	AttestPath = "/v1/attest"
+	AttestPath = "/" + Version + "/attest"
 	// LegacyAttestPath is the path of the unversioned attestation endpoint, which predates API versioning.
 	//
 	// It shares the request and response types of [AttestPath], but its response carries no
 	// capabilities digest and its report data doesn't bind it, see [ConstructReportData].
 	LegacyAttestPath = "/attest"
+	// AttestMethod is the HTTP method of both attestation endpoints.
+	AttestMethod = http.MethodPost
 )
 
 // AttestationRequest is the wire-format for incoming /attest requests.
