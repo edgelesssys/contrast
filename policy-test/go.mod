@@ -8,6 +8,8 @@ replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0
 
 replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20260729130516-c98bf131aac5
 
+replace github.com/edgelesssys/contrast/apitypes => ../apitypes
+
 require (
 	github.com/edgelesssys/contrast v1.22.0
 	github.com/evanphx/json-patch/v5 v5.9.11

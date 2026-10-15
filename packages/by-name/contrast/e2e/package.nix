@@ -38,6 +38,8 @@ buildGoModule {
         (lib.map toRootPath [
           "go.mod"
           "go.sum"
+          "apitypes/go.mod"
+          "apitypes/go.sum"
           "cli/cmd/assets/image-replacements.txt"
           "internal/manifest/Milan.pem"
           "internal/manifest/Genoa.pem"
