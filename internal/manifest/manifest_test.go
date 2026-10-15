@@ -359,7 +359,7 @@ func TestSNPValidateOpts(t *testing.T) {
 	assert.Equal(trustedMeasurement, opts[0].ValidateOpts.Measurement)
 	assert.Len(opts[0].APEIP, 4)
 
-	tcbParts := kds.TCBParts{
+	tcbParts := kds.TCBVersionV0{
 		BlSpl:    tcb.BootloaderVersion.UInt8(),
 		TeeSpl:   tcb.TEEVersion.UInt8(),
 		SnpSpl:   tcb.SNPVersion.UInt8(),

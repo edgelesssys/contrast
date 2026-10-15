@@ -101,7 +101,7 @@ func claimsToCertExtension(report *sevsnp.Report) ([]pkix.Extension, error) {
 	extensions = append(extensions, extension.NewBytesExtension(imageIDOID, report.ImageId))
 	extensions = append(extensions, extension.NewBigIntExtension(vmplOID, report.Vmpl))
 
-	tcbParts := kds.DecomposeTCBVersion(kds.TCBVersion(report.CurrentTcb))
+	tcbParts := kds.DecomposeTCBVersionV0(report.CurrentTcb)
 	extensions = append(extensions, extension.NewBigIntExtension(currentTCBPartsBlSplOID, tcbParts.BlSpl))
 	extensions = append(extensions, extension.NewBigIntExtension(currentTCBPartsTeeSplOID, tcbParts.TeeSpl))
 	extensions = append(extensions, extension.NewBigIntExtension(currentTCBPartsSnpSplOID, tcbParts.SnpSpl))
@@ -130,7 +130,7 @@ func claimsToCertExtension(report *sevsnp.Report) ([]pkix.Extension, error) {
 	extensions = append(extensions, extension.NewBytesExtension(reportIDOID, report.ReportId))
 	extensions = append(extensions, extension.NewBytesExtension(reportIDMAOID, report.ReportIdMa))
 
-	tcbParts = kds.DecomposeTCBVersion(kds.TCBVersion(report.ReportedTcb))
+	tcbParts = kds.DecomposeTCBVersionV0(report.ReportedTcb)
 	extensions = append(extensions, extension.NewBigIntExtension(reportedTCBPartsBlSplOID, tcbParts.BlSpl))
 	extensions = append(extensions, extension.NewBigIntExtension(reportedTCBPartsTeeSplOID, tcbParts.TeeSpl))
 	extensions = append(extensions, extension.NewBigIntExtension(reportedTCBPartsSnpSplOID, tcbParts.SnpSpl))
@@ -138,7 +138,7 @@ func claimsToCertExtension(report *sevsnp.Report) ([]pkix.Extension, error) {
 
 	extensions = append(extensions, extension.NewBytesExtension(chipIDOID, report.ChipId))
 
-	tcbParts = kds.DecomposeTCBVersion(kds.TCBVersion(report.CommittedTcb))
+	tcbParts = kds.DecomposeTCBVersionV0(report.CommittedTcb)
 	extensions = append(extensions, extension.NewBigIntExtension(committedTCBPartsBlSplOID, tcbParts.BlSpl))
 	extensions = append(extensions, extension.NewBigIntExtension(committedTCBPartsTeeSplOID, tcbParts.TeeSpl))
 	extensions = append(extensions, extension.NewBigIntExtension(committedTCBPartsSnpSplOID, tcbParts.SnpSpl))
@@ -151,7 +151,7 @@ func claimsToCertExtension(report *sevsnp.Report) ([]pkix.Extension, error) {
 	extensions = append(extensions, extension.NewBigIntExtension(committedMinorOID, report.CommittedMinor))
 	extensions = append(extensions, extension.NewBigIntExtension(committedMajorOID, report.CommittedMajor))
 
-	tcbParts = kds.DecomposeTCBVersion(kds.TCBVersion(report.LaunchTcb))
+	tcbParts = kds.DecomposeTCBVersionV0(report.LaunchTcb)
 	extensions = append(extensions, extension.NewBigIntExtension(launchTCBPartsBlSplOID, tcbParts.BlSpl))
 	extensions = append(extensions, extension.NewBigIntExtension(launchTCBPartsTeeSplOID, tcbParts.TeeSpl))
 	extensions = append(extensions, extension.NewBigIntExtension(launchTCBPartsSnpSplOID, tcbParts.SnpSpl))
