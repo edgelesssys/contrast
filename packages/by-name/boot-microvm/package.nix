@@ -4,11 +4,20 @@
 {
   writeShellApplication,
   qemu-cc,
-  OVMF,
+  OVMF-SNP,
+  pkgs,
+  contrastPkgs,
 }:
 
 # Usage example:
 # outPath=$(nix build .#base.kata.image --print-out-paths); nix run .#base.boot-microvm -- "${outPath}/bzImage" "${outPath}/initrd" "${outPath}/image-podvm-gpu_1-rc1.raw" "$(cat "${outPath}/cmdline")"
+
+let
+  # Avoid shipping all of the unrelated OVMF build outputs (~hundreds of MB).
+  ovmf = pkgs.runCommand "OVMF" { } ''
+    cp ${OVMF-SNP}/FV/OVMF.fd $out
+  '';
+in
 
 writeShellApplication {
   name = "boot-microvm";
@@ -16,23 +25,28 @@ writeShellApplication {
     qemu-cc
   ];
   text = ''
-    if [[ $# -ne 4 ]]; then
-      echo "Usage: $0 <kernel> <initrd> <rootfs> <cmdline>";
-      exit 1;
-    fi
+    kernel="${contrastPkgs.demo.kernel}/bzImage"
+    initrd="${contrastPkgs.demo.initialRamdisk}/initrd"
+    rootfs="${contrastPkgs.demo.image}/image-podvm-gpu_1-rc1.raw"
+    ovmf="${ovmf}"
+    cmdline="${contrastPkgs.demo.cmdline}"
 
-    tmpFile=$(mktemp)
-    cp "$3" "$tmpFile"
-
+    # TODO(burgerdev): /dev/sev-guest may not be available in the initrd.
     qemu-system-x86_64 \
       -enable-kvm \
-      -m 3G \
-      -nographic \
-      -drive if=pflash,format=raw,readonly=on,file=${OVMF.firmware} \
-      -drive if=pflash,format=raw,readonly=on,file=${OVMF.variables} \
-      -kernel "$1" \
-      -initrd "$2" \
-      -append "$4" \
-      -drive "if=virtio,format=raw,file=$tmpFile"
+      -m 1024M \
+      -object memory-backend-ram,id=dimm1,size=1024M \
+      -numa node,memdev=dimm1 \
+      -smp 1,cores=1,threads=1,sockets=1,maxcpus=1 \
+      -machine q35,accel=kvm,kernel_irqchip=split,confidential-guest-support=snp \
+      -cpu EPYC-Genoa,pmu=off \
+      -object sev-snp-guest,id=snp,cbitpos=51,reduced-phys-bits=1,kernel-hashes=on \
+      -serial stdio -display none \
+      -bios "$ovmf" \
+      -kernel "$kernel" \
+      -initrd "$initrd" \
+      -drive id=foo,file=$rootfs,format=raw,if=none \
+      -device virtio-blk-pci,disable-modern=false,drive=foo,serial=my-little-rootfs \
+      -append "$cmdline"
   '';
 }

@@ -200,4 +200,19 @@
         dd if=/dev/zero of=$out/large-file bs=1M count=1000'')
     ];
   };
+
+  qemu-demo = contrastPkgs.buildOciImage {
+    name = "qemu-demo";
+    tag = "0.1.0";
+    copyToRoot = with pkgs; [
+      busybox
+    ];
+    config = {
+      Cmd = [
+        "${contrastPkgs.boot-microvm}/bin/boot-microvm"
+        "console=ttyS0"
+      ];
+      Env = [ "TMPDIR=/" ]; # TODO(burgerdev): only needed because of the boot-microvm script.
+    };
+  };
 }
