@@ -670,10 +670,21 @@ GH_TOKEN=""
 
 # Developer onboarding.
 onboard:
-    @ [[ -f "./justfile.env" ]] && echo "justfile.env already exists" && exit 1 || true
-    @echo '{{ rctemplate }}' > ./justfile.env
-    @just get-ghcr-read-token
-    @echo "Created ./justfile.env. Please fill it out."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -e ./justfile.env || -L ./justfile.env ]]; then
+        echo "justfile.env already exists"
+        exit 1
+    fi
+    mainTree=$(dirname "$(cd "$(git rev-parse --git-common-dir)" && pwd)")
+    if [[ "${mainTree}" != "${PWD}" && -f "${mainTree}/justfile.env" ]]; then
+        ln -s "${mainTree}/justfile.env" ./justfile.env
+        echo "Linked ./justfile.env -> ${mainTree}/justfile.env"
+        exit 0
+    fi
+    echo '{{ rctemplate }}' > ./justfile.env
+    just get-ghcr-read-token
+    echo "Created ./justfile.env. Please fill it out."
 
 # Just configuration.
 
