@@ -17,13 +17,17 @@ digest parts, which are considered sufficient to identify an image.
 Upstream introduced an insecure rule for guest pull that we need to
 remove, and we introduce an allow_mount_point rule for the rootfs mount
 location.
+
+Upstream also introduced a check for the number of expected guest pull
+storages. We don't need that check because we're already comparing both
+the count and the content of the guest pull object.
 ---
  src/agent/src/storage/image_pull_handler.rs | 65 ++-------------------
  src/runtime/virtcontainers/kata_agent.go    | 17 +-----
- src/tools/genpolicy/rules.rego              | 59 ++++++++++++-------
+ src/tools/genpolicy/rules.rego              | 64 +++++++++++---------
  src/tools/genpolicy/src/pod.rs              |  1 +
  src/tools/genpolicy/src/yaml.rs             | 11 ++++
- 5 files changed, 57 insertions(+), 96 deletions(-)
+ 5 files changed, 57 insertions(+), 101 deletions(-)
 
 diff --git a/src/agent/src/storage/image_pull_handler.rs b/src/agent/src/storage/image_pull_handler.rs
 index 74686abf43436d9c5c5117d061f1faed79783f74..e927668e85b61c1d242c1052bf50d7a599e33600 100644
@@ -175,10 +179,20 @@ index b6408fe5c90af00b895e277464a3a9077c196ae4..79e6bf0521def472a3ba465c43293d71
  			return nil, err
  		}
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 93f7462f59acbaa5c4e9e9d4716512a5b4de531a..6edaf235f75566318a5b62e33c58a6340ef9f404 100644
+index c6ae9fac33d479e151a9d7db0c50001bf8114e30..6edaf235f75566318a5b62e33c58a6340ef9f404 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1236,10 +1236,9 @@ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
+@@ -1230,21 +1230,15 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) if {
+ ######################################################################
+ # Create container Storages
+ 
+-expected_image_guest_pull_count := 1 if {
+-    policy_data.cluster_config.guest_pull
+-} else := 0
+-
+ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
+     print("allow_storages: p_storages =", p_storages)
+     print("allow_storages: i_storages =", i_storages)
  
      p_count := count(p_storages)
      i_count := count(i_storages)
@@ -186,12 +200,13 @@ index 93f7462f59acbaa5c4e9e9d4716512a5b4de531a..6edaf235f75566318a5b62e33c58a634
 -    print("allow_storages: p_count =", p_count, "i_count =", i_count, "img_pull_count =", img_pull_count)
 +    print("allow_storages: p_count =", p_count, "i_count =", i_count)
  
+-    img_pull_count == expected_image_guest_pull_count
 -    p_count == i_count - img_pull_count
 +    p_count == i_count
  
      every i_storage in i_storages {
          allow_storage(p_storages, i_storage, bundle_id, sandbox_id)
-@@ -1261,24 +1260,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
+@@ -1266,24 +1260,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
  
      print("allow_storage: true")
  }
@@ -216,7 +231,7 @@ index 93f7462f59acbaa5c4e9e9d4716512a5b4de531a..6edaf235f75566318a5b62e33c58a634
  allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
      print("allow_storage with scsi: start")
  
-@@ -1351,6 +1332,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
+@@ -1356,6 +1332,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
  
      print("allow_storage_source 3: true")
  }
@@ -240,7 +255,7 @@ index 93f7462f59acbaa5c4e9e9d4716512a5b4de531a..6edaf235f75566318a5b62e33c58a634
  
  allow_storage_options(p_storage, i_storage) if {
      print("allow_storage_options 1: start")
-@@ -1426,6 +1424,25 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
+@@ -1431,6 +1424,25 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
  
      print("allow_mount_point 5: true")
  }

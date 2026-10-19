@@ -152,10 +152,10 @@ index cef105a10365a3c93ad083b2519278e026e95db4..e3f5143f418ad82f85fc2c1f261ddc5b
      }
  }
 diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
-index d630643d8c4f8cbd1b0a598278cafd544cd385fe..791d5b34207c680c3cb2b631acaff612e32fbe8c 100644
+index 5226364fcf32380653649fc8f6dd268d66b6ed1e..591c01c9514f3915576313b3b81492d3c181c8bd 100644
 --- a/src/tools/genpolicy/tests/policy/main.rs
 +++ b/src/tools/genpolicy/tests/policy/main.rs
-@@ -121,6 +121,7 @@ mod tests {
+@@ -123,6 +123,7 @@ mod tests {
              version: false,
              yaml_file: workdir.join("pod.yaml").to_str().map(|s| s.to_string()),
              initdata: kata_types::initdata::InitData::new("sha256", "0.1.0"),

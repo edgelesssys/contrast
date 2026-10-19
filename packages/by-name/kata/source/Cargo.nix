@@ -284,16 +284,6 @@ rec {
       # File a bug if you depend on any for non-debug work!
       debug = internal.debugCrate { inherit packageId; };
     };
-    "kata-deploy-job-dispatcher" = rec {
-      packageId = "kata-deploy-job-dispatcher";
-      build = internal.buildRustCrateWithFeatures {
-        packageId = "kata-deploy-job-dispatcher";
-      };
-
-      # Debug support which might change between releases.
-      # File a bug if you depend on any for non-debug work!
-      debug = internal.debugCrate { inherit packageId; };
-    };
     "kata-sys-util" = rec {
       packageId = "kata-sys-util";
       build = internal.buildRustCrateWithFeatures {
@@ -6262,9 +6252,10 @@ rec {
           "virtio-fs-pro" = [ "virtio-fs" "nydus-storage/backend-registry" "nydus-storage/backend-oss" ];
           "virtio-mem" = [ "virtio-mmio" ];
           "virtio-net" = [ "virtio-mmio" ];
+          "virtio-rng" = [ "virtio-mmio" ];
           "virtio-vsock" = [ "virtio-mmio" ];
         };
-        resolvedDefaultFeatures = [ "fuse-backend-rs" "test-resources" "vhost" "vhost-net" "vhost-rs" "vhost-user" "vhost-user-blk" "vhost-user-fs" "vhost-user-net" "virtio-balloon" "virtio-blk" "virtio-fs" "virtio-fs-pro" "virtio-mem" "virtio-mmio" "virtio-net" "virtio-vsock" ];
+        resolvedDefaultFeatures = [ "fuse-backend-rs" "test-resources" "vhost" "vhost-net" "vhost-rs" "vhost-user" "vhost-user-blk" "vhost-user-fs" "vhost-user-net" "virtio-balloon" "virtio-blk" "virtio-fs" "virtio-fs-pro" "virtio-mem" "virtio-mmio" "virtio-net" "virtio-rng" "virtio-vsock" ];
       };
       "deranged" = rec {
         crateName = "deranged";
@@ -7126,9 +7117,10 @@ rec {
           "virtio-mem" = [ "dbs-virtio-devices/virtio-mem" "virtio-queue" "atomic-guest-memory" ];
           "virtio-net" = [ "dbs-virtio-devices/virtio-net" "virtio-queue" ];
           "virtio-queue" = [ "dep:virtio-queue" ];
+          "virtio-rng" = [ "dbs-virtio-devices/virtio-rng" "virtio-queue" ];
           "virtio-vsock" = [ "dbs-virtio-devices/virtio-vsock" "virtio-queue" ];
         };
-        resolvedDefaultFeatures = [ "acpi" "atomic-guest-memory" "dbs-upcall" "dbs-virtio-devices" "host-device" "hotplug" "vhost-net" "vhost-user-blk" "vhost-user-fs" "vhost-user-net" "virtio-balloon" "virtio-blk" "virtio-fs" "virtio-mem" "virtio-net" "virtio-queue" "virtio-vsock" ];
+        resolvedDefaultFeatures = [ "acpi" "atomic-guest-memory" "dbs-upcall" "dbs-virtio-devices" "host-device" "hotplug" "vhost-net" "vhost-user-blk" "vhost-user-fs" "vhost-user-net" "virtio-balloon" "virtio-blk" "virtio-fs" "virtio-mem" "virtio-net" "virtio-queue" "virtio-rng" "virtio-vsock" ];
       };
       "dunce" = rec {
         crateName = "dunce";
@@ -10795,7 +10787,7 @@ rec {
             packageId = "dragonball";
             optional = true;
             target = { target, features }: (("x86_64" == target."arch" or null) || ("aarch64" == target."arch" or null));
-            features = [ "atomic-guest-memory" "virtio-vsock" "hotplug" "virtio-blk" "virtio-net" "virtio-fs" "vhost-net" "dbs-upcall" "virtio-mem" "virtio-balloon" "vhost-user-net" "host-device" ];
+            features = [ "atomic-guest-memory" "virtio-vsock" "hotplug" "virtio-blk" "virtio-net" "virtio-fs" "vhost-net" "dbs-upcall" "virtio-mem" "virtio-balloon" "virtio-rng" "vhost-user-net" "host-device" ];
           }
           {
             name = "futures";
@@ -10927,6 +10919,10 @@ rec {
             packageId = "slog-scope";
           }
           {
+            name = "tempfile";
+            packageId = "tempfile";
+          }
+          {
             name = "tests_utils";
             packageId = "tests_utils";
           }
@@ -10971,10 +10967,6 @@ rec {
           {
             name = "serial_test";
             packageId = "serial_test 2.0.0";
-          }
-          {
-            name = "tempfile";
-            packageId = "tempfile";
           }
           {
             name = "test-utils";
@@ -12818,15 +12810,15 @@ rec {
           }
           {
             name = "netlink-packet-core";
-            packageId = "netlink-packet-core 0.7.0";
+            packageId = "netlink-packet-core";
           }
           {
             name = "netlink-packet-route";
-            packageId = "netlink-packet-route 0.19.0";
+            packageId = "netlink-packet-route";
           }
           {
             name = "netlink-sys";
-            packageId = "netlink-sys 0.7.0";
+            packageId = "netlink-sys";
             features = [ "tokio_socket" ];
           }
           {
@@ -12876,7 +12868,7 @@ rec {
           }
           {
             name = "rtnetlink";
-            packageId = "rtnetlink 0.14.1";
+            packageId = "rtnetlink";
           }
           {
             name = "runtime-spec";
@@ -13550,86 +13542,6 @@ rec {
           {
             name = "tempfile";
             packageId = "tempfile";
-          }
-        ];
-
-      };
-      "kata-deploy-job-dispatcher" = rec {
-        crateName = "kata-deploy-job-dispatcher";
-        version = "0.1.0";
-        edition = "2021";
-        crateBin = [
-          {
-            name = "kata-deploy-job-dispatcher";
-            path = "src/main.rs";
-            requiredFeatures = [ ];
-          }
-        ];
-        src = lib.cleanSourceWith { filter = sourceFilter;  src = workspaceSrc + "/tools/packaging/kata-deploy/job-dispatcher"; };
-        authors = [
-          "The Kata Containers community <kata-dev@lists.katacontainers.io>"
-        ];
-        license = "Apache-2.0";
-        dependencies = [
-          {
-            name = "anyhow";
-            packageId = "anyhow";
-          }
-          {
-            name = "clap";
-            packageId = "clap";
-            features = [ "derive" ];
-          }
-          {
-            name = "env_logger";
-            packageId = "env_logger 0.10.2";
-          }
-          {
-            name = "humantime";
-            packageId = "humantime";
-          }
-          {
-            name = "json-patch";
-            packageId = "json-patch";
-          }
-          {
-            name = "k8s-openapi";
-            packageId = "k8s-openapi";
-            usesDefaultFeatures = false;
-            features = [ "v1_33" ];
-          }
-          {
-            name = "kube";
-            packageId = "kube";
-            usesDefaultFeatures = false;
-            features = [ "client" "jsonpatch" "rustls-tls" "ring" ];
-          }
-          {
-            name = "log";
-            packageId = "log";
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml 0.9.34+deprecated";
-          }
-          {
-            name = "sha2";
-            packageId = "sha2 0.11.0";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "rt-multi-thread" "macros" "signal" "time" ];
-          }
-        ];
-        devDependencies = [
-          {
-            name = "rstest";
-            packageId = "rstest";
           }
         ];
 
@@ -15588,11 +15500,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "netlink-packet-core 0.7.0" = rec {
+      "netlink-packet-core" = rec {
         crateName = "netlink-packet-core";
-        version = "0.7.0";
-        edition = "2018";
-        sha256 = "197dh9c5570135kv5q770n2ih5prhsql58cd71xxcya4f2plywkj";
+        version = "0.9.0";
+        edition = "2021";
+        sha256 = "1par81yylm5kcv64wa8p7ph05gp6l1h6hw0l4wq22blckapjsvid";
         libName = "netlink_packet_core";
         authors = [
           "Corentin Henry <corentinhenry@gmail.com>"
@@ -15600,89 +15512,13 @@ rec {
         license = "MIT";
         repository = "https://github.com/rust-netlink/netlink-packet-core";
         homepage = "https://github.com/rust-netlink/netlink-packet-core";
-        dependencies = [
-          {
-            name = "anyhow";
-            packageId = "anyhow";
-          }
-          {
-            name = "byteorder";
-            packageId = "byteorder";
-          }
-          {
-            name = "netlink-packet-utils";
-            packageId = "netlink-packet-utils";
-          }
-        ];
 
       };
-      "netlink-packet-core 0.8.1" = rec {
-        crateName = "netlink-packet-core";
-        version = "0.8.1";
-        edition = "2021";
-        sha256 = "1x707b3a579vr9p9hqdpjhrlfzhrq8zvj9n9w90h3jwlhfvwnqrl";
-        libName = "netlink_packet_core";
-        authors = [
-          "Corentin Henry <corentinhenry@gmail.com>"
-        ];
-        license = "MIT";
-        repository = "https://github.com/rust-netlink/netlink-packet-core";
-        homepage = "https://github.com/rust-netlink/netlink-packet-core";
-        dependencies = [
-          {
-            name = "paste";
-            packageId = "paste";
-          }
-        ];
-
-      };
-      "netlink-packet-route 0.19.0" = rec {
+      "netlink-packet-route" = rec {
         crateName = "netlink-packet-route";
-        version = "0.19.0";
+        version = "0.33.0";
         edition = "2021";
-        sha256 = "1x4bjc97nq6ckvn25l8qysybf324jbinqx6s11vqrvmlfz6p3hbl";
-        libName = "netlink_packet_route";
-        authors = [
-          "Corentin Henry <corentinhenry@gmail.com>"
-        ];
-        license = "MIT";
-        repository = "https://github.com/rust-netlink/netlink-packet-route";
-        homepage = "https://github.com/rust-netlink/netlink-packet-route";
-        dependencies = [
-          {
-            name = "anyhow";
-            packageId = "anyhow";
-          }
-          {
-            name = "byteorder";
-            packageId = "byteorder";
-          }
-          {
-            name = "libc";
-            packageId = "libc";
-          }
-          {
-            name = "log";
-            packageId = "log";
-            features = [ "std" ];
-          }
-          {
-            name = "netlink-packet-core";
-            packageId = "netlink-packet-core 0.7.0";
-          }
-          {
-            name = "netlink-packet-utils";
-            packageId = "netlink-packet-utils";
-          }
-        ];
-        features = {
-        };
-      };
-      "netlink-packet-route 0.30.0" = rec {
-        crateName = "netlink-packet-route";
-        version = "0.30.0";
-        edition = "2021";
-        sha256 = "14jhj28nj1hrymzmx4g0qqi3fgm4m4s15zmvmi7ana305xhik2dy";
+        sha256 = "0xjm1mfvx5hai6zbcxfqqgxjp3v6fa654y08zzhhd9bkigy8zm2r";
         libName = "netlink_packet_route";
         authors = [
           "Corentin Henry <corentinhenry@gmail.com>"
@@ -15706,48 +15542,21 @@ rec {
           }
           {
             name = "netlink-packet-core";
-            packageId = "netlink-packet-core 0.8.1";
+            packageId = "netlink-packet-core";
+          }
+          {
+            name = "zerocopy";
+            packageId = "zerocopy 0.8.48";
+            features = [ "derive" ];
           }
         ];
 
       };
-      "netlink-packet-utils" = rec {
-        crateName = "netlink-packet-utils";
-        version = "0.5.2";
-        edition = "2018";
-        sha256 = "0d3xfh9zg0x2hbmh8iws0dvhj69prpx54khfvmfakm8sqw48mphf";
-        libName = "netlink_packet_utils";
-        authors = [
-          "Corentin Henry <corentinhenry@gmail.com>"
-        ];
-        license = "MIT";
-        repository = "https://github.com/rust-netlink/netlink-packet-utils";
-        homepage = "https://github.com/rust-netlink/netlink-packet-utils";
-        dependencies = [
-          {
-            name = "anyhow";
-            packageId = "anyhow";
-          }
-          {
-            name = "byteorder";
-            packageId = "byteorder";
-          }
-          {
-            name = "paste";
-            packageId = "paste";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 1.0.69";
-          }
-        ];
-
-      };
-      "netlink-proto 0.11.5" = rec {
+      "netlink-proto" = rec {
         crateName = "netlink-proto";
-        version = "0.11.5";
-        edition = "2018";
-        sha256 = "0q0xqhp0n8307zakbfsa4w2n5dfrw80ym7nq20j6339g5h0jwibj";
+        version = "0.13.0";
+        edition = "2021";
+        sha256 = "0awg8c5ia89sdq2qgdi2b3c58fdqfa6fj54gkr4xnv3w4kk3mq4p";
         libName = "netlink_proto";
         authors = [
           "Corentin Henry <corentinhenry@gmail.com>"
@@ -15761,8 +15570,13 @@ rec {
             packageId = "bytes 1.11.1";
           }
           {
-            name = "futures";
-            packageId = "futures";
+            name = "futures-channel";
+            packageId = "futures-channel";
+          }
+          {
+            name = "futures-util";
+            packageId = "futures-util";
+            features = [ "sink" ];
           }
           {
             name = "log";
@@ -15770,11 +15584,11 @@ rec {
           }
           {
             name = "netlink-packet-core";
-            packageId = "netlink-packet-core 0.7.0";
+            packageId = "netlink-packet-core";
           }
           {
             name = "netlink-sys";
-            packageId = "netlink-sys 0.8.8";
+            packageId = "netlink-sys";
             usesDefaultFeatures = false;
           }
           {
@@ -15789,110 +15603,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "tokio_socket" ];
       };
-      "netlink-proto 0.12.0" = rec {
-        crateName = "netlink-proto";
-        version = "0.12.0";
-        edition = "2021";
-        sha256 = "0a11h4jvzbzzdcvrgpcpy23w74x67jj6x2fpxr3hwhqiw4716pdn";
-        libName = "netlink_proto";
-        authors = [
-          "Corentin Henry <corentinhenry@gmail.com>"
-        ];
-        license = "MIT";
-        repository = "https://github.com/rust-netlink/netlink-proto";
-        homepage = "https://github.com/rust-netlink/netlink-proto";
-        dependencies = [
-          {
-            name = "bytes";
-            packageId = "bytes 1.11.1";
-          }
-          {
-            name = "futures";
-            packageId = "futures";
-          }
-          {
-            name = "log";
-            packageId = "log";
-          }
-          {
-            name = "netlink-packet-core";
-            packageId = "netlink-packet-core 0.8.1";
-          }
-          {
-            name = "netlink-sys";
-            packageId = "netlink-sys 0.8.8";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.18";
-          }
-        ];
-        features = {
-          "default" = [ "tokio_socket" ];
-          "smol_socket" = [ "netlink-sys/smol_socket" ];
-          "tokio_socket" = [ "netlink-sys/tokio_socket" ];
-        };
-        resolvedDefaultFeatures = [ "tokio_socket" ];
-      };
-      "netlink-sys 0.7.0" = rec {
+      "netlink-sys" = rec {
         crateName = "netlink-sys";
-        version = "0.7.0";
-        edition = "2018";
-        sha256 = "12214my7zbkv2r4lmvyqs8x8abr1cx81alrpbj0ik1v7l17a73pl";
-        libName = "netlink_sys";
-        authors = [
-          "Corentin Henry <corentinhenry@gmail.com>"
-        ];
-        license = "MIT";
-        repository = "https://github.com/little-dude/netlink";
-        homepage = "https://github.com/little-dude/netlink";
-        dependencies = [
-          {
-            name = "futures";
-            packageId = "futures";
-            optional = true;
-          }
-          {
-            name = "libc";
-            packageId = "libc";
-          }
-          {
-            name = "log";
-            packageId = "log";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            optional = true;
-            usesDefaultFeatures = false;
-            features = [ "net" ];
-          }
-        ];
-        devDependencies = [
-          {
-            name = "tokio";
-            packageId = "tokio";
-            usesDefaultFeatures = false;
-            features = [ "net" "macros" "rt-multi-thread" ];
-          }
-        ];
-        features = {
-          "async-io" = [ "dep:async-io" ];
-          "futures" = [ "dep:futures" ];
-          "mio" = [ "dep:mio" ];
-          "mio_socket" = [ "mio" ];
-          "smol_socket" = [ "async-io" "futures" ];
-          "tokio" = [ "dep:tokio" ];
-          "tokio_socket" = [ "tokio" "futures" ];
-        };
-        resolvedDefaultFeatures = [ "default" "futures" "tokio" "tokio_socket" ];
-      };
-      "netlink-sys 0.8.8" = rec {
-        crateName = "netlink-sys";
-        version = "0.8.8";
+        version = "0.9.0";
         edition = "2021";
-        sha256 = "1bizb26qgk765vg7qyrnwywdwsqzjz68a6s93m4wqsgs23nk0v6d";
+        sha256 = "041sm0a1qk3mpwmlrsv8mj1asgbwcrp85q0gjjgg83a21gh3i7f9";
         libName = "netlink_sys";
         authors = [
           "Corentin Henry <corentinhenry@gmail.com>"
@@ -16177,49 +15892,6 @@ rec {
           "zerocopy" = [ "fs" "uio" ];
         };
         resolvedDefaultFeatures = [ "acct" "aio" "default" "dir" "env" "event" "feature" "fs" "hostname" "inotify" "ioctl" "kmod" "memoffset" "mman" "mount" "mqueue" "net" "personality" "pin-utils" "poll" "process" "pthread" "ptrace" "quota" "reboot" "resource" "sched" "signal" "socket" "term" "time" "ucontext" "uio" "user" "zerocopy" ];
-      };
-      "nix 0.27.1" = rec {
-        crateName = "nix";
-        version = "0.27.1";
-        edition = "2021";
-        sha256 = "0ly0kkmij5f0sqz35lx9czlbk6zpihb7yh1bsy4irzwfd2f4xc1f";
-        authors = [
-          "The nix-rust Project Developers"
-        ];
-        license = "MIT";
-        repository = "https://github.com/nix-rust/nix";
-        dependencies = [
-          {
-            name = "bitflags";
-            packageId = "bitflags 2.11.1";
-          }
-          {
-            name = "cfg-if";
-            packageId = "cfg-if 1.0.4";
-          }
-          {
-            name = "libc";
-            packageId = "libc";
-            features = [ "extra_traits" ];
-          }
-        ];
-        features = {
-          "aio" = [ "pin-utils" ];
-          "dir" = [ "fs" ];
-          "memoffset" = [ "dep:memoffset" ];
-          "mount" = [ "uio" ];
-          "mqueue" = [ "fs" ];
-          "net" = [ "socket" ];
-          "pin-utils" = [ "dep:pin-utils" ];
-          "ptrace" = [ "process" ];
-          "sched" = [ "process" ];
-          "signal" = [ "process" ];
-          "socket" = [ "memoffset" ];
-          "ucontext" = [ "signal" ];
-          "user" = [ "feature" ];
-          "zerocopy" = [ "fs" "uio" ];
-        };
-        resolvedDefaultFeatures = [ "fs" "mount" "process" "sched" "signal" "uio" ];
       };
       "nix 0.30.1" = rec {
         crateName = "nix";
@@ -19044,19 +18716,6 @@ rec {
           "petgraph" = [ "dep:petgraph" ];
         };
       };
-      "paste" = rec {
-        crateName = "paste";
-        version = "1.0.15";
-        edition = "2018";
-        sha256 = "02pxffpdqkapy292harq6asfjvadgp1s005fip9ljfsn9fvxgh2p";
-        procMacro = true;
-        authors = [
-          "David Tolnay <dtolnay@gmail.com>"
-        ];
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/dtolnay/paste";
-
-      };
       "path-absolutize" = rec {
         crateName = "path-absolutize";
         version = "3.1.1";
@@ -19184,20 +18843,30 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "pci-ids" = rec {
-        crateName = "pci-ids";
-        version = "0.2.6";
+      "pcilibs-rs" = rec {
+        crateName = "pcilibs-rs";
+        version = "0.1.0";
         edition = "2018";
-        sha256 = "0pkj7p029mjn7xspnzn3drkc93xfgsgswi4mxqgq6751ikf651q9";
-        libName = "pci_ids";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/kata-containers/pcilibs-rs";
+          rev = "28308229a8601b5dd616a9f9907002dec781e3ac";
+          sha256 = "0g6mwqjb64zsdyllb10wi2z4s792z3v93kvfspfm1shbm4m46qd3";
+        };
+        libName = "pcilibs_rs";
         authors = [
-          "William Woodruff <william@yossarian.net>"
-          "Charles Lien <lienching31240@gmail.com>"
+          "The Kata Containers community <kata-dev@lists.katacontainers.io>"
         ];
-        license = "MIT";
-        repository = "https://github.com/lienching/pci-ids.rs";
-        homepage = "https://github.com/lienching/pci-ids.rs";
+        license = "Apache-2.0";
+        repository = "https://github.com/kata-containers/pcilibs-rs.git";
+        homepage = "https://katacontainers.io/";
         dependencies = [
+          {
+            name = "nix";
+            packageId = "nix 0.31.3";
+            usesDefaultFeatures = false;
+            features = [ "fs" ];
+          }
           {
             name = "phf";
             packageId = "phf";
@@ -19221,37 +18890,6 @@ rec {
           {
             name = "quote";
             packageId = "quote";
-          }
-        ];
-
-      };
-      "pcilibs-rs" = rec {
-        crateName = "pcilibs-rs";
-        version = "0.1.0";
-        edition = "2018";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/zvonkok/pcilibs-rs";
-          rev = "ce6486db79ade33028583a9e81245db5f4de2079";
-          sha256 = "1kdzb21p5sdsa73cy11dgjhml3xvwn73iyn6hdyql3zpzghlm37h";
-        };
-        libName = "pcilibs_rs";
-        authors = [
-          "The Kata Containers community <kata-dev@lists.katacontainers.io>"
-        ];
-        license = "Apache-2.0";
-        repository = "https://github.com/kata-containers/pcilibs-rs.git";
-        homepage = "https://katacontainers.io/";
-        dependencies = [
-          {
-            name = "nix";
-            packageId = "nix 0.31.3";
-            usesDefaultFeatures = false;
-            features = [ "fs" ];
-          }
-          {
-            name = "pci-ids";
-            packageId = "pci-ids";
           }
         ];
         features = {
@@ -23406,11 +23044,11 @@ rec {
           }
           {
             name = "netlink-packet-core";
-            packageId = "netlink-packet-core 0.8.1";
+            packageId = "netlink-packet-core";
           }
           {
             name = "netlink-packet-route";
-            packageId = "netlink-packet-route 0.30.0";
+            packageId = "netlink-packet-route";
           }
           {
             name = "netns-rs";
@@ -23436,7 +23074,7 @@ rec {
           }
           {
             name = "rtnetlink";
-            packageId = "rtnetlink 0.21.0";
+            packageId = "rtnetlink";
           }
           {
             name = "scopeguard";
@@ -23884,85 +23522,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "async-timeout" "crate-name" ];
       };
-      "rtnetlink 0.14.1" = rec {
+      "rtnetlink" = rec {
         crateName = "rtnetlink";
-        version = "0.14.1";
-        edition = "2018";
-        sha256 = "19dbbky7bcrwk4jhgam148s8ykxc7pfrblxjvmciipyq8i9lg15n";
-        authors = [
-          "Corentin Henry <corentinhenry@gmail.com>"
-        ];
-        license = "MIT";
-        repository = "https://github.com/rust-netlink/rtnetlink";
-        homepage = "https://github.com/rust-netlink/rtnetlink";
-        dependencies = [
-          {
-            name = "futures";
-            packageId = "futures";
-          }
-          {
-            name = "log";
-            packageId = "log";
-          }
-          {
-            name = "netlink-packet-core";
-            packageId = "netlink-packet-core 0.7.0";
-          }
-          {
-            name = "netlink-packet-route";
-            packageId = "netlink-packet-route 0.19.0";
-          }
-          {
-            name = "netlink-packet-utils";
-            packageId = "netlink-packet-utils";
-          }
-          {
-            name = "netlink-proto";
-            packageId = "netlink-proto 0.11.5";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "netlink-sys";
-            packageId = "netlink-sys 0.8.8";
-          }
-          {
-            name = "nix";
-            packageId = "nix 0.27.1";
-            usesDefaultFeatures = false;
-            features = [ "fs" "mount" "sched" "signal" ];
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 1.0.69";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            optional = true;
-            features = [ "rt" ];
-          }
-        ];
-        devDependencies = [
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "macros" "rt" "rt-multi-thread" ];
-          }
-        ];
-        features = {
-          "async-global-executor" = [ "dep:async-global-executor" ];
-          "default" = [ "tokio_socket" ];
-          "smol_socket" = [ "netlink-proto/smol_socket" "async-global-executor" ];
-          "tokio" = [ "dep:tokio" ];
-          "tokio_socket" = [ "netlink-proto/tokio_socket" "tokio" ];
-        };
-        resolvedDefaultFeatures = [ "default" "tokio" "tokio_socket" ];
-      };
-      "rtnetlink 0.21.0" = rec {
-        crateName = "rtnetlink";
-        version = "0.21.0";
+        version = "0.23.0";
         edition = "2021";
-        sha256 = "112pr9qkg7w7v27y5fp7plj45ab0090c16vzc4vz78hgf57zh6fw";
+        sha256 = "1ik3mqnfl6zy5i1cic2jig0hnisap9rksgp035c5q029w4z0mxlh";
         authors = [
           "Corentin Henry <corentinhenry@gmail.com>"
         ];
@@ -23984,20 +23548,20 @@ rec {
           }
           {
             name = "netlink-packet-core";
-            packageId = "netlink-packet-core 0.8.1";
+            packageId = "netlink-packet-core";
           }
           {
             name = "netlink-packet-route";
-            packageId = "netlink-packet-route 0.30.0";
+            packageId = "netlink-packet-route";
           }
           {
             name = "netlink-proto";
-            packageId = "netlink-proto 0.12.0";
+            packageId = "netlink-proto";
             usesDefaultFeatures = false;
           }
           {
             name = "netlink-sys";
-            packageId = "netlink-sys 0.8.8";
+            packageId = "netlink-sys";
           }
           {
             name = "nix";
@@ -24007,7 +23571,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 1.0.69";
+            packageId = "thiserror 2.0.18";
           }
           {
             name = "tokio";
@@ -31946,6 +31510,12 @@ rec {
             name = "uuid";
             packageId = "uuid 1.23.1";
             features = [ "v4" ];
+          }
+        ];
+        devDependencies = [
+          {
+            name = "tempfile";
+            packageId = "tempfile";
           }
         ];
         features = {
