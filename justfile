@@ -566,7 +566,7 @@ get-ghcr-read-token:
     #!/usr/bin/env bash
     set -euo pipefail
     token=$(nix run -L .#base.scripts.get-ghcr-read-token "projects/796962942582/secrets/ghcr-read-token/versions/latest")
-    sed -i "s/^contrast_ghcr_read=.*/contrast_ghcr_read=\"${token}\"/" justfile.env
+    sed --follow-symlinks -i "s/^contrast_ghcr_read=.*/contrast_ghcr_read=\"${token}\"/" justfile.env
 
 # Run code generators.
 codegen:
