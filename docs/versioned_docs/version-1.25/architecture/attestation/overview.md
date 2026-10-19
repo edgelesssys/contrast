@@ -35,7 +35,7 @@ The runtime policy specifies:
 
 This guarantees that the CVM launches in a well-defined state and enforces only the explicitly declared configuration.
 
-### Verifier: Contrast Coordinator & CLI
+### Verifier: Contrast Coordinator & CLI {#verifiers}
 
 The Coordinator runs inside a CVM and verifies attestation reports from other pods. It:
 
@@ -69,7 +69,7 @@ Each attestation report contains:
 
 - **Launch Measurement**: A cryptographic digest of the guest memory at CVM startup
 - **Initdata Hash**: The initdata document is embedded by the host and verified by the `initdata-processor`
-- **Platform Info**: CPU type, TCB version, microcode versions
+- **Platform Info**: CPU type, TCB version, microcode versions, hardware identifier
 - **REPORTDATA**: A hash of the CVM's public key and a nonce, ensuring freshness and binding the attestation to a specific TLS session
 
 ### How verification works
@@ -80,6 +80,19 @@ Each attestation report contains:
 - If the evidence doesn't match, the pod is rejected and can't join the mesh.
 
 The CLI verifies the Coordinator in the same way, using reference values embedded during the Contrast build process.
+
+## Relay attacks
+
+Remote attestation is susceptible to relay attacks, see the detailed description in [the relay attack advisory].
+As a direct consequence, it's important to ensure that Contrast [verifiers](#verifiers) only accept evidence from the expected machines.
+This can be achieved in either of these two ways:
+
+- Add a list of machine identifiers to the manifest ([PIID] for Intel TDX, [HWID] for AMD SEV-SNP).
+- Ensure that you trust the entire network of the Contrast cluster, its clients and any intermediate hops.
+
+[the relay attack advisory]: https://github.com/edgelesssys/contrast/security/advisories/GHSA-hjgc-jc5v-fw7h
+[PIID]: ../components/manifest.md#tdx-allowed-piids
+[HWID]: ../components/manifest.md#snp-allowed-chip-ids
 
 ## Summary
 
