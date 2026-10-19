@@ -38,6 +38,8 @@ type Config struct {
 type Registry struct {
 	authn.AuthConfig
 	CACerts            string `toml:"ca-certs"`
+	ClientCert         string `toml:"client-cert"`
+	ClientKey          string `toml:"client-key"`
 	InsecureSkipVerify bool   `toml:"insecure-skip-verify"`
 	Mirror             string `toml:"mirror"`
 }
@@ -71,7 +73,10 @@ func ReadInsecureConfig(path string, log *slog.Logger) (*Config, error) {
 	return &cfg, nil
 }
 
-var errUnparseableRef = errors.New("could not parse image ref")
+var (
+	errUnparseableRef = errors.New("could not parse image ref")
+	errMissingKey     = errors.New("if client-cert is set, client-key also needs to be set")
+)
 
 // AuthTransportFor constructs the appropriate http.Transport and authn.Authenticator for the given image's registry.
 func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Authenticator, http.RoundTripper, error) {
@@ -109,6 +114,17 @@ func (c *Config) AuthTransportFor(imageRef string, log *slog.Logger) (*authn.Aut
 		log.Info("using custom CA certificates")
 	} else {
 		log.Info("using default CA certificates")
+	}
+
+	if registry.ClientCert != "" {
+		if registry.ClientKey == "" {
+			return nil, nil, errMissingKey
+		}
+		cert, err := tls.X509KeyPair([]byte(registry.ClientCert), []byte(registry.ClientKey))
+		if err != nil {
+			return nil, nil, fmt.Errorf("loading client certificate: %w", err)
+		}
+		transport.TLSClientConfig.Certificates = append(transport.TLSClientConfig.Certificates, cert)
 	}
 
 	var rt http.RoundTripper = transport
