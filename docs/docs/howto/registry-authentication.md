@@ -162,12 +162,34 @@ insecure-skip-verify = true
 
 In this scenario, we're using the [mirror registry provided by k3s](https://docs.k3s.io/installation/registry-mirror).
 All images running in Contrast should be pulled through that mirror.
-For convenience, we're using the name of a single node to refer to that registry and switch off TLS certificate validation.
+For convenience, we're using the name of a single node to refer to that registry.
+The k3s mirror rejects anonymous pulls, so the image puller authenticates with a [client certificate](../reference/registry-authentication.md#registry-client-cert) issued by the cluster.
+You can obtain one as described in [Issue a Certificate for a Kubernetes API Client Using a CertificateSigningRequest](https://kubernetes.io/docs/tasks/tls/certificate-issue-client-csr/).
+Renew it before it expires and [apply the updated configuration](../reference/registry-authentication.md#applying-the-configuration).
+The cluster CA certificate is available in the `kube-root-ca.crt` ConfigMap.
 
 ```toml
 [registries."."]
+# Put your mirror host here.
 mirror = "https://my-k3s-node-1:6443"
-insecure-skip-verify = true
+# Put your client certificate here.
+client-cert = '''
+-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----
+'''
+# Put your client key here.
+client-key = '''
+-----BEGIN EC PRIVATE KEY-----
+...
+-----END EC PRIVATE KEY-----
+'''
+# Put the cluster CA certificate here.
+ca-certs = '''
+-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----
+'''
 ```
 
 ##### Example 5
