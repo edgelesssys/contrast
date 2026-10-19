@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/testkeys"
@@ -20,7 +21,8 @@ import (
 )
 
 // TestMuxAttestation ensures the endpoints are wired up so that clients can reproduce the report data:
-// the legacy endpoint keeps its released response and report data layout.
+// the legacy endpoint keeps its released response and report data layout, and the versioned endpoint binds
+// the capabilities the Coordinator actually serves.
 func TestMuxAttestation(t *testing.T) {
 	meshKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
 	rootKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[2])
@@ -57,6 +59,27 @@ func TestMuxAttestation(t *testing.T) {
 		var resp apitypesv1.AttestationResponse
 		require.NoError(json.Unmarshal(do(t, apitypesv1.AttestMethod, apitypesv1.LegacyAttestPath, attestRequest), &resp))
 		require.Nil(resp.CapabilitiesDigest)
+		require.Empty(resp.Status)
+		require.Nil(resp.HPKEPubKey)
 		require.Equal(apitypesv1.ConstructReportData(nonce, transitionDigest, &resp.CoordinatorState), issuer.gotReportData)
+	})
+
+	t.Run("v1", func(t *testing.T) {
+		require := require.New(t)
+
+		var capabilities apitypes.CapabilitiesResponse
+		require.NoError(json.Unmarshal(do(t, apitypes.CapabilitiesMethod, apitypes.CapabilitiesPath, nil), &capabilities))
+		require.Contains(capabilities.APIVersions, apitypesv1.Version)
+		capabilitiesDigest := capabilities.Digest()
+
+		var resp apitypesv1.AttestationResponse
+		require.NoError(json.Unmarshal(do(t, apitypesv1.AttestMethod, apitypesv1.AttestPath, attestRequest), &resp))
+		require.Equal(capabilitiesDigest[:], resp.CapabilitiesDigest)
+		require.Equal(apitypesv1.StatusActive, resp.Status)
+		require.NotEmpty(resp.HPKEPubKey)
+
+		wantReportData, err := apitypesv1.ConstructAttestationReportData(nonce, transitionDigest, &resp)
+		require.NoError(err)
+		require.Equal(wantReportData, issuer.gotReportData)
 	})
 }
