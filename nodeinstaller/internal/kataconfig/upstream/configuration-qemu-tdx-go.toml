@@ -71,7 +71,7 @@ kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
 # Optional dm-verity parameters (comma-separated key=value list):
 # root_hash=...,salt=...,data_blocks=...,data_block_size=...,hash_block_size=...
 # These are used by the runtime to assemble dm-verity kernel params.
-kernel_verity_params = "root_hash=c51ee359bfb5e29aea361e69f07aef0169f68a74dcee97d06c6d70b6a8306e5e,salt=79199deb937b657b57e0522e29d936bd03edaa579063aa8c302a7c33c5bda682,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
+kernel_verity_params = "root_hash=b61c6fff4e37a688d788ea52e7900579dec04a3f5a663c07db35331622c47424,salt=d42c9a55aab790d636c312b25cadfabf19cc9d59e42a18687e8e05e169d49d71,data_blocks=96512,data_block_size=4096,hash_block_size=4096"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty

@@ -79,7 +79,7 @@ kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
 # Optional dm-verity parameters (comma-separated key=value list):
 # root_hash=...,salt=...,data_blocks=...,data_block_size=...,hash_block_size=...
 # These are used by the runtime to assemble dm-verity kernel params.
-kernel_verity_params = "root_hash=032c3b54512334b701183a6a2a5552aab5bba6075a4da6287a5142a72c9f2700,salt=11521d0de8629b9b8f58e138a9b5b952f6a29abac63808524a851a6e88175022,data_blocks=64000,data_block_size=4096,hash_block_size=4096"
+kernel_verity_params = "root_hash=97d6c1e0520ccd3850418f6dbbc2999d178075241e98ebbae620435e5cdab0a5,salt=a1d6dea79893ded76910f9aba6f94b73bf1b643529ad76ff34109765108647ec,data_blocks=64000,data_block_size=4096,hash_block_size=4096"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
@@ -183,14 +183,6 @@ memory_offset = 0
 # "echo 1 > /proc/sys/vm/overcommit_memory".
 # Default false
 enable_virtio_mem = false
-
-# Disable block device from being used for a container's rootfs.
-# In case of a storage driver like devicemapper where a container's
-# root file system is backed by a block device, the block device is passed
-# directly to the hypervisor for performance reasons.
-# This flag prevents the block device from being passed to the hypervisor,
-# virtio-fs is used instead to pass the rootfs.
-disable_block_device_use = false
 
 # Shared file system type:
 #   - virtio-fs (default)
@@ -743,4 +735,4 @@ dan_conf = "/run/kata-containers/dans"
 [[hypervisor.qemu.guest_extension_images]]
 name = "coco"
 path = "/opt/kata/share/kata-containers/kata-containers-coco-extension.img"
-verity_params = "root_hash=7e726139c4c8189eeec09f0c0d668a5e585092392b083a587265c73d773e67af,salt=b343ea6be6fe1f0d40a0e169d101a9443bfa5b5cbd7fffe7db4e535b7cb39ebb,data_blocks=32000,data_block_size=4096,hash_block_size=4096"
+verity_params = "root_hash=183d9bf600bba3b1ca3a736004a1fc2ef8826cec0509eebbfc1b269f4fcaf537,salt=1cb7d2107265142cb3315b2f19708b9d06381ef4b83e55f98415a825aedcbfde,data_blocks=32000,data_block_size=4096,hash_block_size=4096"

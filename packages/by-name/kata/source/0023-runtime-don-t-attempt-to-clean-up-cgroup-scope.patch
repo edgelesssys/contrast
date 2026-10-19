@@ -41,10 +41,10 @@ index c9fad70d0540a3667cc237e2af97ef90c03d90b1..7f4f430782f05a8e9c7775f27c9d7ada
  		if res.err != nil {
  			return nil, res.err
 diff --git a/src/runtime/pkg/resourcecontrol/cgroups.go b/src/runtime/pkg/resourcecontrol/cgroups.go
-index deb472904b82b663213c33e9e567b87f5b7b6363..88f3618072a78fd6f302a465c43bd5a54d817e87 100644
+index d5a17306282c7375103e030ab23e2869db37698a..d4510a66cbe79ba6558a794d5c74d9676d32f327 100644
 --- a/src/runtime/pkg/resourcecontrol/cgroups.go
 +++ b/src/runtime/pkg/resourcecontrol/cgroups.go
-@@ -213,8 +213,8 @@ func NewSandboxResourceController(path string, resources *specs.LinuxResources,
+@@ -214,8 +214,8 @@ func NewSandboxResourceController(path string, resources *specs.LinuxResources,
  	//v1 and v2 cgroups against systemd, the following interacts directly with systemd
  	//to create the cgroup and then load it using containerd's api.
  	//adding runtime process, it makes calling setupCgroups redundant
@@ -55,25 +55,25 @@ index deb472904b82b663213c33e9e567b87f5b7b6363..88f3618072a78fd6f302a465c43bd5a5
  	}
  
  	// Create systemd cgroup
-@@ -236,9 +236,10 @@ func NewSandboxResourceController(path string, resources *specs.LinuxResources,
+@@ -237,9 +237,10 @@ func NewSandboxResourceController(path string, resources *specs.LinuxResources,
  		// load created cgroup and update with resources
- 		cg, err := cgroupsv2.LoadSystemd(slice, unit)
+ 		cg, err := cgroup2.LoadSystemd(slice, unit)
  		if err != nil {
--			if cg.Update(cgroupsv2.ToResources(&sandboxResources)); err != nil {
+-			if cg.Update(cgroup2.ToResources(&sandboxResources)); err != nil {
 -				return nil, err
 -			}
 +			return nil, fmt.Errorf("loading systemd cgroupv2: %w", err)
 +		}
-+		if err := cg.Update(cgroupsv2.ToResources(&sandboxResources)); err != nil {
++		if err := cg.Update(cgroup2.ToResources(&sandboxResources)); err != nil {
 +			return nil, fmt.Errorf("updating systemd cgroupv2: %w", err)
  		}
  		cgroup = cg
  	} else {
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index 47378fa66671a240944f62a973154df02837ec45..5d603c27104a1bf070bb0f6612688a3490887f42 100644
+index c96885dadc7d0d8c3555db0ab0d24ecbb35eba4a..111c3da3de280c421349a6444352e5eb32174775 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
-@@ -2762,6 +2762,10 @@ func (s *Sandbox) resourceControllerUpdate(ctx context.Context) error {
+@@ -2874,6 +2874,10 @@ func (s *Sandbox) resourceControllerUpdate(ctx context.Context) error {
  // resourceControllerDelete will move the running processes in the sandbox resource
  // cvontroller to the parent and then delete the sandbox controller.
  func (s *Sandbox) resourceControllerDelete() error {

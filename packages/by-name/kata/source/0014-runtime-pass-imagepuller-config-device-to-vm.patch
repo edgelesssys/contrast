@@ -13,10 +13,10 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  5 files changed, 69 insertions(+), 10 deletions(-)
 
 diff --git a/src/runtime/pkg/katautils/config.go b/src/runtime/pkg/katautils/config.go
-index 22182e81bc8c81c1fa0f0da37aeae4734ab9d9a4..8e03ee96517c2b204b493e636d1f958ea9328f2e 100644
+index 01828cd05e3bcc0805bc383141c06bc9c59d1b4a..d33facc08192daecbe67c76bbddde674c8ac74ae 100644
 --- a/src/runtime/pkg/katautils/config.go
 +++ b/src/runtime/pkg/katautils/config.go
-@@ -178,6 +178,7 @@ type hypervisor struct {
+@@ -179,6 +179,7 @@ type hypervisor struct {
  	LegacySerial                   bool                      `toml:"use_legacy_serial"`
  	ExtraMonitorSocket             govmmQemu.MonitorProtocol `toml:"extra_monitor_socket"`
  	GuestExtensionImages           []guestExtensionImage     `toml:"guest_extension_images"`
@@ -24,7 +24,7 @@ index 22182e81bc8c81c1fa0f0da37aeae4734ab9d9a4..8e03ee96517c2b204b493e636d1f958e
  }
  
  type guestExtensionImage struct {
-@@ -1129,6 +1130,7 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
+@@ -1130,6 +1131,7 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
  		SnpGuestPolicy:                h.SnpGuestPolicy,
  		MeasurementAlgo:               h.GetMeasurementAlgo(),
  		GuestExtensionImages:          guestExtensionImages,
@@ -33,10 +33,10 @@ index 22182e81bc8c81c1fa0f0da37aeae4734ab9d9a4..8e03ee96517c2b204b493e636d1f958e
  }
  
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
-index 71b932deef49ae8375046a15dcbeb5014eb07730..463fbb91adfeed6a9a660e88f7392920c19b95be 100644
+index 55c4176f443dbf87040a59e2e0aadbe471fe4bbf..a1a964910ee5edb0c0042567601b47f589619ffb 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
 +++ b/src/runtime/virtcontainers/hypervisor.go
-@@ -892,6 +892,13 @@ type HypervisorConfig struct {
+@@ -895,6 +895,13 @@ type HypervisorConfig struct {
  	// as a raw block device to guest
  	InitdataImage string
  
@@ -50,7 +50,7 @@ index 71b932deef49ae8375046a15dcbeb5014eb07730..463fbb91adfeed6a9a660e88f7392920
  	// GPU specific annotations (currently only applicable for Remote Hypervisor)
  	//DefaultGPUs specifies the number of GPUs required for the Kata VM
  	DefaultGPUs uint32
-@@ -1430,7 +1437,7 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
+@@ -1433,7 +1440,7 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
  		return err
  	}
  
@@ -59,7 +59,7 @@ index 71b932deef49ae8375046a15dcbeb5014eb07730..463fbb91adfeed6a9a660e88f7392920
  		logger.WithField("initdata", "prepare initdata image").WithError(err).Error("prepare failed")
  		return err
  	}
-@@ -1439,9 +1446,47 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
+@@ -1442,9 +1449,47 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
  	return nil
  }
  
@@ -108,7 +108,7 @@ index 71b932deef49ae8375046a15dcbeb5014eb07730..463fbb91adfeed6a9a660e88f7392920
  // Then a "length" field of 8 bytes follows (unsigned int64).
  // Finally the gzipped initdata toml. The image will be padded to an
  // integer multiple of the sector size for alignment.
-@@ -1450,13 +1495,17 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
+@@ -1453,13 +1498,17 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
  // 0	  'i' 'n' 'i' 't' 'd' 'a' 't' 'a'  | gzip length in le  |
  // 16	  gzip(initdata toml) ...
  // (end of the last sector)  '\0' paddings
@@ -128,7 +128,7 @@ index 71b932deef49ae8375046a15dcbeb5014eb07730..463fbb91adfeed6a9a660e88f7392920
  	err := gzipper.Close()
  	if err != nil {
  		return fmt.Errorf("failed to compress initdata: %v", err)
-@@ -1477,7 +1526,7 @@ func prepareInitdataImage(initdata string, imagePath string) error {
+@@ -1480,7 +1529,7 @@ func prepareInitdataImage(initdata string, imagePath string) error {
  	}
  	defer file.Close()
  
