@@ -47,7 +47,7 @@ func TestCapabilitiesHandler(t *testing.T) {
 				require.Equal("application/json", res.Header.Get("Content-Type"))
 				var resp apitypes.CapabilitiesResponse
 				require.NoError(json.NewDecoder(res.Body).Decode(&resp))
-				require.Empty(resp.APIVersions)
+				require.Equal([]string{apitypes.APIVersionV1}, resp.APIVersions)
 			}
 		})
 	}
