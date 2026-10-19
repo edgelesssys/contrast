@@ -38,5 +38,5 @@ sed -i '/buildInputs = testInputs;/a\            dontInstall = true;' Cargo.nix
 cp Cargo.nix "$out"
 echo "Wrote $out" >&2
 
-cp crate-hashes.json "$hashes"
+jq <crate-hashes.json >"$hashes"
 echo "Wrote $hashes" >&2

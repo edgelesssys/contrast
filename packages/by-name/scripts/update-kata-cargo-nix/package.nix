@@ -12,6 +12,7 @@ writeShellApplication {
     coreutils
     gnused
     gawk
+    jq
   ];
   text = builtins.readFile ./update-kata-cargo-nix.sh;
 }
