@@ -20,6 +20,7 @@ If a vulnerability is discovered, we create an associated GHSA depending on the 
    1. by opening a GHSA: a team member reviews the GHSA and either accepts or rejects it.
    2. through another channel (for example, via email): a team member opens the GHSA on the finders behalf and adds credit as appropriate.
 
+Third parties reporting through GitHub fill in the form defined by [`.github/VULNERABILITY_REPORT.yml`](../.github/VULNERABILITY_REPORT.yml), whose answers the [Publish](#publish) steps consume.
 After creation, at least the _Impact_ section needs to be properly populated.
 As soon as the overall description is plausible, request a CVE assignment using the button on the GHSA.
 
@@ -44,21 +45,49 @@ This is a limitation imposed by GitHub.
 
 ### Publish
 
-Follow the checklist below to publish the advisory.
+We don't publish a reporter's write-up as the advisory, because the two serve different readers.
+A write-up explains how someone found the problem, while an advisory tells users whether they're affected and what to do about it.
+So we rewrite the description every time, and the steps below say what we do with each field of the report.
 
-1. Review the report:
-   1. _Impact_ section describes prerequisites and consequences of an attack.
-   2. _Workaround_ section exists, even if it only states that no workaround is possible.
-   3. _Patches_ section describes how the vulnerability was fixed.
-   4. _Severity_ calculation uses CVSSv3 and matches the impact description.
-   5. _Ecosystem_ should be `Other` and `Contrast`, unless the vulnerability is in a supported and versioned Go library.
-   6. _Affected versions_ either lists all versions explicitly, or a range including the affected version published last.
-   7. _Patched versions_ contains the version of the patch release about to be created.
+1. Preserve the report.
+   Before editing anything, copy the submitted description into a comment on the advisory, wrapped in a `<details>` block so it stays out of the way.
+   Comments stay private to the reporter and the collaborators, so the write-up survives the rewrite.
+
+2. Fill in the metadata, using the form answers as input.
+   1. _Ecosystem_ is `Other` and the package is `Contrast`, unless the vulnerability is in a supported and versioned Go library.
+   2. _Affected versions_ either lists all versions explicitly, or a range including the affected version published last.
+      The reporter's entry under _Affected products_ is one data point for that range.
+   3. _Patched versions_ contains the version of the patch release about to be created.
       We don't add the next minor release to this field.
-2. Merge all PRs on the temporary fork.
+   4. _Severity_ uses CVSSv3, calculated from the perspective of the most affected persona.
+      The reporter may have named one in the form; decide it yourself when they didn't.
+   5. _CWE_ names the weakness, not its consequence.
+
+3. Rewrite the description.
+   Keep these sections, in this order, and no others:
+   1. `### Impact`, opening with a bold line that names the affected personas and links to [`security.md`](../docs/docs/security.md#protected-personas-in-a-contrast-deployment), then `#### Prerequisites` and `#### Result`.
+   2. `### Affected platforms`, only when the issue affects some platforms and not others.
+   3. `### Patches`, naming the patch release. No reporter can fill this in.
+   4. `### Workarounds`, even when the only content is that no workaround exists.
+      The reporter's _Suggested fix or workaround_ belongs here.
+   5. `### References` or `### Credits` for links and attribution.
+
+   The reporter's _Summary_ is usually a paragraph, so it feeds the opening paragraph of the impact section, below the persona line and above the prerequisites.
+   Write the advisory title yourself: one declarative sentence naming the component and the defect, as in the titles of our published advisories.
+   Their _Details_ and _Proof of concept_ are review material: they stay in the comment from step 1 and aren't published.
+
+4. Check the result before publishing.
+   1. No `TODO`, and no leftover `Summary`, `Details` or `Proof of concept` heading.
+   2. The persona line, the impact text and the CVSS vector agree with each other.
+   3. The title reads as a one-line summary of the problem.
+   4. The length is in the range of our published advisories, roughly 150 to 300 words.
+
+5. Merge all PRs on the temporary fork.
    You will need to tick the _bypass branch protections_ box. That's okay.
-3. Create a [patch release](release.md#patch) for the latest released version.
-4. From the advisory's drop-down menu, select _Publish Advisory_ and click the button.
+
+6. Create a [patch release](release.md#patch) for the latest released version.
+
+7. From the advisory's drop-down menu, select _Publish Advisory_ and click the button.
 
 ## FAQ
 
