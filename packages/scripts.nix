@@ -311,6 +311,10 @@
       link_source="$repo_url/(latest/download|download/$tag)/"
       link_target="$repo_url/download/$VERSION/"
       find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i -r "s#$link_source#$link_target#g" {} \;
+
+      # Replace latest release lookups with the versioned release.
+      version_source='\$\(gh release view --repo edgelesssys/contrast --json tagName -q \.tagName\)'
+      find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i -r "s#$version_source#$VERSION#g" {} \;
     '';
   };
 
