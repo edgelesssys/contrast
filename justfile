@@ -317,6 +317,10 @@ generate cli=default_cli platform=default_platform set=default_set collateral_pr
     if [[ "${debug:-}" == "true" ]]; then
         debugFlag="--insecure-enable-debug-shell-access"
     fi
+    imageStoreFlag=""
+    if [[ "${imageStore:-}" == "true" ]]; then
+        imageStoreFlag="--inject-image-store"
+    fi
     patch=$(mktemp)
     kubectl -n default get cm bm-tcb-specs -o jsonpath="{.data['specs']}" > "$patch"
     nix run -L .#{{ set }}.{{ cli }} -- generate \
@@ -327,7 +331,16 @@ generate cli=default_cli platform=default_platform set=default_set collateral_pr
         --purge-empty-reference-values \
         --collateral-proxy "{{ collateral_proxy }}" \
         ${debugFlag} \
+        ${imageStoreFlag} \
         ./{{ workspace_dir }}/deployment/
+    if [[ "${imageStore:-}" == "true" ]]; then
+        sc=$(kubectl get storageclass -l ci.contrast.edgeless.systems/is-default-class=true -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        if [[ -n "${sc}" ]]; then
+            for file in ./{{ workspace_dir }}/deployment/*.yml; do
+                env sc="${sc}" yq -i '(.. | select(tag == "!!map" and .name == "image-store" and has("ephemeral")).ephemeral.volumeClaimTemplate.spec.storageClassName) = strenv(sc)' "$file"
+            done
+        fi
+    fi
 
 # Apply Kubernetes manifests from /deployment
 apply target=default_deploy_target platform=default_platform:
@@ -632,6 +645,8 @@ default_platform="Metal-QEMU-SNP"
 node_installer_target_conf_type="k3s"
 # Enable insecure debug features like debug shell access.
 debug="false"
+# Pull images onto a disk instead of into guest memory.
+imageStore="false"
 # Set of packages to use.
 set="base"
 # Namespace suffix, can be empty. Will be used when patching namespaces.
