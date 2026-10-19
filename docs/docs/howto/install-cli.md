@@ -42,3 +42,13 @@ sudo xattr -d com.apple.quarantine contrast
 
 </TabItem>
 </Tabs>
+
+### Verify the release
+
+Check that the binary is the one published with the release, using the [GitHub CLI](https://cli.github.com/):
+
+```bash
+gh release verify-asset "$(gh release view --repo edgelesssys/contrast --json tagName -q .tagName)" contrast --repo edgelesssys/contrast
+```
+
+To also check that the binary was built from the released source, see [Reproducible build](./reproducible-build.md).
