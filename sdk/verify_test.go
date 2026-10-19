@@ -124,8 +124,9 @@ func TestValidateAttestation(t *testing.T) {
 		d := apitypes.CapabilitiesResponse{APIVersions: versions}.Digest()
 		return d[:]
 	}
+	// response returns the attestation of an active Coordinator. Without a capabilities digest, it's the response of the legacy endpoint.
 	response := func(capabilitiesDigest []byte, manifests ...[]byte) *apitypesv1.AttestationResponse {
-		return &apitypesv1.AttestationResponse{
+		resp := &apitypesv1.AttestationResponse{
 			AttestationType:    testOID,
 			RawAttestationDoc:  testNonce,
 			CapabilitiesDigest: capabilitiesDigest,
@@ -133,6 +134,15 @@ func TestValidateAttestation(t *testing.T) {
 				Manifests: manifests,
 			},
 		}
+		if capabilitiesDigest != nil {
+			resp.Status = apitypesv1.StatusActive
+			resp.HPKEPubKey = []byte("hpke-pub-key")
+		}
+		return resp
+	}
+	withStatus := func(status apitypesv1.Status, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
+		resp.Status = status
+		return resp
 	}
 
 	for name, tc := range map[string]struct {
@@ -144,6 +154,8 @@ func TestValidateAttestation(t *testing.T) {
 		validateErr    error
 		wantErr        string
 		wantErrIs      error
+		// wantUnvalidated is set if the error must be returned without the attestation having been validated.
+		wantUnvalidated bool
 	}{
 		"success": {
 			nonce:    testNonce,
@@ -165,10 +177,11 @@ func TestValidateAttestation(t *testing.T) {
 			resp:           response(digest("v2", apiv1.Version), testManifest),
 		},
 		"no manifests": {
-			nonce:    testNonce,
-			versions: []string{apiv1.Version},
-			resp:     response(digest(apiv1.Version)),
-			wantErr:  "coordinator state does not include manifests",
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            response(digest(apiv1.Version)),
+			wantErr:         "coordinator state does not include manifests",
+			wantUnvalidated: true,
 		},
 		"bad nonce": {
 			wantErr: "want 32",
@@ -181,10 +194,48 @@ func TestValidateAttestation(t *testing.T) {
 			wantErr:     assert.AnError.Error(),
 		},
 		"versioned attestation without capabilities digest": {
-			nonce:    testNonce,
-			versions: []string{apiv1.Version},
-			resp:     response(nil, testManifest),
-			wantErr:  "doesn't include a capabilities digest",
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            response(nil, testManifest),
+			wantErr:         "doesn't include a capabilities digest",
+			wantUnvalidated: true,
+		},
+		"versioned attestation without status": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus("", response(digest(apiv1.Version), testManifest)),
+			wantErr:         "unknown Coordinator status",
+			wantUnvalidated: true,
+		},
+		"versioned attestation with unknown status": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus("bogus", response(digest(apiv1.Version), testManifest)),
+			wantErr:         "unknown Coordinator status",
+			wantUnvalidated: true,
+		},
+		"uninitialized coordinator": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus(apitypesv1.StatusUninitialized, response(digest(apiv1.Version))),
+			wantErr:         "not validated",
+			wantErrIs:       ErrCoordinatorUninitialized,
+			wantUnvalidated: true,
+		},
+		"coordinator awaiting recovery": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus(apitypesv1.StatusStale, response(digest(apiv1.Version))),
+			wantErr:         "not validated",
+			wantErrIs:       ErrCoordinatorNeedsRecovery,
+			wantUnvalidated: true,
+		},
+		"uninitialized coordinator reporting state": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus(apitypesv1.StatusUninitialized, response(digest(apiv1.Version), testManifest)),
+			wantErr:         "reports Coordinator state although",
+			wantUnvalidated: true,
 		},
 		"negotiated with forged capabilities": {
 			nonce:     testNonce,
@@ -248,6 +299,9 @@ func TestValidateAttestation(t *testing.T) {
 					assert.ErrorIs(err, tc.wantErrIs)
 				}
 				assert.Nil(state)
+				if tc.nonce != nil {
+					assert.Equal(tc.wantUnvalidated, validator.gotReportData == nil, "attestation validated")
+				}
 				return
 			}
 			assert.NoError(err)
@@ -265,7 +319,8 @@ func TestValidateAttestation(t *testing.T) {
 
 			wantReportData := apitypesv1.ConstructReportData(tc.nonce, latestTransitionHash[:], &tc.resp.CoordinatorState)
 			if tc.resp.CapabilitiesDigest != nil {
-				wantReportData = apitypesv1.ConstructReportDataWithCapabilities(tc.nonce, latestTransitionHash[:], tc.resp.CapabilitiesDigest, &tc.resp.CoordinatorState)
+				wantReportData, err = apitypesv1.ConstructAttestationReportData(tc.nonce, latestTransitionHash[:], tc.resp)
+				require.NoError(err)
 			}
 			assert.Equal(wantReportData[:], validator.gotReportData)
 		})

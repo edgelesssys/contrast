@@ -14,6 +14,7 @@ import (
 // NewMux returns the handler serving all endpoints of the Coordinator's HTTP API.
 func NewMux(issuer atls.Issuer, guard StateGuard) *http.ServeMux {
 	capabilities := NewCapabilitiesHandler()
+	pendingKeys := NewPendingKeys()
 
 	mux := http.NewServeMux()
 	mux.Handle(apitypes.CapabilitiesPath, capabilities)
@@ -21,6 +22,12 @@ func NewMux(issuer atls.Issuer, guard StateGuard) *http.ServeMux {
 	mux.Handle(apitypesv1.LegacyAttestPath, &APIVersionGate{Version: 0, StateGuard: guard, Next: &AttestationHandler{
 		Issuer:     issuer,
 		StateGuard: guard,
+	}})
+	mux.Handle(apitypesv1.AttestPath, &APIVersionGate{Version: 1, StateGuard: guard, Next: &VersionedAttestationHandler{
+		Issuer:             issuer,
+		StateGuard:         guard,
+		CapabilitiesDigest: capabilities.Digest(),
+		PendingKeys:        pendingKeys,
 	}})
 	return mux
 }

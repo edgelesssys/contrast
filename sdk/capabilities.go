@@ -19,8 +19,7 @@ import (
 // SupportedAPIVersions are the API versions this SDK can speak, newest first.
 //
 // The Coordinator advertises this list on its capabilities endpoint.
-// TODO(charludo): empty because the Coordinator serves no versioned endpoint yet.
-var SupportedAPIVersions = []string{}
+var SupportedAPIVersions = []string{apiv1.Version}
 
 // ErrNoCommonAPIVersion is returned if the SDK and the Coordinator share no API version.
 var ErrNoCommonAPIVersion = errors.New("no common API version")
