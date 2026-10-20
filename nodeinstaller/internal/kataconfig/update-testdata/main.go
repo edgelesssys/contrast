@@ -64,7 +64,7 @@ func main() {
 
 	for platform, platformConfig := range platforms {
 		upstreamFile := upstreamFile(tarball, platformConfig.upstream)
-		configFile := filepath.Join(gitroot, "nodeinstaller", "internal", "kataconfig", fmt.Sprintf("configuration-%s-%s.toml", platformConfig.config, configSuffix))
+		configFile := filepath.Join(gitroot, "nodeinstaller", "internal", "kataconfig", "upstream", fmt.Sprintf("configuration-%s-%s.toml", platformConfig.config, configSuffix))
 		testdataFile := filepath.Join(gitroot, "nodeinstaller", "internal", "kataconfig", "testdata", testdataSubdir, fmt.Sprintf("expected-configuration-%s.toml", platformConfig.testdata))
 
 		upstream, err := os.ReadFile(upstreamFile)
@@ -80,8 +80,6 @@ func main() {
 		if bytes.Equal(upstream, config) {
 			log.Printf("✔ No upstream changes for platform %s.", platform.String())
 		} else {
-			// Continuing anyway to prevent missing config updates due to the platformConfig.config file changing in iteration i,
-			// and then being assessed as unchanged in iteration i+j (example: changes to qemu-snp also need updates in qemu-snp-gpu)
 			log.Printf("⚠ Updating config for platform %s.", platform.String())
 		}
 
@@ -89,7 +87,7 @@ func main() {
 			log.Fatalf("failed to write new config: %s", err)
 		}
 
-		cfg, err := kataconfig.KataRuntimeConfig("/", platform, "", "", false)
+		cfg, err := kataconfig.KataRuntimeConfig(upstream, "/", platform, "", "", false)
 		if err != nil {
 			log.Fatalf("failed to create config: %s", err)
 		}

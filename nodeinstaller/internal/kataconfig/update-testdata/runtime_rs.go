@@ -6,7 +6,6 @@
 package main
 
 import (
-	_ "embed"
 	"fmt"
 	"path/filepath"
 )

@@ -23,6 +23,7 @@ import (
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/containerdconfig"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/kataconfig"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/kataconfig/upstream"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/targetconfig"
 )
 
@@ -171,7 +172,11 @@ func envWithDefault(key, dflt string) string {
 }
 
 func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams, imagepullerConfigPath string, debugRuntime bool) error {
-	kataRuntimeConfig, err := kataconfig.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, imagepullerConfigPath, debugRuntime)
+	baseConfig, err := upstream.BaseConfig(platform)
+	if err != nil {
+		return fmt.Errorf("getting kata base config: %w", err)
+	}
+	kataRuntimeConfig, err := kataconfig.KataRuntimeConfig(baseConfig, basePath, platform, qemuExtraKernelParams, imagepullerConfigPath, debugRuntime)
 	if err != nil {
 		return fmt.Errorf("generating kata runtime config: %w", err)
 	}

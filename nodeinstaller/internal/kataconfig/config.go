@@ -15,29 +15,27 @@ import (
 // RuntimeNamePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
 var RuntimeNamePlaceholder = "@@runtimeName@@"
 
-// KataRuntimeConfig returns the Kata runtime configuration.
+// KataRuntimeConfig returns the Kata runtime configuration, derived from the given upstream base configuration.
 func KataRuntimeConfig(
+	baseConfig []byte,
 	baseDir string,
 	platform platforms.Platform,
 	qemuExtraKernelParams string,
 	imagepullerConfigPath string,
 	debug bool,
 ) (*Config, error) {
-	var customContrastAnnotations []string
 	var config Config
+	if err := toml.Unmarshal(baseConfig, &config); err != nil {
+		return nil, fmt.Errorf("unmarshalling kata runtime configuration: %w", err)
+	}
+
+	var customContrastAnnotations []string
 	switch {
 	case platforms.IsTDX(platform):
-		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
-		}
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "tdx", "share", "OVMF.fd")
 		// TODO: Migrate our custom calls from vsock to unix socket
 		config.Hypervisor["qemu"]["tdx_quote_generation_service_socket_port"] = 4050
 	case platforms.IsSNP(platform) || platforms.IsInsecure(platform):
-		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
-		}
-
 		if !platforms.IsInsecure(platform) {
 			for _, productLine := range []string{"_Milan", "_Genoa"} {
 				for _, annotationType := range []string{"snp_id_block", "snp_id_auth", "snp_guest_policy"} {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/kataconfig"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/kataconfig/upstream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,7 +49,10 @@ func TestKataRuntimeConfig(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
 
-			cfg, err := kataconfig.KataRuntimeConfig("/", platform, "", "", false)
+			baseConfig, err := upstream.BaseConfig(platform)
+			require.NoError(err)
+
+			cfg, err := kataconfig.KataRuntimeConfig(baseConfig, "/", platform, "", "", false)
 			require.NoError(err)
 
 			configBytes, err := cfg.Marshal()
