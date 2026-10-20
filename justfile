@@ -339,11 +339,14 @@ generate cli=default_cli platform=default_platform set=default_set collateral_pr
         ./{{ workspace_dir }}/deployment/
     if [[ "${imageStore:-}" == "true" ]]; then
         sc=$(just _storage-class)
-        if [[ -n "${sc}" ]]; then
-            for file in ./{{ workspace_dir }}/deployment/*.yml; do
-                env sc="${sc}" yq -i '(.. | select(tag == "!!map" and .name == "image-store" and has("ephemeral")).ephemeral.volumeClaimTemplate.spec.storageClassName) = strenv(sc)' "$file"
-            done
+        if [[ -z "${sc}" ]]; then
+            echo "imageStore=true, but no StorageClass carries ci.contrast.edgeless.systems/is-default-class=true." >&2
+            echo "The image-store PVCs would stay Pending. Label one, or unset imageStore." >&2
+            exit 1
         fi
+        for file in ./{{ workspace_dir }}/deployment/*.yml; do
+            env sc="${sc}" yq -i '(.. | select(tag == "!!map" and .name == "image-store" and has("ephemeral")).ephemeral.volumeClaimTemplate.spec.storageClassName) = strenv(sc)' "$file"
+        done
     fi
 
 # Apply Kubernetes manifests from /deployment
