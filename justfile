@@ -75,6 +75,10 @@ node-installer platform=default_platform:
         ;;
     esac
 
+# Print the StorageClass our clusters label as the default one, if any.
+_storage-class:
+    @kubectl get storageclass -l ci.contrast.edgeless.systems/is-default-class=true -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true
+
 # Get all used platform names in a comma-separated string
 collect-platforms platform=default_platform set=default_set:
     #!/usr/bin/env bash
@@ -290,7 +294,7 @@ populate target=default_deploy_target platform=default_platform set=default_set:
         gpuFlags=("--gpu-class" "$gpuClass")
     fi
     storageClassFlags=()
-    storageClass=$(kubectl get storageclass -l ci.contrast.edgeless.systems/is-default-class=true -o "jsonpath={.items[*]['metadata.name']}")
+    storageClass=$(just _storage-class)
     if [[ -n "$storageClass" ]]; then
         storageClassFlags=("--storage-class" "$storageClass")
     fi
@@ -334,7 +338,7 @@ generate cli=default_cli platform=default_platform set=default_set collateral_pr
         ${imageStoreFlag} \
         ./{{ workspace_dir }}/deployment/
     if [[ "${imageStore:-}" == "true" ]]; then
-        sc=$(kubectl get storageclass -l ci.contrast.edgeless.systems/is-default-class=true -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        sc=$(just _storage-class)
         if [[ -n "${sc}" ]]; then
             for file in ./{{ workspace_dir }}/deployment/*.yml; do
                 env sc="${sc}" yq -i '(.. | select(tag == "!!map" and .name == "image-store" and has("ephemeral")).ephemeral.volumeClaimTemplate.spec.storageClassName) = strenv(sc)' "$file"
@@ -486,7 +490,7 @@ collateral-proxy-bootstrap:
     set -euo pipefail
     manifest=$(curl -fsSL https://github.com/edgelesssys/collateral-proxy/releases/latest/download/collateral-proxy.yml)
     # These clusters have no Kubernetes default StorageClass, so inject the labeled one into the StatefulSet's volumeClaimTemplates.
-    storageClass=$(kubectl get storageclass -l ci.contrast.edgeless.systems/is-default-class=true -o "jsonpath={.items[*]['metadata.name']}")
+    storageClass=$(just _storage-class)
     if [[ -n "$storageClass" ]]; then
         manifest=$(env sc="$storageClass" yq '(select(.kind == "StatefulSet").spec.volumeClaimTemplates[].spec.storageClassName) = strenv(sc)' <<<"$manifest")
     fi
