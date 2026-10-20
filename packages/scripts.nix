@@ -516,8 +516,6 @@
               (path.append root "go.sum")
               (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/platforms"))
               (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "nodeinstaller"))
-              (fileset.fileFilter (file: hasSuffix ".toml" file.name) (path.append root "nodeinstaller"))
-              (fileset.fileFilter (file: hasSuffix ".json" file.name) (path.append root "nodeinstaller"))
             ];
           };
         proxyVendor = true;

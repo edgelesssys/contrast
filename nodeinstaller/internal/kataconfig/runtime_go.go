@@ -5,24 +5,7 @@
 
 package kataconfig
 
-import (
-	_ "embed"
-
-	"github.com/edgelesssys/contrast/internal/platforms"
-)
-
-var (
-	// kataBareMetalQEMUTDXBaseConfig is the configuration file for the Kata runtime on bare-metal TDX
-	// with QEMU.
-	//
-	//go:embed configuration-qemu-tdx-go.toml
-	kataBareMetalQEMUTDXBaseConfig string
-	// kataBareMetalQEMUSNPBaseConfig is the configuration file for the Kata runtime on bare-metal SNP
-	// with QEMU.
-	//
-	//go:embed configuration-qemu-snp-go.toml
-	kataBareMetalQEMUSNPBaseConfig string
-)
+import "github.com/edgelesssys/contrast/internal/platforms"
 
 func extraRuntimeConfig(config Config, platform platforms.Platform) Config {
 	// Currently not using the upstream encrypted emptyDir feature.
