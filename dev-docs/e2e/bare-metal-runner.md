@@ -218,6 +218,21 @@ sudo apparmor_parser -r /etc/apparmor.d/nix-unshare
 
 ## Networking
 
+### Ensure stable IP addresses
+
+The runner should have a static IP address, either assigned through the CSP or provided by our internal DHCP servers.
+If only the legacy IP address is static, make sure to disable IPv6 for the runner:
+
+```bash
+sudo tee /etc/sysctl.d/99-no-ipv6.conf >/dev/null <<'EOF'
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+EOF
+sudo sysctl --write --system
+```
+
+### Connect to Tailscale
+
 **This step only applies to runners owned by Edgeless Systems, not bare metal cloud machines.**
 
 Add the device to the Tailscale network.
