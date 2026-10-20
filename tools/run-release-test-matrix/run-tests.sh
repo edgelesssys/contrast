@@ -146,7 +146,7 @@ fail() {
 
 for platform in $(printf '%s\n' "${!platform_tests[@]}" | sort); do
   echo "Setting default_platform to $platform in justfile.env" >&2
-  sed -i "s/^default_platform=.*/default_platform=\"$platform\"/" justfile.env
+  sed --follow-symlinks -i "s/^default_platform=.*/default_platform=\"$platform\"/" justfile.env
   echo "Getting credentials.." >&2
   if ! just get-credentials; then
     fail "$platform: getting credentials"
