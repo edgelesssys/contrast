@@ -29,7 +29,7 @@
 
     # The upstream derivation removes the dtc dependency when minimal is set,
     # but QEMU needs it when not only building usermode emulators.
-    # TODO(freax13): Fix this upstream.
+    # TODO(freax13): DROP once nixpkgs' qemu keeps dtc with minimal = true.
     buildInputs = previousAttrs.buildInputs ++ [ dtc ];
 
     nativeBuildInputs = previousAttrs.nativeBuildInputs ++ [ python3Packages.packaging ];

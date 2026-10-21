@@ -170,7 +170,7 @@
           secrets-outside-env:
             disable: true
           self-repository:
-            # TODO(CON-390): re-enable and fix once actionlint is compatible
+            # TODO(CON-390): DROP once actionlint is compatible with this rule.
             disable: true
       '')
     ];

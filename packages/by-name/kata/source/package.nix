@@ -38,7 +38,8 @@ rec {
 
       # An attacker can set any OCI version they like, so we can't rely on it.
       # The policy must be secure no matter what OCI version is communicated.
-      # TODO(katexochen): upstream. See https://github.com/kata-containers/kata-containers/issues/10632.
+      # TODO(katexochen): DROP once kata removes the OCI version check, see
+      # https://github.com/kata-containers/kata-containers/issues/10632.
       # TODO(katexochen): Additional security measures should be taken to ensure the OCI
       # version is the same well use to create the container and the policy covers all the
       # fields of the spec.
@@ -80,12 +81,12 @@ rec {
       # Don't add storages for volumes declared in the image config.
       # This fixes a security issue where the host is able to write untrusted content to paths
       # under these volumes, by failing the policy generation if volumes without mounts are found.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11546.
+      # TODO(burgerdev): DROP once kata fixes https://github.com/kata-containers/kata-containers/issues/11546.
       ./0009-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
 
       # Imagepulling has moved into the CDH in Kata 3.18.0. Since we are not using the CDH,we are instead starting our own Imagepuller.
       # This patch redirects calls by upstream's PullImage ttRPC client implementation to communicate with our imagepuller ttRPC server.
-      # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
+      # TODO(charludo): DROP once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
       ./0010-agent-use-custom-implementation-for-image-pulling.patch
 
@@ -96,13 +97,14 @@ rec {
 
       # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
       # This patch redirects calls by upstream's SecureImageStore ttRPC client implementation to communicate with our own ttRPC server.
-      # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
+      # TODO(charludo): DROP once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
       ./0012-agent-use-custom-implementation-for-secure-mounting.patch
 
       # We're using a dedicated initdata-processor job and don't want the Kata agent to manage
       # initdata for us.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11532.
+      # TODO(burgerdev): DROP once the RFC for loose coupling of agents and guest components is implemented:
+      # https://github.com/kata-containers/kata-containers/issues/11532
       ./0013-agent-remove-initdata-processing.patch
 
       # In addition to the initdata device, we also require the imagepuller's auth config
@@ -156,14 +158,14 @@ rec {
       # containerd's 5s per-shim cleanup deadline, the task dir is orphaned,
       # and accumulated leaks cascade through kubelet's Requires=containerd.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
-      # TODO(sespiros): retire this carry once contrast migrates to runtime-rs.
+      # TODO(sespiros): DROP once contrast migrates to runtime-rs.
       ./0022-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
 
       # Don't clean up the Kata cgroup when cleaning up a failed pod. It's unnecessary because it
       # will be cleaned up by containerd, and it may hide problems if the cleanup takes too long.
       # No upstream issue because this is unlikely to be accepted upstream as is, and developing a
       # full fix for all potential configurations is not a good investment of time.
-      # TODO(burgerdev): drop patch after migrating to runtime-rs
+      # TODO(burgerdev): DROP once contrast migrates to runtime-rs.
       ./0023-runtime-don-t-attempt-to-clean-up-cgroup-scope.patch
 
       # Cache (un-)compressed image sizes and information to map image references to DiffIDs in the layers-cache.json.
@@ -182,7 +184,7 @@ rec {
       # We use force_guest_pull, where the generated policy already matches at runtime and no securityContext is required.
       # Until genpolicy can distinguish force_guest_pull from Nydus guest_pull, the check disabled in this patch will
       # always fail wrongfully.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757
+      # TODO(charludo): DROP once kata fixes https://github.com/kata-containers/kata-containers/issues/11757.
       ./0026-genpolicy-unconditionally-skip-guest-pull-security-c.patch
 
       # Build image_guest_pull Storage requests with an empty driver_options
