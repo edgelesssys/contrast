@@ -18,22 +18,21 @@ workdir=$(mktemp -d)
 osvdir="/tmp/vuln-scan"
 mkdir -p "$osvdir"
 base="${sbom##*/}"
-relabeled="$osvdir/${base#*-}"
-trap 'rm -rf "$workdir"; rm -f "$relabeled"' EXIT
+scanned="$osvdir/${base#*-}"
+trap 'rm -rf "$workdir"; rm -f "$scanned"' EXIT
 
-# bombon emits CycloneDX 1.7, which osv-scanner cannot parse yet. Can be dropped when osv-scanner supports CDX 1.7.
-jq '.specVersion = "1.6"' "$sbom" >"$relabeled"
+cat "$sbom" >"$scanned"
 
 if [[ -n $sarifdir ]]; then
   osv-scanner scan source \
     --config="$OSV_CONFIG" \
     --format=sarif --output="$sarifdir/osv.sarif" \
-    -L "$relabeled" || exitcode=$?
+    -L "$scanned" || exitcode=$?
 fi
 osv-scanner scan source \
   --config="$OSV_CONFIG" \
   --format=table \
-  -L "$relabeled" || exitcode=$?
+  -L "$scanned" || exitcode=$?
 
 # vulnix downloads the NVD feeds from nvd.nist.gov on every run. Reuse a persistent cache dir when one is provided
 # Additionally, retry transient failures. Exit code 2 means "vulnerabilities found".
@@ -55,7 +54,7 @@ if [[ $vx_rc -eq 0 || $vx_rc -eq 2 ]]; then
          else (.[] | "vulnix: \(.name) affected by \(.affected_by | join(", "))") end' \
     "$vulnix_json"
   if [[ -n $sarifdir ]]; then
-    jq --arg sbom "file://$relabeled" -f "$VULNIX_SARIF_JQ" "$vulnix_json" >"$workdir/vulnix.sarif" &&
+    jq --arg sbom "file://$scanned" -f "$VULNIX_SARIF_JQ" "$vulnix_json" >"$workdir/vulnix.sarif" &&
       mv "$workdir/vulnix.sarif" "$sarifdir/vulnix.sarif"
   fi
   [[ $vx_rc -eq 0 ]] || exitcode=$vx_rc
