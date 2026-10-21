@@ -85,6 +85,15 @@
   # Additionally, dhcpcd could allow for e.g. route manipulation from the host.
   networking.dhcpcd.enable = false;
 
+  # Same list as nixos/modules/security/ca.nix (NixOS/nixpkgs#576485).
+  # TODO(charludo): DROP on next nixpkgs bump.
+  security.pki.caCertificateBlacklist = [
+    "Comodo AAA Services root"
+    "emSign ECC Root CA - G3"
+    "emSign Root CA - C1"
+    "emSign ECC Root CA - C3"
+  ];
+
   systemd.suppressedSystemUnits = [ "systemd-networkd-varlink-metrics.socket" ];
 
   system.etc.overlay.mutable = false;
