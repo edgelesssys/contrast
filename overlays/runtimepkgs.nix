@@ -24,7 +24,7 @@ else
                 # nix-store path inside LC_LOAD_DYLIB. See
                 # https://github.com/rust-lang/libc/issues/2870.
                 #
-                # TODO(sespiros): drop once kata's Cargo.lock pins a libc
+                # TODO(sespiros): DROP once kata's Cargo.lock pins a libc
                 # that no longer emits the directive (libc 1.0 milestone).
                 genpolicy = cPrev.kata.genpolicy.overrideAttrs (oldAttrs: {
                   env =

@@ -26,7 +26,7 @@
 
     # The upstream derivation removes the dtc dependency when minimal is set,
     # but QEMU needs it when not only building usermode emulators.
-    # TODO(freax13): Fix this upstream.
+    # TODO(freax13): DROP once nixpkgs' qemu keeps dtc with minimal = true.
     #
     # libtasn1 is also dropped by the minimal build, which leaves CONFIG_TASN1 unset.
     # QEMU 11.0.0's tests/qtest/migration/tls-tests.c references its x509 helpers without guarding them on CONFIG_TASN1.
