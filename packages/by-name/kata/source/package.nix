@@ -135,6 +135,8 @@ rec {
       # case, relaxing the matching requirement to just the name (without vendor and class).
       # This is unlikely to be fixed in Kata upstream, but rather in the NVIDIA components.
       # Upstream issue: https://github.com/NVIDIA/sandbox-device-plugin/issues/46
+      # TODO(burgerdev): DROP once our clusters run a sandbox-device-plugin that includes
+      # https://github.com/NVIDIA/sandbox-device-plugin/pull/45.
       ./0018-shim-guess-CDI-devices-without-direct-match.patch
 
       # Enables the Kata runtime to set the SNP ID blocks for the CPU model it is running on
@@ -193,7 +195,8 @@ rec {
       # list. The image reference continues to come from OCI annotations.
       # Update the virtual volume unit test to assert that no driver metadata is
       # emitted.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/13692
+      # TODO(charludo): DROP on the update to kata 4.3.0, which contains
+      # https://github.com/kata-containers/kata-containers/pull/13692.
       ./0027-runtime-rs-omit-guest-pull-driver-metadata.patch
     ];
 

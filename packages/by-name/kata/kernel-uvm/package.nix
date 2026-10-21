@@ -41,7 +41,8 @@ in
 
   kernelPatches = [
     # Patch prevents containers with unfixed glibc from crashing.
-    # Unsure when this can be removed.
+    # TODO(freax13): DROP once we no longer support workloads with glibc 2.34 to 2.36 lacking the fix for
+    # https://sourceware.org/bugzilla/show_bug.cgi?id=29953 (TDX reports zero for CPUID leaf 2).
     {
       name = "work-around-the-segfault-issue-in-glibc-2-35";
       patch = fetchpatch {

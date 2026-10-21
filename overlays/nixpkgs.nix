@@ -141,7 +141,8 @@ final: prev:
   # for sigaltstack, and hope that nothing uses those on affected machines, such as our INTEL(R)
   # XEON(R) SILVER 4514Y test runner.
   # Discussion: https://www.openwall.com/lists/musl/2026/07/29/2
-  # Unclear who's to blame here and whether and when this can be removed.
+  # musl expects applications to size the stack with sysconf(_SC_MINSIGSTKSZ) instead of the constants.
+  # TODO(burgerdev): DROP once libbsd's tests use sysconf(_SC_MINSIGSTKSZ) for sigaltstack.
   libbsd = prev.libbsd.overrideAttrs (
     final.lib.optionalAttrs prev.stdenv.hostPlatform.isMusl { doCheck = false; }
   );
