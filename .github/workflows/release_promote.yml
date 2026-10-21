@@ -240,6 +240,7 @@ jobs:
           files: |
             ./release-artifacts/**
             ./darwin-artifacts/contrast-aarch64-darwin
+            ./darwin-artifacts/contrast-cli-aarch64-darwin.cdx.json
 
   retag-images:
     name: Tag promoted images with the release version
