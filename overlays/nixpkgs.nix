@@ -114,11 +114,7 @@ final: prev:
     # want to ship in the default VM, so we disable it. Disabling it globally results in a mass
     # rebuild because pretty much every package has elfutils as build inputs, so we just supply the
     # modified one to the systemd derivation.
-    elfutils = (prev.elfutils.override { enableDebuginfod = false; }).overrideAttrs (old: {
-      # TODO(burgerdev): not needed anymore after
-      # https://github.com/NixOS/nixpkgs/commit/33bc39603cb33ede30d82a6583115a6072ff268b
-      nativeBuildInputs = old.nativeBuildInputs ++ [ final.pkg-config ];
-    });
+    elfutils = prev.elfutils.override { enableDebuginfod = false; };
   };
 
   # Build e2fsprogs without libarchive and fuse support we don't need.
