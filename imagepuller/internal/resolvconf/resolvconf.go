@@ -5,7 +5,7 @@
 // nameservers. This is working around Go's default resolver behavior which only reads the
 // resolv.conf file every 5s, even if it's not valid.
 //
-// This package can be removed safely after upgrading to Go 1.27, or a version that contains
+// TODO(burgerdev): DROP once we build with Go 1.27, or a version that contains
 // https://go-review.googlesource.com/c/go/+/741140.
 package resolvconf
 

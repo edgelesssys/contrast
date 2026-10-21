@@ -112,7 +112,27 @@ original patch author, so all the meta goes where the patch is referenced.
 The comment should answer the following questions:
 
 - Why is the patch needed?
-- Is the patch already merged? -> Make a note that the patch can be removed on next update.
-- Is the patch part of an open upstream PR? -> Link to the upstream PR.
+- Is the patch already merged? -> Add a `DROP` TODO naming the release that contains it.
+- Is the patch part of an open upstream PR? -> Link to the upstream PR and add a `DROP` TODO.
 - If it's an upstream patch, was the patch modified? If yes, what was changed and why?
 - If the patch has no upstream PR, why can't we upstream the change?
+
+# Marking temporary code
+
+Mark anything we carry only until some condition is met with a `TODO(owner): DROP <condition>` comment.
+This covers patches, overlay overrides, config workarounds, compatibility shims, and pinned or ignored dependencies.
+
+```nix
+# TODO(owner): DROP on the update to kata 4.4.0, which contains
+# https://github.com/kata-containers/kata-containers/pull/12345.
+./0042-some-fix.patch
+```
+
+The owner is required and is who to ask: a GitHub username, a ticket, or the tool that generated the code.
+The condition must be checkable by someone who didn't write the code: an upstream release, a merged PR, a dependency version, a date, or a ticket.
+
+Before updating a dependency, check which carries can go:
+
+```sh
+git grep -n -E 'TODO\([^)]+\): DROP'
+```

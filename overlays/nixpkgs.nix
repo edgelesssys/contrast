@@ -127,13 +127,13 @@ final: prev:
 
   # composefs tests fail when building with nix >=2.35 due to tighter sandboxing.
   # Ignore the tests until upstream reaches a solution for this.
-  # Upstream issue: https://github.com/NixOS/nixpkgs/issues/567933.
+  # TODO(burgerdev): DROP once nixpkgs fixes https://github.com/NixOS/nixpkgs/issues/567933.
   composefs = prev.composefs.overrideAttrs (_prevAttrs: {
     doCheck = false;
   });
 
   # Pin the Microsoft vale style to an older release - the current nixpkgs version adds hundreds of findings for our docs.
-  # TODO(CON-389): remove pin and fix docs
+  # TODO(CON-389): DROP once the docs pass the current Microsoft style.
   valeStyles = prev.valeStyles // {
     microsoft = prev.valeStyles.microsoft.overrideAttrs (
       finalAttrs: _prevAttrs: {
@@ -160,7 +160,7 @@ final: prev:
   # crane forbids reading blobs from symlinks since v0.22. The motivation for this change is not
   # clear, but in our case the blob directories are trusted, so just revert the commit
   # 7f937fe593c4e8c7c858adcac46615955430346a.
-  # Upstream PR: https://github.com/google/go-containerregistry/pull/2462
+  # TODO(burgerdev): DROP once nixpkgs' crane contains https://github.com/google/go-containerregistry/pull/2462.
   crane = prev.crane.overrideAttrs (prevAttrs: {
     patches = prevAttrs.patches or [ ] ++ [
       (final.fetchpatch {

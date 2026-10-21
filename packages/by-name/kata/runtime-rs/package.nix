@@ -58,6 +58,6 @@ runCommand "kata-runtime-rs-${source.version}"
     mkdir -p $out/bin
     cp ${shim}/bin/* $out/bin/
     # Placeholder for Go runtime compatibility; the node-installer expects this file.
-    # TODO(burgerdev): Remove when switching to runtime-rs.
+    # TODO(burgerdev): DROP once contrast migrates to runtime-rs.
     echo "placeholder, kata-runtime doesn't exist for runtime-rs" > $out/bin/kata-runtime
   ''
