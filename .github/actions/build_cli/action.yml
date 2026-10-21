@@ -25,7 +25,7 @@ runs:
         SYSTEM: ${{ inputs.system }}
       run: |
         set -euo pipefail
-        sbom=$(nix run ".#${SET}.scripts.finalize-sbom" -- cli)
+        sbom=$(nix run ".#${SET}.scripts.finalize-sbom" -- cli --artifact "workspace/contrast-${SYSTEM}")
 
         name=$(jq -r '.metadata.component.name' <<<"$sbom")
         if [[ $name != "contrast-cli-${SYSTEM}" ]]; then
