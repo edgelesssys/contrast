@@ -59,7 +59,7 @@ let
 
   # Plain-identifier product subject per category (full SBOM is "contrast").
   categoryId = {
-    cli = "contrast-cli";
+    cli = "contrast-cli-${stdenv.hostPlatform.system}";
     runtimeConfidential = "contrast-runtime-confidential";
     runtimeNonConfidential = "contrast-runtime-non-confidential";
   };
