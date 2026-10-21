@@ -38,7 +38,7 @@ rec {
 
       # An attacker can set any OCI version they like, so we can't rely on it.
       # The policy must be secure no matter what OCI version is communicated.
-      # TODO(kateoxchen): upstream. See https://github.com/kata-containers/kata-containers/issues/10632.
+      # TODO(katexochen): upstream. See https://github.com/kata-containers/kata-containers/issues/10632.
       # TODO(katexochen): Additional security measures should be taken to ensure the OCI
       # version is the same well use to create the container and the policy covers all the
       # fields of the spec.
@@ -156,7 +156,7 @@ rec {
       # containerd's 5s per-shim cleanup deadline, the task dir is orphaned,
       # and accumulated leaks cascade through kubelet's Requires=containerd.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11328.
-      # TODO(sse): retire this carry once contrast migrates to runtime-rs.
+      # TODO(sespiros): retire this carry once contrast migrates to runtime-rs.
       ./0022-runtime-stop-shim-cleanup-from-hanging-on-a-dead-kat.patch
 
       # Don't clean up the Kata cgroup when cleaning up a failed pod. It's unnecessary because it
