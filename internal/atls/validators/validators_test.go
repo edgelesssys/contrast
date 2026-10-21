@@ -8,7 +8,6 @@ import (
 	"encoding/asn1"
 	"testing"
 
-	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -95,17 +94,6 @@ func TestAny(t *testing.T) {
 	}
 }
 
-func TestWithFixedOID(t *testing.T) {
-	require := require.New(t)
-	inputOID := oid.RawSNPReport
-	expectedOID := oid.RawTDXReport
-	s := &stubValidator{}
-	v := WithFixedOID(expectedOID, s)
-
-	require.NoError(v.Validate(t.Context(), inputOID, nil, nil))
-	require.True(expectedOID.Equal(s.oid))
-}
-
 func TestNames(t *testing.T) {
 	for name, tc := range map[string]struct {
 		v        Validator
@@ -127,14 +115,10 @@ func TestNames(t *testing.T) {
 			v:        Any(&stubValidator{name: "foo"}),
 			wantName: "foo",
 		},
-		"WithFixedOID": {
-			v:        WithFixedOID(asn1.ObjectIdentifier{1, 2, 3}, &stubValidator{name: "foo"}),
-			wantName: "foo",
-		},
 		"Nested": {
 			v: Any(
 				Any(&stubValidator{name: "foo"}, &stubValidator{name: "bar"}),
-				WithFixedOID(asn1.ObjectIdentifier{1, 2, 3}, &stubValidator{name: "baz"}),
+				&stubValidator{name: "baz"},
 			),
 			wantName: "Any(Any(foo, bar), baz)",
 		},
@@ -178,6 +162,5 @@ var (
 	_ Validator = ValidatorFunc(nil)
 	_ Validator = (*anyOf)(nil)
 	_ Validator = (*named)(nil)
-	_ Validator = (*withFixedOID)(nil)
 	_ Validator = (*noValidator)(nil)
 )

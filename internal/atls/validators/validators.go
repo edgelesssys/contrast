@@ -106,29 +106,6 @@ func (n *noValidator) String() string {
 	return "<no validator>"
 }
 
-type withFixedOID struct {
-	oid asn1.ObjectIdentifier
-	v   Validator
-}
-
-// WithFixedOID wraps the given Validator, passing a fixed OID instead of the original one.
-//
-// This is only useful for backwards compatibility in the HTTP API client.
-// TODO(burgerdev): remove once all clients receive the OID from the HTTP API.
-func WithFixedOID(oid asn1.ObjectIdentifier, v Validator) Validator {
-	// We're explicitly hiding the fact that we're using an adaptor and just use the name of the
-	// wrapped validator.
-	return &withFixedOID{oid: oid, v: v}
-}
-
-func (w *withFixedOID) Validate(ctx context.Context, _ asn1.ObjectIdentifier, attDoc []byte, reportData []byte) error {
-	return w.v.Validate(ctx, w.oid, attDoc, reportData)
-}
-
-func (w *withFixedOID) String() string {
-	return w.v.String()
-}
-
 type named struct {
 	v    Validator
 	name string

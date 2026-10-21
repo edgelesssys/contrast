@@ -9,7 +9,6 @@
 package coordinator
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -214,17 +213,6 @@ func TestCoordinator(t *testing.T) {
 		}))
 
 		state, err := client.ValidateAttestation(ctx, nonce[:], report)
-		require.NoError(err)
-		require.Equal(manifestBytesExpected, state.Manifests[0])
-
-		// Test backwards compatibility of AttestationType.
-		var resp apitypes.AttestationResponse
-		require.NoError(json.NewDecoder(bytes.NewReader(report)).Decode(&resp))
-		resp.AttestationType = nil
-		reportWithoutType, err := json.Marshal(resp)
-		require.NoError(err)
-
-		state, err = client.ValidateAttestation(ctx, nonce[:], reportWithoutType)
 		require.NoError(err)
 		require.Equal(manifestBytesExpected, state.Manifests[0])
 
