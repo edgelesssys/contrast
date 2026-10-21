@@ -66,7 +66,9 @@ jobs:
           system: aarch64-darwin
       - uses: ./.github/actions/s3_upload
         with:
-          files: workspace/contrast-aarch64-darwin
+          files: |
+            workspace/contrast-aarch64-darwin
+            workspace/contrast-cli-aarch64-darwin.cdx.json
           s3-bucket-path: pr-artifacts/${{ github.run_id }}/${{ github.run_attempt }}
 
   notify:
