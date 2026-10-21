@@ -73,9 +73,9 @@ rec {
 
       # Allow running generate with ephemeral volumes.
       #
-      # This may be merged upstream through either of:
-      # - https://github.com/kata-containers/kata-containers/pull/10947 (this patch)
-      # - https://github.com/kata-containers/kata-containers/pull/10559 (superset including the patch)
+      # Upstream PR https://github.com/kata-containers/kata-containers/pull/10947 (this patch) was closed
+      # unmerged, and https://github.com/kata-containers/kata-containers/pull/10559 was merged for 4.1.0
+      # without the genpolicy part, so genpolicy still lacks ephemeral volume support as of 4.3.0.
       ./0008-genpolicy-support-ephemeral-volume-source.patch
 
       # Don't add storages for volumes declared in the image config.
@@ -92,7 +92,7 @@ rec {
 
       # Changes the unix socket used for ttRPC communication with the imagepuller.
       # Necessary to allow a separate imagestore service.
-      # Can be removed in conjunction with patch 0018-agent-use-custom-implementation-for-image-pulling.patch.
+      # TODO(charludo): DROP together with 0010-agent-use-custom-implementation-for-image-pulling.patch.
       ./0011-agent-use-separate-unix-socket-for-image-pulling.patch
 
       # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
@@ -122,12 +122,12 @@ rec {
       # to the container spec for GPU-enabled containers.
       # Since the same thing is done by the CTK within the PodVM, and we only want this
       # to influence VM creation, we remove this device from the container spec in the agent.
-      # Upstream bug: https://github.com/kata-containers/kata-containers/issues/12246.
+      # Upstream bug (closed as not planned): https://github.com/kata-containers/kata-containers/issues/12246.
       ./0016-runtime-remove-iommu-device.patch
 
       # We are observing frequent pull failures from genpolicy due to the connection being reset by the registry.
       # This patch allows genpolicy to retry these failed pulls multiple times.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12300.
+      # Upstream didn't accept this patch: https://github.com/kata-containers/kata-containers/pull/12300.
       ./0017-genpolicy-retry-failed-image-pulls.patch
 
       # In clusters that don't use the sandbox-device-plugin's P_GPU_ALIAS, we will not be able to
@@ -151,6 +151,8 @@ rec {
       # Terminate the agent gracefully when it encounters problems with the policy. This allows
       # error messages to propagate to the runtime.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/13031.
+      # Upstream fixed the log flushing with a sleep before abort (kata#13052, in 4.1.0), the
+      # switch from abort to panic remains ours.
       ./0021-agent-don-t-abort-in-case-of-policy-problems.patch
 
       # Stop the kata shim's cleanup paths from hanging when the kata-agent
