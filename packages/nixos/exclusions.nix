@@ -23,13 +23,13 @@ let
     inherit config lib pkgs;
   };
 
-  excludes = [
-    "curl"
-    "netcat"
+  excludes = map (p: p.outPath) [
+    pkgs.curl
+    pkgs.netcat
   ];
 
   filteredCorePackages = lib.filter (
-    p: !(builtins.elem (p.pname or p.name or "") excludes)
+    p: !(builtins.elem p.outPath excludes)
   ) systemPathRaw.config.environment.corePackages;
 in
 {
@@ -39,7 +39,8 @@ in
     system.forbiddenDependenciesRegexes = [
       "curl"
       "openssh"
-      "netcat"
+      # pkgs.netcat is libressl.nc, its store path is named libressl-<version>-nc.
+      "libressl"
       "libxslt"
       "libxml2"
     ];
