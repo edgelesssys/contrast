@@ -25,7 +25,7 @@ func main() {
 	addDmesg := flag.Bool("add-dmesg", false, "Add dmesg container")
 	nodeInstallerTargetConfType := flag.String("node-installer-target-conf-type", "", "Type of node installer target configuration to generate (k3s,...)")
 	deploymentPath := flag.String("deployment", "", "Path to the deployment file or a folder containing the deployment file(s)")
-	gpuClass := flag.String("gpu-class", "nvidia.com/pgpu", "full vendor/class of the GPU to attach")
+	gpuClass := flag.String("gpu-class", "nvidia.com/GH100_H100_PCIE", "full vendor/class of the GPU to attach")
 	gpuCount := flag.Int("gpu-count", 1, "number of GPUs to attach")
 	storageClass := flag.String("storage-class", "", "storageClassName to use for volumes")
 	flag.Usage = func() {
