@@ -194,7 +194,11 @@ func restartHostContainerd(ctx context.Context, containerdConfigPath string, ser
 	// Go through list of possible service names and check if one exists.
 	service := ""
 	for _, s := range serviceNames {
-		if hostServiceExists(ctx, s) {
+		found, err := hostServiceExists(ctx, s)
+		if err != nil {
+			return fmt.Errorf("looking up %q: %w", s, err)
+		}
+		if found {
 			service = s
 			break
 		}
@@ -253,12 +257,15 @@ func getSystemdServiceRestartTime(ctx context.Context, service string) (time.Tim
 	return time.Unix(0, int64(timestamp)*1000), nil
 }
 
-func hostServiceExists(ctx context.Context, service string) bool {
-	if err := exec.CommandContext(ctx, "nsenter", "--target", "1", "--mount", "--",
-		"systemctl", "status", service).Run(); err != nil {
-		return false
+func hostServiceExists(ctx context.Context, service string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "nsenter", "--target", "1", "--mount", "--",
+		"systemctl", "show", "-P", "LoadState", service)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, err
 	}
-	return true
+	// We can assume UTF-8 here, if the string contains anything non-ASCII something went wrong anyway.
+	return strings.TrimSpace(string(out)) == "loaded", nil
 }
 
 type assetFetcher interface {
