@@ -244,9 +244,9 @@ func getSystemdServiceRestartTime(ctx context.Context, service string) (time.Tim
 	}
 	defer conn.Close()
 
-	property, err := conn.GetUnitPropertyContext(ctx, service, "ActiveEnterTimestamp")
+	property, err := conn.GetUnitTypePropertyContext(ctx, service, "Service", "ExecMainStartTimestamp")
 	if err != nil {
-		return time.Time{}, fmt.Errorf("getting property ActiveEnterTimestamp: %w", err)
+		return time.Time{}, fmt.Errorf("getting property ExecMainStartTimestamp: %w", err)
 	}
 
 	timestamp, ok := property.Value.Value().(uint64)
