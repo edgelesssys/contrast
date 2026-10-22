@@ -92,46 +92,6 @@ final: prev:
     }
   );
 
-  # TODO(sespiros): drop once nixpkgs has golangci-lint >= 2.13.2, which stops replaying
-  # cached issues with another worktree's paths (golangci/golangci-lint#6762).
-  golangci-lint = prev.golangci-lint.overrideAttrs (
-    finalAttrs: _prevAttrs: {
-      version = "2.14.0";
-      src = final.fetchFromGitHub {
-        owner = "golangci";
-        repo = "golangci-lint";
-        tag = "v${finalAttrs.version}";
-        hash = "sha256-HATA7JKHwEouM+8jYZbQrkX7p4gut4IpyTvcBexu/4o=";
-      };
-      vendorHash = "sha256-ekP/zDhYMpMG+tYAyYHNfLOCt/JkxrXUw1jHUEfsM8k=";
-    }
-  );
-
-  yq-go = prev.yq-go.overrideAttrs (
-    finalAttrs: _prevAttrs: {
-      version = "4.53.2";
-      src = final.fetchFromGitHub {
-        owner = "mikefarah";
-        repo = "yq";
-        rev = "v${finalAttrs.version}";
-        hash = "sha256-So0yUblAxLgbw1/BrOp6zj9wGMTtsspjk2UQaBIBIYE=";
-      };
-      vendorHash = "sha256-t+u3rJNbe8JcfWBb+jMaZuTcSWYmhMiCeKbI2noVaCo=";
-    }
-  );
-
-  unbound = prev.unbound.overrideAttrs (
-    finalAttrs: _prevAttrs: {
-      version = "1.25.2";
-      src = final.fetchFromGitHub {
-        owner = "NLnetLabs";
-        repo = "unbound";
-        tag = "release-${finalAttrs.version}";
-        hash = "sha256-zt0JpVmct7w6ay+p8CdH6SGt/rL/v//e7K3MT8KZfOY=";
-      };
-    }
-  );
-
   systemd = prev.systemd.override {
     # Disable unused systemd features to get rid of curl and libxslt.
     # keep-sorted start
@@ -154,11 +114,7 @@ final: prev:
     # want to ship in the default VM, so we disable it. Disabling it globally results in a mass
     # rebuild because pretty much every package has elfutils as build inputs, so we just supply the
     # modified one to the systemd derivation.
-    elfutils = (prev.elfutils.override { enableDebuginfod = false; }).overrideAttrs (old: {
-      # TODO(burgerdev): not needed anymore after
-      # https://github.com/NixOS/nixpkgs/commit/33bc39603cb33ede30d82a6583115a6072ff268b
-      nativeBuildInputs = old.nativeBuildInputs ++ [ final.pkg-config ];
-    });
+    elfutils = prev.elfutils.override { enableDebuginfod = false; };
   };
 
   # Build e2fsprogs without libarchive and fuse support we don't need.

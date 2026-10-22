@@ -6,7 +6,6 @@
   qemu,
   libaio,
   dtc,
-  libtasn1,
   python3Packages,
   gpuSupport ? false,
 }:
@@ -27,14 +26,7 @@
     # The upstream derivation removes the dtc dependency when minimal is set,
     # but QEMU needs it when not only building usermode emulators.
     # TODO(freax13): Fix this upstream.
-    #
-    # libtasn1 is also dropped by the minimal build, which leaves CONFIG_TASN1 unset.
-    # QEMU 11.0.0's tests/qtest/migration/tls-tests.c references its x509 helpers without guarding them on CONFIG_TASN1.
-    # We don't even run that test.
-    buildInputs = previousAttrs.buildInputs ++ [
-      dtc
-      libtasn1
-    ];
+    buildInputs = previousAttrs.buildInputs ++ [ dtc ];
 
     nativeBuildInputs = previousAttrs.nativeBuildInputs ++ [ python3Packages.packaging ];
 
@@ -62,5 +54,10 @@
       # If we're not building with GPU support, we can omit the PCI-related ACPI tables
       # to achieve stable TDX RTMRs.
       ./0005-i386-omit-some-unneeded-ACPI-tables.patch
-    ];
+    ]
+    # The minimal build drops libtasn1, and QEMU's TLS migration tests don't guard their x509 helpers
+    # on CONFIG_TASN1. Keep nixpkgs' fix for that, which goes away once QEMU ships the upstream fix.
+    ++ builtins.filter (
+      p: lib.hasSuffix "fix-tls-tests-without-tasn1.patch" (toString p)
+    ) previousAttrs.patches;
   })
