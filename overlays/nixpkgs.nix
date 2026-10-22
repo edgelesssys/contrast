@@ -13,6 +13,7 @@ final: prev:
   #   };
   # });
 
+  # TODO(govulncheck-fix): DROP once nixpkgs ships the go version pinned below.
   go_1_26 = prev.go_1_26.overrideAttrs (
     finalAttrs: _prevAttrs: {
       version = "1.26.10";
