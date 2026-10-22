@@ -23,6 +23,7 @@ type TargetConfig struct {
 	systemdUnitNames     []string
 	kataConfigPath       string
 	containerdImportDir  string
+	containerdSocketPath string
 
 	hostMount string
 	fs        *afero.Afero
@@ -77,6 +78,8 @@ func (c *TargetConfig) LoadOverridesFromDir(
 			c.containerdConfigPath = dataStr
 		case "containerd-import-dir":
 			c.containerdImportDir = dataStr
+		case "containerd-socket-path":
+			c.containerdSocketPath = dataStr
 		case "systemd-unit-name":
 			c.systemdUnitNames = strings.FieldsFunc(dataStr, func(r rune) bool {
 				return r == ',' || unicode.IsSpace(r)
@@ -108,6 +111,17 @@ func (c *TargetConfig) ContainerdImportDir() string {
 		return ""
 	}
 	return filepath.Join(c.hostMount, c.containerdImportDir)
+}
+
+// ContainerdSocketPath returns the path to the containerd listening socket.
+//
+// The returned path is absolute from the containerized nodeinstaller's perspective, and it's empty
+// if no socket was configured.
+func (c *TargetConfig) ContainerdSocketPath() string {
+	if c.containerdSocketPath == "" {
+		return ""
+	}
+	return filepath.Join(c.hostMount, c.containerdSocketPath)
 }
 
 // SystemdUnitNames returns the names of the systemd units to restart.

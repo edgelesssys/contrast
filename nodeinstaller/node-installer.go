@@ -125,13 +125,40 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("writing containerd config %q: %w", containerdConfigPath, err)
 	}
 
-	unitsToRestart := targetConf.SystemdUnitNames()
-	if len(unitsToRestart) > 0 {
-		if err := restartHostContainerd(ctx, containerdConfigPath, unitsToRestart); err != nil {
-			return fmt.Errorf("restarting systemd unit: %w", err)
-		}
+	systemdUnitCandidates := targetConf.SystemdUnitNames()
+	if len(systemdUnitCandidates) == 0 {
+		// Our job here is done.
+		return nil
+	}
+	systemdUnit, err := getUnitToRestart(ctx, systemdUnitCandidates)
+	if err != nil {
+		return fmt.Errorf("finding systemd unit to restart: %w", err)
 	}
 
+	var needsRestart bool
+	if socket := targetConf.ContainerdSocketPath(); socket != "" {
+		needsRestart, err = needsRestartCRI(ctx, socket, runtimeHandler)
+	} else {
+		needsRestart, err = needsRestartMtime(ctx, containerdConfigPath, systemdUnit)
+	}
+	if err != nil {
+		return fmt.Errorf("checking containerd state: %w", err)
+	}
+
+	if !needsRestart {
+		log.Printf("Containerd unit %q already configured\n", systemdUnit)
+		return nil
+	}
+
+	// This command will restart containerd on the host and will take down the installer with it.
+	out, err := exec.CommandContext(
+		ctx, "nsenter", "--target", "1", "--mount", "--",
+		"systemctl", "restart", systemdUnit,
+	).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("restarting systemd service %q: %w: %s", systemdUnit, err, out)
+	}
+	log.Printf("Service %q restarted\n", systemdUnit)
 	return nil
 }
 
@@ -204,13 +231,13 @@ func writeKataConfig(basePath, configPath string, platform platforms.Platform, q
 	return nil
 }
 
-func restartHostContainerd(ctx context.Context, containerdConfigPath string, serviceNames []string) error {
+func getUnitToRestart(ctx context.Context, serviceNames []string) (string, error) {
 	// Go through list of possible service names and check if one exists.
 	service := ""
 	for _, s := range serviceNames {
 		found, err := hostServiceExists(ctx, s)
 		if err != nil {
-			return fmt.Errorf("looking up %q: %w", s, err)
+			return "", fmt.Errorf("looking up %q: %w", s, err)
 		}
 		if found {
 			service = s
@@ -218,38 +245,31 @@ func restartHostContainerd(ctx context.Context, containerdConfigPath string, ser
 		}
 	}
 	if service == "" {
-		return fmt.Errorf("no systemd service with name in %v found", serviceNames)
+		return "", fmt.Errorf("no systemd service with name in %v found", serviceNames)
 	}
+	return service, nil
+}
 
+func needsRestartMtime(ctx context.Context, containerdConfigPath string, service string) (bool, error) {
 	// get mtime of the config file
 	info, err := os.Stat(containerdConfigPath)
 	if err != nil {
-		return fmt.Errorf("stat %q: %w", containerdConfigPath, err)
+		return false, fmt.Errorf("stat %q: %w", containerdConfigPath, err)
 	}
 	configMtime := info.ModTime()
 
 	startTime, err := getSystemdServiceRestartTime(ctx, service)
 	if err != nil {
-		return fmt.Errorf("retrieving service (%s) start time: %w", service, err)
+		return false, fmt.Errorf("retrieving service (%s) start time: %w", service, err)
 	}
 
 	log.Printf("Service (%s) start time: %s\n", service, startTime.Format(time.RFC3339Nano))
 	log.Printf("Containerd config mtime:          %s\n", configMtime.Format(time.RFC3339Nano))
 	if startTime.After(configMtime) {
 		log.Printf("Service (%s) already running with the newest config\n", service)
-		return nil
+		return false, nil
 	}
-
-	// This command will restart containerd on the host and will take down the installer with it.
-	out, err := exec.CommandContext(
-		ctx, "nsenter", "--target", "1", "--mount", "--",
-		"systemctl", "restart", service,
-	).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("restarting service (%s): %w: %s", service, err, out)
-	}
-	log.Printf("Service (%s) restarted\n", service)
-	return nil
+	return true, nil
 }
 
 func getSystemdServiceRestartTime(ctx context.Context, service string) (time.Time, error) {
