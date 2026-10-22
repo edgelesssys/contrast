@@ -40,15 +40,15 @@ reason = "Baseline: present at vuln-scanning introduction."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0221" # event-listener
-reason = "wait for kata 4.2.0" # TODO(charludo): remove after kata 4.2.0 update
+reason = "wait for kata update" # TODO(charludo): DROP once kata's Cargo.lock has no event-listener 5.1.0 to 5.4.1 (4.3.0 has none).
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0235" # rkyv
-reason = "wait for kata 4.2.0" # TODO(charludo): remove after kata 4.2.0 update
+reason = "wait for kata update" # TODO(charludo): DROP once kata's Cargo.lock has no rkyv < 0.8.17 (4.3.0 still has 0.7.46).
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0258" # h2
-reason = "DoS vector only, and only relevant to genpolicy. Waiting for kata update" # TODO(charludo): remove after kata update
+reason = "DoS vector only, and only relevant to genpolicy. Waiting for kata update" # TODO(charludo): DROP once kata's Cargo.lock has no h2 < 0.4.16 (4.3.0 still has 0.3.27).
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0285" # rustls
