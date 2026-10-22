@@ -43,12 +43,6 @@ To also check that the binary was built from the released source, see [Reproduci
 
 ### Install the binary
 
-Install the verified binary in your PATH:
-
-```bash
-sudo install contrast /usr/local/bin/contrast
-```
-
 :::note
 If you downloaded the binary via a web browser instead of `curl`, macOS may show a warning
 that the software can't be verified. Remove the quarantine attribute before installing the binary:
@@ -58,3 +52,9 @@ sudo xattr -d com.apple.quarantine contrast
 ```
 
 :::
+
+Install the verified binary in your PATH:
+
+```bash
+sudo install contrast /usr/local/bin/contrast
+```
