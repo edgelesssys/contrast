@@ -12,14 +12,13 @@ Required for deploying with Contrast.
 
 ## How-to
 
-Download the Contrast CLI from the latest release and install it in your PATH:
+Download the Contrast CLI from the latest release:
 
 <Tabs queryString="platform">
 <TabItem value="linux" label="Linux (x86_64)">
 
 ```bash
 curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast-x86_64-linux
-sudo install contrast /usr/local/bin/contrast
 ```
 
 </TabItem>
@@ -27,18 +26,7 @@ sudo install contrast /usr/local/bin/contrast
 
 ```bash
 curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast-aarch64-darwin
-sudo install contrast /usr/local/bin/contrast
 ```
-
-:::note
-If you download the binary via a web browser instead of `curl`, macOS may show a warning
-that the software can't be verified. Remove the quarantine attribute before installing the binary:
-
-```bash
-sudo xattr -d com.apple.quarantine contrast
-```
-
-:::
 
 </TabItem>
 </Tabs>
@@ -52,3 +40,21 @@ gh release verify-asset "$(gh release view --repo edgelesssys/contrast --json ta
 ```
 
 To also check that the binary was built from the released source, see [Reproducible build](./reproducible-build.md).
+
+### Install the binary
+
+Install the verified binary in your PATH:
+
+```bash
+sudo install contrast /usr/local/bin/contrast
+```
+
+:::note
+If you downloaded the binary via a web browser instead of `curl`, macOS may show a warning
+that the software can't be verified. Remove the quarantine attribute before installing the binary:
+
+```bash
+sudo xattr -d com.apple.quarantine contrast
+```
+
+:::
