@@ -285,7 +285,6 @@ populate target=default_deploy_target platform=default_platform set=default_set:
                     . == "nvidia.com/GB100_B200"
                     or . == "nvidia.com/GB110_B300_SXM6_AC"
                     or . == "nvidia.com/GH100_H100_PCIE"
-                    or . == "nvidia.com/pgpu"
                 )
             ]
             | unique

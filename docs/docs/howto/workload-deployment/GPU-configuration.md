@@ -42,13 +42,14 @@ spec:
     image: ghcr.io/edgelesssys/tensorflow@sha256:73fe35b67dad5fa5ab0824ed7efeb586820317566a705dff76142f8949ffcaff
     resources:
       limits:
-        nvidia.com/pgpu: "1"
+        nvidia.com/GH100_H100_PCIE: "1"
 ```
 
 Contrast automatically detects if a pod requires a GPU and assigns the appropriate GPU-enabled runtime class (for example, `contrast-cc-metal-qemu-snp-gpu`) during the `contrast generate` step.
 For more details on manual runtime class selection, see the [multi-runtime class documentation](../multi-runtime-class.md).
 
-If you deployed the NVIDIA GPU operator as described above, the resource name is `nvidia.com/pgpu`.
+If you deployed the NVIDIA GPU operator as described above, the resource name is model-specific, for example `nvidia.com/GH100_H100_PCIE` for H100 or `nvidia.com/GB100_B200` for B200 GPUs.
+You can list the resources your nodes provide with `kubectl get nodes -o json | jq '.items[].status.allocatable'`.
 Otherwise, you need to consult your CDI definitions (in `/var/run/cdi` or `/etc/cdi`) to find the appropriate device class.
 
 Finally, the environment variable `NVIDIA_VISIBLE_DEVICES` can be set to `all` to grant other containers access to the GPUs directly assigned to other containers in the pod.

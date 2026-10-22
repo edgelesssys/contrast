@@ -39,8 +39,6 @@ var expectedGPUModels = map[corev1.ResourceName]string{
 	"nvidia.com/GB100_B200":         "B200",
 	"nvidia.com/GB110_B300_SXM6_AC": "B300",
 	"nvidia.com/GH100_H100_PCIE":    "H100",
-	// TODO(msanft): remove when the GPU operator is updated in all clusters.
-	"nvidia.com/pgpu": "H100",
 }
 
 type gpuConfig struct {
@@ -269,8 +267,8 @@ func TestMain(m *testing.M) {
 
 // gpuConfigsFromNodes determines the GPU resources and models advertised by the
 // sandbox device plugin and whether the test can exercise multi-GPU
-// passthrough with 2 GPUs. Multiple resources for the same model, such as the
-// H100-specific resource and pgpu alias, are only tested once.
+// passthrough with 2 GPUs. Multiple resources for the same model are only
+// tested once.
 func gpuConfigsFromNodes(nodes []corev1.Node) ([]gpuConfig, error) {
 	gpuClasses := slices.Collect(maps.Keys(expectedGPUModels))
 	slices.Sort(gpuClasses)
