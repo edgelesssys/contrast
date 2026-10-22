@@ -195,6 +195,11 @@ const sidebars = {
         },
         {
           type: "doc",
+          label: "Software bill of materials",
+          id: "howto/sbom",
+        },
+        {
+          type: "doc",
           label: "Troubleshooting",
           id: "howto/troubleshooting",
         },
