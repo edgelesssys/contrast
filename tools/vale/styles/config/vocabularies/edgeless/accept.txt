@@ -155,7 +155,7 @@ RTMRs?
 runtime
 runtimes?
 safeguardable
-SBOM
+SBOMs?
 Scaleway
 serializable
 Shamir
@@ -188,6 +188,7 @@ Terraform
 Tink
 tmpfs
 TPM
+Trivy
 TTL
 undecryptable
 Undeploy
