@@ -63,6 +63,11 @@ const sidebars = {
           id: "howto/install-cli",
         },
         {
+          type: "doc",
+          label: "Reproducible build",
+          id: "howto/reproducible-build",
+        },
+        {
           type: "category",
           label: "Workload deployment",
           items: [
