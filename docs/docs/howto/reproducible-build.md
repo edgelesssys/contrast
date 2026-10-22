@@ -9,8 +9,9 @@ Optional, for verifying that a Contrast release was built from the released sour
 ## Prerequisites
 
 1. [Download the CLI](./install-cli.md) to the current directory as `contrast`.
-2. Install [Nix](https://nixos.org/download/) with flakes enabled, and the [GitHub CLI](https://cli.github.com/).
-3. On macOS, configure an `x86_64-linux` [remote builder](https://nix.dev/manual/nix/stable/advanced-topics/distributed-builds) for building the Linux artifacts.
+2. Install [Nix](https://nixos.org/download/) with flakes enabled.
+3. Install the [GitHub CLI](https://cli.github.com/) and [`jq`](https://jqlang.org/download/).
+4. On macOS, configure an `x86_64-linux` [remote builder](https://nix.dev/manual/nix/stable/advanced-topics/distributed-builds) for building the Linux artifacts.
 
 ## How-to
 
