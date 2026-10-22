@@ -13,6 +13,7 @@ final: prev:
   #   };
   # });
 
+  # TODO(govulncheck-fix): DROP once nixpkgs ships the go version pinned below.
   go_1_26 = prev.go_1_26.overrideAttrs (
     finalAttrs: _prevAttrs: {
       version = "1.26.10";
@@ -155,7 +156,7 @@ final: prev:
     # rebuild because pretty much every package has elfutils as build inputs, so we just supply the
     # modified one to the systemd derivation.
     elfutils = (prev.elfutils.override { enableDebuginfod = false; }).overrideAttrs (old: {
-      # TODO(burgerdev): not needed anymore after
+      # TODO(burgerdev): DROP once our nixpkgs pin includes
       # https://github.com/NixOS/nixpkgs/commit/33bc39603cb33ede30d82a6583115a6072ff268b
       nativeBuildInputs = old.nativeBuildInputs ++ [ final.pkg-config ];
     });
@@ -171,13 +172,13 @@ final: prev:
 
   # composefs tests fail when building with nix >=2.35 due to tighter sandboxing.
   # Ignore the tests until upstream reaches a solution for this.
-  # Upstream issue: https://github.com/NixOS/nixpkgs/issues/567933.
+  # TODO(burgerdev): DROP once nixpkgs fixes https://github.com/NixOS/nixpkgs/issues/567933.
   composefs = prev.composefs.overrideAttrs (_prevAttrs: {
     doCheck = false;
   });
 
   # Pin the Microsoft vale style to an older release - the current nixpkgs version adds hundreds of findings for our docs.
-  # TODO(CON-389): remove pin and fix docs
+  # TODO(CON-389): DROP once the docs pass the current Microsoft style.
   valeStyles = prev.valeStyles // {
     microsoft = prev.valeStyles.microsoft.overrideAttrs (
       finalAttrs: _prevAttrs: {
@@ -196,7 +197,8 @@ final: prev:
   # for sigaltstack, and hope that nothing uses those on affected machines, such as our INTEL(R)
   # XEON(R) SILVER 4514Y test runner.
   # Discussion: https://www.openwall.com/lists/musl/2026/07/29/2
-  # Unclear who's to blame here and whether and when this can be removed.
+  # musl expects applications to size the stack with sysconf(_SC_MINSIGSTKSZ) instead of the constants.
+  # TODO(burgerdev): DROP once libbsd's tests use sysconf(_SC_MINSIGSTKSZ) for sigaltstack.
   libbsd = prev.libbsd.overrideAttrs (
     final.lib.optionalAttrs prev.stdenv.hostPlatform.isMusl { doCheck = false; }
   );
@@ -204,7 +206,7 @@ final: prev:
   # crane forbids reading blobs from symlinks since v0.22. The motivation for this change is not
   # clear, but in our case the blob directories are trusted, so just revert the commit
   # 7f937fe593c4e8c7c858adcac46615955430346a.
-  # Upstream PR: https://github.com/google/go-containerregistry/pull/2462
+  # TODO(burgerdev): DROP once nixpkgs' crane contains https://github.com/google/go-containerregistry/pull/2462.
   crane = prev.crane.overrideAttrs (prevAttrs: {
     patches = prevAttrs.patches or [ ] ++ [
       (final.fetchpatch {

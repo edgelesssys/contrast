@@ -39,7 +39,7 @@ var expectedGPUModels = map[corev1.ResourceName]string{
 	"nvidia.com/GB100_B200":         "B200",
 	"nvidia.com/GB110_B300_SXM6_AC": "B300",
 	"nvidia.com/GH100_H100_PCIE":    "H100",
-	// TODO(msanft): remove when the GPU operator is updated in all clusters.
+	// TODO(msanft): DROP once the GPU operator is updated in all clusters.
 	"nvidia.com/pgpu": "H100",
 }
 

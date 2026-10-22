@@ -21,7 +21,8 @@ base="${sbom##*/}"
 relabeled="$osvdir/${base#*-}"
 trap 'rm -rf "$workdir"; rm -f "$relabeled"' EXIT
 
-# bombon emits CycloneDX 1.7, which osv-scanner cannot parse yet. Can be dropped when osv-scanner supports CDX 1.7.
+# bombon emits CycloneDX 1.7, which osv-scanner cannot parse yet.
+# TODO(charludo): DROP once osv-scanner supports CDX 1.7.
 jq '.specVersion = "1.6"' "$sbom" >"$relabeled"
 
 if [[ -n $sarifdir ]]; then

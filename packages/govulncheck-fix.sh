@@ -177,7 +177,7 @@ while IFS="${sep}" read -r kind dir module current fixed osvs; do
         { print }
         /^  # }\);$/ && !done {
           print ""
-          print "  # Remove this once nixpkgs has caught up."
+          print "  # TODO(govulncheck-fix): DROP once nixpkgs ships the go version pinned below."
           print "  " attr " = prev." attr ".overrideAttrs ("
           print "    finalAttrs: _prevAttrs: {"
           print "      version = \"0\";"
