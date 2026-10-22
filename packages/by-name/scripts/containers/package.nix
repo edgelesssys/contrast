@@ -13,7 +13,10 @@ let
     name: dir: tag:
     writeShellApplication {
       name = "push-${name}";
-      runtimeInputs = with pkgs; [ crane ];
+      runtimeInputs = with pkgs; [
+        crane
+        jq
+      ];
       text = ''
         imageName="$1"
         containerlookup="''${2:-/dev/null}"
