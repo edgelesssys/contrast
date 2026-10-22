@@ -188,6 +188,14 @@ func TestLoadOverridesFromDir(t *testing.T) {
 				systemdUnitNames:     []string{},
 			},
 		},
+		"containerd-socket-path empty": {
+			fsLayout: map[string]string{
+				"some/dir/containerd-socket-path": "",
+			},
+			setupConf: &TargetConfig{},
+			targetDir: "some/dir",
+			wantErr:   true,
+		},
 		"unexpected file in target config dir does not prevent loading from expected files": {
 			fsLayout: map[string]string{
 				"some/dir/unexpected-file":        "unexpected content",
