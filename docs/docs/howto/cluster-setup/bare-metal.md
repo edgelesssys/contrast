@@ -85,8 +85,8 @@ Apply this change by running `systemctl restart systemd-sysctl` and verify it us
 
 Contrast can be deployed with different Kubernetes distributions, provided that the following prerequisites are met:
 
-1. The Container Runtime Interface (CRI) implementation must be containerd.
-   Since older containerd versions [contain bugs that won't be fixed](../troubleshooting.md#contrast-attempts-to-pull-the-wrong-image-reference), we strongly recommend using v2.0.0 or higher.
+1. The Container Runtime Interface (CRI) implementation must be containerd `v2.0.0` or higher.
+   Note that the containerd `v1.7` line is unsupported as of October 2026.
 2. The node directory `/opt` must be writable and mustn't be mounted with `noexec`.
 
 The default configuration should work for a vanilla containerd installation.

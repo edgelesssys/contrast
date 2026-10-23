@@ -162,7 +162,7 @@ If it doesn't, you need to remove that image entirely from the affected node, fo
 crictl rmi $IMAGE
 ```
 
-Unfortunately, this bug won't be fixed for containerd versions before `v2.0.0`.
+Contrast doesn't support EOL versions of containerd.
 
 ### Registry configuration can't be parsed
 
