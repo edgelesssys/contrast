@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/fsstore"
@@ -31,11 +32,17 @@ type Client struct {
 
 	log *slog.Logger
 
-	// negotiateMu guards negotiatedVersion.
+	// negotiateMu guards negotiatedVersion and negotiatedCapabilities.
 	negotiateMu sync.Mutex
 	// negotiatedVersion caches the API version agreed on with the Coordinator,
 	// empty until negotiated or pinned via [Client.WithAPIVersion].
 	negotiatedVersion string
+	// negotiatedCapabilities are the capabilities negotiatedVersion was negotiated with,
+	// nil if no version was negotiated, including if it was pinned via [Client.WithAPIVersion].
+	negotiatedCapabilities *apitypes.CapabilitiesResponse
+
+	// minimumAPIVersion, if set, is the oldest API version the Client accepts.
+	minimumAPIVersion string
 
 	// validatorsFromManifestOverride is used by tests to replace the validators.
 	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error)
@@ -64,8 +71,12 @@ func New(baseURL string) *Client {
 // skipping negotiation with the Coordinator.
 //
 // Calls fail if the Coordinator doesn't support the pinned version.
+//
+// It also tells [Client.ValidateAttestation] which API version an attestation was fetched with,
+// if it wasn't fetched by this Client.
 func (c *Client) WithAPIVersion(version string) *Client {
 	c.negotiatedVersion = version
+	c.negotiatedCapabilities = nil
 	return c
 }
 
@@ -93,6 +104,17 @@ func (c *Client) WithSlog(log *slog.Logger) *Client {
 // WithHTTPClient replaces the Client's default [http.Client].
 func (c *Client) WithHTTPClient(httpClient *http.Client) *Client {
 	c.httpapi.HTTPClient = httpClient
+	return c
+}
+
+// WithMinimumAPIVersion makes the Client refuse to talk to the Coordinator over an API version
+// older than the given one, e.g. "v1", including the unversioned legacy API.
+//
+// Callers that know the MinimumAPIVersion of the manifest the Coordinator is supposed to run
+// should set this, so that a downgrade is detected before the Coordinator's own manifest is known.
+// [Client.ValidateAttestation] additionally enforces the pin of the Coordinator's latest manifest.
+func (c *Client) WithMinimumAPIVersion(version string) *Client {
+	c.minimumAPIVersion = version
 	return c
 }
 

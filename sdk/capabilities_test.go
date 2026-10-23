@@ -137,6 +137,59 @@ func TestWithAPIVersionSkipsNegotiation(t *testing.T) {
 	require.False(contacted.Load(), "Coordinator must not be contacted for a pinned API version")
 }
 
+func TestNegotiateAPIVersionManifestPin(t *testing.T) {
+	for name, tc := range map[string]struct {
+		minimumAPIVersion string
+		pinnedVersion     string
+
+		wantVersion string
+		wantErr     string
+		wantErrIs   error
+	}{
+		"minimum matches the negotiated version": {
+			minimumAPIVersion: "v1",
+			wantVersion:       apiv1.Version,
+		},
+		"minimum above all common versions": {
+			minimumAPIVersion: "v2",
+			wantErr:           "older than the minimum",
+			wantErrIs:         ErrMinimumAPIVersionUnmet,
+		},
+		"pinned version below the minimum": {
+			minimumAPIVersion: "v2",
+			pinnedVersion:     apiv1.Version,
+			wantErr:           "older than the minimum",
+			wantErrIs:         ErrMinimumAPIVersionUnmet,
+		},
+		"pinned version meets the minimum": {
+			minimumAPIVersion: "v1",
+			pinnedVersion:     apiv1.Version,
+			wantVersion:       apiv1.Version,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			srv := httptest.NewServer(capabilitiesHandler([]string{apiv1.Version}))
+			t.Cleanup(srv.Close)
+
+			client := New(srv.URL).WithMinimumAPIVersion(tc.minimumAPIVersion)
+			if tc.pinnedVersion != "" {
+				client = client.WithAPIVersion(tc.pinnedVersion)
+			}
+
+			version, err := client.NegotiateAPIVersion(t.Context())
+			if tc.wantErr != "" {
+				require.ErrorContains(err, tc.wantErr)
+				require.ErrorIs(err, tc.wantErrIs)
+				return
+			}
+			require.NoError(err)
+			require.Equal(tc.wantVersion, version)
+		})
+	}
+}
+
 func capabilitiesHandler(versions []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != capabilitiesPath || r.Method != http.MethodGet {
