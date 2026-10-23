@@ -56,6 +56,25 @@ func FromPath(path string) (*Config, error) {
 	return &Config{raw: configData, config: cfg, path: path}, nil
 }
 
+func FromDropin(path string) (*Config, error) {
+	configData, err := os.ReadFile(path)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("loading drop-in config file %q: %w", path, err)
+		}
+		return &Config{path: path, raw: nil, config: config{Version: 3}}, nil
+	}
+
+	var cfg config
+	if err := toml.Unmarshal(configData, &cfg); err != nil {
+		return nil, fmt.Errorf("parsing drop-in config: %w", err)
+	}
+	if cfg.Version == 0 {
+		cfg.Version = 3
+	}
+	return &Config{path: path, raw: configData, config: cfg}, nil
+}
+
 // AddRuntime adds a runtime to the containerd config.
 func (c *Config) AddRuntime(handler string, runtime Runtime) error {
 	fqdn, err := criFQDN(c.config.Version)
@@ -65,11 +84,6 @@ func (c *Config) AddRuntime(handler string, runtime Runtime) error {
 	runtimes := ensureMapPath(&c.config.Plugins, fqdn, "containerd", "runtimes")
 	runtimes[handler] = runtime
 	return nil
-}
-
-// EnableDebug enables debug logging in the containerd config.
-func (c *Config) EnableDebug() {
-	c.config.Debug.Level = "debug"
 }
 
 // Write writes the containerd config back to disk.
@@ -94,6 +108,9 @@ func (c *Config) Write() error {
 	}
 
 	log.Printf("Patching containerd config at %s\n", c.path)
+	if err := os.MkdirAll(filepath.Dir(c.path), 0o755); err != nil {
+		return fmt.Errorf("creating config directory: %w", err)
+	}
 	tmpFile, err := os.CreateTemp(filepath.Dir(c.path), "containerd-config-*.toml")
 	if err != nil {
 		return fmt.Errorf("creating temporary file: %w", err)
