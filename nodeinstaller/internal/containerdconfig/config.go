@@ -67,11 +67,6 @@ func (c *Config) AddRuntime(handler string, runtime Runtime) error {
 	return nil
 }
 
-// EnableDebug enables debug logging in the containerd config.
-func (c *Config) EnableDebug() {
-	c.config.Debug.Level = "debug"
-}
-
 // Write writes the containerd config back to disk.
 // It will create a backup of the existing config.
 func (c *Config) Write() error {
