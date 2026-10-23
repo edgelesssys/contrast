@@ -27,7 +27,27 @@ kubectl rollout status -w daemonset/contrast-cc-metal-qemu-snp-deadbeef-nodeinst
 
 ## Configuration values
 
+### `containerd-import-dir`
+
+The path to the directory where the node installer should install the containerd config drop-in.
+The node installer writes a file of the form `contrast-cc-metal-qemu-snp-deadbeef.toml` into that directory.
+containerd needs to be configured to load files from this directory.
+If the import directory is `/etc/containerd/config.toml.d/`, the containerd configuration needs to declare:
+
+```toml
+imports = ["/etc/containerd/config.toml.d/*.toml"]
+```
+
+If this field is empty, the node installer falls back to [`containerd-config-path`](#containerd-config-path), which is deprecated and unsafe.
+
 ### `containerd-config-path`
+
+:::warning
+
+The `containerd-config-path` setting is deprecated in favor of [`containerd-import-dir`](#containerd-import-dir).
+Using a drop-in file is safer and cleaner.
+
+:::
 
 The path to the containerd config relative to the node's file system root.
 This configuration will be amended with an entry for the Contrast runtime class handler.

@@ -89,18 +89,24 @@ Contrast can be deployed with different Kubernetes distributions, provided that 
    As per [the containerd support matrix](https://containerd.io/releases/#current-state-of-containerd-releases), all prior containerd versions are unsupported on bare metal.
 2. The node directory `/opt` must be writable and mustn't be mounted with `noexec`.
 
-The default configuration should work for a vanilla containerd installation.
-Other Kubernetes variants may need subtle tweaks.
-We'll show configurations for k3s and RKE2 below, see [the node installer configuration reference](../../reference/node-installer-configuration.md) for more details.
+The node installer needs to be configured for its target environment.
+Below are example configurations for common Kubernetes distributions, you can find all available settings in the [node installer configuration reference](../../reference/node-installer-configuration.md).
 
-### K3s
+<Tabs queryString="k8s-distro">
+<TabItem value="k3s" label="K3s">
 
 [K3s](https://k3s.io/) is a lightweight Kubernetes distribution that's easy to set up.
 
 1. Follow the [K3s setup instructions](https://docs.k3s.io/) to create a cluster.
    Contrast is currently tested with K3s version `v1.34.1+k3s1`.
-2. Install a block storage provider such as [Longhorn](https://longhorn.io/docs/1.9.1/deploy/install/install-with-helm/) and mark it as the default storage class.
-3. Ensure that a load balancer controller is installed.
+2. Ensure that the containerd configuration contains the following line (default since K3s `v1.36`):
+
+   ```toml
+   imports = ['/var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.d/*.toml']
+   ```
+
+3. Install a block storage provider such as [Longhorn](https://longhorn.io/docs/1.9.1/deploy/install/install-with-helm/) and mark it as the default storage class.
+4. Ensure that a load balancer controller is installed.
    For development and testing purposes, the built-in [ServiceLB](https://docs.k3s.io/networking/networking-services#service-load-balancer) should suffice.
 
 Then, install the ConfigMap to configure the Contrast node-installer for use with K3s:
@@ -119,14 +125,21 @@ kubelet-arg:
 
 in `/etc/rancher/k3s/config.yaml`.
 
-### RKE2
+</TabItem>
+<TabItem value="rke2" label="RKE2">
 
 [RKE2](https://docs.rke2.io/) is Rancher's enterprise-ready next-generation Kubernetes distribution.
 
 1. Follow the [RKE2 setup instructions](https://docs.rke2.io/) to create a cluster.
    Only the Contrast runtime installation is currently tested on RKE2.
-2. Install a block storage provider such as [Longhorn](https://longhorn.io/docs/1.9.1/deploy/install/install-with-helm/) and mark it as the default storage class.
-3. Ensure that a load balancer controller is installed.
+2. Ensure that the containerd configuration contains the following line (default since RKE2 `v1.36`):
+
+   ```toml
+   imports = ['/var/lib/rancher/rke2/agent/etc/containerd/config-v3.toml.d/*.toml']
+   ```
+
+3. Install a block storage provider such as [Longhorn](https://longhorn.io/docs/1.9.1/deploy/install/install-with-helm/) and mark it as the default storage class.
+4. Ensure that a load balancer controller is installed.
    RKE2 doesn't come with a bundled load balancer controller.
 
 Then, install the ConfigMap to configure the Contrast node-installer for use with RKE2:
@@ -145,7 +158,52 @@ kubelet-arg:
 
 in `/etc/rancher/rke2/config.yaml`.
 
-<!-- TODO(burgerdev): add instructions for kubeadm and make the k8s distros tabs instead of sections. -->
+</TabItem>
+<TabItem value="generic" label="Generic">
+
+For other types of clusters, such as clusters installed with `kubeadm`, you will need to write a configuration file for the installer.
+First, identify the Systemd unit that controls containerd - this is often `containerd.service`.
+Next, find the configuration file for this containerd service.
+The default is `/etc/containerd/config.toml`.
+
+Now you'll need to decide where additional containerd runtime configuration should be installed.
+A conventional pattern is a directory `/etc/containerd/config.toml.d`.
+Add the following line to your containerd configuration:
+
+```toml
+imports = ["/etc/containerd/config.toml.d/*.toml"]
+```
+
+Create the Contrast node installer configuration in the `contrast-system` namespace.
+The script assumes the defaults introduced above, change them according to your node's layout.
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: contrast-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: contrast-node-installer-target-config
+  namespace: contrast-system
+data:
+  containerd-import-dir: etc/containerd/config.toml.d
+  systemd-unit-name: containerd.service
+EOF
+```
+
+</TabItem>
+</Tabs>
+
+:::warning
+
+If you don't configure the node installer with a `contrast-node-installer-target-config`, it will directly edit your containerd configuration.
+This backwards-compatible behavior is deprecated and will be removed in a future version!
+
+:::
 
 ## Preparing a cluster for GPU usage
 
