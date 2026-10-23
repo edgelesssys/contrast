@@ -100,10 +100,6 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 	if err != nil {
 		return fmt.Errorf("loading containerd configuration from %q: %w", targetConf.ContainerdConfigPath(), err)
 	}
-	if config.DebugRuntime {
-		// This only ever happens in development builds of the node-installer.
-		containerdConf.EnableDebug()
-	}
 	containerdRuntime, err := containerdconfig.ContrastRuntime(runtimeBase, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime fragment: %w", err)

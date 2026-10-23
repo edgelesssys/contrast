@@ -61,7 +61,6 @@ func TestPatchContainerdConfig(t *testing.T) {
 
 			conf, err := FromPath(configPath)
 			require.NoError(err)
-			conf.EnableDebug()
 			runtimeFragment, err := ContrastRuntime(runtimeBaseDir, tc.platform)
 			require.NoError(err)
 			require.NoError(conf.AddRuntime(runtimeHandler, runtimeFragment))
@@ -266,24 +265,6 @@ func TestConfig(t *testing.T) {
 				assert.Equal(tc.expected, tc.input)
 			})
 		}
-	})
-	t.Run("EnableDebug", func(t *testing.T) {
-		assert := assert.New(t)
-
-		cfg := Config{
-			config: config{Version: 2},
-		}
-		cfg.EnableDebug()
-
-		expected := Config{
-			config: config{
-				Version: 2,
-				Debug: debug{
-					Level: "debug",
-				},
-			},
-		}
-		assert.Equal(expected.config, cfg.config)
 	})
 	t.Run("Write", func(t *testing.T) {
 		testCases := map[string]struct {
