@@ -231,9 +231,9 @@ func TestValidateAttestation(t *testing.T) {
 				srv.Close()
 			}
 			if tc.sdkVersions != nil {
-				orig := supportedAPIVersions
-				supportedAPIVersions = tc.sdkVersions
-				t.Cleanup(func() { supportedAPIVersions = orig })
+				orig := SupportedAPIVersions
+				SupportedAPIVersions = tc.sdkVersions
+				t.Cleanup(func() { SupportedAPIVersions = orig })
 			}
 
 			validator := &stubValidator{err: tc.validateErr}
@@ -332,7 +332,7 @@ func TestGetAttestationEndpoint(t *testing.T) {
 func coordinatorHandler(versions []string, gotAttestPath *string) http.Handler {
 	mux := http.NewServeMux()
 	if versions != nil {
-		mux.Handle(capabilitiesPath, capabilitiesHandler(versions))
+		mux.Handle(apitypes.CapabilitiesPath, capabilitiesHandler(versions))
 	}
 	for _, path := range []string{apitypesv1.LegacyAttestPath, apitypesv1.AttestPath} {
 		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {

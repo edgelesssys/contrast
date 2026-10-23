@@ -5,3 +5,8 @@
 //
 // The client for this version lives in [github.com/edgelesssys/contrast/sdk/apiv1].
 package apiv1
+
+import "github.com/edgelesssys/contrast/apitypes"
+
+// Version is the identifier of this API version.
+const Version = apitypes.APIVersionV1
