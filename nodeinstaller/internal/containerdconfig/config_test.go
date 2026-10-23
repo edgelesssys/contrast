@@ -373,6 +373,46 @@ func TestConfig(t *testing.T) {
 	})
 }
 
+func TestFromImport(t *testing.T) {
+	for name, tc := range map[string]struct {
+		content    *string
+		wantConfig *Config
+		wantErr    error
+	}{
+		"no config": {
+			wantConfig: &Config{config: config{Version: 2}},
+		},
+		"empty config": {
+			content:    new(``),
+			wantConfig: &Config{config: config{Version: 2}},
+		},
+		"non-default version": {
+			content:    new(`version = 3`),
+			wantConfig: &Config{config: config{Version: 3}},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			path := filepath.Join(t.TempDir(), "config.toml")
+			if tc.content != nil {
+				require.NoError(t, os.WriteFile(path, []byte(*tc.content), 0o644))
+			}
+			if tc.wantConfig != nil {
+				tc.wantConfig.path = path
+				if tc.content != nil {
+					tc.wantConfig.raw = []byte(*tc.content)
+				}
+			}
+
+			config, err := FromImport(path)
+
+			assert.Equal(tc.wantConfig, config)
+			assert.ErrorIs(err, tc.wantErr)
+		})
+	}
+}
+
 func fileWithSuffixExists(t *testing.T, path, suffix string) bool {
 	t.Helper()
 	files, err := os.ReadDir(path)

@@ -56,6 +56,40 @@ func FromPath(path string) (*Config, error) {
 	return &Config{raw: configData, config: cfg, path: path}, nil
 }
 
+// FromImport prepares a Config from a containerd config import file.
+//
+// Import files provide a way to extend containerd without modifying the main configuration. This
+// function prepares a Config that should become (or modify) such an import config. The main
+// difference to FromPath is that the import file does not need to exist yet.
+//
+// If the file does not exist or does not set a version, we default to version 2. Setting a
+// different version than the containerd main version is supported since 2.3, which is the minimum
+// version for Contrast.
+//
+// https://github.com/containerd/containerd/blob/cfb18c4/docs/man/containerd-config.toml.5.md?plain=1#L186-L194
+func FromImport(path string) (*Config, error) {
+	const defaultVersion = 2
+
+	configData, err := os.ReadFile(path)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("loading import file: %w", err)
+		}
+		// The version for import files can't be higher than the version of the main containerd
+		// config. Thus, pick the lowest version we can support.
+		return &Config{path: path, raw: nil, config: config{Version: defaultVersion}}, nil
+	}
+
+	var cfg config
+	if err := toml.Unmarshal(configData, &cfg); err != nil {
+		return nil, fmt.Errorf("parsing import file contents: %w", err)
+	}
+	if cfg.Version == 0 {
+		cfg.Version = defaultVersion
+	}
+	return &Config{path: path, raw: configData, config: cfg}, nil
+}
+
 // AddRuntime adds a runtime to the containerd config.
 func (c *Config) AddRuntime(handler string, runtime Runtime) error {
 	fqdn, err := criFQDN(c.config.Version)
@@ -89,7 +123,10 @@ func (c *Config) Write() error {
 	}
 
 	log.Printf("Patching containerd config at %s\n", c.path)
-	tmpFile, err := os.CreateTemp(filepath.Dir(c.path), "containerd-config-*.toml")
+	if err := os.MkdirAll(filepath.Dir(c.path), 0o755); err != nil {
+		return fmt.Errorf("creating config directory: %w", err)
+	}
+	tmpFile, err := os.CreateTemp(filepath.Dir(c.path), "contrast-containerd-config-*.tmp")
 	if err != nil {
 		return fmt.Errorf("creating temporary file: %w", err)
 	}
