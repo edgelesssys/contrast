@@ -22,6 +22,7 @@ type TargetConfig struct {
 	containerdConfigPath string
 	systemdUnitNames     []string
 	kataConfigPath       string
+	containerdImportDir  string
 
 	hostMount string
 	fs        *afero.Afero
@@ -74,6 +75,8 @@ func (c *TargetConfig) LoadOverridesFromDir(
 		switch info.Name() {
 		case "containerd-config-path":
 			c.containerdConfigPath = dataStr
+		case "containerd-import-dir":
+			c.containerdImportDir = dataStr
 		case "systemd-unit-name":
 			c.systemdUnitNames = strings.FieldsFunc(dataStr, func(r rune) bool {
 				return r == ',' || unicode.IsSpace(r)
@@ -94,6 +97,17 @@ func (c *TargetConfig) LoadOverridesFromDir(
 // ContainerdConfigPath returns the path to the containerd configuration file.
 func (c *TargetConfig) ContainerdConfigPath() string {
 	return filepath.Join(c.hostMount, c.containerdConfigPath)
+}
+
+// ContainerdImportDir returns the path to a directory where containerd looks for drop-in config snippets.
+//
+// The returned path is absolute from the containerized nodeinstaller's perspective, and it's empty
+// if no import dir was configured.
+func (c *TargetConfig) ContainerdImportDir() string {
+	if c.containerdImportDir == "" {
+		return ""
+	}
+	return filepath.Join(c.hostMount, c.containerdImportDir)
 }
 
 // SystemdUnitNames returns the names of the systemd units to restart.

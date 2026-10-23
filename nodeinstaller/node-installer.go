@@ -96,10 +96,24 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("generating kata runtime configuration: %w", err)
 	}
 
-	containerdConf, err := containerdconfig.FromPath(targetConf.ContainerdConfigPath())
-	if err != nil {
-		return fmt.Errorf("loading containerd configuration from %q: %w", targetConf.ContainerdConfigPath(), err)
+	var containerdConfigPath string
+	var containerdConf *containerdconfig.Config
+	importDir := targetConf.ContainerdImportDir()
+	if importDir != "" {
+		containerdConfigPath = filepath.Join(importDir, runtimeHandler+".toml")
+		containerdConf, err = containerdconfig.FromImport(containerdConfigPath)
+		if err != nil {
+			return fmt.Errorf("loading containerd drop-in %q: %w", containerdConfigPath, err)
+		}
+	} else {
+		// If there's no drop-in dir, assume we should overwrite the global config.
+		containerdConfigPath = targetConf.ContainerdConfigPath()
+		containerdConf, err = containerdconfig.FromPath(containerdConfigPath)
+		if err != nil {
+			return fmt.Errorf("loading containerd configuration from %q: %w", containerdConfigPath, err)
+		}
 	}
+
 	containerdRuntime, err := containerdconfig.ContrastRuntime(runtimeBase, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime fragment: %w", err)
@@ -108,12 +122,12 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("adding runtime to containerd config: %w", err)
 	}
 	if err := containerdConf.Write(); err != nil {
-		return fmt.Errorf("writing containerd config %q: %w", targetConf.ContainerdConfigPath(), err)
+		return fmt.Errorf("writing containerd config %q: %w", containerdConfigPath, err)
 	}
 
 	unitsToRestart := targetConf.SystemdUnitNames()
 	if len(unitsToRestart) > 0 {
-		if err := restartHostContainerd(ctx, targetConf.ContainerdConfigPath(), unitsToRestart); err != nil {
+		if err := restartHostContainerd(ctx, containerdConfigPath, unitsToRestart); err != nil {
 			return fmt.Errorf("restarting systemd unit: %w", err)
 		}
 	}
