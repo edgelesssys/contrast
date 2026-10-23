@@ -8,6 +8,7 @@ use (
 	./imagestore
 	./initdata-processor
 	./policy-test
+	./sdk
 	./service-mesh
 	./tools/debugshell
 	./tools/fifo

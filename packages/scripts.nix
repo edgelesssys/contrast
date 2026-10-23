@@ -516,6 +516,8 @@
               (path.append root "go.sum")
               (path.append root "apitypes/go.mod")
               (path.append root "apitypes/go.sum")
+              (path.append root "sdk/go.mod")
+              (path.append root "sdk/go.sum")
               (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/platforms"))
               (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "nodeinstaller"))
             ];
