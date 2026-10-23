@@ -10,15 +10,15 @@ they contain reasonable values and don't measure anything.
 Authored-by: Tom Dohrmann <erbse.13@gmx.de>
 Signed-off-by: Paul Meyer <katexochen0@gmail.com>
 ---
- OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c  | 106 ++++++++++++++----
+ OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c  | 107 ++++++++++++++----
  .../IntelTdx/TdxHelperLib/SecTdxHelperLib.inf |  19 +++-
- 2 files changed, 100 insertions(+), 25 deletions(-)
+ 2 files changed, 101 insertions(+), 25 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
-index e430066549b63b62408b07d1f814e8655edf5c8b..14cdc3af6f8070dc14b117ed40a2550f20b580c7 100644
+index e430066549b63b62408b07d1f814e8655edf5c8b..950713953c749b758012a9f0bef7d22b83ccdcb0 100644
 --- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
 +++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
-@@ -849,44 +849,106 @@ TdxHelperMeasureTdHob (
+@@ -849,44 +849,107 @@ TdxHelperMeasureTdHob (
    )
  {
    EFI_PEI_HOB_POINTERS  Hob;
@@ -56,9 +56,10 @@ index e430066549b63b62408b07d1f814e8655edf5c8b..14cdc3af6f8070dc14b117ed40a2550f
 -             SHA384_DIGEST_SIZE
 -             );
 +  //
-+  // Make sure that the last address is reasonable.
-+  // 
-+  if (LastAddress >= SIZE_256GB) return EFI_INVALID_PARAMETER;
++  // Make sure that private memory ends below the shared bit, which is bit 47
++  // or bit 51 depending on the guest physical address width.
++  //
++  if (LastAddress > LShiftU64 (1, 47)) return EFI_INVALID_PARAMETER;
  
 -  if (EFI_ERROR (Status)) {
 -    return Status;
