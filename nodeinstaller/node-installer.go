@@ -92,7 +92,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("installing imagepuller config: %w", err)
 	}
 
-	if err := containerdRuntimeConfig(runtimeBase, targetConf.KataConfigPath(), platform, config.QemuExtraKernelParams, imagepullerConfigPath, config.DebugRuntime); err != nil {
+	if err := writeKataConfig(runtimeBase, targetConf.KataConfigPath(), platform, config.QemuExtraKernelParams, imagepullerConfigPath, config.DebugRuntime); err != nil {
 		return fmt.Errorf("generating kata runtime configuration: %w", err)
 	}
 
@@ -171,7 +171,8 @@ func envWithDefault(key, dflt string) string {
 	return value
 }
 
-func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams, imagepullerConfigPath string, debugRuntime bool) error {
+// writeKataConfig generates the Kata shim configuration file and writes it to configPath.
+func writeKataConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams, imagepullerConfigPath string, debugRuntime bool) error {
 	baseConfig, err := upstream.BaseConfig(platform)
 	if err != nil {
 		return fmt.Errorf("getting kata base config: %w", err)
