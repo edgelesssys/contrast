@@ -36,17 +36,6 @@ final: prev:
     })
   ];
 
-  # Same list as nixos/modules/security/ca.nix (NixOS/nixpkgs#576485).
-  # TODO(charludo): DROP on next nixpkgs bump.
-  cacert = prev.cacert.override {
-    blacklist = [
-      "Comodo AAA Services root"
-      "emSign ECC Root CA - G3"
-      "emSign Root CA - C1"
-      "emSign ECC Root CA - C3"
-    ];
-  };
-
   erofs-utils = prev.erofs-utils.overrideAttrs (prevAttrs: {
     # The build environment sets SOURCE_DATE_EPOCH to 1980, but as mkfs.erofs
     # implements timestamp clamping, and files from the store have a 1970

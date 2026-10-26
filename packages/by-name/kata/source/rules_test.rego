@@ -55,26 +55,9 @@ test_allow_storage_bad_shared if {
 	not allow_storage([p_storage], i_storage, bundle_id, sandbox_id)
 }
 
+# Loaded from rules_test_data.json, as OPA otherwise infers types from the empty literals and rejects references to fields set only by genpolicy.
 # TODO(burgerdev): source from genpolicy-settings.json
-policy_data := {
-	"common": {
-		"cpath": "/run/kata-containers/shared/containers(?:/passthrough)?",
-		"spath": "/run/kata-containers/sandbox/storage",
-		"root_path": "/run/kata-containers/$(bundle-id)/rootfs",
-		"sfprefix": "^$(cpath)/(watchable/)?$(bundle-id)-[a-z0-9]{16}-",
-		"ip_p": "[0-9]{1,5}",
-		"ipv4_a": "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])",
-		"svc_name_downward_env": "[A-Z](?:[A-Z0-9_]{0,61}[A-Z0-9])?",
-		"dns_label": "[a-zA-Z0-9_\\.\\-]+",
-		"default_caps": [],
-		"privileged_caps": [],
-	},
-	"cluster_config": {},
-	"containers": [],
-	"devices": {},
-	"sandbox": {},
-	"request_defaults": {},
-}
+policy_data := data.test_fixtures.policy_data
 
 bundle_id := "foo"
 sandbox_id := "bar"

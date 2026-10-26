@@ -38,6 +38,9 @@ in
         # Dereference hardlinks to avoid different number of inodes between images
         # built on systems with nix store optimization enabled and disabled.
         "--hard-dereference"
+        # systemd-repart passes the 512 byte image sector size as block size, but libblkid
+        # can't identify erofs with blocks <= 1KiB, so udev never marks the verity device ready.
+        "-b4096"
       ];
 
       # This defines the actual partition layout.

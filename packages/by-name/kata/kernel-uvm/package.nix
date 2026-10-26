@@ -29,7 +29,7 @@ let
     '';
   };
 in
-linuxManualConfig rec {
+(linuxManualConfig rec {
   version = "6.18.35";
   modDirVersion = "${version}" + lib.optionalString withGPU "-nvidia-gpu";
 
@@ -66,4 +66,11 @@ linuxManualConfig rec {
 
   inherit configfile;
   allowImportFromDerivation = true;
-}
+}).overrideAttrs
+  (prevAttrs: {
+    # Our kernel is modular but builds no modules, so modules.order is empty and nixpkgs' `xargs rm` of the per-module kmodigest certificates fails without operands.
+    # TODO(charludo): fix upstream in pkgs/os-specific/linux/kernel/build.nix.
+    postInstall =
+      builtins.replaceStrings [ "xargs -d'\\n'" ] [ "xargs -r -d'\\n'" ]
+        prevAttrs.postInstall;
+  })
