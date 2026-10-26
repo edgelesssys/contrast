@@ -3,7 +3,8 @@ name: backport pr
 on:
   pull_request:
     types: [closed]
-  issue_comment:
+  # No untrusted code is checked out or run, and only maintainers can trigger it.
+  issue_comment: # zizmor: ignore[dangerous-triggers]
     types: [created]
 
 jobs:
@@ -15,6 +16,7 @@ jobs:
       ) || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
+        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
         startsWith(github.event.comment.body, '/backport')
       )
     runs-on: ubuntu-24.04
