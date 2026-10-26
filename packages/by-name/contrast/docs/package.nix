@@ -23,7 +23,7 @@ stdenv.mkDerivation (finalAttrs: {
   yarnOfflineCache = fetchYarnDeps {
     inherit (finalAttrs) pname version;
     yarnLock = finalAttrs.src + "/yarn.lock";
-    hash = "sha256-Mg60PGd62+UPhEjKRIDxzfP8M8RvHoIMQREF0kxO56M=";
+    hash = "sha256-mZZIXWRSsk6bJEA6ntoOqq/VmlwLz6vMteS82D0VbNo=";
   };
 
   nativeBuildInputs = [
