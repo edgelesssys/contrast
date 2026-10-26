@@ -200,6 +200,7 @@ rec {
       echo "running unit tests for rules.rego" >&2
       testdir=$(mktemp -d)
       cp src/tools/genpolicy/rules.rego ${./rules_test.rego} "$testdir"
+      cp ${./rules_test_data.json} "$testdir/data.json"
       opa test "$testdir"
     '';
   };

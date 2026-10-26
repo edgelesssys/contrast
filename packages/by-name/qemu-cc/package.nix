@@ -3,6 +3,7 @@
 
 {
   lib,
+  stdenv,
   qemu,
   libaio,
   dtc,
@@ -18,10 +19,13 @@
   hostCpuTargets = [ "x86_64-softmmu" ];
 })).overrideAttrs
   (previousAttrs: {
-    configureFlags = previousAttrs.configureFlags ++ [
-      "-Dlinux_aio_path=${libaio}/lib"
-      "-Dlinux_fdt_path=${dtc}/lib"
-    ];
+    configureFlags =
+      previousAttrs.configureFlags
+      # meson fails to find these static libraries with pkgsStatic, see 0002-add-options-for-library-paths.patch.
+      ++ lib.optionals stdenv.hostPlatform.isStatic [
+        "-Dlinux_aio_path=${libaio}/lib"
+        "-Dlinux_fdt_path=${dtc}/lib"
+      ];
 
     # The upstream derivation removes the dtc dependency when minimal is set,
     # but QEMU needs it when not only building usermode emulators.

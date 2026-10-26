@@ -5,7 +5,7 @@
   runc,
   yq-go,
   stdenv,
-  musl,
+  pkgsStatic,
 }:
 
 stdenv.mkDerivation {
@@ -14,7 +14,7 @@ stdenv.mkDerivation {
   nativeBuildInputs = [
     runc
     yq-go
-    musl
+    pkgsStatic.stdenv.cc
   ];
 
   dontUnpack = true;
@@ -28,7 +28,7 @@ stdenv.mkDerivation {
     #include <unistd.h>
     void main() { pause(); }
     EOF
-    musl-gcc -static -o $out/pause_bundle/rootfs/pause pause.c
+    ${pkgsStatic.stdenv.cc.targetPrefix}cc -static -o $out/pause_bundle/rootfs/pause pause.c
 
     runc spec
     yq -i '.process.args[0] = "/pause"' config.json

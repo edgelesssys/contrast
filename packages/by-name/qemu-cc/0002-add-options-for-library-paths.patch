@@ -5,37 +5,45 @@ Subject: [PATCH] add options for library paths
 
 For some reason meson fails to find these when building with pkgsStatic
 in Nix.
----
- meson.build       | 6 ++++--
- meson_options.txt | 2 ++
- 2 files changed, 6 insertions(+), 2 deletions(-)
 
+Since meson 1.12, find_library also checks static libraries by linking
+them into a shared object, which can't work with a static-only toolchain.
+So link the archives directly if a path is given.
+---
 diff --git a/meson.build b/meson.build
-index 40e3f4ec44c8d36c44ec505bc4f54cbe5724ea73..43124081bbfc72a2e6d35fe30081048ba64e6b0a 100644
+index 40e3f4e..e660ac9 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -1162,7 +1162,8 @@ zlib = dependency('zlib', required: true)
+@@ -1161,8 +1161,12 @@ zlib = dependency('zlib', required: true)
+ 
  libaio = not_found
  if not get_option('linux_aio').auto() or have_block
-   libaio = cc.find_library('aio', has_headers: ['libaio.h'],
+-  libaio = cc.find_library('aio', has_headers: ['libaio.h'],
 -                           required: get_option('linux_aio'))
-+                           required: get_option('linux_aio'),
-+                           dirs: [get_option('linux_aio_path')])
++  if get_option('linux_aio_path') != ''
++    libaio = declare_dependency(link_args: [get_option('linux_aio_path') / 'libaio.a'])
++  else
++    libaio = cc.find_library('aio', has_headers: ['libaio.h'],
++                             required: get_option('linux_aio'))
++  endif
  endif
  
  linux_io_uring_test = '''
-@@ -2045,7 +2046,8 @@ if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
+@@ -2045,7 +2049,11 @@ if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
    fdt_opt = 'system'
  endif
  if fdt_opt in ['enabled', 'system'] or (fdt_opt == 'auto' and have_system)
 -  fdt = cc.find_library('fdt', required: fdt_opt == 'system')
-+  fdt = cc.find_library('fdt', required: fdt_opt == 'system',
-+                        dirs: [get_option('linux_fdt_path')])
++  if get_option('linux_fdt_path') != ''
++    fdt = declare_dependency(link_args: [get_option('linux_fdt_path') / 'libfdt.a'])
++  else
++    fdt = cc.find_library('fdt', required: fdt_opt == 'system')
++  endif
    if fdt.found() and cc.links('''
       #include <libfdt.h>
       #include <libfdt_env.h>
 diff --git a/meson_options.txt b/meson_options.txt
-index a07cb47d35e9b83636182c1b38f2f8ad84facabb..309afbd94a66e93c68dd65d61eb158cf7a7f2713 100644
+index a07cb47..309afbd 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
 @@ -200,6 +200,7 @@ option('linux_aio', type : 'feature', value : 'auto',
