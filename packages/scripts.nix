@@ -18,13 +18,12 @@
       protoc-gen-go
       protoc-gen-go-grpc
       protoc-gen-go-ttrpc
+      nix
       nix-update
       scripts.go-directive-sync
       scripts.gofix
       scripts.update-kata-cargo-nix
-      scripts.update-kata-configurations
       scripts.update-kata-protos
-      scripts.update-kernel-configurations
     ];
     text = ''
       echo "Syncing go directive versions in go.mod/go.work files" >&2
@@ -82,10 +81,10 @@
       update-kata-cargo-nix
 
       echo "Updating default kata-container configuration toml files" >&2
-      update-kata-configurations
+      nix run .#base.scripts.update-kata-configurations
 
       echo "Updating default kata kernel configuration files" >&2
-      update-kernel-configurations
+      nix run .#base.scripts.update-kernel-configurations
 
       gofix
     '';
