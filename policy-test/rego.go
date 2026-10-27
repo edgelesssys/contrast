@@ -30,6 +30,10 @@ func NewOPAPolicy(policy string) (*OPAPolicy, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing policy module: %w", err)
 	}
+	policyData, err := extractPolicyData(module)
+	if err != nil {
+		return nil, err
+	}
 	compiler.Compile(map[string]*ast.Module{"policy.rego": module})
 	if compiler.Failed() {
 		return nil, fmt.Errorf("compiling policy module: %w", compiler.Errors)
@@ -37,9 +41,31 @@ func NewOPAPolicy(policy string) (*OPAPolicy, error) {
 
 	return &OPAPolicy{
 		compiler: compiler,
-		// We need to initialize the store with an empty "pstate" object so that the policy can read from it.
-		store: inmem.NewFromObject(map[string]any{"pstate": map[string]any{}}),
+		store: inmem.NewFromObject(map[string]any{
+			"genpolicy_data": policyData,
+			// We need to initialize the store with an empty "pstate" object so that the policy can read from it.
+			"pstate": map[string]any{},
+		}),
 	}, nil
+}
+
+// extractPolicyData replaces the policy_data literal appended by genpolicy with a reference to
+// data.genpolicy_data and returns the literal's value, which needs to be put into the store.
+// Data from the store is untyped. Otherwise, OPA types the empty literals in policy_data
+// (e.g. "exec_commands": []) as empty and rejects the policy's references into them.
+func extractPolicyData(module *ast.Module) (any, error) {
+	for _, rule := range module.Rules {
+		if rule.Head.Ref().String() != "policy_data" {
+			continue
+		}
+		value, err := ast.JSON(rule.Head.Value.Value)
+		if err != nil {
+			return nil, fmt.Errorf("converting policy_data to JSON: %w", err)
+		}
+		rule.Head.Value = ast.MustParseTerm("data.genpolicy_data")
+		return value, nil
+	}
+	return nil, fmt.Errorf("policy_data rule not found in policy")
 }
 
 // collectingPrintHook is a hook that collects all print statements from the rego evaluation.
