@@ -5,7 +5,10 @@ Parameters
 Licensor:             Edgeless Systems GmbH
 Licensed Work:        Contrast
                       The Licensed Work is (c) Edgeless Systems GmbH
-Additional Use Grant: None
+Additional Use Grant: You may make production use of the
+                      github.com/edgelesssys/contrast/sdk package, including
+                      those portions of the Licensed Work required to use that
+                      package, as part of applications that use the SDK.
 
 Change Date:          Four years from the date a MINOR version (SemVer) is published.
 
