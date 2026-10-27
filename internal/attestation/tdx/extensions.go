@@ -8,7 +8,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/attestation/extension"
 	"github.com/edgelesssys/contrast/internal/oid"
-	"github.com/google/go-tdx-guest/proto/tdx"
+	"github.com/edgelesssys/go-tdx-guest/proto/tdx"
 )
 
 var (

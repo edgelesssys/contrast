@@ -15,9 +15,9 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/edgelesssys/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/verify/trust"
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	"github.com/google/go-sev-guest/abi"
-	"github.com/google/go-sev-guest/verify/trust"
 )
 
 // embeddedReferenceValuesJSON contains the embedded reference values in JSON format.

@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/memstore"
-	sevtrust "github.com/google/go-sev-guest/verify/trust"
-	tdxtrust "github.com/google/go-tdx-guest/verify/trust"
+	sevtrust "github.com/edgelesssys/go-sev-guest/verify/trust"
+	tdxtrust "github.com/edgelesssys/go-tdx-guest/verify/trust"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"

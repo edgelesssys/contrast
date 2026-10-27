@@ -38,7 +38,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	snpmeasure "github.com/edgelesssys/contrast/internal/snp"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/google/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/abi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

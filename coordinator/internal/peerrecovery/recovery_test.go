@@ -21,7 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/testkeys"
-	"github.com/google/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/abi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"

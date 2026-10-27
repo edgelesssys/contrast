@@ -29,7 +29,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/snp"
-	"github.com/google/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/abi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"

@@ -13,9 +13,9 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/attestation/tdx/quote"
 	"github.com/edgelesssys/contrast/internal/oid"
-	"github.com/google/go-tdx-guest/abi"
-	"github.com/google/go-tdx-guest/client"
-	"github.com/google/go-tdx-guest/proto/tdx"
+	"github.com/edgelesssys/go-tdx-guest/abi"
+	"github.com/edgelesssys/go-tdx-guest/client"
+	"github.com/edgelesssys/go-tdx-guest/proto/tdx"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )

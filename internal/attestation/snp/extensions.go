@@ -9,9 +9,9 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/attestation/extension"
 	"github.com/edgelesssys/contrast/internal/oid"
-	"github.com/google/go-sev-guest/abi"
-	"github.com/google/go-sev-guest/kds"
-	"github.com/google/go-sev-guest/proto/sevsnp"
+	"github.com/edgelesssys/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/kds"
+	"github.com/edgelesssys/go-sev-guest/proto/sevsnp"
 )
 
 var (

@@ -4,14 +4,10 @@ go 1.26.0
 
 replace github.com/edgelesssys/contrast => ..
 
-replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd
-
-replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20261013132829-7a9ace10598e
-
 require (
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
-	github.com/google/go-sev-guest v0.15.0
-	github.com/google/go-tdx-guest v0.3.2-0.20261014222600-23b3eac9db39
+	github.com/edgelesssys/go-sev-guest v0.0.0-20261027073724-e4b917838318
+	github.com/edgelesssys/go-tdx-guest v0.0.0-20261027073737-15e4e62a1ff7
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/sys v0.49.0
 	google.golang.org/protobuf v1.36.12

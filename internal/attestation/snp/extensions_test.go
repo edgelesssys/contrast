@@ -6,7 +6,7 @@ package snp
 import (
 	"testing"
 
-	"github.com/google/go-sev-guest/proto/sevsnp"
+	"github.com/edgelesssys/go-sev-guest/proto/sevsnp"
 	"github.com/stretchr/testify/require"
 )
 

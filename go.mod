@@ -2,11 +2,6 @@ module github.com/edgelesssys/contrast
 
 go 1.26.0
 
-// Upstream is poorly maintained, use edgelesssys fork instead.
-replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd
-
-replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20261013132829-7a9ace10598e
-
 require (
 	filippo.io/keygen v1.0.0
 	filippo.io/nistec v0.0.4
@@ -14,13 +9,13 @@ require (
 	github.com/coreos/go-iptables v0.8.0
 	github.com/coreos/go-systemd/v22 v22.7.0
 	github.com/distribution/reference v0.6.0
+	github.com/edgelesssys/go-sev-guest v0.0.0-20261027073724-e4b917838318
+	github.com/edgelesssys/go-tdx-guest v0.0.0-20261027073737-15e4e62a1ff7
 	github.com/elazarl/goproxy v1.9.2
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/google/go-configfs-tsm v0.3.3
 	github.com/google/go-containerregistry v0.22.1
 	github.com/google/go-github/v85 v85.0.0
-	github.com/google/go-sev-guest v0.15.0
-	github.com/google/go-tdx-guest v0.3.2-0.20261014222600-23b3eac9db39
 	github.com/google/logger v1.1.2
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.1
 	github.com/klauspost/cpuid/v2 v2.4.1

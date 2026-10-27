@@ -24,7 +24,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/testkeys"
-	"github.com/google/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/abi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/afero"
