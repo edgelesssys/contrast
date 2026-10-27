@@ -89,3 +89,15 @@ reason = "downgrade to classical handshake in genpolicy TLS" # TODO(CON-437): DR
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0386" # tokio
 reason = "AsyncFd::new is used by PipeStream, which gets a valid file descriptor in all code paths"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0382" # rustls-webpki
+reason = "genpolicy verifies registry certificates with rustls-webpki, exploitable only if the trust store includes the distrusted emSign root. Waiting for kata update" # TODO(burgerdev): DROP once kata's Cargo.lock has no rustls-webpki < 0.103.16.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0381" # webpki-roots
+reason = "webpki-roots is only in the lockfile, not actually selected"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0383" # webpki-root-certs
+reason = "webpki-root-certs is only in the lockfile, not actually selected"
