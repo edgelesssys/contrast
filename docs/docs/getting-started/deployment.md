@@ -508,7 +508,7 @@ contrast verify -c "${coordinator}:1313" -m manifest.json
 
 The CLI verifies the Coordinator via remote attestation using reference values from the provided manifest.
 This manifest must be distributed out-of-band to all parties performing verification, as the `verify` command checks whether the manifest currently active at the Coordinator matches the one supplied to the CLI.
-The manifest's reference values come from the Contrast CLI, see [Reproducible build](../howto/reproducible-build.md) for how to check it.
+The manifest's reference values come from the Contrast CLI, see [Reproducible build](../howto/reproducible-build.md).
 
 If verification succeeds, it confirms that the Coordinator is running in the expected Confidential Computing environment with the correct code version.
 The Coordinator then returns its configuration over a secure TLS channel.
