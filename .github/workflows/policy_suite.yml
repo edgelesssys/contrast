@@ -6,8 +6,10 @@ on:
     paths:
       - .github/workflows/policy_suite.yml
       - packages/by-name/kata/source/**
+      - packages/by-name/policy-test/**
       - packages/by-name/scripts/get-agent-rpcs/**
       - packages/by-name/scripts/normalize-agent-rpcs/**
+      - policy-test/**
 
 env:
   container_registry: ghcr.io/edgelesssys
