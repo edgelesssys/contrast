@@ -101,3 +101,7 @@ reason = "webpki-roots is only in the lockfile, not actually selected"
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0383" # webpki-root-certs
 reason = "webpki-root-certs is only in the lockfile, not actually selected"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0449" # unsafe-libyaml
+reason = "The crate is unmaintained. It's only used by the CDI crate, which parses trusted YAML."
