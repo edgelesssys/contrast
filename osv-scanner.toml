@@ -53,3 +53,23 @@ reason = "DoS vector only, and only relevant to genpolicy. Waiting for kata upda
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0285" # rustls
 reason = "minor information disclosure through unencrypted handshake content, not a vulnerability for Contrast"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0338" # quinn-proto
+reason = "quinn-proto is only in the lockfile, not actually selected"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0339" # quinn-proto
+reason = "quinn-proto is only in the lockfile, not actually selected"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0340" # quinn-proto
+reason = "quinn-proto is only in the lockfile, not actually selected"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0341" # quinn-proto
+reason = "quinn-proto is only in the lockfile, not actually selected"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0342" # quinn-proto
+reason = "quinn-proto is only in the lockfile, not actually selected"
