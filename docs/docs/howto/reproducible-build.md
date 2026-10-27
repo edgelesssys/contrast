@@ -62,6 +62,7 @@ cmp result/bin/contrast ../contrast
 ```
 
 `cmp` prints nothing if the binaries are identical.
+`nix build` produces the CLI for the platform you run it on, so run this step on macOS to check the macOS CLI.
 
 ### Deployment files
 
