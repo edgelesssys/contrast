@@ -105,3 +105,15 @@ reason = "webpki-root-certs is only in the lockfile, not actually selected"
 [[IgnoredVulns]]
 id = "RUSTSEC-2024-0449" # unsafe-libyaml
 reason = "The crate is unmaintained. It's only used by the CDI crate, which parses trusted YAML."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0370" # zvariant
+reason = "The crate is unmaintained. The agent only includes it through the zbus crate, which remains maintained."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0371" # zbus_names
+reason = "The crate is unmaintained. The agent only includes it through the zbus crate, which remains maintained."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0372" # zvariant_derive
+reason = "The crate is unmaintained. The agent only includes it through the zbus crate, which remains maintained."
