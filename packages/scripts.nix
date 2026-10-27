@@ -312,9 +312,9 @@
       link_target="$repo_url/download/$VERSION/"
       find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i -r "s#$link_source#$link_target#g" {} \;
 
-      # Replace latest release lookups with the versioned release.
-      version_source='\$\(gh release view --repo edgelesssys/contrast --json tagName -q \.tagName\)'
-      find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i -r "s#$version_source#$VERSION#g" {} \;
+      # Pin the release version in the verification instructions, also replacing a previous patch release.
+      version_source='^version=(\$\(gh release view --repo edgelesssys/contrast --json tagName -q \.tagName\)|v[0-9]+\.[0-9]+\.[0-9]+)$'
+      find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i -r "s#$version_source#version=$VERSION#" {} \;
     '';
   };
 
