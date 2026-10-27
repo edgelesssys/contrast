@@ -226,7 +226,7 @@ func TestVerifyNoSharedFSMount(t *testing.T) {
 			toVerifySlice, err := kuberesource.UnmarshalApplyConfigurations([]byte(tc.k8sObjectYAML))
 			require.NoError(err)
 
-			verifier := verifier.NoSharedFSMount{}
+			verifier := verifier.ContrastPodSpecVerifier(verifier.NoSharedFSMount)
 
 			for _, toVerify := range toVerifySlice {
 				err := verifier.Verify(toVerify)

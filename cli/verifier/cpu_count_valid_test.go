@@ -88,7 +88,7 @@ func TestCPUCountValid(t *testing.T) {
 			toVerifySlice, err := kuberesource.UnmarshalApplyConfigurations([]byte(tc.k8sYaml))
 			require.NoError(err)
 
-			verifier := verifier.CPUCountValid{}
+			verifier := verifier.ContrastPodSpecVerifier(verifier.CPUCountValid)
 
 			for _, toVerify := range toVerifySlice {
 				err := verifier.Verify(toVerify)
