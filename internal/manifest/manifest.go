@@ -17,12 +17,12 @@ import (
 	"github.com/edgelesssys/contrast/internal/idblock"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	snpmeasure "github.com/edgelesssys/contrast/internal/snp"
-	"github.com/google/go-sev-guest/kds"
-	snpvalidate "github.com/google/go-sev-guest/validate"
-	snpverify "github.com/google/go-sev-guest/verify"
-	"github.com/google/go-tdx-guest/pcs"
-	tdxvalidate "github.com/google/go-tdx-guest/validate"
-	tdxverify "github.com/google/go-tdx-guest/verify"
+	"github.com/edgelesssys/go-sev-guest/kds"
+	snpvalidate "github.com/edgelesssys/go-sev-guest/validate"
+	snpverify "github.com/edgelesssys/go-sev-guest/verify"
+	"github.com/edgelesssys/go-tdx-guest/pcs"
+	tdxvalidate "github.com/edgelesssys/go-tdx-guest/validate"
+	tdxverify "github.com/edgelesssys/go-tdx-guest/verify"
 )
 
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.

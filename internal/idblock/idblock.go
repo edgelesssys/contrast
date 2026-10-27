@@ -14,7 +14,7 @@ import (
 	"slices"
 
 	"filippo.io/nistec"
-	"github.com/google/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/abi"
 )
 
 const p384CoordSize = 48

@@ -6,8 +6,8 @@ package validator
 import (
 	"fmt"
 
-	"github.com/google/go-sev-guest/abi"
-	"github.com/google/go-sev-guest/client"
+	"github.com/edgelesssys/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/client"
 )
 
 // snpDigestGetter obtains the expected initdata digest from HOSTDATA.

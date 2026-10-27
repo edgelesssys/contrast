@@ -14,8 +14,8 @@ import (
 	"slices"
 
 	"github.com/edgelesssys/contrast/internal/attestation/tdx/qgs"
-	"github.com/google/go-tdx-guest/pcs"
-	"github.com/google/go-tdx-guest/proto/tdx"
+	"github.com/edgelesssys/go-tdx-guest/pcs"
+	"github.com/edgelesssys/go-tdx-guest/proto/tdx"
 	"github.com/mdlayher/vsock"
 )
 

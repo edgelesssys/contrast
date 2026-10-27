@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/atls/validators"
-	"github.com/google/go-tdx-guest/proto/tdx"
-	"github.com/google/go-tdx-guest/validate"
+	"github.com/edgelesssys/go-tdx-guest/proto/tdx"
+	"github.com/edgelesssys/go-tdx-guest/validate"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 )

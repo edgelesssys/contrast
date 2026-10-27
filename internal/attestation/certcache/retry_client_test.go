@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-tdx-guest/verify/trust"
+	"github.com/edgelesssys/go-tdx-guest/verify/trust"
 	"github.com/stretchr/testify/assert"
 	testingclock "k8s.io/utils/clock/testing"
 )

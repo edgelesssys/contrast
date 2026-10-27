@@ -168,7 +168,7 @@ func TestKDSPCSDowntime(t *testing.T) {
 		// TODO(davidweisse): This test is broken as well as the CRL fetching logic in go-sev-guest.
 		// The context when fetching the CRL is not properly propagated in the library, causing failures during attestation
 		// when the CLI can't reach the KDS (see
-		// https://github.com/google/go-sev-guest/blob/af1c107a648f47253da23a9de7a7c82ec073cfdb/verify/verify.go#L714).
+		// https://github.com/edgelesssys/go-sev-guest/blob/af1c107a648f47253da23a9de7a7c82ec073cfdb/verify/verify.go#L714).
 		// On top of that, connection pooling in the CachedHTTPSGetter makes it so that once the CLI has successfully connected
 		// to the KDS via the proxy once, the proxy's ConnectDial is not called for subsequent requests to the KDS,
 		// so the following verify will always try to connect to the KDS directly. If this test would work correctly,

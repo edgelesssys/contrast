@@ -4,10 +4,6 @@ go 1.26.0
 
 replace github.com/edgelesssys/contrast => ../
 
-replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd
-
-replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20261013132829-7a9ace10598e
-
 require (
 	github.com/edgelesssys/contrast v1.22.0
 	github.com/evanphx/json-patch/v5 v5.9.11
@@ -24,6 +20,8 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/docker/cli v29.7.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.3 // indirect
+	github.com/edgelesssys/go-sev-guest v0.0.0-20261027073724-e4b917838318 // indirect
+	github.com/edgelesssys/go-tdx-guest v0.0.0-20261027073737-15e4e62a1ff7 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
@@ -44,8 +42,6 @@ require (
 	github.com/gobwas/glob v1.0.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
-	github.com/google/go-sev-guest v0.15.0 // indirect
-	github.com/google/go-tdx-guest v0.3.2-0.20261014222600-23b3eac9db39 // indirect
 	github.com/google/logger v1.1.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

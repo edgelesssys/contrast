@@ -20,12 +20,12 @@ import (
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/oid"
-	snpabi "github.com/google/go-sev-guest/abi"
-	"github.com/google/go-sev-guest/client"
-	"github.com/google/go-sev-guest/kds"
-	spb "github.com/google/go-sev-guest/proto/sevsnp"
-	"github.com/google/go-sev-guest/verify"
-	"github.com/google/go-sev-guest/verify/trust"
+	snpabi "github.com/edgelesssys/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/client"
+	"github.com/edgelesssys/go-sev-guest/kds"
+	spb "github.com/edgelesssys/go-sev-guest/proto/sevsnp"
+	"github.com/edgelesssys/go-sev-guest/verify"
+	"github.com/edgelesssys/go-sev-guest/verify/trust"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"k8s.io/utils/clock"
@@ -147,7 +147,7 @@ func (i *Issuer) getAttestationWithoutCertChain(report *spb.Report) *spb.Attesta
 func (i *Issuer) getProduct() *spb.SevProduct {
 	product := snpabi.SevProduct()
 	i.logger.Info("cpuid product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
-	// Host cpuid can result in incorrect stepping: https://github.com/google/go-sev-guest/issues/115
+	// Host cpuid can result in incorrect stepping: https://github.com/edgelesssys/go-sev-guest/issues/115
 	product.MachineStepping = &wrapperspb.UInt32Value{Value: 0}
 	i.logger.Info("patched product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
 	return product
@@ -172,7 +172,7 @@ func getCRLforAttestation(ctx context.Context, att *spb.Attestation, kdsGetter t
 }
 
 // getQuoteProvider returns the first supported quote provider.
-// This is the improved version of https://pkg.go.dev/github.com/google/go-sev-guest@v0.11.1/client#GetQuoteProvider,
+// This is the improved version of https://pkg.go.dev/github.com/edgelesssys/go-sev-guest@v0.11.1/client#GetQuoteProvider,
 // with a check for ioctl support and logging.
 func getQuoteProvider(logger *slog.Logger) (client.QuoteProvider, error) {
 	var provider client.QuoteProvider

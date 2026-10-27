@@ -1,7 +1,7 @@
-github.com/edgelesssys/go-sev-guest v0.0.0-20261013132829-7a9ace10598e h1:5SFAZ8YbRNyQydHjHe/2qlrW6/efaQhXeUfSCjReXbQ=
-github.com/edgelesssys/go-sev-guest v0.0.0-20261013132829-7a9ace10598e/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
-github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd h1:6vFdIP4C0KZRR6Rq7xtzjQx8rMu9/UKrYY/+5xwgavw=
-github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd/go.mod h1:uHy3VaNXNXhl0fiPxKqTxieeouqQmW6A0EfLcaeCYBk=
+github.com/edgelesssys/go-sev-guest v0.0.0-20261027073724-e4b917838318 h1:lbPhdfDk17MqI6DG9HWuW83SDMjZBbnX1L1Qk6neK68=
+github.com/edgelesssys/go-sev-guest v0.0.0-20261027073724-e4b917838318/go.mod h1:ojWw3Hyi6/QO3lnrRmlbljp/qpW32ypta3BNwJecWgc=
+github.com/edgelesssys/go-tdx-guest v0.0.0-20261027073737-15e4e62a1ff7 h1:PeF1Rp0+vmPFautFESRff+qTxnL4sqwqjJaLJfsOmxc=
+github.com/edgelesssys/go-tdx-guest v0.0.0-20261027073737-15e4e62a1ff7/go.mod h1:1Az13gGYxdKJ8G650/I4qiYSfAMx+e6BAuyMZmP2mYM=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/google/go-configfs-tsm v0.3.3 h1:8mrlZLYrFFxyc8PFpT1piBUFDEYBVsBjAkFCwqQ2f9Y=

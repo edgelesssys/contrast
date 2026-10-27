@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"slices"
 
-	snpclient "github.com/google/go-sev-guest/client"
-	tdxclient "github.com/google/go-tdx-guest/client"
+	snpclient "github.com/edgelesssys/go-sev-guest/client"
+	tdxclient "github.com/edgelesssys/go-tdx-guest/client"
 )
 
 // Validator compares an incoming initdata hash with HOSTDATA or MRCONFIGID, depending in the platform.

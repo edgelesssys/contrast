@@ -6,9 +6,9 @@ package validator
 import (
 	"fmt"
 
-	"github.com/google/go-tdx-guest/abi"
-	"github.com/google/go-tdx-guest/client"
-	"github.com/google/go-tdx-guest/proto/tdx"
+	"github.com/edgelesssys/go-tdx-guest/abi"
+	"github.com/edgelesssys/go-tdx-guest/client"
+	"github.com/edgelesssys/go-tdx-guest/proto/tdx"
 )
 
 // tdxDigestGetter obtains the expected initdata digest from MRCONFIGID.

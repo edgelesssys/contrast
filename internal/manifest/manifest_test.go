@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/go-sev-guest/abi"
-	"github.com/google/go-sev-guest/kds"
+	"github.com/edgelesssys/go-sev-guest/abi"
+	"github.com/edgelesssys/go-sev-guest/kds"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

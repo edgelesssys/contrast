@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/google/go-tdx-guest/verify"
+	"github.com/edgelesssys/go-tdx-guest/verify"
 )
 
 type messageType = uint32
@@ -230,7 +230,7 @@ func (r *GetCollateralResponse) ToTDXGuest() (*verify.Collateral, error) {
 //   - One of the certificates (i.e. root) signs the other one (i.e. intermediate).
 //
 // This is in line with the go-tdx-guest implementation, but does not make ordering assumptions:
-// https://github.com/google/go-tdx-guest/blob/32866d7/verify/verify.go#L305
+// https://github.com/edgelesssys/go-tdx-guest/blob/32866d7/verify/verify.go#L305
 func parseCertificateChain(pemChain []byte) (root, intermediate *x509.Certificate, retErr error) {
 	certs := []*x509.Certificate{}
 
