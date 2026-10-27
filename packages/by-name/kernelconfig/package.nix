@@ -20,7 +20,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-5BqvuvCMxJEgh6bYft+54oiMKxjXhxfcYfFaBZc+SMo=";
+  vendorHash = "sha256-+DGj2D4lekC0kuq3jypZ+3Tqa9LXi3PbjbsJYpVhoc4=";
 
   sourceRoot = "${finalAttrs.src.name}/tools/kernelconfig";
 
