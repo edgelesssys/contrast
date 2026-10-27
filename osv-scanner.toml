@@ -85,3 +85,7 @@ reason = "Only affects rustls' non-default brotli feature, which is not enabled.
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0349" # rustls
 reason = "downgrade to classical handshake in genpolicy TLS" # TODO(CON-437): DROP with Kata 4.3, which upgrades rustls to 0.23.46.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0386" # tokio
+reason = "AsyncFd::new is used by PipeStream, which gets a valid file descriptor in all code paths"
