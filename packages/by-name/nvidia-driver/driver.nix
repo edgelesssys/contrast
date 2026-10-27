@@ -13,9 +13,9 @@
 (
   (nvidiaPackages.mkDriver rec {
     url = "https://us.download.nvidia.com/tesla/${version}/NVIDIA-Linux-x86_64-${version}.run";
-    version = "610.57.04";
-    sha256_64bit = "sha256-suk1xmuDuwDAyFe8jg7g/VLekoa0DJzB7sKafOfrEW0=";
-    openSha256 = "sha256-rQHOOOY4KL92Ww3KDwh+j4eGU7oNAH8LutZC5wmFnPo=";
+    version = "615.71.10";
+    sha256_64bit = "sha256-+6pCB5aFEOnICxmjOI0TMrAzBUvn/NyZ7PnM/Iol5n4=";
+    openSha256 = "sha256-rHR/hrttybxgXXI4/3JDnjdTuv5fqv7kAwCSAEwXQoE=";
     # Persistenced release isn't guaranteed to exist for the driver versions we are using, so follow production.
     persistencedVersion = nvidiaPackages.production.persistenced.version;
     persistencedSha256 = nvidiaPackages.production.persistenced.src.outputHash;
