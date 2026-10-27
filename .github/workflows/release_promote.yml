@@ -200,6 +200,27 @@ jobs:
             echo "::error::Nightly ref ${REF} is not on ${RELEASE_BRANCH} (compare status: ${status})."
             exit 1
           fi
+      - name: Checkout nightly ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.nightly-info.outputs.nightly_ref }}
+          path: nightly
+          persist-credentials: false
+      - name: Bump Go module versions to release version
+        if: hashFiles('nightly/sdk/go.mod') != ''
+        uses: ./.github/actions/bump_version
+        with:
+          version: ${{ steps.version-info.outputs.without_v }}
+          working-directory: nightly
+          commit: false
+      - name: Verify Go module versions of nightly ref
+        if: hashFiles('nightly/sdk/go.mod') != ''
+        working-directory: nightly
+        run: |
+          if ! git diff --exit-code -- go.mod '*/go.mod'; then
+            echo "::error::The go.mod files at the nightly ref don't require the module versions of this release, see diff above."
+            exit 1
+          fi
 
   promote:
     name: Promote nightly artifacts to release
@@ -397,3 +418,50 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
         run: gh release verify "${VERSION}" --repo "${{ github.repository }}"
+
+  prepare-release-branch-pr:
+    name: Prepare post-release PR to release branch
+    runs-on: ubuntu-24.04
+    needs: [prepare, publish]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Checkout release branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
+          path: contrast-release
+          persist-credentials: false
+      - name: Determine next patch pre-version
+        id: next-patch
+        env:
+          WITHOUT_V: ${{ needs.prepare.outputs.WITHOUT_V }}
+        run: echo "value=${WITHOUT_V%.*}.$((${WITHOUT_V##*.} + 1))-pre" | tee -a "$GITHUB_OUTPUT"
+      - name: Bump release branch to next patch pre-version
+        if: hashFiles('contrast-release/sdk/go.mod') != ''
+        id: bump
+        uses: ./.github/actions/bump_version
+        with:
+          version: ${{ steps.next-patch.outputs.value }}
+          working-directory: contrast-release
+          commit: false
+      - name: Create PR
+        if: hashFiles('contrast-release/sdk/go.mod') != ''
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          title: Post ${{ needs.prepare.outputs.WITHOUT_V }} release updates to ${{ needs.prepare.outputs.RELEASE_BRANCH }}
+          body: |
+            Bumping ${{ needs.prepare.outputs.RELEASE_BRANCH }} to ${{ steps.next-patch.outputs.value }} as part of the ${{ needs.prepare.outputs.WITHOUT_V }} release.
+            Merge before cutting the next patch nightly.
+          commit-message: ${{ steps.bump.outputs.commit-msg }}
+          base: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
+          draft: false
+          labels: "no changelog"
+          branch: automated/update-${{ needs.prepare.outputs.RELEASE_BRANCH }}-after-${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+          committer: edgelessci <edgelessci@users.noreply.github.com>
+          author: edgelessci <edgelessci@users.noreply.github.com>
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+          path: ./contrast-release
