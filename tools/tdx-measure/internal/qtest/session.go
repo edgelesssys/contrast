@@ -130,13 +130,13 @@ func stopProcess(process *os.Process, processDone <-chan error) error {
 		return fmt.Errorf("terminating QEMU: %w", err)
 	}
 	select {
-	case <-processDone:
+	case <-processDone: //nolint:errcheck // QEMU exiting with an error after SIGTERM is expected.
 		return nil
 	case <-time.After(10 * time.Second):
 		if err := process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
 			return fmt.Errorf("killing QEMU after timeout: %w", err)
 		}
-		<-processDone
+		<-processDone //nolint:errcheck // QEMU exiting with an error after SIGKILL is expected.
 		return nil
 	}
 }

@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash"
 	"log/slog"
 	"sync"
 )
@@ -22,7 +21,7 @@ const (
 	HashSize = sha256.Size
 )
 
-var hashFun func() hash.Hash = sha256.New
+var hashFun = sha256.New
 
 // History is the history of the Coordinator.
 //

@@ -14,7 +14,7 @@ import (
 	"github.com/open-policy-agent/opa/v1/rego"
 	"github.com/open-policy-agent/opa/v1/storage"
 	"github.com/open-policy-agent/opa/v1/storage/inmem"
-	"github.com/open-policy-agent/opa/v1/topdown/print"
+	opaprint "github.com/open-policy-agent/opa/v1/topdown/print"
 )
 
 type OPAPolicy struct {
@@ -73,7 +73,7 @@ type collectingPrintHook struct {
 	messages []string
 }
 
-func (p *collectingPrintHook) Print(_ print.Context, msg string) error {
+func (p *collectingPrintHook) Print(_ opaprint.Context, msg string) error {
 	p.messages = append(p.messages, msg)
 	return nil
 }
