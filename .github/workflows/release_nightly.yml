@@ -32,7 +32,6 @@ jobs:
       WITHOUT_V: ${{ steps.version-info.outputs.without_v }}
       MAJOR_MINOR_PATCH: ${{ steps.version-info.outputs.major_minor_patch }}
       RELEASE_BRANCH: ${{ steps.version-info.outputs.release_branch }}
-      WORKING_BRANCH: ${{ steps.branch.outputs.value }}
       SKIP_PLATFORMS: ${{ steps.platforms.outputs.skip_platforms }}
       RELEASE_TEST_PLATFORMS: ${{ steps.platforms.outputs.release_test_platforms }}
       PREVIOUS_TAG: ${{ steps.kind.outputs.value == 'patch' && steps.version-info.outputs.previous_patch_tag || steps.version-info.outputs.previous_minor_tag }}
@@ -130,17 +129,18 @@ jobs:
       LOG_COLLECTOR_IMAGE: ${{ steps.build.outputs.log_collector_image }}
       ARTIFACTS_URL: ${{ steps.build.outputs.s3-bucket-url }}
     steps:
+      # All jobs check out github.sha, which stays fixed across reruns, so they build and test the same tree. See the test job.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: ./.github/actions/release_build_linux
         id: build
         with:
           effective_version: ${{ needs.process-inputs.outputs.EFFECTIVE_VERSION }}
           without_v: ${{ needs.process-inputs.outputs.WITHOUT_V }}
-          working_branch: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          target_commitish: ${{ github.sha }}
           container_registry: ${{ env.container_registry }}
           previous_tag: ${{ needs.process-inputs.outputs.PREVIOUS_TAG }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -156,7 +156,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: ./.github/actions/release_build_darwin
         with:
@@ -212,9 +212,11 @@ jobs:
       id-token: write
     needs: [process-inputs, release-x86_64-linux, release-aarch64-darwin, nightly]
     steps:
+      # Pin to the commit the build jobs built and pushed to cachix.
+      # These jobs can start hours later, and the branch tip may have moved on by then, so darwin runners would need x86_64-linux derivations that were never cached.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: ./.github/actions/release_e2e_test
         with:
