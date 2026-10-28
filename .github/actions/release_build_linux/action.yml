@@ -1,6 +1,6 @@
 name: Build and push release artifacts (x86_64-linux)
 description: >
-  Builds container images and CLI, and creates the draft release. Assumes the workspace is already checked out to the working/release ref.
+  Builds container images and CLI, and creates the draft release. Assumes the workspace is already checked out to the commit given as target_commitish.
 inputs:
   effective_version:
     description: Full release tag, e.g. v1.2.3 or v1.2.3-2024-01-01
@@ -8,8 +8,8 @@ inputs:
   without_v:
     description: Base version without v prefix, e.g. 1.2.3
     required: true
-  working_branch:
-    description: Working branch or ref name, used as release target and for git reset
+  target_commitish:
+    description: Commit the draft release targets. Must be the commit that was checked out and built.
     required: true
   container_registry:
     description: Container registry to push images to
@@ -117,6 +117,6 @@ runs:
         generate_release_notes: true
         tag_name: ${{ inputs.effective_version }}
         previous_tag: ${{ inputs.previous_tag }}
-        target_commitish: ${{ inputs.working_branch }}
+        target_commitish: ${{ inputs.target_commitish }}
         fail_on_unmatched_files: true
         files: ${{ steps.create-artifacts.outputs.paths }}
