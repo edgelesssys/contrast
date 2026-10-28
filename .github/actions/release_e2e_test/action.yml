@@ -1,6 +1,6 @@
 name: e2e release test
 description: >
-  Runs the e2e release tests for a single platform. Assumes the workspace is already checked out to the release ref.
+  Runs the e2e release tests for a single platform. Assumes the workspace is already checked out to the commit the build jobs built.
 inputs:
   version:
     description: Release tag to test against, e.g. v1.2.3
