@@ -54,7 +54,6 @@ runs:
       id: create-artifacts
       uses: ./.github/actions/release_artifacts
       with:
-        version: v${{ inputs.without_v }}
         image_tag: ${{ inputs.effective_version }}
         container_registry: ${{ inputs.container_registry }}
         s3-bucket-path: pre-releases/${{ inputs.effective_version }}
