@@ -36,15 +36,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Get pre-release version
-        id: get-version
-        run: |
-          echo "version=$(cat version.txt)" | tee -a "$GITHUB_OUTPUT"
       - name: Create release artifacts
         id: create-artifacts
         uses: ./.github/actions/release_artifacts
         with:
-          version: ${{ steps.get-version.outputs.version }}
           container_registry: ghcr.io/edgelesssys
           s3-bucket-path: "pr-artifacts"
 

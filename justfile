@@ -630,6 +630,25 @@ demodir version="latest": undeploy
     v="$(echo {{ version }} | sed 's/\./-/g')"
     nix develop -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_DIFF -u DIRENV_WATCHES .#base.demo-$v
 
+push-release-images:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -f ./{{ workspace_dir }}/just.containerlookup
+    images=(
+      coordinator
+      initializer
+      service-mesh-proxy
+      debugshell
+      node-installer-kata
+      node-installer-kata-gpu
+    )
+    for image in "${images[@]}"; do
+      just push "$image"
+    done
+    # Insert the release version into the image references.
+    version="v$(cat version.txt)"
+    sed -i "s/@/:$version@/" ./{{ workspace_dir }}/just.containerlookup
+
 # Remove deployment specific files.
 soft-clean: undeploy
     rm -rf ./{{ workspace_dir }}

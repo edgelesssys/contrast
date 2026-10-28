@@ -2,9 +2,6 @@ name: create release artifacts
 description: Create release artifacts for the contrast project
 
 inputs:
-  version:
-    description: Version of the release
-    required: true
   image_tag:
     description: >
       Tag to push the container images under. Nightlies pass their date-suffixed version so they don't move the tag of an already published release.
@@ -28,79 +25,24 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Push containers
-      id: push-containers
+    - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+    - name: Create justfile.env
       shell: bash
       env:
         CONTAINER_REGISTRY: ${{ inputs.container_registry }}
-        CONTRAST_IMAGE_TAG: ${{ inputs.image_tag }}
         SET: base
       run: |
-        set -u
-        coordinatorImg=$(nix run ".#${SET}.scripts.containers.push-coordinator" -- "${CONTAINER_REGISTRY}/contrast/coordinator")
-        nodeInstallerKataImg=$(nix run ".#${SET}.scripts.containers.push-node-installer-kata" -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata")
-        nodeInstallerKataGPUImg=$(nix run ".#${SET}.scripts.containers.push-node-installer-kata-gpu" -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
-        initializerImg=$(nix run ".#${SET}.scripts.containers.push-initializer" -- "${CONTAINER_REGISTRY}/contrast/initializer")
-        serviceMeshImg=$(nix run ".#${SET}.scripts.containers.push-service-mesh-proxy" -- "${CONTAINER_REGISTRY}/contrast/service-mesh-proxy")
-        debugShellImg=$(nix run ".#${SET}.scripts.containers.push-debugshell" -- "${CONTAINER_REGISTRY}/contrast/debugshell")
-        echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_OUTPUT"
-        echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_OUTPUT"
-        echo "nodeInstallerKataGPUImg=$nodeInstallerKataGPUImg" | tee -a "$GITHUB_OUTPUT"
-        echo "initializerImg=$initializerImg" | tee -a "$GITHUB_OUTPUT"
-        echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_OUTPUT"
-        echo "debugShellImg=$debugShellImg" | tee -a "$GITHUB_OUTPUT"
-    - name: Add tags to container images
-      id: tag-containers
-      shell: bash
-      env:
-        VERSION: ${{ inputs.version }}
-        coordinatorImg: ${{ steps.push-containers.outputs.coordinatorImg }}
-        nodeInstallerKataImg: ${{ steps.push-containers.outputs.nodeInstallerKataImg }}
-        nodeInstallerKataGPUImg: ${{ steps.push-containers.outputs.nodeInstallerKataGPUImg }}
-        initializerImg: ${{ steps.push-containers.outputs.initializerImg }}
-        serviceMeshImg: ${{ steps.push-containers.outputs.serviceMeshImg }}
-        debugShellImg: ${{ steps.push-containers.outputs.debugShellImg }}
-      run: |
-        set -u
-        # Insert a tag into a container image name.
-        tag() {
-          tag="$1"
-          front="${2%@*}"
-          back="${2#*@}"
-          printf "%s:%s@%s" "$front" "$tag" "$back"
-        }
-
-        # Insert the Contrast version as tag into a container image name.
-        tagContrast() {
-          tag "${VERSION}" "$@"
-        }
-
-        echo "coordinatorImgTagged=$(tagContrast "$coordinatorImg")" | tee -a "$GITHUB_OUTPUT"
-        echo "nodeInstallerKataImgTagged=$(tagContrast "$nodeInstallerKataImg")" | tee -a "$GITHUB_OUTPUT"
-        echo "nodeInstallerKataGPUImgTagged=$(tagContrast "$nodeInstallerKataGPUImg")" | tee -a "$GITHUB_OUTPUT"
-        echo "initializerImgTagged=$(tagContrast "$initializerImg")" | tee -a "$GITHUB_OUTPUT"
-        echo "serviceMeshImgTagged=$(tagContrast "$serviceMeshImg")" | tee -a "$GITHUB_OUTPUT"
-        echo "debugShellImgTagged=$(tagContrast "$debugShellImg")" | tee -a "$GITHUB_OUTPUT"
-    - name: Create file with image replacements
-      shell: bash
-      env:
-        coordinatorImgTagged: ${{ steps.tag-containers.outputs.coordinatorImgTagged }}
-        initializerImgTagged: ${{ steps.tag-containers.outputs.initializerImgTagged }}
-        serviceMeshImgTagged: ${{ steps.tag-containers.outputs.serviceMeshImgTagged }}
-        nodeInstallerMsftImgTagged: ${{ steps.tag-containers.outputs.nodeInstallerMsftImgTagged }}
-        nodeInstallerKataImgTagged: ${{ steps.tag-containers.outputs.nodeInstallerKataImgTagged }}
-        nodeInstallerKataGPUImgTagged: ${{ steps.tag-containers.outputs.nodeInstallerKataGPUImgTagged }}
-        debugShellImgTagged: ${{ steps.tag-containers.outputs.debugShellImgTagged }}
-      run: |
-        set -u
-        cat > image-replacements.txt <<EOF
-        ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged
-        ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged
-        ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged
-        ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
-        ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
-        ghcr.io/edgelesssys/contrast/debugshell:latest=$debugShellImgTagged
+        cat <<EOF > justfile.env
+        container_registry=${CONTAINER_REGISTRY}
+        set=${SET}
         EOF
+    - name: Push containers
+      shell: bash
+      env:
+        CONTRAST_IMAGE_TAG: ${{ inputs.image_tag }}
+      run: |
+        just push-release-images
+        mv workspace/just.containerlookup image-replacements.txt
     - name: Upload image replacement file (for main branch PR)
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
