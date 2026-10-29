@@ -29,10 +29,10 @@ runs:
         SBOM_PATH: ${{ inputs.sbom-path }}
       run: |
         cli=$(cd result && pwd -P)
-        hash=$(nix-hash --type sha256 "$cli")
-        jq -e --arg ref "${cli##*/}" --arg hash "$hash" '
+        hash=$(nix-hash --type sha256 --base32 "$cli")
+        jq -e --arg ref "${cli##*/}" --arg hash "sha256:$hash" '
           .components | any(
             .["bom-ref"] == $ref and
-            any(.hashes[]?; .alg == "SHA-256" and .content == $hash)
+            any(.properties[]?; .name == "nix:narinfo:nar_hash" and .value == $hash)
           )
         ' "$SBOM_PATH" > /dev/null
