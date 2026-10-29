@@ -45,11 +45,6 @@ runs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ inputs.github_token }}
-    - name: Configure git
-      shell: bash
-      run: |
-        git config --global user.name "edgelessci"
-        git config --global user.email "edgelessci@users.noreply.github.com"
     - name: Bump flake version to release version
       uses: ./.github/actions/bump_version
       with:

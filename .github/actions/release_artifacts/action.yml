@@ -109,10 +109,7 @@ runs:
           image-replacements.txt
     - name: Update cli assets
       shell: bash
-      run: |
-        cp image-replacements.txt cli/cmd/assets/image-replacements.txt
-        git add cli/cmd/assets/image-replacements.txt
-        git diff --staged --quiet || git commit -m "release: update cli assets"
+      run: cp image-replacements.txt cli/cmd/assets/image-replacements.txt
     - name: Expected artifact paths
       id: artifact-paths
       shell: bash
