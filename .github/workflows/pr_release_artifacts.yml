@@ -40,10 +40,6 @@ jobs:
         id: get-version
         run: |
           echo "version=$(cat version.txt)" | tee -a "$GITHUB_OUTPUT"
-      - name: Configure git
-        run: |
-          git config --global user.name "edgelessci"
-          git config --global user.email "edgelessci@users.noreply.github.com"
       - name: Create release artifacts
         id: create-artifacts
         uses: ./.github/actions/release_artifacts
