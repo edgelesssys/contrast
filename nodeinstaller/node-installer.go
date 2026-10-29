@@ -92,18 +92,28 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("installing imagepuller config: %w", err)
 	}
 
-	if err := containerdRuntimeConfig(runtimeBase, targetConf.KataConfigPath(), platform, config.QemuExtraKernelParams, imagepullerConfigPath, config.DebugRuntime); err != nil {
+	if err := writeKataConfig(runtimeBase, targetConf.KataConfigPath(), platform, config.QemuExtraKernelParams, imagepullerConfigPath, config.DebugRuntime); err != nil {
 		return fmt.Errorf("generating kata runtime configuration: %w", err)
 	}
 
-	containerdConf, err := containerdconfig.FromPath(targetConf.ContainerdConfigPath())
-	if err != nil {
-		return fmt.Errorf("loading containerd configuration from %q: %w", targetConf.ContainerdConfigPath(), err)
+	var containerdConfigPath string
+	var containerdConf *containerdconfig.Config
+	importDir := targetConf.ContainerdImportDir()
+	if importDir != "" {
+		containerdConfigPath = filepath.Join(importDir, runtimeHandler+".toml")
+		containerdConf, err = containerdconfig.FromImport(containerdConfigPath)
+		if err != nil {
+			return fmt.Errorf("loading containerd drop-in %q: %w", containerdConfigPath, err)
+		}
+	} else {
+		// If there's no drop-in dir, assume we should overwrite the global config.
+		containerdConfigPath = targetConf.ContainerdConfigPath()
+		containerdConf, err = containerdconfig.FromPath(containerdConfigPath)
+		if err != nil {
+			return fmt.Errorf("loading containerd configuration from %q: %w", containerdConfigPath, err)
+		}
 	}
-	if config.DebugRuntime {
-		// This only ever happens in development builds of the node-installer.
-		containerdConf.EnableDebug()
-	}
+
 	containerdRuntime, err := containerdconfig.ContrastRuntime(runtimeBase, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime fragment: %w", err)
@@ -112,12 +122,12 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("adding runtime to containerd config: %w", err)
 	}
 	if err := containerdConf.Write(); err != nil {
-		return fmt.Errorf("writing containerd config %q: %w", targetConf.ContainerdConfigPath(), err)
+		return fmt.Errorf("writing containerd config %q: %w", containerdConfigPath, err)
 	}
 
 	unitsToRestart := targetConf.SystemdUnitNames()
 	if len(unitsToRestart) > 0 {
-		if err := restartHostContainerd(ctx, targetConf.ContainerdConfigPath(), unitsToRestart); err != nil {
+		if err := restartHostContainerd(ctx, containerdConfigPath, unitsToRestart); err != nil {
 			return fmt.Errorf("restarting systemd unit: %w", err)
 		}
 	}
@@ -171,7 +181,8 @@ func envWithDefault(key, dflt string) string {
 	return value
 }
 
-func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams, imagepullerConfigPath string, debugRuntime bool) error {
+// writeKataConfig generates the Kata shim configuration file and writes it to configPath.
+func writeKataConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams, imagepullerConfigPath string, debugRuntime bool) error {
 	baseConfig, err := upstream.BaseConfig(platform)
 	if err != nil {
 		return fmt.Errorf("getting kata base config: %w", err)
@@ -197,7 +208,11 @@ func restartHostContainerd(ctx context.Context, containerdConfigPath string, ser
 	// Go through list of possible service names and check if one exists.
 	service := ""
 	for _, s := range serviceNames {
-		if hostServiceExists(ctx, s) {
+		found, err := hostServiceExists(ctx, s)
+		if err != nil {
+			return fmt.Errorf("looking up %q: %w", s, err)
+		}
+		if found {
 			service = s
 			break
 		}
@@ -244,9 +259,9 @@ func getSystemdServiceRestartTime(ctx context.Context, service string) (time.Tim
 	}
 	defer conn.Close()
 
-	property, err := conn.GetUnitPropertyContext(ctx, service, "ActiveEnterTimestamp")
+	property, err := conn.GetUnitTypePropertyContext(ctx, service, "Service", "ExecMainStartTimestamp")
 	if err != nil {
-		return time.Time{}, fmt.Errorf("getting property ActiveEnterTimestamp: %w", err)
+		return time.Time{}, fmt.Errorf("getting property ExecMainStartTimestamp: %w", err)
 	}
 
 	timestamp, ok := property.Value.Value().(uint64)
@@ -256,12 +271,15 @@ func getSystemdServiceRestartTime(ctx context.Context, service string) (time.Tim
 	return time.Unix(0, int64(timestamp)*1000), nil
 }
 
-func hostServiceExists(ctx context.Context, service string) bool {
-	if err := exec.CommandContext(ctx, "nsenter", "--target", "1", "--mount", "--",
-		"systemctl", "status", service).Run(); err != nil {
-		return false
+func hostServiceExists(ctx context.Context, service string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "nsenter", "--target", "1", "--mount", "--",
+		"systemctl", "show", "-P", "LoadState", service)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, err
 	}
-	return true
+	// We can assume UTF-8 here, if the string contains anything non-ASCII something went wrong anyway.
+	return strings.TrimSpace(string(out)) == "loaded", nil
 }
 
 type assetFetcher interface {

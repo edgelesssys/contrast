@@ -85,15 +85,15 @@ Apply this change by running `systemctl restart systemd-sysctl` and verify it us
 
 Contrast can be deployed with different Kubernetes distributions, provided that the following prerequisites are met:
 
-1. The Container Runtime Interface (CRI) implementation must be containerd.
-   Since older containerd versions [contain bugs that won't be fixed](../troubleshooting.md#contrast-attempts-to-pull-the-wrong-image-reference), we strongly recommend using v2.0.0 or higher.
+1. The Container Runtime Interface (CRI) implementation must be containerd `v2.0.0` or higher.
+   Note that the containerd `v1.7` line is unsupported as of October 2026.
 2. The node directory `/opt` must be writable and mustn't be mounted with `noexec`.
 
-The default configuration should work for a vanilla containerd installation.
-Other Kubernetes variants may need subtle tweaks.
-We'll show configurations for k3s and RKE2 below, see [the node installer configuration reference](../../reference/node-installer-configuration.md) for more details.
+The node installer needs to be configured for its target environment.
+Below are example configurations for common Kubernetes distributions, you can find all available settings in the [node installer configuration reference](../../reference/node-installer-configuration.md).
 
-### K3s
+<Tabs queryString="k8s-distro">
+<TabItem value="k3s" label="K3s">
 
 [K3s](https://k3s.io/) is a lightweight Kubernetes distribution that's easy to set up.
 
@@ -119,7 +119,8 @@ kubelet-arg:
 
 in `/etc/rancher/k3s/config.yaml`.
 
-### RKE2
+</TabItem>
+<TabItem value="rke2" label="RKE2">
 
 [RKE2](https://docs.rke2.io/) is Rancher's enterprise-ready next-generation Kubernetes distribution.
 
@@ -145,7 +146,47 @@ kubelet-arg:
 
 in `/etc/rancher/rke2/config.yaml`.
 
-<!-- TODO(burgerdev): add instructions for kubeadm and make the k8s distros tabs instead of sections. -->
+</TabItem>
+<TabItem value="generic" label="Generic">
+
+For other types of clusters, such as clusters installed with `kubeadm`, you will need to write a configuration file for the installer.
+First, identify the Systemd unit that controls containerd - this is often `containerd.service`.
+Next, find the configuration file for this containerd service.
+The default is `/etc/containerd/config.toml`.
+
+Now you'll need to decide where additional containerd runtime configuration should be installed.
+A conventional pattern is a directory `/etc/containerd/config.toml.d`.
+
+Create the Contrast node installer configuration in the `contrast-system` namespace.
+The script assumes the defaults introduced above, change them according to your node's layout.
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: contrast-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: contrast-node-installer-target-config
+  namespace: contrast-system
+data:
+  containerd-import-dir: etc/containerd/config.toml.d
+  systemd-unit-name: containerd.service
+EOF
+```
+
+</TabItem>
+</Tabs>
+
+:::warning
+
+If you don't configure the node installer with a `contrast-node-installer-target-config`, it will directly edit your containerd configuration.
+This backwards-compatible behavior is deprecated and will be removed in a future version!
+
+:::
 
 ## Preparing a cluster for GPU usage
 
