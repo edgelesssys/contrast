@@ -52,7 +52,7 @@
 
   openssl = contrastPkgs.buildOciImage {
     name = "openssl";
-    tag = "v${contrastPkgs.contrast.cli.version}";
+    tag = "v${contrastPkgs.contrast.contrast.version}";
     copyToRoot = with pkgs; [
       busybox
       openssl
@@ -66,7 +66,7 @@
 
   port-forwarder = contrastPkgs.buildOciImage {
     name = "port-forwarder";
-    tag = "v${contrastPkgs.contrast.cli.version}";
+    tag = "v${contrastPkgs.contrast.contrast.version}";
     copyToRoot = with pkgs; [
       bash
       socat
@@ -140,7 +140,7 @@
 
   debugshell = contrastPkgs.buildOciImage {
     name = "debugshell";
-    tag = contrastPkgs.contrast.contrast.version;
+    tag = "v${contrastPkgs.contrast.contrast.version}";
     copyToRoot = with pkgs; [
       busybox
       bash
