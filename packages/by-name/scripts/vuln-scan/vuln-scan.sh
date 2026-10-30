@@ -72,6 +72,13 @@ shopt -s nullglob
 findings=("$workdir"/findings-*.json)
 if [[ ${#findings[@]} -gt 0 ]]; then
   jq -s add "${findings[@]}" >"$workdir/findings.json"
+  # Attribute findings to the packages that vendor them, from the per-package SBOMs in VENDORED_SBOMS.
+  vendored=()
+  [[ -n ${VENDORED_SBOMS:-} ]] && vendored=("$VENDORED_SBOMS"/*.cdx.json)
+  if [[ ${#vendored[@]} -gt 0 ]]; then
+    jq -n --slurpfile findings "$workdir/findings.json" -f "$ATTRIBUTE_JQ" "${vendored[@]}" >"$workdir/attributed.json"
+    mv "$workdir/attributed.json" "$workdir/findings.json"
+  fi
   echo
   jq -r --arg format log --arg title "" -f "$RENDER_JQ" "$workdir/findings.json"
   if [[ -n ${GITHUB_STEP_SUMMARY:-} ]]; then

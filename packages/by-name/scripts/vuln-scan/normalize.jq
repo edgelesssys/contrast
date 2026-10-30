@@ -3,7 +3,8 @@
 # Args:
 #   $tool  "osv" or "vulnix", selecting the input format.
 #
-# Each finding is { tool, id, aliases, package, version, fixed, title, score, link }.
+# Each finding is { tool, id, aliases, package, version, fixed, components, title, score, link }.
+# components is filled in later by attribute.jq.
 
 # Shortens NVD descriptions, which are paragraphs rather than titles, to their first sentence.
 def first_sentence:
@@ -37,6 +38,7 @@ def osv_findings:
                 | unique
                 | map(select(vparts > $current))
                 | min_by(vparts)),
+        components: [],
         title: ($vulns[$id].summary // ""),
         score: (.max_severity | score),
         link: ("https://osv.dev/vulnerability/" + $id) } ];
@@ -50,6 +52,7 @@ def vulnix_findings:
         package: $p.pname,
         version: $p.version,
         fixed: null,
+        components: [],
         title: ($p.description[.] // "" | first_sentence),
         score: ($p.cvssv3_basescore[.] | score),
         link: ("https://nvd.nist.gov/vuln/detail/" + .) } ];

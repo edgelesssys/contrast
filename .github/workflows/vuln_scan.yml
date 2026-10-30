@@ -51,9 +51,12 @@ jobs:
         run: |
           path=$(nix build --no-link --print-out-paths ".#${SET}.sbom.${SBOM}")
           echo "path=${path}" >> "$GITHUB_OUTPUT"
+          vendored=$(nix build --no-link --print-out-paths ".#${SET}.sbom.${SBOM}.vendored")
+          echo "vendored=${vendored}" >> "$GITHUB_OUTPUT"
       - name: Scan SBOM for known vulnerabilities
         env:
           SBOM_PATH: ${{ steps.sbom.outputs.path }}
+          VENDORED_SBOMS: ${{ steps.sbom.outputs.vendored }}
         run: |
           nix run ".#${SET}.scripts.vuln-scan" -- \
             "${SBOM_PATH}" \
