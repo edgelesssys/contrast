@@ -14,6 +14,18 @@ def fixed_text: if .fixed == null then "-" else .fixed end;
 
 def components_text: if .components == [] then "" else "[\(.components | join(", "))] " end;
 
+# How the components use the package, one line per local package, falling back to the component names.
+# Long lists are collapsed so the table stays readable.
+def used_by_md:
+  (.paths // []) as $paths
+  | if $paths == [] then .components | join(", ")
+    else
+      ($paths | map(if .path[0] == .component then .path | join(" -> ")
+                     else "\(.component): \(.path | join(" -> "))" end)) as $lines
+      | if ($lines | length) <= 3 then $lines | join("<br>")
+        else "<details><summary>\($lines | length) paths in \(.components | join(", "))</summary>\($lines | join("<br>"))</details>" end
+    end;
+
 def md_escape: gsub("\\|"; "\\|") | gsub("\n"; " ");
 
 # Highest score first, findings without a score last.
@@ -40,7 +52,7 @@ def markdown:
     "| Score | ID | Package | Fixed in | Used by | Title | Tool |",
     "| ---: | --- | --- | --- | --- | --- | --- |",
     (ordered[]
-     | "| \(score_text) | [\(.id)](\(.link)) | `\(.package)@\(.version)` | \(fixed_text) | \(.components | join(", ")) | \(.title | truncate(200) | md_escape) | \(.tool) |")
+     | "| \(score_text) | [\(.id)](\(.link)) | `\(.package)@\(.version)` | \(fixed_text) | \(used_by_md) | \(.title | truncate(200) | md_escape) | \(.tool) |")
   end,
   "";
 
