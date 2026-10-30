@@ -42,6 +42,7 @@ in
       bombonVendoredSbom = buildCargoSbom {
         inherit (source) cargoNixPackage;
         member = "kata-agent";
+        inherit features;
       };
     };
     meta = (prev.meta or { }) // {

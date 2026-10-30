@@ -3,6 +3,7 @@
 
 {
   lib,
+  stdenv,
   writeTextDir,
 }:
 
@@ -10,25 +11,36 @@
   cargoNixPackage,
   member,
   pname ? member,
+  features,
 }:
 
 let
-  inherit (cargoNixPackage.internal) crates;
+  inherit (cargoNixPackage.internal)
+    crates
+    mergePackageFeatures
+    filterEnabledDependencies
+    makeDefaultTarget
+    ;
 
   crateOf = id: crates.${id};
   purlOf = c: "pkg:cargo/${c.crateName}@${c.version}";
 
-  depsOf =
-    c:
-    lib.filter (id: crates ? ${id}) (
-      map (d: d.packageId) ((c.dependencies or [ ]) ++ (c.buildDependencies or [ ]))
-    );
-  closure = builtins.genericClosure {
-    startSet = [ { key = member; } ];
-    operator = { key }: map (id: { key = id; }) (depsOf (crateOf key));
+  target = makeDefaultTarget stdenv.hostPlatform;
+  enabledFeatures = mergePackageFeatures {
+    packageId = member;
+    inherit features target;
   };
-  ids = map (e: e.key) closure;
-  inClosure = builtins.listToAttrs (map (id: lib.nameValuePair id true) ids);
+  ids = builtins.attrNames enabledFeatures;
+
+  depsOf =
+    id:
+    lib.unique (
+      map (d: d.packageId) (filterEnabledDependencies {
+        dependencies = ((crateOf id).dependencies or [ ]) ++ ((crateOf id).buildDependencies or [ ]);
+        features = enabledFeatures.${id};
+        inherit target;
+      })
+    );
 
   metaOf =
     c:
@@ -90,18 +102,6 @@ let
 
   rootCrate = crateOf member;
 
-  # Edges to every resolved dependency whose target crate is also in the closure.
-  dependsOn =
-    id:
-    let
-      c = crateOf id;
-    in
-    lib.unique (
-      map (d: d.packageId) (
-        lib.filter (d: inClosure ? ${d.packageId}) ((c.dependencies or [ ]) ++ (c.buildDependencies or [ ]))
-      )
-    );
-
   bom = {
     "$schema" = "http://cyclonedx.org/schema/bom-1.5.schema.json";
     bomFormat = "CycloneDX";
@@ -118,7 +118,7 @@ let
     components = map mkComponent (lib.filter (id: id != member) ids);
     dependencies = map (id: {
       ref = id;
-      dependsOn = dependsOn id;
+      dependsOn = depsOf id;
     }) ids;
   };
 in
