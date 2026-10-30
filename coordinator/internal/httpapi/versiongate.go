@@ -13,9 +13,6 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/userapi"
 )
 
-// errAPIVersionTooOld rejects requests below the manifest's pinned minimum API version.
-var errAPIVersionTooOld = errors.New("API version rejected by the manifest")
-
 // APIVersionGate wraps an HTTP API endpoint and enforces the minimum API version optionally
 // pinned in the deployment's manifest.
 //
@@ -64,7 +61,7 @@ func (g *APIVersionGate) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			requested = "the unversioned legacy API"
 		}
 		writeJSONError(w, http.StatusNotAcceptable,
-			fmt.Errorf("%w: the manifest requires at least API version %s, but the request used %s", errAPIVersionTooOld, pin, requested))
+			fmt.Errorf("%w: the manifest requires at least API version %s, but the request used %s", userapi.ErrAPIVersionTooOld, pin, requested))
 		return
 	}
 	g.Next.ServeHTTP(w, r)
