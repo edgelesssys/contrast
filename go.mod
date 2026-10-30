@@ -15,7 +15,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/google/go-configfs-tsm v0.3.3
 	github.com/google/go-containerregistry v0.22.1
-	github.com/google/go-github/v93 v93.0.0
+	github.com/google/go-github/v85 v85.0.0
 	github.com/google/logger v1.1.2
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.1
 	github.com/klauspost/cpuid/v2 v2.4.1
