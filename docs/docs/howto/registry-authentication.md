@@ -34,9 +34,9 @@ registry="<put registry here>"
 user="<put user id here>"
 password="<put client secret here>"
 
-export DOCKER_CONFIG=$(mktemp)
+export DOCKER_CONFIG=$(mktemp -d)
 
-cat >"${DOCKER_CONFIG}" <<EOF
+cat >"${DOCKER_CONFIG}/config.json" <<EOF
 {
         "auths": {
                 "$registry": {

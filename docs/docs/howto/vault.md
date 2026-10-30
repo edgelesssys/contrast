@@ -122,6 +122,7 @@ For this demo, the machine hosting your Contrast workspace is sufficient.
 Initialize the Vault with the `bao` CLI from within your workspace, using the Coordinator CA as a root of trust:
 
 ```sh
+umask 077
 export VAULT_ADDR=https://${YOUR_VAULT_DOMAIN}:8200
 export VAULT_CACERT=./coordinator-root-ca.pem
 bao operator init -format json | tee vault_secrets.json

@@ -209,7 +209,8 @@ To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled 
    ```
 
    If the output contains the group indices (`0`, `1`, ...), the IOMMU is supported on the host.
-   Otherwise, add `intel_iommu=on` to the kernel command line.
+   Otherwise, enable the IOMMU in the firmware settings and, on Intel hosts, add `intel_iommu=on` to the kernel command line.
+   On AMD hosts, the kernel enables the IOMMU by default.
 
 2. Additionally, the host kernel needs to have the following kernel configuration options enabled:
    - `CONFIG_VFIO`
