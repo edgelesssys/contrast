@@ -583,6 +583,52 @@ func TestRecoveryFlow(t *testing.T) {
 	require.Error(err)
 }
 
+// TestMinimumAPIVersionPin verifies that a manifest pinning a minimum API version locks out the
+// gRPC API, except for recovery.
+func TestMinimumAPIVersionPin(t *testing.T) {
+	require := require.New(t)
+
+	logger := slog.Default()
+	store := aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()})
+	hist := history.NewWithStore(logger, store)
+	a := New(logger, stateguard.New(hist, prometheus.NewRegistry(), logger), &stubDiscovery{})
+
+	manifestBytes, policies := newManifestWithSeedshareOwner(t)
+	var mnfst manifest.Manifest
+	require.NoError(json.Unmarshal(manifestBytes, &mnfst))
+	mnfst.MinimumAPIVersion = "v1"
+	manifestBytes, err := json.Marshal(mnfst)
+	require.NoError(err)
+	req := &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies}
+
+	// Without state there is no pin yet, so the initial manifest can be set.
+	resp, err := a.SetManifest(t.Context(), req)
+	require.NoError(err)
+
+	requireTooOld := func(err error) {
+		t.Helper()
+		require.ErrorIs(err, ErrAPIVersionTooOld)
+		require.Equal(codes.FailedPrecondition, status.Code(err))
+	}
+
+	_, err = a.SetManifest(t.Context(), req)
+	requireTooOld(err)
+	_, err = a.GetManifests(t.Context(), &userapi.GetManifestsRequest{})
+	requireTooOld(err)
+
+	// Recovery is exempt, as the HTTP API doesn't offer it yet.
+	seedShareOwnerKey := testkeys.RSA(t)
+	seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, resp.GetSeedSharesDoc().GetSeedShares()[0])
+	require.NoError(err)
+	a.guard = stateguard.New(hist, prometheus.NewRegistry(), logger)
+	recoverReq := &userapi.RecoverRequest{Seed: seed, Salt: resp.GetSeedSharesDoc().GetSalt()}
+	_, err = a.Recover(rpcContext(t.Context(), seedShareOwnerKey), recoverReq)
+	require.NoError(err)
+
+	_, err = a.GetManifests(t.Context(), &userapi.GetManifestsRequest{})
+	requireTooOld(err)
+}
+
 // TestRecoveryManifestSecurityMustMatchCoordinator verifies that recovery enforces the same
 // security-level matching as setting a manifest.
 func TestRecoveryManifestSecurityMustMatchCoordinator(t *testing.T) {
