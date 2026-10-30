@@ -35,8 +35,9 @@ runs:
         echo -n "${INPUTS_VERSION}" > version.txt
         # The apitypes and sdk Go modules are released together with Contrast, as v0.<minor>.<patch>.
         release="${INPUTS_VERSION%%-*}"
-        sed -i -E "s#(edgelesssys/contrast) v[^ ]+#\1 v${release}#" sdk/go.mod
-        sed -i -E "s#(edgelesssys/contrast/(apitypes|sdk)) v[^ ]+#\1 v0.${release#*.}#" go.mod sdk/go.mod policy-test/go.mod
+        sed -E -i.bak "s#(edgelesssys/contrast) v[^ ]+#\1 v${release}#" sdk/go.mod
+        sed -E -i.bak "s#(edgelesssys/contrast/(apitypes|sdk)) v[^ ]+#\1 v0.${release#*.}#" go.mod sdk/go.mod policy-test/go.mod
+        rm go.mod.bak sdk/go.mod.bak policy-test/go.mod.bak
 
         commit_msg="flake: ${current} -> ${INPUTS_VERSION}"
         echo "commit-msg=${commit_msg}" | tee -a "$GITHUB_OUTPUT"
