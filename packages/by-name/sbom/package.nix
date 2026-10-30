@@ -43,7 +43,7 @@ let
         while IFS= read -r ref; do
           path="/nix/store/$ref"
           [ -e "$path" ] || continue
-          hash=$(nix-hash --type sha256 "$path")
+          hash=$(nix-hash --type sha256 --base32 "$path")
           deployable=$(jq --arg r "$ref" --arg h "$hash" '. + { ($r): $h }' <<<"$deployable")
         done < <(jq -r '.components[]? | select((.purl // "") | startswith("pkg:nix")) | .["bom-ref"] // empty' ${raw})
 
