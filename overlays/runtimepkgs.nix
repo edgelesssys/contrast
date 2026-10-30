@@ -108,6 +108,12 @@ else
         );
 
         inherit (final.runtimePkgs) containers;
+
+        sbom = final.runtimePkgs.sbom.overrideAttrs (prevSbom: {
+          passthru = prevSbom.passthru // {
+            inherit (cPrev.sbom) cli;
+          };
+        });
       }
     );
   }
