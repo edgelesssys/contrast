@@ -31,6 +31,7 @@ runCommand "kata-runtime-rs-${source.version}"
       inherit (source) cargoNixPackage;
       member = "shim";
       pname = "kata-runtime-rs";
+      inherit features;
     };
     passthru.cmdline = {
       prefix = _debug: [
