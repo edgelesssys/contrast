@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 {
+  lib,
+  formats,
   writeShellApplication,
   osv-scanner,
   vulnix,
@@ -12,6 +14,9 @@
 
 # Usage: vuln-scan <sbom.cdx.json> [sarif-output-dir]
 # Set VENDORED_SBOMS to a directory of per-package SBOMs (e.g. .#base.sbom.cli.vendored) to attribute findings to packages.
+let
+  ignorelists = import ./ignorelists.nix { inherit lib formats; };
+in
 writeShellApplication {
   name = "vuln-scan";
 
@@ -24,8 +29,8 @@ writeShellApplication {
   ];
 
   runtimeEnv = {
-    OSV_CONFIG = "${../../../../osv-scanner.toml}";
-    VULNIX_WHITELIST = "${../../../../vulnix-whitelist.toml}";
+    OSV_CONFIG = ignorelists.osvConfig;
+    VULNIX_WHITELIST = ignorelists.vulnixWhitelist;
     VULNIX_SARIF_JQ = "${./vulnix-to-sarif.jq}";
     NORMALIZE_JQ = "${./normalize.jq}";
     ATTRIBUTE_JQ = "${./attribute.jq}";
