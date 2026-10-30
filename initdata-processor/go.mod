@@ -2,7 +2,7 @@ module github.com/edgelesssys/contrast/initdata-processor
 
 go 1.26.0
 
-replace github.com/edgelesssys/contrast => ..
+replace github.com/edgelesssys/contrast => ../
 
 require (
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
