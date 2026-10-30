@@ -582,6 +582,23 @@ codegen:
 govulnfix *ARGS:
     nix run -L .#base.scripts.govulncheck-fix -- {{ ARGS }}
 
+# Scan the SBOMs like the nightly vulnerability scan, and add entries for all findings to vuln-ignores.toml.
+vulnscan-fill:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    findings=$(mktemp -d)
+    trap 'rm -rf "$findings"' EXIT
+    scan=$(nix build --no-link --print-out-paths .#base.scripts.vuln-scan)/bin/vuln-scan
+    for sbom in cli runtimeConfidential runtimeNonConfidential; do
+      echo "Scanning ${sbom} SBOM" >&2
+      path=$(nix build --no-link --print-out-paths ".#base.sbom.${sbom}")
+      vendored=$(nix build --no-link --print-out-paths ".#base.sbom.${sbom}.vendored")
+      rc=0
+      VENDORED_SBOMS="${vendored}" FINDINGS_OUT="${findings}/${sbom}.json" "${scan}" "${path}" || rc=$?
+      [[ $rc -le 2 ]] || exit "$rc"
+    done
+    nix run -L .#base.scripts.vuln-ignore-fill -- vuln-ignores.toml "${findings}"/*.json
+
 # Format code.
 fmt:
     nix fmt

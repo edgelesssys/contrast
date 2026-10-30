@@ -1,0 +1,465 @@
+[osv.RUSTSEC-2024-0320]
+package = "yaml-rust"
+title = "yaml-rust is unmaintained."
+link = "https://osv.dev/vulnerability/RUSTSEC-2024-0320"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[osv.GHSA-2f9f-gq7v-9h6m]
+package = "thrift"
+title = "Apache Thrift has a Memory Allocation with Excessive Size Value Vulnerability"
+link = "https://osv.dev/vulnerability/GHSA-2f9f-gq7v-9h6m"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[osv.GHSA-w9wp-h8wv-79jx]
+package = "opentelemetry_sdk"
+title = "opentelemetry_sdk has unbounded memory allocation in W3C Baggage propagation"
+link = "https://osv.dev/vulnerability/GHSA-w9wp-h8wv-79jx"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[osv.RUSTSEC-2024-0387]
+package = "opentelemetry_api"
+title = "`opentelemetry_api` has been merged into the `opentelemetry` crate"
+link = "https://osv.dev/vulnerability/RUSTSEC-2024-0387"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[osv.RUSTSEC-2025-0123]
+package = "opentelemetry-jaeger"
+title = "opentelemetry-jaeger crate is unmaintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2025-0123"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[osv.GO-2026-5932]
+package = "golang.org/x/crypto/openpgp"
+title = "The golang.org/x/crypto/openpgp package is unmaintained, unsafe by design, and has known security issues"
+link = "https://osv.dev/vulnerability/GO-2026-5932"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[osv.RUSTSEC-2024-0388]
+package = "derivative"
+title = "`derivative` is unmaintained; consider using an alternative"
+link = "https://osv.dev/vulnerability/RUSTSEC-2024-0388"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[osv.RUSTSEC-2024-0436]
+package = "paste"
+title = "paste - no longer maintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2024-0436"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[osv.RUSTSEC-2026-0173]
+package = "proc-macro-error2"
+title = "proc-macro-error2 is unmaintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0173"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[osv.RUSTSEC-2026-0221]
+package = "event-listener"
+title = "`event-listener` allows `!Send` tags to cross thread boundaries via `StackSlot`"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0221"
+reason = "wait for kata update"
+drop_when = "once kata's Cargo.lock has no event-listener 5.1.0 to 5.4.1 (4.3.0 has none)."
+
+[osv.RUSTSEC-2026-0258]
+package = "h2"
+title = "h2 unbounded empty DATA frames"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0258"
+reason = "DoS vector only, and only relevant to genpolicy. Waiting for kata update"
+drop_when = "once kata's Cargo.lock has no h2 < 0.4.16 (4.3.0 still has 0.3.27)."
+
+[osv.RUSTSEC-2026-0285]
+package = "rustls"
+title = "TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0285"
+reason = "minor information disclosure through unencrypted handshake content, not a vulnerability for Contrast"
+
+[osv.RUSTSEC-2026-0346]
+package = "rustls"
+title = "`Debug` impls for client session values expose TLS secrets"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0346"
+reason = "rustls is only used by genpolicy, which does not log TLS sessions."
+
+[osv.RUSTSEC-2026-0348]
+package = "rustls"
+title = "Brotli certificate decompression can allocate up to 1 GiB before authentication"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0348"
+reason = "Only affects rustls' non-default brotli feature, which is not enabled."
+drop_when = "with Kata 4.3, which upgrades rustls to 0.23.46 (CON-437)."
+
+[osv.RUSTSEC-2026-0349]
+package = "rustls"
+title = "Unauthenticated ServerHello can downgrade later connections to classical key exchange"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0349"
+reason = "downgrade to classical handshake in genpolicy TLS"
+drop_when = "with Kata 4.3, which upgrades rustls to 0.23.46 (CON-437)."
+
+[osv.RUSTSEC-2026-0386]
+package = "tokio"
+title = "`AsyncFd::new` and related constructors violate I/O safety"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0386"
+reason = "AsyncFd::new is used by PipeStream, which gets a valid file descriptor in all code paths"
+
+[osv.RUSTSEC-2026-0382]
+package = "rustls-webpki"
+title = "Certificate verification may accept distrusted intermediates"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0382"
+reason = "genpolicy verifies registry certificates with rustls-webpki, exploitable only if the trust store includes the distrusted emSign root. Waiting for kata update"
+drop_when = "once kata's Cargo.lock has no rustls-webpki < 0.103.16."
+
+[osv.RUSTSEC-2024-0449]
+package = "unsafe-libyaml"
+title = "unsafe-libyaml is unmaintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2024-0449"
+reason = "The crate is unmaintained. It's only used by the CDI crate, which parses trusted YAML."
+
+[osv.RUSTSEC-2026-0370]
+package = "zvariant"
+title = "`zvariant` is unmaintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0370"
+reason = "The crate is unmaintained. The agent only includes it through the zbus crate, which remains maintained."
+
+[osv.RUSTSEC-2026-0371]
+package = "zbus_names"
+title = "`zbus_names` is unmaintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0371"
+reason = "The crate is unmaintained. The agent only includes it through the zbus crate, which remains maintained."
+
+[osv.RUSTSEC-2026-0372]
+package = "zvariant_derive"
+title = "`zvariant_derive` is unmaintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0372"
+reason = "The crate is unmaintained. The agent only includes it through the zbus crate, which remains maintained."
+
+[vulnix.libusb.CVE-2026-23679]
+title = "libusb < 1.0.30 NULL Pointer Dereference in parse_interface()"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-23679"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.libusb.CVE-2026-47104]
+title = "libusb < 1.0.30 Out-of-Bounds Read in parse_iad_array()"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-47104"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.libgcrypt.CVE-2026-41989]
+title = "Libgcrypt before 1.12.2 sometimes allows a heap-based buffer overflow and denial of service via crafted ECDH ciphertext…"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-41989"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.dbus.CVE-2022-42010]
+title = "An issue was discovered in D-Bus before 1.12.24, 1.13.x and 1.14.x before 1.14.4, and 1.15.x before 1.15.2."
+link = "https://nvd.nist.gov/vuln/detail/CVE-2022-42010"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.dbus.CVE-2022-42011]
+title = "An issue was discovered in D-Bus before 1.12.24, 1.13.x and 1.14.x before 1.14.4, and 1.15.x before 1.15.2."
+link = "https://nvd.nist.gov/vuln/detail/CVE-2022-42011"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.dbus.CVE-2022-42012]
+title = "An issue was discovered in D-Bus before 1.12.24, 1.13.x and 1.14.x before 1.14.4, and 1.15.x before 1.15.2."
+link = "https://nvd.nist.gov/vuln/detail/CVE-2022-42012"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.zlib.CVE-2023-6992]
+title = "Memory corruption issues is Cloudflare zlib implementation"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2023-6992"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.zlib.CVE-2026-27820]
+title = "zlib: Buffer Overflow in Zlib::GzipReader ungetc via large input leads to memory corruption"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-27820"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.glibc.CVE-2025-15281]
+title = "wordexp with WRDE_REUSE and WRDE_APPEND may return uninitialized memory"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2025-15281"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.glibc.CVE-2026-4046]
+title = "iconv crash due to assertion failure with untrusted input"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-4046"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.glibc.CVE-2026-4437]
+title = "gethostbyaddr and gethostbyaddr_r may incorrectly handle DNS response"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-4437"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.glibc.CVE-2026-4438]
+title = "gethostbyaddr and gethostbyaddr_r return invalid DNS hostnames"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-4438"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.glibc.CVE-2026-5435]
+title = "The deprecated functions ns_printrrf, ns_printrr and fp_nquery in the GNU C Library version 2.2 and newer fail to enfor…"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-5435"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.glibc.CVE-2026-5450]
+title = "scanf %mc off-by-one heap buffer overflow"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-5450"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.glibc.CVE-2026-5928]
+title = "Potential buffer under-read in ungetwc"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-5928"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.glibc.CVE-2026-6238]
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-6238"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.dash.CVE-2024-21485]
+title = "Versions of the package dash-core-components before 2.13.0; versions of the package dash-core-components before 2.0.0; …"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2024-21485"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.gcc.CVE-2023-4039]
+title = "**DISPUTED**A failure in the -fstack-protector feature in GCC-based toolchains that target AArch64 allows an attacker t…"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2023-4039"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.binutils.CVE-2025-69649]
+title = "GNU Binutils thru 2.46 readelf contains a null pointer dereference vulnerability when processing a crafted ELF binary w…"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2025-69649"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.binutils.CVE-2025-69650]
+title = "GNU Binutils thru 2.46 readelf contains a double free vulnerability when processing a crafted ELF binary with malformed…"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2025-69650"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.binutils.CVE-2025-69651]
+title = "GNU Binutils thru 2.46 readelf contains a vulnerability that leads to an invalid pointer free when processing a crafted…"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2025-69651"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.binutils.CVE-2025-69652]
+title = "GNU Binutils thru 2.46 readelf contains a vulnerability that leads to an abort (SIGABRT) when processing a crafted ELF …"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2025-69652"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.binutils.CVE-2026-6846]
+title = "Binutils: binutils: arbitrary code execution via malformed xcoff object file processing"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-6846"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.gzip.CVE-2026-41991]
+title = "Predictable Temporary File in GNU gzip"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-41991"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.gzip.CVE-2026-41992]
+title = "Global Buffer Overflow in GNU gzip"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-41992"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.util-linux.CVE-2026-13595]
+title = "Util-linux: util-linux: heap use-after-free in libblkid nested partition probing"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-13595"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-34180]
+title = "Heap Buffer Over-read in ASN.1 Content Parsing"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-34180"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-34181]
+title = "PKCS#12 Files with PBMAC1 Are Accepted with Short HMAC Keys"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-34181"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-34182]
+title = "CMS AuthEnvelopedData Processing May Accept Forged Messages"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-34182"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-34183]
+title = "Unbounded Memory Growth in the QUIC PATH_CHALLENGE Handler"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-34183"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-35188]
+title = "Double-free When Checking OCSP Stapled Response"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-35188"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-42764]
+title = "NULL Pointer Dereference in QUIC Server Initial Packet Handling"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-42764"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-42765]
+title = "NULL Dereference in Certificate Verification with OCSP Checking"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-42765"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-42766]
+title = "Possible NULL Dereference in Password-Based CMS Decryption"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-42766"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-42767]
+title = "NULL Pointer Dereference in CRMF EncryptedValue Decryption"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-42767"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-42768]
+title = "Multi-RecipientInfo Bleichenbacher Oracle in CMS_decrypt() and PKCS7_decrypt()"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-42768"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-42769]
+title = "Trust-Anchor Substitution via cert/issuer Typo in CMP rootCaKeyUpdate"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-42769"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-42770]
+title = "FFC-DH Peer Validation Uses Attacker-Supplied q"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-42770"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-45445]
+title = "AES-OCB IV Ignored on EVP_Cipher() Path"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-45445"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-45446]
+title = "Incorrect Tag Processing for Empty Messages in AES-GCM-SIV and AES-SIV modes"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-45446"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-45447]
+title = "Heap Use-After-Free in the PKCS7_verify() Function"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-45447"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-7383]
+title = "Possible Heap Buffer Overflow in ASN.1 Multibyte String Conversion"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-7383"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-9076]
+title = "Out-of-Bounds Read in CMS Password-Based Decryption"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-9076"
+reason = "Baseline: present at vuln-scanning introduction."
+
+[vulnix.openssl.CVE-2026-14457]
+title = "RPK Server Signature Algorithm Selection Can Dereference a Missing Certificate"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-14457"
+reason = "only applies to RFC7250 Raw Public Key usage"
+
+[vulnix.openssl.CVE-2026-18798]
+title = "QUIC Server May Trigger Double Free When Processing INITIAL Packet"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-18798"
+reason = "only affects QUIC"
+
+[vulnix.openssl.CVE-2026-54874]
+title = "Excessive Memory Use Buffering DTLS Records for a Future Epoch"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-54874"
+reason = "only affects DTLS"
+
+[vulnix.openssl.CVE-2026-63072]
+title = "Heap Buffer Overflow in CMS Key Unwrapping"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-63072"
+reason = "DoS vector in CMP decryption"
+
+[vulnix.openssl.CVE-2026-63073]
+title = "Untrusted Sender DN Used as Format String in CMP Response Validation"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-63073"
+reason = "DoS vector in CMP decryption"
+
+[vulnix.openssl.CVE-2026-63074]
+title = "CMP Indefinite Cache Growth of ExtraCerts"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-63074"
+reason = "DoS vector in CMP certificate handling"
+
+[vulnix.openssl.CVE-2026-63075]
+title = "QUIC ACK-only Packet Retention Can Cause Memory Exhaustion"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-63075"
+reason = "only affects QUIC"
+
+[vulnix.openssl.CVE-2026-63076]
+title = "Invalid Pointer Dereference in CMP Server via Crafted protectionAlg"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-63076"
+reason = "DoS vector for CMP servers"
+
+[vulnix.openssl.CVE-2026-75803]
+title = "AEAD Forgeries with Empty Ciphertext When Using EVP_Cipher()"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-75803"
+reason = "only affects authentication of empty messages with ChaCha20-Poly1305 and AES-OCB"
+
+[vulnix.sqlite]
+reason = "sqlite is only used by lastlog2, which is only used by PAM modules. None of our production flows use PAM modules."
+
+[vulnix.gawk.CVE-2026-40467]
+title = "Use after free in gawk"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-40467"
+reason = "Disclosed after the initial baseline (stopgap)."
+
+[vulnix.gawk.CVE-2026-40468]
+title = "Heap buffer overflow in gawk"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-40468"
+reason = "Disclosed after the initial baseline (stopgap)."
+
+[vulnix.gawk.CVE-2026-40469]
+title = "Heap buffer overflow in gawk"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-40469"
+reason = "Disclosed after the initial baseline (stopgap)."
+
+[vulnix.gawk.CVE-2026-40553]
+title = "Stack-based buffer overflow in gawk"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-40553"
+reason = "Disclosed after the initial baseline (stopgap)."
+
+[vulnix.patch.CVE-2026-56288]
+title = "NULL Pointer Dereference in GNU patch"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-56288"
+reason = "Disclosed after the initial baseline (stopgap)."
+
+[vulnix.patch.CVE-2026-56289]
+title = "Loop with Unreachable Exit Condition in GNU patch"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-56289"
+reason = "Disclosed after the initial baseline (stopgap)."
+
+[vulnix.coreutils.CVE-2026-56391]
+title = "Out‑of‑bounds Read in GNU coreutils"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-56391"
+reason = "out-of-bounds read in uniq requires attacker-controlled arguments. We don't seem to use uniq at all."
+
+[vulnix.coreutils.CVE-2026-56392]
+title = "Heap-based Buffer Overflow in GNU coreutils"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-56392"
+reason = "heap overflow in unexpand requires attacker-controlled arguments. We don't seem to use unexpand at all."
+
+[vulnix.pcre2]
+note = "pcre2 is used by grep, less and systemd."
+
+[vulnix.pcre2.CVE-2026-89156]
+title = "PCRE2 before 10.48 has a pcre2_match out-of-bounds read after a JIT fallback when an attacker can provide invalid UTF d…"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-89156"
+reason = "DoS attack from crafted input data"
+
+[vulnix.pcre2.CVE-2026-89157]
+title = "PCRE2 before 10.48, on 32-bit platforms, has a pcre2_pattern_convert out-of-bounds write when an attacker can provide a…"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-89157"
+reason = "OOB write through large attacker-supplied pattern. We should not be using attacker-supplied patterns anywhere."
+
+[vulnix.pcre2.CVE-2026-89158]
+title = "PCRE2 before 10.48, on 32-bit platforms, has a pcre2_compile_32 integer overflow and resultant out-of-bounds write."
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-89158"
+reason = "OOB write in pattern compilation. We should not be using attacker-supplied patterns anywhere."
+
+[vulnix.pcre2.CVE-2026-89160]
+title = "PCRE2 before 10.48 has a pcre2_match out-of-bounds read during the PCRE2_MATCH_INVALID_UTF matching of an invalid UTF s…"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-89160"
+reason = "OOB read through invalid UTF-8 in input. We should not be playing grep results back to an attacker."
+
+[vulnix.pcre2.CVE-2026-89161]
+title = "In PCRE2 before 10.48, pcre2_jit_match mishandles a previously copied subject being passed in as a context."
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-89161"
+reason = "Incorrect free in pcre2_jit_match. systemd is not using the function."
+
+[vulnix.pcre2.CVE-2026-89162]
+title = "In PCRE2 before 10.48, pcre2_serialize_encode might disclose two bytes to an adversary, typically in a situation where …"
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-89162"
+reason = "quote: 'pcre2_serialize_encode might disclose two bytes to an adversary, typically in a situation where the access available to the adversary is already unsafe'"
