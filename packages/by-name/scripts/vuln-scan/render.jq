@@ -6,11 +6,13 @@
 
 def pad($n): tostring | ($n - length) as $k | if $k > 0 then . + (" " * $k) else . end;
 
-def truncate($n): if length > $n then .[:$n - 1] + "…" else . end;
+def truncate($n): if length > $n then .[:$n - 3] + "..." else . end;
 
 def score_text: if .score == null then "-" else .score | tostring end;
 
 def fixed_text: if .fixed == null then "-" else .fixed end;
+
+def components_text: if .components == [] then "" else "[\(.components | join(", "))] " end;
 
 def md_escape: gsub("\\|"; "\\|") | gsub("\n"; " ");
 
@@ -26,7 +28,7 @@ def log_lines:
         ("\(.package)@\(.version)" | pad(32)),
         (score_text | pad(4)),
         ("fix: \(fixed_text)" | pad(14)),
-        (.title | truncate(100)),
+        (components_text + (.title | truncate(100))),
         .link ]
     | join("  ")
   end;
@@ -35,10 +37,10 @@ def markdown:
   "### \($title)\n",
   if length == 0 then "No findings."
   else
-    "| Score | ID | Package | Fixed in | Title | Tool |",
-    "| ---: | --- | --- | --- | --- | --- |",
+    "| Score | ID | Package | Fixed in | Used by | Title | Tool |",
+    "| ---: | --- | --- | --- | --- | --- | --- |",
     (ordered[]
-     | "| \(score_text) | [\(.id)](\(.link)) | `\(.package)@\(.version)` | \(fixed_text) | \(.title | truncate(200) | md_escape) | \(.tool) |")
+     | "| \(score_text) | [\(.id)](\(.link)) | `\(.package)@\(.version)` | \(fixed_text) | \(.components | join(", ")) | \(.title | truncate(200) | md_escape) | \(.tool) |")
   end,
   "";
 
