@@ -96,6 +96,10 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		// This is fine, we are going to set the initial manifest.
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
+	default:
+		if err := checkMinimumAPIVersion(oldState.Manifest()); err != nil {
+			return nil, err
+		}
 	}
 
 	var m *manifest.Manifest
@@ -192,6 +196,9 @@ func (s *Server) GetManifests(ctx context.Context, _ *userapi.GetManifestsReques
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	}
+	if err := checkMinimumAPIVersion(state.Manifest()); err != nil {
+		return nil, err
+	}
 
 	manifests, policies, err := s.guard.GetHistory(ctx)
 	if err != nil {
@@ -233,6 +240,10 @@ func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*use
 		return nil, statusErr(codes.FailedPrecondition, ErrAlreadyRecovered)
 	}
 
+	// The minimum API version pinned in the manifest isn't enforced here: the pin of the latest
+	// manifest is unknown until recovery, and the HTTP API doesn't offer recovery yet, so enforcing
+	// it would leave pinned deployments without a way to recover.
+
 	if !req.Force {
 		// Unless forced, check whether recovery is a good idea.
 		peers, err := s.discovery.GetPeers(ctx)
@@ -269,6 +280,17 @@ func (s *Server) checkManifestSecurity(mnfst *manifest.Manifest) error {
 		return ErrSecureNotAllowed
 	}
 	return nil
+}
+
+// checkMinimumAPIVersion rejects gRPC requests if the manifest pins a minimum API version.
+//
+// The gRPC API predates API versioning and counts as version zero, which no pin admits.
+func checkMinimumAPIVersion(mnfst *manifest.Manifest) error {
+	if mnfst.MinimumAPIVersion == "" {
+		return nil
+	}
+	return statusErrf(codes.FailedPrecondition, ErrAPIVersionTooOld,
+		"%v: the manifest requires at least API version %s, but the request used the gRPC API", ErrAPIVersionTooOld, mnfst.MinimumAPIVersion)
 }
 
 type seedAuthorizer struct {
@@ -398,6 +420,10 @@ var (
 
 	// ErrNoStateToRecover is returned when recovery is requested but the Coordinator has no state.
 	ErrNoStateToRecover = errors.New("no state to recover from")
+
+	// ErrAPIVersionTooOld is returned when a request uses an API version below the minimum API
+	// version pinned in the manifest.
+	ErrAPIVersionTooOld = errors.New("API version rejected by the manifest")
 
 	errNoSignature = errors.New("manifest signature is empty")
 )
