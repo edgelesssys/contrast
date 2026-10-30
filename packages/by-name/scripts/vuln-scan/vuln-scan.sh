@@ -85,6 +85,10 @@ if [[ ${#findings[@]} -gt 0 ]]; then
     jq -r --arg format markdown --arg title "${base#*-}" -f "$RENDER_JQ" \
       "$workdir/findings.json" >>"$GITHUB_STEP_SUMMARY"
   fi
+  # For vuln-ignore-fill.
+  if [[ -n ${FINDINGS_OUT:-} ]]; then
+    cp "$workdir/findings.json" "$FINDINGS_OUT"
+  fi
 fi
 
 exit "$exitcode"

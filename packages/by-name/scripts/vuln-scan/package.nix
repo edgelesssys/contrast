@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 {
+  lib,
+  formats,
   writeShellApplication,
   osv-scanner,
   vulnix,
@@ -24,8 +26,8 @@ writeShellApplication {
   ];
 
   runtimeEnv = {
-    OSV_CONFIG = "${../../../../osv-scanner.toml}";
-    VULNIX_WHITELIST = "${../../../../vulnix-whitelist.toml}";
+    OSV_CONFIG = (import ./ignorelists.nix { inherit lib formats; }).osvConfig;
+    VULNIX_WHITELIST = (import ./ignorelists.nix { inherit lib formats; }).vulnixWhitelist;
     VULNIX_SARIF_JQ = "${./vulnix-to-sarif.jq}";
     NORMALIZE_JQ = "${./normalize.jq}";
     ATTRIBUTE_JQ = "${./attribute.jq}";
