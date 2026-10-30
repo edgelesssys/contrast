@@ -44,6 +44,10 @@ type Client struct {
 	// minimumAPIVersion, if set, is the oldest API version the Client accepts.
 	minimumAPIVersion string
 
+	// expectedManifest, if set, provides the reference values the Coordinator is validated
+	// against, instead of the manifest the Coordinator reports.
+	expectedManifest *manifest.Manifest
+
 	// validatorsFromManifestOverride is used by tests to replace the validators.
 	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error)
 }
@@ -115,6 +119,20 @@ func (c *Client) WithHTTPClient(httpClient *http.Client) *Client {
 // [Client.ValidateAttestation] additionally enforces the pin of the Coordinator's latest manifest.
 func (c *Client) WithMinimumAPIVersion(version string) *Client {
 	c.minimumAPIVersion = version
+	return c
+}
+
+// WithExpectedManifest makes [Client.ValidateAttestation] derive the Coordinator's reference
+// values from the given manifest, instead of from the manifest the Coordinator reports.
+//
+// Callers that know which manifest the Coordinator is supposed to run should set this. Without
+// it, validation only proves that the Coordinator runs *some* manifest it vouches for itself,
+// and the caller has to compare the returned manifest against its expectation.
+//
+// To refuse API versions older than the manifest's MinimumAPIVersion before attestation,
+// additionally pass it to [Client.WithMinimumAPIVersion].
+func (c *Client) WithExpectedManifest(m *manifest.Manifest) *Client {
+	c.expectedManifest = m
 	return c
 }
 
