@@ -23,10 +23,6 @@ id = "GO-2026-5932" # golang.org/x/crypto/openpgp
 reason = "Baseline: present at vuln-scanning introduction."
 
 [[IgnoredVulns]]
-id = "RUSTSEC-2024-0384" # instant
-reason = "Baseline: present at vuln-scanning introduction."
-
-[[IgnoredVulns]]
 id = "RUSTSEC-2024-0388" # derivative
 reason = "Baseline: present at vuln-scanning introduction."
 
@@ -43,36 +39,12 @@ id = "RUSTSEC-2026-0221" # event-listener
 reason = "wait for kata update" # TODO(charludo): DROP once kata's Cargo.lock has no event-listener 5.1.0 to 5.4.1 (4.3.0 has none).
 
 [[IgnoredVulns]]
-id = "RUSTSEC-2026-0235" # rkyv
-reason = "wait for kata update" # TODO(charludo): DROP once kata's Cargo.lock has no rkyv < 0.8.17 (4.3.0 still has 0.7.46).
-
-[[IgnoredVulns]]
 id = "RUSTSEC-2026-0258" # h2
 reason = "DoS vector only, and only relevant to genpolicy. Waiting for kata update" # TODO(charludo): DROP once kata's Cargo.lock has no h2 < 0.4.16 (4.3.0 still has 0.3.27).
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0285" # rustls
 reason = "minor information disclosure through unencrypted handshake content, not a vulnerability for Contrast"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0338" # quinn-proto
-reason = "quinn-proto is only in the lockfile, not actually selected"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0339" # quinn-proto
-reason = "quinn-proto is only in the lockfile, not actually selected"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0340" # quinn-proto
-reason = "quinn-proto is only in the lockfile, not actually selected"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0341" # quinn-proto
-reason = "quinn-proto is only in the lockfile, not actually selected"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0342" # quinn-proto
-reason = "quinn-proto is only in the lockfile, not actually selected"
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0346" # rustls
@@ -93,14 +65,6 @@ reason = "AsyncFd::new is used by PipeStream, which gets a valid file descriptor
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0382" # rustls-webpki
 reason = "genpolicy verifies registry certificates with rustls-webpki, exploitable only if the trust store includes the distrusted emSign root. Waiting for kata update" # TODO(burgerdev): DROP once kata's Cargo.lock has no rustls-webpki < 0.103.16.
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0381" # webpki-roots
-reason = "webpki-roots is only in the lockfile, not actually selected"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0383" # webpki-root-certs
-reason = "webpki-root-certs is only in the lockfile, not actually selected"
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2024-0449" # unsafe-libyaml
