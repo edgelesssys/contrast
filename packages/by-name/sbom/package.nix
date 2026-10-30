@@ -5,6 +5,7 @@
   lib,
   buildBom,
   linkFarm,
+  symlinkJoin,
   runCommand,
   jq,
   nix,
@@ -69,12 +70,23 @@ let
     let
       entries = buildableOn stdenv.hostPlatform (collectDerivations [ ] roots);
       target = linkFarm "contrast-${name}-matrix" entries;
+      vendored = vendoredSbomsOf entries;
     in
-    withMetadata categoryId.${name} target (
+    (withMetadata categoryId.${name} target (
       buildBom target {
-        extraPaths = vendoredSbomsOf entries;
+        extraPaths = vendored;
       }
-    );
+    )).overrideAttrs
+      (prev: {
+        # The per-package SBOMs keep each package's own dependency graph, which the merged SBOM flattens.
+        # vuln-scan uses them to tell which package pulls in an affected dependency.
+        passthru = (prev.passthru or { }) // {
+          vendored = symlinkJoin {
+            name = "contrast-${name}-vendored-sboms";
+            paths = map (p: p.bombonVendoredSbom) vendored;
+          };
+        };
+      });
 
   categories = {
     cli = {
