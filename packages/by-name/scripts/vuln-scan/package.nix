@@ -26,6 +26,8 @@ writeShellApplication {
     OSV_CONFIG = "${../../../../osv-scanner.toml}";
     VULNIX_WHITELIST = "${../../../../vulnix-whitelist.toml}";
     VULNIX_SARIF_JQ = "${./vulnix-to-sarif.jq}";
+    NORMALIZE_JQ = "${./normalize.jq}";
+    RENDER_JQ = "${./render.jq}";
   };
 
   text = builtins.readFile ./vuln-scan.sh;

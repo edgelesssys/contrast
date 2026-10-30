@@ -29,10 +29,17 @@ if [[ -n $sarifdir ]]; then
     --format=sarif --output="$sarifdir/osv.sarif" \
     -L "$scanned" || exitcode=$?
 fi
+osv_json="$workdir/osv.json"
 osv-scanner scan source \
   --config="$OSV_CONFIG" \
-  --format=table \
+  --format=json --output="$osv_json" \
   -L "$scanned" || exitcode=$?
+# Exit code 1 means "vulnerabilities found", other codes are errors that may leave no results behind.
+if [[ -s $osv_json ]]; then
+  jq --arg tool osv -f "$NORMALIZE_JQ" "$osv_json" >"$workdir/findings-osv.json"
+else
+  echo "osv-scanner: no results (exit $exitcode)" >&2
+fi
 
 # vulnix downloads the NVD feeds from nvd.nist.gov on every run. Reuse a persistent cache dir when one is provided
 # Additionally, retry transient failures. Exit code 2 means "vulnerabilities found".
@@ -50,9 +57,7 @@ for attempt in 1 2 3; do
 done
 
 if [[ $vx_rc -eq 0 || $vx_rc -eq 2 ]]; then
-  jq -r 'if length == 0 then "vulnix: no advisories"
-         else (.[] | "vulnix: \(.name) affected by \(.affected_by | join(", "))") end' \
-    "$vulnix_json"
+  jq --arg tool vulnix -f "$NORMALIZE_JQ" "$vulnix_json" >"$workdir/findings-vulnix.json"
   if [[ -n $sarifdir ]]; then
     jq --arg sbom "file://$scanned" -f "$VULNIX_SARIF_JQ" "$vulnix_json" >"$workdir/vulnix.sarif" &&
       mv "$workdir/vulnix.sarif" "$sarifdir/vulnix.sarif"
@@ -61,6 +66,18 @@ if [[ $vx_rc -eq 0 || $vx_rc -eq 2 ]]; then
 else
   echo "vulnix: could not reach NVD after 3 attempts (exit $vx_rc)" >&2
   exitcode=$vx_rc
+fi
+
+shopt -s nullglob
+findings=("$workdir"/findings-*.json)
+if [[ ${#findings[@]} -gt 0 ]]; then
+  jq -s add "${findings[@]}" >"$workdir/findings.json"
+  echo
+  jq -r --arg format log --arg title "" -f "$RENDER_JQ" "$workdir/findings.json"
+  if [[ -n ${GITHUB_STEP_SUMMARY:-} ]]; then
+    jq -r --arg format markdown --arg title "${base#*-}" -f "$RENDER_JQ" \
+      "$workdir/findings.json" >>"$GITHUB_STEP_SUMMARY"
+  fi
 fi
 
 exit "$exitcode"
