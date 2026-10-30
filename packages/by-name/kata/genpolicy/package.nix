@@ -10,6 +10,7 @@
 }:
 
 (source.cargoNixPackage.workspaceMembers."genpolicy".build.override {
+  features = [ "default" ];
   runTests = false;
 }).overrideAttrs
   (prev: {
@@ -18,6 +19,7 @@
       bombonVendoredSbom = buildCargoSbom {
         inherit (source) cargoNixPackage;
         member = "genpolicy";
+        features = [ "default" ];
       };
 
       settings-base = stdenvNoCC.mkDerivation {
