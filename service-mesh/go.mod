@@ -2,7 +2,7 @@ module github.com/edgelesssys/contrast/service-mesh
 
 go 1.26.0
 
-replace github.com/edgelesssys/contrast => ..
+replace github.com/edgelesssys/contrast => ../
 
 require (
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2
