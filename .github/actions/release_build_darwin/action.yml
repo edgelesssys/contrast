@@ -42,24 +42,30 @@ runs:
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: contrast-cli-aarch64-darwin
-        path: workspace/contrast-aarch64-darwin
-    - name: Remove existing darwin asset from draft release
+        path: |
+          workspace/contrast-aarch64-darwin
+          workspace/contrast-cli-aarch64-darwin.cdx.json
+    - name: Remove existing darwin assets from draft release
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
         VERSION: ${{ inputs.effective_version }}
       run: |
-        if gh release view "${VERSION}" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | grep -Fxq 'contrast-aarch64-darwin'; then
-          gh release delete-asset "${VERSION}" contrast-aarch64-darwin --repo "${{ github.repository }}" --yes
-        fi
+        for asset in contrast-aarch64-darwin contrast-cli-aarch64-darwin.cdx.json; do
+          if gh release view "${VERSION}" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
+            gh release delete-asset "${VERSION}" "$asset" --repo "${{ github.repository }}" --yes
+          fi
+        done
     - name: Attach to draft release
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
         VERSION: ${{ inputs.effective_version }}
       run: |
-        gh release upload "${VERSION}" workspace/contrast-aarch64-darwin --repo "${{ github.repository }}"
+        gh release upload "${VERSION}" workspace/contrast-aarch64-darwin workspace/contrast-cli-aarch64-darwin.cdx.json --repo "${{ github.repository }}"
     - uses: ./.github/actions/s3_upload
       with:
-        files: workspace/contrast-aarch64-darwin
+        files: |
+          workspace/contrast-aarch64-darwin
+          workspace/contrast-cli-aarch64-darwin.cdx.json
         s3-bucket-path: pre-releases/${{ inputs.effective_version }}/${{ github.run_id }}/${{ github.run_attempt }}
