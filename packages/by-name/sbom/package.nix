@@ -17,7 +17,6 @@
 let
   inherit (lib.contrast)
     collectDerivations
-    buildableOn
     vendoredSbomsOf
     supplier
     org
@@ -67,7 +66,7 @@ let
   mkSbom =
     name: roots:
     let
-      entries = buildableOn stdenv.hostPlatform (collectDerivations [ ] roots);
+      entries = collectDerivations [ ] roots;
       target = linkFarm "contrast-${name}-matrix" entries;
     in
     withMetadata categoryId.${name} target (
