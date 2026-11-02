@@ -15,7 +15,7 @@ jobs:
   create-release-artifacts:
     name: Create release artifacts for PR
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.cleanup == 'false'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       packages: write
@@ -73,7 +73,7 @@ jobs:
     name: Create PR comment with artifact links
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.cleanup == 'false'
     needs: [create-release-artifacts, build-darwin-cli]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       pull-requests: write
       issues: write
@@ -113,7 +113,7 @@ jobs:
     if: |
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.cleanup == 'true')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       pull-requests: read
       contents: write

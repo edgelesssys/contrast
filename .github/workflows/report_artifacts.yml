@@ -10,7 +10,7 @@ on:
 
 jobs:
   report-artifacts:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions: {}
     steps:
       - name: Report pre-release artifacts location

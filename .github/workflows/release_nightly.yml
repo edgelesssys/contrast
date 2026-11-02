@@ -23,7 +23,7 @@ concurrency:
 jobs:
   process-inputs:
     name: Process inputs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -96,7 +96,7 @@ jobs:
 
   cleanup-nightly-drafts:
     name: Clean up old nightly draft releases
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: process-inputs
     permissions:
       contents: write
@@ -119,7 +119,7 @@ jobs:
 
   release-x86_64-linux:
     name: "release-requirement: Build and push artifacts, create nightly draft release"
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [process-inputs, cleanup-nightly-drafts]
     permissions:
       contents: write
@@ -239,7 +239,7 @@ jobs:
 
   notify-teams:
     name: Notify teams channel of failure
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # `nightly` is left out: e2e_nightly.yml notifies about its own failures.
     needs: [process-inputs, cleanup-nightly-drafts, release-x86_64-linux, release-aarch64-darwin, test]
     if: always() && github.event_name == 'schedule' && github.run_attempt == 1

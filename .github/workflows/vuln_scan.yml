@@ -22,7 +22,7 @@ jobs:
           - cli
           - runtimeConfidential
           - runtimeNonConfidential
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     permissions:
       contents: read
@@ -70,7 +70,7 @@ jobs:
     name: "Notify about scan failures"
     needs: scan
     if: ${{ failure() && github.event_name == 'schedule' && github.run_attempt == 1 }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:

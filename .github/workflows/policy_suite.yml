@@ -64,7 +64,7 @@ jobs:
   test:
     name: Run policy suite tests
     needs: get-testcases
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:

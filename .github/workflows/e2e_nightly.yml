@@ -193,7 +193,7 @@ jobs:
 
   notify-teams:
     name: "Notify teams channel of failure"
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs:
       - build-image
       - snp-maintenance

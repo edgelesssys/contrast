@@ -11,7 +11,7 @@ jobs:
     concurrency:
       group: cache-matrix-x86_64-linux
       cancel-in-progress: true
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 240
     permissions:
       contents: read

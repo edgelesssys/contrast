@@ -30,7 +30,7 @@ concurrency:
 jobs:
   prepare:
     name: Verify nightly and prepare release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       actions: read
@@ -224,7 +224,7 @@ jobs:
 
   promote:
     name: Promote nightly artifacts to release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: prepare
     permissions:
       contents: write
@@ -264,7 +264,7 @@ jobs:
 
   retag-images:
     name: Tag promoted images with the release version
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [prepare, promote]
     permissions:
       contents: read
@@ -317,7 +317,7 @@ jobs:
     if: needs.prepare.outputs.KIND == 'minor'
     # Depend on promote so we don't create a milestone for a failed release.
     needs: [prepare, promote]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       issues: write
       contents: read
@@ -333,7 +333,7 @@ jobs:
 
   prepare-post-release-pr:
     name: Prepare post-release PR to main
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [prepare, promote]
     permissions:
       contents: write
@@ -367,7 +367,7 @@ jobs:
       && needs.retag-images.result == 'success'
       && needs.prepare-post-release-pr.result == 'success'
       && contains(fromJSON('["success", "skipped"]'), needs.prepare-github-release.result)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: release-publish
     permissions:
       contents: write
@@ -421,7 +421,7 @@ jobs:
 
   prepare-release-branch-pr:
     name: Prepare post-release PR to release branch
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [prepare, publish]
     permissions:
       contents: read

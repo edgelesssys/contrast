@@ -70,7 +70,7 @@ on:
 
 jobs:
   determine-platform-params:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       runner: ${{ steps.determine-platform-params.outputs.runner }}
       self-hosted: ${{ steps.determine-platform-params.outputs.self-hosted }}
