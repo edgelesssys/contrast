@@ -104,7 +104,11 @@ func setupEncryptedMount(ctx context.Context, log *slog.Logger, flags *cryptsetu
 	}
 	if !isLuks {
 		log.Info("Device is not a LUKS device, formatting it")
-		if err := cryptDev.Format(ctx); err != nil {
+		// luksFormat writes the LUKS header before the key slot. If a SIGTERM
+		// cancels ctx in between, cryptsetup is killed and leaves a header
+		// without a key slot, which every restart then fails to open. Let the
+		// format finish; the kubelet only sends SIGKILL after the grace period.
+		if err := cryptDev.Format(context.WithoutCancel(ctx)); err != nil {
 			return fmt.Errorf("formatting device %s as LUKS: %w", flags.devicePath, err)
 		}
 		log.Info("Device formatted successfully")
