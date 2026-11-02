@@ -70,6 +70,8 @@
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.kernelconfig
       echo "Updating vendorHash of policy-test package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.policy-test
+      echo "Updating vendorHash of reachable-units package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.reachable-units
       echo "Updating src hash of kata.release-tarball" >&2
       ./packages/by-name/kata/release-tarball/update.sh
 
