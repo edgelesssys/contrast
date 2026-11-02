@@ -1,0 +1,229 @@
+# initrd (initrd.target)
+#
+# generators:
+#   systemd-debug-generator
+#   systemd-fstab-generator
+#   systemd-run-generator
+#   systemd-veritysetup-generator
+#
+-.mount (perpetual)
+-.slice (perpetual)
+basic.target
+dbus.service (triggered by dbus.socket)
+dbus.socket
+emergency.service (pulled in by emergency.target)
+emergency.target (on failure of initrd.target)
+final.target (pulled in by reboot.target)
+init.scope (perpetual)
+initrd-cleanup.service (on success of initrd-parse-etc.service)
+initrd-find-etc.service
+initrd-find-nixos-closure.service
+initrd-fs.target
+initrd-nixos-activation.service (pulled in by initrd-switch-root.target)
+initrd-parse-etc.service
+initrd-root-device.target
+initrd-root-fs.target
+initrd-switch-root.service (pulled in by initrd-switch-root.target)
+initrd-switch-root.target (started by command of initrd-cleanup.service)
+initrd-udevadm-cleanup-db.service (pulled in by initrd-switch-root.target)
+initrd.target
+kmod-static-nodes.service
+local-fs-pre.target
+local-fs.target
+modprobe@configfs.service
+modprobe@loop.service (pulled in by systemd-loop@.service)
+panic-on-fail.service (pulled in by emergency.target)
+paths.target
+reboot.target (kernel request on Ctrl-Alt-Del)
+run-nixos\x2detc\x2dmetadata.mount
+shutdown.target (pulled in by reboot.target)
+slices.target
+sockets.target
+swap.target
+sys-kernel-config.mount
+sysinit.target
+sysroot-bin.mount
+sysroot-etc.mount
+sysroot-lib.mount
+sysroot-lib64.mount
+sysroot-root.mount
+sysroot-run.mount
+sysroot-tmp.mount
+sysroot-usr-bin.mount
+sysroot-var.mount
+sysroot.mount
+system-modprobe.slice
+system-systemd\x2dloop.slice (pulled in by systemd-loop@.service)
+system-systemd\x2dveritysetup.slice
+system.slice (perpetual)
+systemd-ask-password-console.path
+systemd-ask-password-console.service (triggered by systemd-ask-password-console.path)
+systemd-journald-dev-log.socket
+systemd-journald.service
+systemd-journald.socket
+systemd-loop@.service (udev rule in 99-systemd.rules)
+systemd-modules-load.service
+systemd-reboot.service (pulled in by reboot.target)
+systemd-sysctl.service
+systemd-tmpfiles-setup-dev-early.service
+systemd-tmpfiles-setup-dev.service
+systemd-tmpfiles-setup-sysroot.service
+systemd-tmpfiles-setup.service
+systemd-udev-trigger.service
+systemd-udevd-kernel.socket
+systemd-udevd-varlink.socket
+systemd-udevd.service
+systemd-vconsole-setup.service (udev rule in 90-vconsole.rules)
+systemd-veritysetup@root.service
+timers.target
+umount.target (pulled in by reboot.target)
+veritysetup.target
+
+# system (kata-containers.target)
+#
+# generators:
+#   env-generator
+#   systemd-clonesetup-generator
+#   systemd-debug-generator
+#   systemd-fstab-generator
+#   systemd-run-generator
+#   systemd-veritysetup-generator
+#
+-.mount (perpetual)
+-.slice (perpetual)
+basic.target
+bin.mount
+bluetooth.target (udev rule in 99-systemd.rules)
+contrast-debug-shell.service
+cryptsetup.target
+dbus-broker.service (triggered by dbus.socket)
+dbus.socket
+deny-incoming-traffic.service
+dev-hugepages.mount
+dev-mqueue.mount
+emergency.service (pulled in by emergency.target)
+emergency.target (on failure of local-fs.target)
+final.target (pulled in by reboot.target)
+first-boot-complete.target
+fstrim.service (triggered by fstrim.timer)
+fstrim.timer
+generate-shutdown-ramfs.service (pulled in by reboot.target)
+imagepuller.service
+imagestore.service
+init.scope (perpetual)
+initdata-processor.service
+initdata.target
+kata-agent.service
+kata-containers.target
+kmod-static-nodes.service
+lib.mount
+lib64.mount
+local-fs-pre.target
+local-fs.target
+machine.slice (pulled in by systemd-machined.service)
+modprobe@configfs.service
+modprobe@dm_mod.service (pulled in by systemd-repart@.service)
+modprobe@drm.service (pulled in by systemd-logind.service)
+modprobe@efi_pstore.service
+modprobe@fuse.service
+modprobe@loop.service (pulled in by systemd-repart@.service)
+network.target
+nscd.service
+nss-lookup.target
+nss-user-lookup.target
+paths.target
+poweroff.target (failure action of kata-agent.service)
+printer.target (udev rule in 99-systemd.rules)
+reboot.target (kernel request on Ctrl-Alt-Del)
+root.mount
+run-initramfs.mount (pulled in by reboot.target)
+run-wrappers.mount
+shutdown.target (pulled in by reboot.target)
+slices.target
+smartcard.target (udev rule in 99-systemd.rules)
+sockets.target
+sound.target (udev rule in 99-systemd.rules)
+suid-sgid-wrappers.service
+swap.target
+sys-fs-fuse-connections.mount
+sys-kernel-config.mount
+sys-kernel-debug.mount
+sys-kernel-tracing.mount
+sysinit.target
+system-modprobe.slice
+system-systemd\x2dask\x2dpassword.slice (pulled in by systemd-ask-password@.service)
+system-systemd\x2dbacklight.slice (pulled in by systemd-backlight@.service)
+system-systemd\x2dcoredump.slice (pulled in by systemd-coredump@.service)
+system-systemd\x2dcreds.slice (pulled in by systemd-creds@.service)
+system-systemd\x2dfactory\x2dreset.slice (pulled in by systemd-factory-reset@.service)
+system-systemd\x2djournalctl.slice (pulled in by systemd-journalctl@.service)
+system-systemd\x2dloop.slice (pulled in by systemd-loop@.service)
+system-systemd\x2dmute\x2dconsole.slice (pulled in by systemd-mute-console@.service)
+system-systemd\x2drepart.slice (pulled in by systemd-repart@.service)
+system.slice (perpetual)
+systemd-ask-password-console.path
+systemd-ask-password-console.service (triggered by systemd-ask-password-console.path)
+systemd-ask-password.socket
+systemd-ask-password@.service (accepted by systemd-ask-password.socket)
+systemd-backlight@.service (udev rule in 99-systemd.rules)
+systemd-coredump.socket
+systemd-coredump@.service (accepted by systemd-coredump.socket)
+systemd-creds.socket
+systemd-creds@.service (accepted by systemd-creds.socket)
+systemd-factory-reset.socket
+systemd-factory-reset@.service (accepted by systemd-factory-reset.socket)
+systemd-hibernate-clear.service
+systemd-hostnamed.service (triggered by systemd-hostnamed.socket)
+systemd-hostnamed.socket
+systemd-journal-catalog-update.service
+systemd-journal-flush.service
+systemd-journalctl.socket
+systemd-journalctl@.service (accepted by systemd-journalctl.socket)
+systemd-journald-audit.socket
+systemd-journald-dev-log.socket
+systemd-journald.service
+systemd-journald.socket
+systemd-logind.service (D-Bus activation of org.freedesktop.login1)
+systemd-loop@.service (udev rule in 99-systemd.rules)
+systemd-machine-id-commit.service
+systemd-machined.service (triggered by systemd-machined.socket)
+systemd-machined.socket
+systemd-modules-load.service
+systemd-mute-console.socket
+systemd-mute-console@.service (accepted by systemd-mute-console.socket)
+systemd-portabled.service (D-Bus activation of org.freedesktop.portable1)
+systemd-poweroff.service (pulled in by poweroff.target)
+systemd-pstore.service
+systemd-random-seed.service
+systemd-reboot.service (pulled in by reboot.target)
+systemd-remount-fs.service
+systemd-repart.socket
+systemd-repart@.service (accepted by systemd-repart.socket)
+systemd-resolved-monitor.socket
+systemd-resolved-varlink.socket
+systemd-resolved.service
+systemd-rfkill.service (triggered by systemd-rfkill.socket)
+systemd-rfkill.socket (udev rule in 99-systemd.rules)
+systemd-sysctl.service
+systemd-sysusers.service
+systemd-timedated.service (D-Bus activation of org.freedesktop.timedate1)
+systemd-timesyncd.service
+systemd-tmpfiles-clean.service (triggered by systemd-tmpfiles-clean.timer)
+systemd-tmpfiles-clean.timer
+systemd-tmpfiles-setup-dev-early.service
+systemd-tmpfiles-setup-dev.service
+systemd-tmpfiles-setup.service
+systemd-udev-trigger.service
+systemd-udevd-kernel.socket
+systemd-udevd-varlink.socket
+systemd-udevd.service
+systemd-update-done.service
+systemd-update-utmp.service
+systemd-vconsole-setup.service (udev rule in 90-vconsole.rules)
+time-set.target
+timers.target
+tmp.mount
+umount.target (pulled in by reboot.target)
+user.slice (pulled in by systemd-logind.service)
+usr-bin.mount
+var.mount
