@@ -80,6 +80,34 @@
   # https://www.freedesktop.org/software/systemd/man/256/machine-id.html#Initialization
   environment.etc."machine-id".text = "";
 
+  # Generators create units depending on the environment of the podvm, which is largely controlled by the host.
+  # Thus, we only keep the generators we need.
+  # Those that remain are listed in the expected units of the systemd-units e2e test, see packages/by-name/kata/systemd-units.
+  boot.initrd.systemd.suppressedStorePaths =
+    map (name: "${config.boot.initrd.systemd.package}/lib/systemd/system-generators/${name}")
+      [
+        # keep-sorted start
+        "systemd-factory-reset-generator"
+        "systemd-gpt-auto-generator"
+        "systemd-hibernate-resume-generator"
+        # keep-sorted end
+      ];
+  systemd.generators = lib.genAttrs (
+    [
+      # keep-sorted start
+      "systemd-cryptsetup-generator"
+      "systemd-factory-reset-generator"
+      "systemd-gpt-auto-generator"
+      "systemd-hibernate-resume-generator"
+      "systemd-integritysetup-generator"
+      "systemd-ssh-generator"
+      "systemd-system-update-generator"
+      # keep-sorted end
+    ]
+    # The debug image provides a login on the serial console.
+    ++ lib.optional (!config.contrast.debug.enable) "systemd-getty-generator"
+  ) (_: "/dev/null");
+
   networking.firewall.enable = false;
 
   # We do not require dynamic host configuration.
