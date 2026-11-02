@@ -74,9 +74,12 @@ runs:
       env:
         SET: base
       run: nix run .#${SET}.scripts.build-release-artifacts -- --image-replacements ./image-replacements.txt --out workspace
-    - uses: ./.github/actions/build_cli
-      with:
-        system: x86_64-linux
+    - name: Build CLI with SBOM
+      shell: bash
+      env:
+        SET: base
+        SYSTEM: x86_64-linux
+      run: nix run .#${SET}.scripts.build-release-cli -- --system $SYSTEM --out workspace
     - id: upload-artifacts
       uses: ./.github/actions/s3_upload
       if: ${{ inputs.s3-bucket-path != '' }}
