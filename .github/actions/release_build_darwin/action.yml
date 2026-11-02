@@ -35,9 +35,12 @@ runs:
     - name: Embed image-replacements in CLI assets
       shell: bash
       run: cp workspace/image-replacements/image-replacements.txt cli/cmd/assets/image-replacements.txt
-    - uses: ./.github/actions/build_cli
-      with:
-        system: aarch64-darwin
+    - name: Build CLI with SBOM
+      shell: bash
+      env:
+        SET: base
+        SYSTEM: aarch64-darwin
+      run: nix run .#${SET}.scripts.build-release-cli -- --system $SYSTEM --out workspace
     - name: Upload artifact
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
