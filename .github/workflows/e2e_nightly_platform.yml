@@ -52,6 +52,7 @@ jobs:
           - kds-pcs-downtime
           - memdump
           - multi-runtime-class
+          - multiple-cpus
           - openssl
           - peerrecovery
           - policy
