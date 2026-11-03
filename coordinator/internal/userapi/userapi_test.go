@@ -232,6 +232,16 @@ func TestSetManifest(t *testing.T) {
 		require.Equal(codes.InvalidArgument, status.Code(err))
 	})
 
+	t.Run("null manifest", func(t *testing.T) {
+		require := require.New(t)
+
+		coordinator := newCoordinator()
+		req := &userapi.SetManifestRequest{Manifest: []byte(`null`)}
+		_, err := coordinator.SetManifest(t.Context(), req)
+		require.Error(err)
+		require.Equal(codes.InvalidArgument, status.Code(err))
+	})
+
 	t.Run("manifest security matches coordinator", func(t *testing.T) {
 		testCases := []struct {
 			name          string
