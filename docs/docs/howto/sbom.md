@@ -2,9 +2,18 @@
 
 This page lists the SBOMs published with each Contrast release and shows how to scan them.
 
+:::warning
+
+A scan of these SBOMs reports vulnerabilities that Contrast already tracks and has assessed as not exploitable in our configuration.
+The raw finding count from any scanner is therefore higher than the number of issues that affect you, and a sizeable share of those findings carries a high or critical rating.
+Contrast records each assessment in [`osv-scanner.toml`](https://github.com/edgelesssys/contrast/blob/main/osv-scanner.toml) and [`vulnix-whitelist.toml`](https://github.com/edgelesssys/contrast/blob/main/vulnix-whitelist.toml), and the scans we run in CI apply them.
+Read a scan of your own against those files before acting on it.
+
+:::
+
 ## Applicability
 
-For vulnerability management, license compliance, and regulatory requirements such as the EU Cyber Resilience Act and BSI TR-03183-2.
+For vulnerability management, license compliance, and regulatory requirements such as the EU Cyber Resilience Act and [BSI TR-03183-2](https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TR03183/BSI-TR-03183-2_v2_1_0.pdf?__blob=publicationFile).
 
 ## Prerequisites
 
