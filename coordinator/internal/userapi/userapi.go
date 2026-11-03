@@ -106,6 +106,11 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 	if err := json.Unmarshal(req.Manifest, &m); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %v", err)
 	}
+	// A pinned manifest set via gRPC would lock the deployment out of all further manifest management, as the HTTP API doesn't offer it yet.
+	// TODO(charludo): DROP once HTTP API v1 ships.
+	if err := checkMinimumAPIVersion(m); err != nil {
+		return nil, err
+	}
 
 	var resp userapi.SetManifestResponse
 
