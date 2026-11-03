@@ -32,7 +32,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v93/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -363,7 +363,8 @@ func fetchReleaseFromGithub(ctx context.Context, t *testing.T, dir string) {
 
 	token := os.Getenv(tokenEnvVar)
 	require.NotEmpty(token, "environment variable %q must contain a Github access token", tokenEnvVar)
-	gh := github.NewClient(nil).WithAuthToken(token)
+	gh, err := github.NewClient(github.WithAuthToken(token))
+	require.NoError(err)
 
 	// Find our target release. There is GetReleaseByTag, but we may be looking for a draft release.
 	var release *github.RepositoryRelease
@@ -386,7 +387,7 @@ func fetchReleaseFromGithub(ctx context.Context, t *testing.T, dir string) {
 			continue
 		}
 		for _, rel := range rels {
-			if rel.TagName != nil && *rel.TagName == *tag {
+			if rel.TagName == *tag {
 				release = rel
 				break
 			}
