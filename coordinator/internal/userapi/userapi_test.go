@@ -583,27 +583,24 @@ func TestRecoveryFlow(t *testing.T) {
 	require.Error(err)
 }
 
-// TestMinimumAPIVersionPin verifies that a manifest pinning a minimum API version locks out the
-// gRPC API, except for recovery.
+// TestMinimumAPIVersionPin verifies that the gRPC API can't set a manifest pinning a minimum API
+// version, and that such a manifest locks out the gRPC API, except for recovery.
 func TestMinimumAPIVersionPin(t *testing.T) {
 	require := require.New(t)
 
 	logger := slog.Default()
 	store := aferostore.New(&afero.Afero{Fs: afero.NewMemMapFs()})
 	hist := history.NewWithStore(logger, store)
-	a := New(logger, stateguard.New(hist, prometheus.NewRegistry(), logger), &stubDiscovery{})
+	guard := stateguard.New(hist, prometheus.NewRegistry(), logger)
+	a := New(logger, guard, &stubDiscovery{})
 
 	manifestBytes, policies := newManifestWithSeedshareOwner(t)
 	var mnfst manifest.Manifest
 	require.NoError(json.Unmarshal(manifestBytes, &mnfst))
 	mnfst.MinimumAPIVersion = "v1"
-	manifestBytes, err := json.Marshal(mnfst)
+	pinnedManifestBytes, err := json.Marshal(mnfst)
 	require.NoError(err)
-	req := &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies}
-
-	// Without state there is no pin yet, so the initial manifest can be set.
-	resp, err := a.SetManifest(t.Context(), req)
-	require.NoError(err)
+	pinnedReq := &userapi.SetManifestRequest{Manifest: pinnedManifestBytes, Policies: policies}
 
 	requireTooOld := func(err error) {
 		t.Helper()
@@ -611,7 +608,21 @@ func TestMinimumAPIVersionPin(t *testing.T) {
 		require.Equal(codes.FailedPrecondition, status.Code(err))
 	}
 
-	_, err = a.SetManifest(t.Context(), req)
+	// Setting a pin via gRPC would lock out manifest management, neither initially nor as an update.
+	_, err = a.SetManifest(t.Context(), pinnedReq)
+	requireTooOld(err)
+	resp, err := a.SetManifest(t.Context(), &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies})
+	require.NoError(err)
+	_, err = a.SetManifest(t.Context(), pinnedReq)
+	requireTooOld(err)
+
+	// Pin the manifest bypassing the gRPC API, as a versioned API would.
+	state, err := guard.GetState(t.Context())
+	require.NoError(err)
+	_, err = guard.UpdateState(t.Context(), state, state.SeedEngine(), pinnedManifestBytes, policies)
+	require.NoError(err)
+
+	_, err = a.SetManifest(t.Context(), &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies})
 	requireTooOld(err)
 	_, err = a.GetManifests(t.Context(), &userapi.GetManifestsRequest{})
 	requireTooOld(err)
