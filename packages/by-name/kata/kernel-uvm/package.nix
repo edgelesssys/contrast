@@ -30,13 +30,13 @@ let
   };
 in
 linuxManualConfig rec {
-  version = "6.18.35";
+  version = "6.18.60";
   modDirVersion = "${version}" + lib.optionalString withGPU "-nvidia-gpu";
 
   # See https://github.com/kata-containers/kata-containers/blob/5f11c0f144037d8d8f546c89a0392dcd84fa99e2/versions.yaml#L198-L201
   src = fetchurl {
     url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${version}.tar.xz";
-    hash = "sha256-94YCkyIZEl4hHF9b/YTtz9TsXOiPyUT4JIQT9mW+8jY=";
+    hash = "sha256-PC9E72rMAhp61ETZoubsHvSI/wk2h5PQAEpggPadYh4=";
   };
 
   kernelPatches = [
