@@ -3,6 +3,26 @@
 
 import { themes as prismThemes } from 'prism-react-renderer';
 
+// The build process is spammed with warnings because dodosaurus only reads the first 1000 bytes of an svg to figure out its width/height.
+// This is pure noise.
+// TODO(charludo): DROP once https://codeberg.org/image-size/image-size/issues/410 is fixed.
+const consoleError = console.error;
+console.error = (...args) => {
+  const [err] = args;
+  if (err instanceof Error && err.message.startsWith('unsupported file type') && err.stack?.includes('image-size')) {
+    return;
+  }
+  consoleError(...args);
+};
+const consoleWarn = console.warn;
+console.warn = (...args) => {
+  const [msg] = args;
+  if (typeof msg === 'string' && msg.includes("can't be read correctly") && msg.includes('.drawio.svg')) {
+    return;
+  }
+  consoleWarn(...args);
+};
+
 /** @type {import('@docusaurus/types').Config} */
 async function createConfig() {
   return {
@@ -12,7 +32,6 @@ async function createConfig() {
     baseUrl: '/contrast/',
     trailingSlash: false,
     onBrokenLinks: 'throw',
-    onBrokenMarkdownLinks: 'throw',
     onBrokenAnchors: 'throw',
     favicon: 'img/favicon.ico',
 
@@ -42,6 +61,9 @@ async function createConfig() {
     // mermaid
     markdown: {
       mermaid: true,
+      hooks: {
+        onBrokenMarkdownLinks: 'throw',
+      },
     },
     themes: ['@docusaurus/theme-mermaid'],
 

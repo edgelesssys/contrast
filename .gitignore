@@ -11,6 +11,7 @@ workspace.cache
 go.work.sum
 node_modules
 .docusaurus
+.yarn
 build/
 .worktree
 .terraform*

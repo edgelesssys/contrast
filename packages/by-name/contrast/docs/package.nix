@@ -3,10 +3,8 @@
 
 {
   lib,
-  fetchYarnDeps,
   stdenv,
-  yarnConfigHook,
-  yarnBuildHook,
+  yarn-berry_4,
   nodejs,
   contrast,
 
@@ -20,15 +18,15 @@ stdenv.mkDerivation (finalAttrs: {
 
   src = ../../../../docs;
 
-  yarnOfflineCache = fetchYarnDeps {
-    inherit (finalAttrs) pname version;
-    yarnLock = finalAttrs.src + "/yarn.lock";
-    hash = "sha256-hkrsXCMbXYYdPVWhUhIlm4LIMnt1IxknIJIrKKSRd28=";
+  missingHashes = finalAttrs.src + "/missing-hashes.json";
+  yarnOfflineCache = yarn-berry_4.fetchYarnBerryDeps {
+    inherit (finalAttrs) src missingHashes;
+    hash = "sha256-Cp91Dw2KxXyWT4641sw001tj9TygEvLPENwy7X7/E6o=";
   };
 
   nativeBuildInputs = [
-    yarnConfigHook
-    yarnBuildHook
+    yarn-berry_4
+    yarn-berry_4.yarnBerryConfigHook
     nodejs
   ];
 
@@ -36,6 +34,12 @@ stdenv.mkDerivation (finalAttrs: {
 
   postPatch = lib.optionalString (docusaurusBaseUrl != "") ''
     sed -i "s|baseUrl: '/contrast/',|baseUrl: '${docusaurusBaseUrl}',|" docusaurus.config.js
+  '';
+
+  buildPhase = ''
+    runHook preBuild
+    yarn build
+    runHook postBuild
   '';
 
   installPhase = ''
