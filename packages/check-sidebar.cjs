@@ -61,7 +61,9 @@ function getMarkdownFiles(dir) {
 }
 
 
-const sidebars = require(path.resolve(process.cwd(), fileArg));
+// sidebars.js is an ES module, so require() returns its namespace object.
+const sidebarsModule = require(path.resolve(process.cwd(), fileArg));
+const sidebars = sidebarsModule.default ?? sidebarsModule;
 
 const docIds = getDocIds(sidebars.docs);
 

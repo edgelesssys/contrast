@@ -623,9 +623,16 @@ policy-rpc target="policy-rpc": soft-clean (runtime target) (write-namespace tar
 check-links config="external":
     nix run .#base.nixpkgs.lychee -- --config tools/lychee/config-{{ config }}.toml .
 
-# Serve the docs site locally. Unreleased changes from docs/docs/ live at http://localhost:3000/contrast/next/.
-docs:
-    nix develop .#docs --command bash -c 'cd docs && yarn install && yarn start'
+# Serve "next" docs at http://localhost:3000/contrast/next/. full serves the production build with search but without live reload.
+docs mode="live":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{ mode }}" in
+        live) serve="yarn start" ;;
+        full) serve="yarn build && yarn serve" ;;
+        *) echo "mode must be live or full" >&2; exit 1 ;;
+    esac
+    nix develop .#docs --command bash -c "cd docs && yarn install && $serve"
 
 demodir version="latest": undeploy
     #!/usr/bin/env bash

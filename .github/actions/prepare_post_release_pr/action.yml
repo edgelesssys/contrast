@@ -97,8 +97,8 @@ runs:
       env:
         MAJOR_MINOR: ${{ inputs.major_minor }}
       run: |
-        nix run ".#base.nixpkgs.yarn" install
-        nix run ".#base.nixpkgs.yarn" docusaurus docs:version "${MAJOR_MINOR}"
+        nix run ".#base.nixpkgs.yarn-berry_4" install
+        nix run ".#base.nixpkgs.yarn-berry_4" docusaurus docs:version "${MAJOR_MINOR}"
         git add .
         git commit -am "docs: release ${MAJOR_MINOR}"
         # Clean up auxiliary files, so next steps run on a clean tree

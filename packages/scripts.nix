@@ -24,6 +24,7 @@
       scripts.gofix
       scripts.update-kata-cargo-nix
       scripts.update-kata-protos
+      yarn-berry_4.yarn-berry-fetcher
     ];
     text = ''
       echo "Syncing go directive versions in go.mod/go.work files" >&2
@@ -72,6 +73,8 @@
       echo "Updating src hash of kata.release-tarball" >&2
       ./packages/by-name/kata/release-tarball/update.sh
 
+      echo "Updating yarn missing-hashes.json of contrast.docs package" >&2
+      yarn-berry-fetcher missing-hashes docs/yarn.lock > docs/missing-hashes.json
       echo "Updating yarn offlineCache hash of contrast.docs package" >&2
       nix-update --version=skip --flake \
         --override-filename=packages/by-name/contrast/docs/package.nix \

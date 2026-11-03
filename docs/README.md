@@ -4,10 +4,12 @@
 
 The Contrast flake contains a development shell for working on the documentation.
 
-It's automatically activated when you are using `direnv`. Otherwise enter the environment with:
+It's automatically activated when you are using `direnv` in the `docs` directory.
+Otherwise enter the environment from the repository root with:
 
 ```sh
-nix develop .#base.contrast.docs
+nix develop .#docs
+cd docs
 ```
 
 Run a local development server previewing your changes with:
@@ -17,6 +19,11 @@ yarn start
 ```
 
 Browse to <http://localhost:3000/contrast> and choose the "Next" version in the top right.
+Alternatively, `just docs` does all of the above in one step.
+
+The development server doesn't include the search index.
+To try search, build and serve the production site with `yarn build && yarn serve`, or `just docs full`.
+This doesn't live reload though.
 
 ## CI integration
 

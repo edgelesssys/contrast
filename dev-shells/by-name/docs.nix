@@ -3,12 +3,16 @@
 
 {
   mkShell,
-  yarn,
+  nodejs,
+  yarn-berry_4,
 }:
 
 mkShell {
-  packages = [ yarn ];
+  packages = [
+    nodejs
+    yarn-berry_4
+  ];
   shellHook = ''
-    yarn install
+    yarn --cwd "$(git rev-parse --show-toplevel)/docs" install
   '';
 }
