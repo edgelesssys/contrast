@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcontrast_docs=self.webpackChunkcontrast_docs||[]).push([["70106"],{1063(s,t,a){a.d(t,{A:()=>k});var c=a(86462),e=a(13554),b=a(41647);let k={...c.A,Tabs:e.A,TabItem:b.A}}}]);
