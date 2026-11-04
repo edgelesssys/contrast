@@ -109,14 +109,13 @@ func New(t *testing.T) *ContrastTest {
 	t.Setenv(constants.CacheDirEnvVar, workDir)
 
 	ct := &ContrastTest{
-		Namespace:                   MakeNamespace(t, Flags.NamespaceSuffix),
-		WorkDir:                     workDir,
-		ImageReplacementsFile:       Flags.ImageReplacementsFile,
-		Platform:                    platform,
-		NamespaceFile:               Flags.NamespaceFile,
-		RuntimeClassName:            *runtimeClass.Handler,
-		Kubeclient:                  kubeclient.NewForTest(t),
-		NodeInstallerTargetConfType: Flags.NodeInstallerTargetConfType,
+		Namespace:             MakeNamespace(t, Flags.NamespaceSuffix),
+		WorkDir:               workDir,
+		ImageReplacementsFile: Flags.ImageReplacementsFile,
+		Platform:              platform,
+		NamespaceFile:         Flags.NamespaceFile,
+		RuntimeClassName:      *runtimeClass.Handler,
+		Kubeclient:            kubeclient.NewForTest(t),
 	}
 
 	token := os.Getenv("CONTRAST_GHCR_READ")
@@ -501,19 +500,11 @@ func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
 	defer cancel()
 
-	var nodeInstallerDeps []any
-	if ct.NodeInstallerTargetConfType != "" && ct.NodeInstallerTargetConfType != "none" {
-		nodeInstallerTargetConf, err := kuberesource.NodeInstallerTargetConfig(ct.NodeInstallerTargetConfType)
-		require.NoError(err)
-		nodeInstallerDeps = append(nodeInstallerDeps, nodeInstallerTargetConf)
-	}
+	clusterSpecificResources := ct.getClusterResources(ctx, t)
 
-	imagePullSecret := ct.getImagePullSecret(ctx, t)
-	nodeInstallerDeps = append(nodeInstallerDeps, imagePullSecret...)
-
-	if len(nodeInstallerDeps) > 0 {
-		nodeInstallerDeps = kuberesource.PatchNamespaces(nodeInstallerDeps, ct.Namespace)
-		unstructured, err := kuberesource.ResourcesToUnstructured(nodeInstallerDeps)
+	if len(clusterSpecificResources) > 0 {
+		clusterSpecificResources = kuberesource.PatchNamespaces(clusterSpecificResources, ct.Namespace)
+		unstructured, err := kuberesource.ResourcesToUnstructured(clusterSpecificResources)
 		require.NoError(err)
 		require.NoError(ct.Kubeclient.Apply(ctx, unstructured...))
 	}
@@ -543,13 +534,26 @@ func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 	}
 }
 
-func (ct *ContrastTest) getImagePullSecret(ctx context.Context, t *testing.T) []any {
+func (ct *ContrastTest) getClusterResources(ctx context.Context, t *testing.T) []any {
 	const (
-		namespace          = "default"
-		registrySecretName = "contrast-e2e-registry-auth"
-		registrySecretKey  = "contrast-imagepuller.toml"
+		namespace                  = "default"
+		registrySecretName         = "contrast-e2e-registry-auth"
+		registrySecretKey          = "contrast-imagepuller.toml"
+		nodeinstallerConfigMapName = "contrast-e2e-nodeinstaller-config"
 	)
 	var allResources []any
+
+	cm, err := ct.Kubeclient.Client.CoreV1().ConfigMaps(namespace).Get(ctx, nodeinstallerConfigMapName, metav1.GetOptions{})
+	if err == nil {
+		newCm, err := kuberesource.NodeInstallerTargetConfig("empty")
+		require.NoError(t, err)
+		newCm.Data = cm.Data
+		allResources = append(allResources, newCm)
+	} else if apierrors.IsNotFound(err) {
+		t.Logf("Could not fetch ConfigMap %s/%s, continuing with defaults: %v", namespace, nodeinstallerConfigMapName, err)
+	} else {
+		require.NoError(t, err)
+	}
 
 	secret, err := ct.Kubeclient.Client.CoreV1().Secrets(namespace).Get(ctx, registrySecretName, metav1.GetOptions{})
 	if err == nil {
