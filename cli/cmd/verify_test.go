@@ -4,30 +4,54 @@
 package cmd
 
 import (
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCheckMinimumAPIVersion(t *testing.T) {
+func TestGetCoordinatorStateHTTPMinimumAPIVersion(t *testing.T) {
 	for name, tc := range map[string]struct {
-		manifestPin string
-		flagPin     string
-		wantErr     bool
+		versions          []string
+		minimumAPIVersion string
 	}{
-		"no pin":          {},
-		"pin in manifest": {manifestPin: "v1", wantErr: true},
-		"pin via flag":    {flagPin: "v1", wantErr: true},
-		"both":            {manifestPin: "v1", flagPin: "v2", wantErr: true},
+		"coordinator predates API versioning": {minimumAPIVersion: "v1"},
+		"coordinator only supports older versions": {
+			versions:          []string{},
+			minimumAPIVersion: "v1",
+		},
+		"minimum above all common versions": {
+			versions:          []string{"v1"},
+			minimumAPIVersion: "v2",
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			err := checkMinimumAPIVersion(tc.manifestPin, tc.flagPin)
-			if tc.wantErr {
-				require.ErrorIs(t, err, sdk.ErrMinimumAPIVersionUnmet)
-				return
+			require := require.New(t)
+
+			attestationRequested := false
+			mux := http.NewServeMux()
+			if tc.versions != nil {
+				mux.HandleFunc(apitypes.CapabilitiesPath, func(w http.ResponseWriter, _ *http.Request) {
+					_ = json.NewEncoder(w).Encode(apitypes.CapabilitiesResponse{APIVersions: tc.versions})
+				})
 			}
-			require.NoError(t, err)
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != apitypes.CapabilitiesPath {
+					attestationRequested = true
+				}
+				w.WriteHeader(http.StatusInternalServerError)
+			})
+			srv := httptest.NewServer(mux)
+			t.Cleanup(srv.Close)
+
+			_, err := getCoordinatorStateHTTP(t.Context(), t.TempDir(), srv.URL, []byte("{}"), "", tc.minimumAPIVersion, slog.New(slog.DiscardHandler))
+			require.ErrorIs(err, sdk.ErrMinimumAPIVersionUnmet)
+			require.False(attestationRequested, "no attestation must be requested if the minimum API version isn't met")
 		})
 	}
 }
