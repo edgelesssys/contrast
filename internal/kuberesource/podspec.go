@@ -4,11 +4,32 @@
 package kuberesource
 
 import (
+	"slices"
+	"strings"
+
 	"github.com/edgelesssys/contrast/internal/manifest"
 	corev1 "k8s.io/api/core/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
+
+// contrastRuntimeClassPrefixes lists runtime class prefixes that identify Contrast pods.
+var contrastRuntimeClassPrefixes = []string{"contrast-cc", "contrast-insecure"}
+
+// IsBareContrastRuntimeClass reports whether name is a Contrast runtime class without a platform suffix.
+func IsBareContrastRuntimeClass(name string) bool {
+	return slices.Contains(contrastRuntimeClassPrefixes, name)
+}
+
+// IsContrastPod reports whether a pod uses a Contrast runtime.
+func IsContrastPod(spec *applycorev1.PodSpecApplyConfiguration) bool {
+	if spec == nil || spec.RuntimeClassName == nil {
+		return false
+	}
+	return slices.ContainsFunc(contrastRuntimeClassPrefixes, func(p string) bool {
+		return strings.HasPrefix(*spec.RuntimeClassName, p)
+	})
+}
 
 // IsContrastWorkload applies IsContrastPod to the resource and returns the result.
 func IsContrastWorkload(resource any) (ret bool) {

@@ -25,24 +25,6 @@ import (
 // CollateralProxyDefaultService is the default in-cluster URL of the collateral-proxy.
 const CollateralProxyDefaultService = "http://collateral-proxy.default.svc"
 
-// contrastRuntimeClassPrefixes lists runtime class prefixes that identify Contrast pods.
-var contrastRuntimeClassPrefixes = []string{"contrast-cc", "contrast-insecure"}
-
-// IsBareContrastRuntimeClass reports whether name is a Contrast runtime class without a platform suffix.
-func IsBareContrastRuntimeClass(name string) bool {
-	return slices.Contains(contrastRuntimeClassPrefixes, name)
-}
-
-// IsContrastPod reports whether a pod uses a Contrast runtime.
-func IsContrastPod(spec *applycorev1.PodSpecApplyConfiguration) bool {
-	if spec == nil || spec.RuntimeClassName == nil {
-		return false
-	}
-	return slices.ContainsFunc(contrastRuntimeClassPrefixes, func(p string) bool {
-		return strings.HasPrefix(*spec.RuntimeClassName, p)
-	})
-}
-
 // AddInitializer adds an initializer and its shared volume to the resource.
 //
 // If the resource does not contain a PodSpec, this function does nothing.
