@@ -76,18 +76,19 @@ func TestConstructAttestationReportDataGolden(t *testing.T) {
 		"active": {
 			transitionDigest: transitionDigest,
 			resp: &AttestationResponse{
-				Status:             StatusActive,
-				HPKEPubKey:         []byte("hpke-pub-key"),
-				CapabilitiesDigest: capabilitiesDigest,
-				CoordinatorState:   CoordinatorState{RootCA: []byte("root-ca"), MeshCA: []byte("mesh-ca")},
+				Status:                    StatusActive,
+				HPKEPubKey:                []byte("hpke-pub-key"),
+				CapabilitiesDigest:        capabilitiesDigest,
+				LatestTransitionSignature: []byte("transition-signature"),
+				CoordinatorState:          CoordinatorState{RootCA: []byte("root-ca"), MeshCA: []byte("mesh-ca")},
 			},
 			wantPreimage: [][]byte{
 				sum("contrast attest v1"), nonce,
 				{0x01},
-				transitionDigest,
+				transitionDigest, sum("transition-signature"),
 				sum("root-ca"), sum("mesh-ca"), sum("hpke-pub-key"), capabilitiesDigest,
 			},
-			want: "fb7fe800982e593e3c7bbad54ddae734173c93d4f1087b12bec84f52e040b407" +
+			want: "a029eee550262d615f1b2c7667ab3ee16e4cbdf325f755780852e4720419c5d2" +
 				"0000000000000000000000000000000000000000000000000000000000000000",
 		},
 		"stale": {
@@ -99,10 +100,10 @@ func TestConstructAttestationReportDataGolden(t *testing.T) {
 			wantPreimage: [][]byte{
 				sum("contrast attest v1"), nonce,
 				{0x02},
-				make([]byte, 32),
+				make([]byte, 32), sum(""),
 				sum(""), sum(""), sum("hpke-pub-key"), capabilitiesDigest,
 			},
-			want: "bd9e10c26d639f22256509e4c5caf85665f0902403db9e8a7ced7d333b67dba6" +
+			want: "dd0ce156f8c7a13a2c6117482ae20b1528867506b5bd6dfcfebaf412edf5089b" +
 				"0000000000000000000000000000000000000000000000000000000000000000",
 		},
 		"uninitialized": {
@@ -114,10 +115,10 @@ func TestConstructAttestationReportDataGolden(t *testing.T) {
 			wantPreimage: [][]byte{
 				sum("contrast attest v1"), nonce,
 				{0x00},
-				make([]byte, 32),
+				make([]byte, 32), sum(""),
 				sum(""), sum(""), sum("hpke-pub-key"), capabilitiesDigest,
 			},
-			want: "9339d8f0dddc1df81795cb2bb27a6fc82fcd4e4ba1dd5d6ad2f711c7dde4038c" +
+			want: "888c6a914cf59659e896581b0c447e73f76688ff51c88a43948c0d660e99566c" +
 				"0000000000000000000000000000000000000000000000000000000000000000",
 		},
 	} {

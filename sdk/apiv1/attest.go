@@ -104,7 +104,7 @@ func (a *API) ValidateAttestation(ctx context.Context, nonce []byte, attestation
 		return nil, fmt.Errorf("attestation reports unknown Coordinator status %q", string(resp.Status))
 	}
 	if errStatus != nil {
-		if len(resp.Manifests) != 0 || len(resp.Policies) != 0 || len(resp.RootCA) != 0 || len(resp.MeshCA) != 0 {
+		if len(resp.Manifests) != 0 || len(resp.Policies) != 0 || len(resp.RootCA) != 0 || len(resp.MeshCA) != 0 || len(resp.LatestTransitionSignature) != 0 {
 			return nil, fmt.Errorf("attestation reports Coordinator state although its status is %q", string(resp.Status))
 		}
 		return nil, fmt.Errorf("%w (not validated: there is no manifest to take reference values from)", errStatus)
@@ -119,6 +119,9 @@ func (a *API) ValidateAttestation(ctx context.Context, nonce []byte, attestation
 	}
 	if err := latestManifest.Validate(); err != nil {
 		return nil, fmt.Errorf("validating latest manifest: %w", err)
+	}
+	if len(resp.LatestTransitionSignature) == 0 {
+		return nil, errors.New("attestation doesn't include the latest transition signature")
 	}
 	transitions := history.BuildTransitionChain(resp.Manifests)
 	transitionDigest := transitions[len(transitions)-1].Digest()
@@ -152,9 +155,11 @@ func (a *API) ValidateAttestation(ctx context.Context, nonce []byte, attestation
 	}
 
 	return &CoordinatorState{
-		Manifests: resp.Manifests,
-		Policies:  resp.Policies,
-		RootCA:    resp.RootCA,
-		MeshCA:    resp.MeshCA,
+		Manifests:                 resp.Manifests,
+		Policies:                  resp.Policies,
+		RootCA:                    resp.RootCA,
+		MeshCA:                    resp.MeshCA,
+		LatestTransitionHash:      transitionDigest[:],
+		LatestTransitionSignature: resp.LatestTransitionSignature,
 	}, nil
 }
