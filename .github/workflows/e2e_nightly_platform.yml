@@ -38,6 +38,7 @@ jobs:
         debug-shell: [true, false]
         test-name:
           # keep-sorted start
+          - apiversion
           - atls
           - attestation
           - badaml-sandbox
