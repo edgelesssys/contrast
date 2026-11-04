@@ -34,6 +34,11 @@ func (c *Client) GetAttestation(ctx context.Context, nonce []byte) ([]byte, erro
 		return nil, fmt.Errorf("bad nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
 
+	// TODO(charludo): negotiate by default once the versioned API is stable.
+	if !c.versionedAPIRequested() {
+		return c.httpapi.DoJSON(ctx, apitypesv1.AttestMethod, apitypesv1.LegacyAttestPath, &apitypesv1.AttestationRequest{Nonce: nonce})
+	}
+
 	version, err := c.NegotiateAPIVersion(ctx)
 	switch {
 	case errors.Is(err, ErrMinimumAPIVersionUnmet):

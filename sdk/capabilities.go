@@ -79,6 +79,13 @@ func newestCommonAPIVersion(caps *apitypes.CapabilitiesResponse) (string, bool) 
 	return "", false
 }
 
+// versionedAPIRequested reports whether the caller opted into the versioned API.
+func (c *Client) versionedAPIRequested() bool {
+	c.negotiateMu.Lock()
+	defer c.negotiateMu.Unlock()
+	return c.minimumAPIVersion != "" || c.negotiatedVersion != ""
+}
+
 const legacyAPIVersion = ""
 
 // enforceMinimumAPIVersion returns [ErrMinimumAPIVersionUnmet] if version is older than the optional minimum API version pin.

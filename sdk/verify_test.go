@@ -299,6 +299,11 @@ func TestValidateAttestation(t *testing.T) {
 				srv := httptest.NewServer(coordinatorHandler(tc.versions, nil))
 				t.Cleanup(srv.Close)
 				c = New(srv.URL)
+				if tc.versions != nil {
+					// Opt into the versioned API.
+					_, err = c.NegotiateAPIVersion(t.Context())
+					require.NoError(err)
+				}
 				// Fetch an attestation to make the Client settle on an API version.
 				_, err = c.GetAttestation(t.Context(), testNonce)
 				require.NoError(err)
@@ -352,18 +357,31 @@ func TestValidateAttestation(t *testing.T) {
 	}
 }
 
-// TestGetAttestationEndpoint ensures the attestation is fetched from the newest endpoint both sides support.
+// TestGetAttestationEndpoint ensures the attestation is fetched from the newest endpoint both sides support,
+// if the versioned API was requested, and from the legacy endpoint otherwise.
 func TestGetAttestationEndpoint(t *testing.T) {
 	for name, tc := range map[string]struct {
 		versions          []string
 		minimumAPIVersion string
+		apiVersion        string
+		negotiate         bool
 
 		wantPath  string
 		wantErrIs error
 	}{
-		"coordinator supports v1": {
+		"versioned API not requested": {
 			versions: []string{apiv1.Version},
-			wantPath: apitypesv1.AttestPath,
+			wantPath: apitypesv1.LegacyAttestPath,
+		},
+		"versioned API requested by negotiation": {
+			versions:  []string{apiv1.Version},
+			negotiate: true,
+			wantPath:  apitypesv1.AttestPath,
+		},
+		"versioned API requested by pinned API version": {
+			versions:   []string{apiv1.Version},
+			apiVersion: apiv1.Version,
+			wantPath:   apitypesv1.AttestPath,
 		},
 		"coordinator predates API versioning": {
 			wantPath: apitypesv1.LegacyAttestPath,
@@ -394,7 +412,11 @@ func TestGetAttestationEndpoint(t *testing.T) {
 			srv := httptest.NewServer(coordinatorHandler(tc.versions, &gotPath))
 			t.Cleanup(srv.Close)
 
-			client := New(srv.URL).WithMinimumAPIVersion(tc.minimumAPIVersion)
+			client := New(srv.URL).WithMinimumAPIVersion(tc.minimumAPIVersion).WithAPIVersion(tc.apiVersion)
+			if tc.negotiate {
+				_, err := client.NegotiateAPIVersion(t.Context())
+				require.NoError(err)
+			}
 			_, err := client.GetAttestation(t.Context(), make([]byte, 32))
 			if tc.wantErrIs != nil {
 				require.ErrorIs(err, tc.wantErrIs)
