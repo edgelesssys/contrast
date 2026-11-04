@@ -3,6 +3,7 @@
 
 {
   # keep-sorted start
+  awscli2,
   crane,
   delve,
   git-hooks-lib,
@@ -36,6 +37,7 @@ in
 mkShell {
   packages = [
     # keep-sorted start
+    awscli2
     crane
     delve
     go
