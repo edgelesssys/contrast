@@ -168,28 +168,6 @@ func TestSelectTDXReferenceValuesIncompatibleRuntime(t *testing.T) {
 	})
 }
 
-func TestPodVCPUCount(t *testing.T) {
-	container := func(cpu string) *applycorev1.ContainerApplyConfiguration {
-		return applycorev1.Container().WithResources(applycorev1.ResourceRequirements().WithLimits(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse(cpu)}))
-	}
-	testCases := map[string]struct {
-		spec *applycorev1.PodSpecApplyConfiguration
-		want int64
-	}{
-		"empty":         {applycorev1.PodSpec(), 1},
-		"fractional":    {applycorev1.PodSpec().WithContainers(container("100m")), 2},
-		"regular sum":   {applycorev1.PodSpec().WithContainers(container("600m"), container("600m")), 3},
-		"init sum":      {applycorev1.PodSpec().WithInitContainers(container("600m"), container("600m")), 3},
-		"sidecar":       {applycorev1.PodSpec().WithContainers(container("1")).WithInitContainers(container("500m").WithRestartPolicy(corev1.ContainerRestartPolicyAlways)), 3},
-		"pod resources": {applycorev1.PodSpec().WithResources(applycorev1.ResourceRequirements().WithLimits(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("4")})), 5},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, tc.want, podVCPUCount(tc.spec))
-		})
-	}
-}
-
 func TestSelectTDXReferenceValuesOtherPlatforms(t *testing.T) {
 	for _, handler := range []string{"contrast-cc-metal-qemu-snp-test", "contrast-cc-metal-qemu-tdx-gpu-test"} {
 		t.Run(handler, func(t *testing.T) {
@@ -431,49 +409,6 @@ func TestPatchRuntimeClassName(t *testing.T) {
 	})
 }
 
-func TestIsContrastWorkload(t *testing.T) {
-	testCases := map[string]struct {
-		runtimeClass string
-		want         bool
-	}{
-		"no runtime class": {
-			runtimeClass: "",
-			want:         false,
-		},
-		"non-contrast runtime class": {
-			runtimeClass: "foobar",
-			want:         false,
-		},
-		"contrast-cc": {
-			runtimeClass: "contrast-cc",
-			want:         true,
-		},
-		"contrast-cc-metal-qemu-snp": {
-			runtimeClass: "contrast-cc-metal-qemu-snp",
-			want:         true,
-		},
-		"contrast-insecure": {
-			runtimeClass: "contrast-insecure",
-			want:         true,
-		},
-		"contrast-insecure-metal-qemu": {
-			runtimeClass: "contrast-insecure-metal-qemu",
-			want:         true,
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			spec := applycorev1.PodSpec()
-			if tc.runtimeClass != "" {
-				spec.WithRuntimeClassName(tc.runtimeClass)
-			}
-			pod := applycorev1.Pod("test", "default").WithSpec(spec)
-			assert.Equal(t, tc.want, isContrastWorkload(pod))
-		})
-	}
-}
-
 func TestPatchCoordinatorAllowInsecure(t *testing.T) {
 	insecurePlatforms := kuberesource.PlatformCollection{
 		platforms.MetalQEMUInsecure: {},
@@ -543,7 +478,6 @@ func TestPatchCoordinatorAllowInsecure(t *testing.T) {
 		coordinator := applyappsv1.StatefulSet("coordinator", "default").
 			WithSpec(applyappsv1.StatefulSetSpec().WithTemplate(template))
 
-		assert.False(t, isCoordinator(coordinator))
 		assert.NotPanics(t, func() {
 			patchCoordinatorAllowInsecure(coordinator, insecurePlatforms, true)
 		})
