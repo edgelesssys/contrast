@@ -32,7 +32,6 @@ import (
 	"github.com/edgelesssys/go-sev-guest/abi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 
@@ -326,7 +325,7 @@ func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f fun
 			if err != nil {
 				continue
 			}
-			if !isContrastWorkload(applyConfig) {
+			if !kuberesource.IsContrastWorkload(applyConfig) {
 				continue
 			}
 			changed, err := f(applyConfig, path, idx)
@@ -345,29 +344,8 @@ func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f fun
 	return nil
 }
 
-func isContrastWorkload(resource any) (ret bool) {
-	kuberesource.MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		ret = kuberesource.IsContrastPod(spec)
-		return spec
-	})
-	return ret
-}
-
-func isCoordinator(resource any) bool {
-	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-	if ok &&
-		r.Spec != nil &&
-		r.Spec.Template != nil &&
-		r.Spec.Template.Spec != nil &&
-		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
-		r.Spec.Template.Labels[kuberesource.ContrastRoleLabelKey] == string(manifest.RoleCoordinator) {
-		return true
-	}
-	return false
-}
-
 func patchCoordinatorAllowInsecure(resource any, usedPlatforms kuberesource.PlatformCollection, allowInsecure bool) {
-	if !allowInsecure || !isCoordinator(resource) {
+	if !allowInsecure || !kuberesource.IsCoordinator(resource) {
 		return
 	}
 	platformList := usedPlatforms.Platforms()
@@ -459,9 +437,9 @@ func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (
 			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(object)
 			if err != nil {
 				logger.Warn("Could not convert resource into ApplyConfiguration", "path", path, "err", err)
-			} else if isContrastWorkload(applyConfig) {
+			} else if kuberesource.IsContrastWorkload(applyConfig) {
 				containsCC = true
-				if isCoordinator(applyConfig) {
+				if kuberesource.IsCoordinator(applyConfig) {
 					r, ok := applyConfig.(interface{ GetNamespace() *string })
 					if ok {
 						ns := r.GetNamespace()
@@ -612,7 +590,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 	}
 
 	return mapContrastWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
-		if flags.collateralProxyURL != "" && isCoordinator(res) {
+		if flags.collateralProxyURL != "" && kuberesource.IsCoordinator(res) {
 			res = kuberesource.SetCollateralProxyEnv([]any{res}, flags.collateralProxyURL)[0]
 		}
 		memoryProfile := kuberesource.MemoryProfile(flags.calculatePodMemory)
@@ -653,7 +631,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 }
 
 func injectInitializer(resource any, coordinatorNamespace, collateralProxyURL string, memoryProfile kuberesource.MemoryProfile) error {
-	if isCoordinator(resource) {
+	if kuberesource.IsCoordinator(resource) {
 		return nil
 	}
 	if coordinatorNamespace == "" {
@@ -671,7 +649,7 @@ func injectInitializer(resource any, coordinatorNamespace, collateralProxyURL st
 }
 
 func injectServiceMesh(resource any, memoryProfile kuberesource.MemoryProfile) error {
-	if isCoordinator(resource) {
+	if kuberesource.IsCoordinator(resource) {
 		return nil
 	}
 	if _, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy(memoryProfile)); err != nil {
