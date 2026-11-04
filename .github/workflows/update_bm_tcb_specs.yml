@@ -6,6 +6,7 @@ on:
       - "main"
     paths:
       - "dev-docs/e2e/**/contrast-imagepuller.toml"
+      - "dev-docs/e2e/**/contrast-nodeinstaller.yaml"
       - "dev-docs/e2e/**/manifest.json"
   pull_request:
     paths:
@@ -54,6 +55,13 @@ jobs:
           imagepullerAuth="./dev-docs/e2e/$(hostname)/contrast-imagepuller.toml"
           if [[ -f "$imagepullerAuth" ]]; then
             nix run '.#base.scripts.configure-imagepuller-mirror' -- "$imagepullerAuth"
+          fi
+      - name: Update nodeinstaller config
+        id: update-nodeinstaller
+        run: |
+          nodeinstallerConfig="./dev-docs/e2e/$(hostname)/contrast-nodeinstaller.yaml"
+          if [[ -f "$nodeinstallerConfig" ]]; then
+            kubectl apply -f "$nodeinstallerConfig"
           fi
       - name: Report success
         id: report
