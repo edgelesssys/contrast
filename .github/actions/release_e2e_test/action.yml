@@ -95,6 +95,22 @@ runs:
         oauth-client-id: ${{ inputs.tailscale_client_id }}
         oauth-secret: ${{ inputs.tailscale_client_secret }}
         tags: tag:contrast-ci
+    - name: Restore system DNS after tailscale
+      if: inputs.cli_arch == 'aarch64-darwin' && inputs.is_public != 'true'
+      # The tailscale action points the macOS system resolver at
+      # 100.100.100.100, which fails to resolve public names such as the
+      # Actions OIDC endpoint, so the next step can't get an ID token.
+      # Nothing here needs tailnet DNS: the cluster hostname is pinned in
+      # /etc/hosts below.
+      # TODO(sespiros): DROP once the action stops overriding DNS on macOS or
+      # makes it optional, see https://github.com/tailscale/github-action/issues/315.
+      shell: bash
+      run: |
+        networksetup -listallnetworkservices | tail -n +2 | sed 's/^\*//' |
+          while IFS= read -r service; do
+            sudo networksetup -setdnsservers "${service}" Empty
+          done
+        scutil --dns | grep 'nameserver\['
     - name: Authenticate to Google Cloud
       if: inputs.cli_arch == 'aarch64-darwin'
       uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
