@@ -122,7 +122,9 @@ func (h *VersionedAttestationHandler) getResponse(ctx context.Context, nonce []b
 			return nil, http.StatusInternalServerError, err
 		}
 		resp.CoordinatorState = *coordinatorState
-		transitionDigest = state.LatestTransition().TransitionHash[:]
+		latest := state.LatestTransition()
+		transitionDigest = latest.TransitionHash[:]
+		resp.LatestTransitionSignature = latest.Signature
 	}
 
 	// The key isn't bound to the Coordinator's state, so that a Coordinator awaiting recovery can hand one out, too.

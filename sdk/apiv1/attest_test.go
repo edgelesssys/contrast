@@ -110,18 +110,27 @@ func TestValidateAttestation(t *testing.T) {
 	// response returns the attestation of an active Coordinator.
 	response := func(capabilitiesDigest []byte, manifests ...[]byte) *apitypesv1.AttestationResponse {
 		return &apitypesv1.AttestationResponse{
-			AttestationType:    asn1.ObjectIdentifier{1, 2, 3},
-			RawAttestationDoc:  testNonce,
-			CapabilitiesDigest: capabilitiesDigest,
-			Status:             apitypesv1.StatusActive,
-			HPKEPubKey:         []byte("hpke-pub-key"),
+			AttestationType:           asn1.ObjectIdentifier{1, 2, 3},
+			RawAttestationDoc:         testNonce,
+			CapabilitiesDigest:        capabilitiesDigest,
+			Status:                    apitypesv1.StatusActive,
+			HPKEPubKey:                []byte("hpke-pub-key"),
+			LatestTransitionSignature: []byte("transition-signature"),
 			CoordinatorState: apitypesv1.CoordinatorState{
 				Manifests: manifests,
 			},
 		}
 	}
+	// withStatus sets the status, and drops the latest transition signature, which only an active Coordinator reports.
 	withStatus := func(status apitypesv1.Status, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
 		resp.Status = status
+		if status != apitypesv1.StatusActive {
+			resp.LatestTransitionSignature = nil
+		}
+		return resp
+	}
+	withTransitionSignature := func(signature []byte, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
+		resp.LatestTransitionSignature = signature
 		return resp
 	}
 
@@ -206,6 +215,18 @@ func TestValidateAttestation(t *testing.T) {
 			wantErrIs:       ErrCoordinatorNeedsRecovery,
 			wantUnvalidated: true,
 		},
+		"attestation without latest transition signature": {
+			nonce:           testNonce,
+			resp:            withTransitionSignature(nil, response(digest(Version), testManifest)),
+			wantErr:         "doesn't include the latest transition signature",
+			wantUnvalidated: true,
+		},
+		"uninitialized coordinator reporting a transition signature": {
+			nonce:           testNonce,
+			resp:            withTransitionSignature([]byte("transition-signature"), withStatus(apitypesv1.StatusUninitialized, response(digest(Version)))),
+			wantErr:         "reports Coordinator state although",
+			wantUnvalidated: true,
+		},
 		"uninitialized coordinator reporting state": {
 			nonce:           testNonce,
 			resp:            withStatus(apitypesv1.StatusUninitialized, response(digest(Version), testManifest)),
@@ -264,10 +285,12 @@ func TestValidateAttestation(t *testing.T) {
 			transitions := history.BuildTransitionChain(tc.resp.Manifests)
 			latestTransitionHash := transitions[len(transitions)-1].Digest()
 			assert.Equal(&CoordinatorState{
-				Manifests: tc.resp.Manifests,
-				Policies:  tc.resp.Policies,
-				RootCA:    tc.resp.RootCA,
-				MeshCA:    tc.resp.MeshCA,
+				Manifests:                 tc.resp.Manifests,
+				Policies:                  tc.resp.Policies,
+				RootCA:                    tc.resp.RootCA,
+				MeshCA:                    tc.resp.MeshCA,
+				LatestTransitionHash:      latestTransitionHash[:],
+				LatestTransitionSignature: tc.resp.LatestTransitionSignature,
 			}, state)
 
 			wantReportData, err := apitypesv1.ConstructAttestationReportData(tc.nonce, latestTransitionHash[:], tc.resp)

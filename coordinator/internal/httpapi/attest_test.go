@@ -304,6 +304,7 @@ func TestVersionedAttestationHandler(t *testing.T) {
 				require.NotEmpty(resp.MeshCA)
 			} else {
 				require.Equal(apitypesv1.CoordinatorState{}, resp.CoordinatorState)
+				require.Empty(resp.LatestTransitionSignature)
 			}
 
 			// A client must be able to reproduce the report data from the response alone.
