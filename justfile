@@ -137,7 +137,6 @@ _e2e target=default_deploy_target platform=default_platform set=default_set: sof
             --genpolicy-cache-path ./{{ workspace_dir }}/layers-cache.json \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --platform {{ platform }} \
-            --node-installer-target-conf-type "${node_installer_target_conf_type}" \
             --namespace-suffix=${namespace_suffix-} \
             --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket \
             --insecure-enable-debug-shell-access=${debug:-false}
@@ -215,7 +214,6 @@ e2e-release source platform=default_platform set=default_set: soft-clean k8s-log
     nix shell .#{{ set }}.contrast.e2e --command release.test -test.v \
             "${source_args[@]}" \
             --platform {{ platform }} \
-            --node-installer-target-conf ${node_installer_target_conf_type} \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --bin-name "contrast-$(nix eval --raw --impure --expr builtins.currentSystem)" \
             --use-loadbalancer=true
@@ -246,7 +244,6 @@ runtime target=default_deploy_target platform=default_platform set=default_set:
     nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
-        --node-installer-target-conf-type ${node_installer_target_conf_type} \
         --platform "$platforms" \
         runtime > "./{{ workspace_dir }}/runtime/runtime.yml"
 

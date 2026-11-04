@@ -35,6 +35,8 @@ import (
 	"github.com/google/go-github/v93/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -44,16 +46,15 @@ const (
 )
 
 var (
-	owner                   = flag.String("owner", "edgelesssys", "Github repository owner")
-	repo                    = flag.String("repo", "contrast", "Github repository")
-	tag                     = flag.String("tag", "", "tag name of the release to download")
-	s3BaseURL               = flag.String("s3-base-url", "", `if set, fetch artifacts from this public S3 base URL (e.g. https://contrast-public.s3.eu-central-1.amazonaws.com/pre-releases/v1.2.3/123/1/) instead of from a Github release`)
-	keep                    = flag.Bool("keep", false, "don't delete test resources and deployment")
-	platformStr             = flag.String("platform", "", "Deployment platform")
-	nodeInstallerTargetConf = flag.String("node-installer-target-conf", "", "Node installer target configuration")
-	namespaceFile           = flag.String("namespace-file", "", "file to store the namespaces in")
-	useLoadBalancer         = flag.Bool("use-loadbalancer", false, "Use LoadBalancer IP instead of Cluster IP")
-	binName                 = flag.String("bin-name", "contrast-x86_64-linux", "name of the contrast CLI binary in the release archive to test")
+	owner           = flag.String("owner", "edgelesssys", "Github repository owner")
+	repo            = flag.String("repo", "contrast", "Github repository")
+	tag             = flag.String("tag", "", "tag name of the release to download")
+	s3BaseURL       = flag.String("s3-base-url", "", `if set, fetch artifacts from this public S3 base URL (e.g. https://contrast-public.s3.eu-central-1.amazonaws.com/pre-releases/v1.2.3/123/1/) instead of from a Github release`)
+	keep            = flag.Bool("keep", false, "don't delete test resources and deployment")
+	platformStr     = flag.String("platform", "", "Deployment platform")
+	namespaceFile   = flag.String("namespace-file", "", "file to store the namespaces in")
+	useLoadBalancer = flag.Bool("use-loadbalancer", false, "Use LoadBalancer IP instead of Cluster IP")
+	binName         = flag.String("bin-name", "contrast-x86_64-linux", "name of the contrast CLI binary in the release archive to test")
 )
 
 // TestRelease downloads a release from Github or S3, sets up the coordinator, installs the demo
@@ -132,16 +133,28 @@ func TestRelease(t *testing.T) {
 	})
 
 	require.True(t, t.Run("apply-runtime", func(t *testing.T) {
+		const (
+			runtimeNamespace             = "contrast-system"
+			nodeInstallerConfigNamespace = "default"
+			nodeInstallerConfigName      = "contrast-e2e-nodeinstaller-config"
+		)
 		require := require.New(t)
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		if *nodeInstallerTargetConf != "" && *nodeInstallerTargetConf != "none" {
-			yaml, err := os.ReadFile(path.Join(dir, fmt.Sprintf("node-installer-target-config-%s.yml", *nodeInstallerTargetConf)))
+		cm, err := k.Client.CoreV1().ConfigMaps(nodeInstallerConfigNamespace).Get(ctx, nodeInstallerConfigName, metav1.GetOptions{})
+		if err == nil {
+			newCm, err := kuberesource.NodeInstallerTargetConfig("empty")
 			require.NoError(err)
-			resources, err := kuberesource.UnmarshalUnstructuredK8SResource(yaml)
+			newCm.Data = cm.Data
+			newCm.Namespace = new(runtimeNamespace)
+			unstructured, err := kuberesource.ResourcesToUnstructured([]any{kuberesource.Namespace(runtimeNamespace), newCm})
 			require.NoError(err)
-			require.NoError(k.Apply(ctx, resources...))
+			require.NoError(k.Apply(ctx, unstructured...))
+		} else if apierrors.IsNotFound(err) {
+			t.Logf("Could not fetch ConfigMap %s/%s, continuing with defaults: %v", nodeInstallerConfigNamespace, nodeInstallerConfigName, err)
+		} else {
+			require.NoError(err)
 		}
 
 		yaml, err := os.ReadFile(path.Join(dir, fmt.Sprintf("runtime-%s.yml", lowerPlatformStr)))
@@ -441,9 +454,6 @@ func requiredArtifacts() []string {
 		"coordinator.yml",
 		"emojivoto-demo.yml",
 		fmt.Sprintf("runtime-%s.yml", strings.ToLower(*platformStr)),
-	}
-	if *nodeInstallerTargetConf != "" && *nodeInstallerTargetConf != "none" {
-		files = append(files, fmt.Sprintf("node-installer-target-config-%s.yml", *nodeInstallerTargetConf))
 	}
 	return files
 }

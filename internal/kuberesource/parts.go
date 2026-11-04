@@ -28,6 +28,8 @@ const (
 	MemoryProfileFull MemoryProfile = false
 	// MemoryProfileRuntimeOnly only includes the runtime requirements in the container memory limits.
 	MemoryProfileRuntimeOnly MemoryProfile = true
+
+	nodeinstallerTargetConfigName = "contrast-node-installer-target-config"
 )
 
 var containerMemoryLimits = map[string]map[MemoryProfile]int64{
@@ -174,7 +176,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 										WithName("target-config").
 										WithConfigMap(
 											ConfigMapVolumeSource().
-												WithName("contrast-node-installer-target-config").
+												WithName(nodeinstallerTargetConfigName).
 												WithOptional(true),
 										),
 									Volume().
@@ -197,17 +199,19 @@ func NodeInstallerTargetConfig(target string) (*applycorev1.ConfigMapApplyConfig
 	ns := ""
 	switch target {
 	case "k3s":
-		return applycorev1.ConfigMap("contrast-node-installer-target-config", ns).
+		return applycorev1.ConfigMap(nodeinstallerTargetConfigName, ns).
 			WithData(map[string]string{
 				"containerd-import-dir": "var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.d",
 				"systemd-unit-name":     "k3s.service,k3s-agent.service",
 			}), nil
 	case "rke2":
-		return applycorev1.ConfigMap("contrast-node-installer-target-config", ns).
+		return applycorev1.ConfigMap(nodeinstallerTargetConfigName, ns).
 			WithData(map[string]string{
 				"containerd-import-dir": "var/lib/rancher/rke2/agent/etc/containerd/config-v3.toml.d",
 				"systemd-unit-name":     "rke2-server.service,rke2-agent.service",
 			}), nil
+	case "empty":
+		return applycorev1.ConfigMap(nodeinstallerTargetConfigName, ns).WithData(map[string]string{}), nil
 	default:
 		return nil, fmt.Errorf("unsupported target %q", target)
 	}
