@@ -127,6 +127,9 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 		transitions := history.BuildTransitionChain(resp.Manifests)
 		digest := transitions[len(transitions)-1].Digest()
 		transitionDigest = digest[:]
+		if attestationVersion != legacyAPIVersion && len(resp.LatestTransitionSignature) == 0 {
+			return nil, fmt.Errorf("attestation for API version %s doesn't include the latest transition signature", attestationVersion)
+		}
 	case apitypesv1.StatusUninitialized:
 		errStatus = ErrCoordinatorUninitialized
 	case apitypesv1.StatusStale:
@@ -134,7 +137,7 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 	default:
 		return nil, fmt.Errorf("attestation reports unknown Coordinator status %q", string(status))
 	}
-	if errStatus != nil && (len(resp.Manifests) != 0 || len(resp.Policies) != 0 || len(resp.RootCA) != 0 || len(resp.MeshCA) != 0) {
+	if errStatus != nil && (len(resp.Manifests) != 0 || len(resp.Policies) != 0 || len(resp.RootCA) != 0 || len(resp.MeshCA) != 0 || len(resp.LatestTransitionSignature) != 0) {
 		return nil, fmt.Errorf("attestation reports Coordinator state although its status is %q", string(status))
 	}
 
@@ -186,11 +189,14 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 		}
 	}
 
+	// The legacy endpoint doesn't report the latest transition signature, so it stays empty.
 	state := CoordinatorState{
-		Manifests: resp.Manifests,
-		Policies:  resp.Policies,
-		RootCA:    resp.RootCA,
-		MeshCA:    resp.MeshCA,
+		Manifests:                 resp.Manifests,
+		Policies:                  resp.Policies,
+		RootCA:                    resp.RootCA,
+		MeshCA:                    resp.MeshCA,
+		LatestTransitionHash:      transitionDigest,
+		LatestTransitionSignature: resp.LatestTransitionSignature,
 	}
 	return &state, nil
 }

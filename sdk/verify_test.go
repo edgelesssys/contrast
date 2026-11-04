@@ -137,11 +137,20 @@ func TestValidateAttestation(t *testing.T) {
 		if capabilitiesDigest != nil {
 			resp.Status = apitypesv1.StatusActive
 			resp.HPKEPubKey = []byte("hpke-pub-key")
+			resp.LatestTransitionSignature = []byte("transition-signature")
 		}
 		return resp
 	}
+	// withStatus sets the status, and drops the latest transition signature, which only an active Coordinator reports.
 	withStatus := func(status apitypesv1.Status, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
 		resp.Status = status
+		if status != apitypesv1.StatusActive {
+			resp.LatestTransitionSignature = nil
+		}
+		return resp
+	}
+	withTransitionSignature := func(signature []byte, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
+		resp.LatestTransitionSignature = signature
 		return resp
 	}
 
@@ -230,6 +239,20 @@ func TestValidateAttestation(t *testing.T) {
 			wantErrIs:       ErrCoordinatorNeedsRecovery,
 			wantUnvalidated: true,
 		},
+		"versioned attestation without latest transition signature": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withTransitionSignature(nil, response(digest(apiv1.Version), testManifest)),
+			wantErr:         "doesn't include the latest transition signature",
+			wantUnvalidated: true,
+		},
+		"uninitialized coordinator reporting a transition signature": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withTransitionSignature([]byte("transition-signature"), withStatus(apitypesv1.StatusUninitialized, response(digest(apiv1.Version)))),
+			wantErr:         "reports Coordinator state although",
+			wantUnvalidated: true,
+		},
 		"uninitialized coordinator reporting state": {
 			nonce:           testNonce,
 			versions:        []string{apiv1.Version},
@@ -309,10 +332,12 @@ func TestValidateAttestation(t *testing.T) {
 			transitions := history.BuildTransitionChain(tc.resp.Manifests)
 			latestTransitionHash := transitions[len(transitions)-1].Digest()
 			expected := &CoordinatorState{
-				Manifests: tc.resp.Manifests,
-				Policies:  tc.resp.Policies,
-				RootCA:    tc.resp.RootCA,
-				MeshCA:    tc.resp.MeshCA,
+				Manifests:                 tc.resp.Manifests,
+				Policies:                  tc.resp.Policies,
+				RootCA:                    tc.resp.RootCA,
+				MeshCA:                    tc.resp.MeshCA,
+				LatestTransitionHash:      latestTransitionHash[:],
+				LatestTransitionSignature: tc.resp.LatestTransitionSignature,
 			}
 
 			assert.Equal(expected, state)
