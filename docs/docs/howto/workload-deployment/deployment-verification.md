@@ -19,7 +19,7 @@ You can start the verification at any of the following subsections with the outp
 All steps in this guide must be executed on a trustworthy system under your control.
 This applies to all binaries used in the process, too, in particular the Contrast CLI.
 
-<!-- TODO(burgerdev): document how to build trust in the Contrast CLI. -->
+To check the Contrast CLI, [verify the release](../install-cli.md#verify-the-release) and [reproduce it from source](../reproducible-build.md).
 
 ### Generate an expected manifest
 
