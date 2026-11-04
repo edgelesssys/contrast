@@ -88,11 +88,13 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 		}
 	}
 
+	// The legacy endpoint doesn't report the latest transition signature, so it stays empty.
 	state := CoordinatorState{
-		Manifests: resp.Manifests,
-		Policies:  resp.Policies,
-		RootCA:    resp.RootCA,
-		MeshCA:    resp.MeshCA,
+		Manifests:            resp.Manifests,
+		Policies:             resp.Policies,
+		RootCA:               resp.RootCA,
+		MeshCA:               resp.MeshCA,
+		LatestTransitionHash: transitionDigest[:],
 	}
 	return &state, nil
 }

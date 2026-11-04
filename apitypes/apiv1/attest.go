@@ -94,6 +94,12 @@ type AttestationResponse struct {
 	// It is bound into the report data, see [ConstructAttestationReportData].
 	// The unversioned [LegacyAttestPath] endpoint doesn't set this field.
 	HPKEPubKey []byte `json:"hpke_pub_key,omitempty"`
+	// LatestTransitionSignature is the Coordinator's signature of the hash of its latest transition.
+	// Unless the Coordinator is [StatusActive], it is empty.
+	//
+	// It is bound into the report data, see [ConstructAttestationReportData].
+	// The unversioned [LegacyAttestPath] endpoint doesn't set this field.
+	LatestTransitionSignature []byte `json:"latest_transition_signature,omitempty"`
 
 	CoordinatorState
 }
@@ -174,13 +180,15 @@ const attestLabel = "contrast attest v1"
 // ConstructAttestationReportData constructs the report data of the [AttestPath] endpoint.
 //
 //	reportData = sha256(sha256("contrast attest v1") || nonce || status || transitionDigest ||
-//	             sha256(rootCA) || sha256(meshCA) || sha256(hpkePubKey) || capabilitiesDigest)
+//	                    sha256(transitionSignature) || sha256(rootCA) || sha256(meshCA) ||
+//	                    sha256(hpkePubKey) || capabilitiesDigest)
 //
-// The status, the CA certificates, the HPKE public key and the capabilities digest are taken from resp.
+// The status, the transition signature, the CA certificates, the HPKE public key and the capabilities digest are taken from resp.
 // transitionDigest is the digest of the latest transition, and must be empty if the Coordinator isn't
 // [StatusActive], in which case it enters as zeroes.
 //
 // Binding the capabilities digest lets clients detect tampering with the unauthenticated capabilities endpoint.
+// An uninitialized Coordinator can be told apart from one awaiting recovery by the bound status.
 func ConstructAttestationReportData(nonce []byte, transitionDigest []byte, resp *AttestationResponse) ([ReportDataSize]byte, error) {
 	if err := fixed("nonce", nonce, NonceSize); err != nil {
 		return [ReportDataSize]byte{}, err
@@ -204,6 +212,7 @@ func ConstructAttestationReportData(nonce []byte, transitionDigest []byte, resp 
 		nonce,
 		[]byte{status},
 		transitionDigest,
+		hashed(resp.LatestTransitionSignature),
 		hashed(resp.RootCA),
 		hashed(resp.MeshCA),
 		hashed(resp.HPKEPubKey),
