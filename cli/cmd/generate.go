@@ -367,20 +367,26 @@ func isCoordinator(resource any) bool {
 }
 
 func patchCoordinatorAllowInsecure(resource any, usedPlatforms kuberesource.PlatformCollection, allowInsecure bool) {
-	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-	if !ok || !allowInsecure || !isCoordinator(resource) {
+	if !allowInsecure || !isCoordinator(resource) {
 		return
 	}
 	platformList := usedPlatforms.Platforms()
 	if len(platformList) == 0 || slices.ContainsFunc(platformList, func(p platforms.Platform) bool { return !platforms.IsInsecure(p) }) {
 		return
 	}
-	for i := range r.Spec.Template.Spec.Containers {
-		container := &r.Spec.Template.Spec.Containers[i]
-		if container.Name != nil && *container.Name == string(manifest.RoleCoordinator) {
-			kuberesource.SetContainerEnv(container, allowInsecureEnvVar, "1")
+
+	kuberesource.MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		if spec == nil {
+			return nil
 		}
-	}
+		for i := range spec.Containers {
+			container := &spec.Containers[i]
+			if container.Name != nil && *container.Name == string(manifest.RoleCoordinator) {
+				kuberesource.SetContainerEnv(container, allowInsecureEnvVar, "1")
+			}
+		}
+		return spec
+	})
 }
 
 func runVerifiers(fileMap map[string][]*unstructured.Unstructured, verifiers []verifier.Verifier) error {
@@ -456,9 +462,12 @@ func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (
 			} else if isContrastWorkload(applyConfig) {
 				containsCC = true
 				if isCoordinator(applyConfig) {
-					r, ok := applyConfig.(*applyappsv1.StatefulSetApplyConfiguration)
-					if ok && r.ObjectMetaApplyConfiguration != nil && r.Namespace != nil {
-						coordinatorNamespace = *r.Namespace
+					r, ok := applyConfig.(interface{ GetNamespace() *string })
+					if ok {
+						ns := r.GetNamespace()
+						if ns != nil {
+							coordinatorNamespace = *ns
+						}
 					}
 				}
 			}
