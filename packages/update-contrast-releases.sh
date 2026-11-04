@@ -13,15 +13,10 @@ if [[ -z ${VERSION:-} ]]; then
 fi
 
 platforms=(
-  "aks-clh-snp"
-  "k3s-qemu-snp-gpu"
-  "k3s-qemu-snp"
-  "k3s-qemu-tdx"
   "metal-qemu-snp-gpu"
   "metal-qemu-snp"
   "metal-qemu-tdx"
   "metal-qemu-tdx-gpu"
-  "rke2-qemu-tdx"
 )
 
 target_configs=(
@@ -31,20 +26,18 @@ target_configs=(
 # declare an associative array that pairs the field name
 # in ./packages/versions.json with the path to the file
 declare -A fields
-fields["contrast-x86_64-linux"]="./workspace/contrast-x86_64-linux"
-fields["contrast-aarch64-darwin"]="./workspace/contrast-aarch64-darwin"
-fields["coordinator.yml"]="./workspace/coordinator.yml"
-fields["runtime.yml"]="./workspace/runtime.yml"
-fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
-fields["emojivoto-demo.yml"]="./workspace/emojivoto-demo.yml"
-fields["mysql-demo.yml"]="./workspace/mysql-demo.yml"
-fields["vault-demo.yml"]="./workspace/vault-demo.yml"
+fields["contrast-x86_64-linux"]="./workspace/artifacts/contrast-x86_64-linux"
+fields["contrast-aarch64-darwin"]="./workspace/artifacts/contrast-aarch64-darwin"
+fields["coordinator.yml"]="./workspace/artifacts/coordinator.yml"
+fields["emojivoto-demo.yml"]="./workspace/artifacts/emojivoto-demo.yml"
+fields["mysql-demo.yml"]="./workspace/artifacts/mysql-demo.yml"
+fields["vault-demo.yml"]="./workspace/artifacts/vault-demo.yml"
 for platform in "${platforms[@]}"; do
-  fields["coordinator-${platform}.yml"]="./workspace/coordinator-${platform}.yml"
-  fields["runtime-${platform}.yml"]="./workspace/runtime-${platform}.yml"
+  fields["coordinator-${platform}.yml"]="./workspace/artifacts/coordinator-${platform}.yml"
+  fields["runtime-${platform}.yml"]="./workspace/artifacts/runtime-${platform}.yml"
 done
 for target in "${target_configs[@]}"; do
-  fields["node-installer-target-config-${target}.yml"]="./workspace/node-installer-target-config-${target}.yml"
+  fields["node-installer-target-config-${target}.yml"]="./workspace/artifacts/node-installer-target-config-${target}.yml"
 done
 
 for field in "${!fields[@]}"; do
