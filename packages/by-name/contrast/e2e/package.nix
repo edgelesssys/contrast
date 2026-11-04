@@ -69,6 +69,7 @@ buildGoModule {
 
   subPackages = [
     # keep-sorted start
+    "e2e/apiversion"
     "e2e/atls"
     "e2e/attestation"
     "e2e/badaml-sandbox"
