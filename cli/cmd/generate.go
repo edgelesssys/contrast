@@ -32,7 +32,6 @@ import (
 	"github.com/edgelesssys/go-sev-guest/abi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 
@@ -326,7 +325,7 @@ func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f fun
 			if err != nil {
 				continue
 			}
-			if !isContrastWorkload(applyConfig) {
+			if !kuberesource.IsContrastWorkload(applyConfig) {
 				continue
 			}
 			changed, err := f(applyConfig, path, idx)
@@ -345,29 +344,8 @@ func mapContrastWorkloads(fileMap map[string][]*unstructured.Unstructured, f fun
 	return nil
 }
 
-func isContrastWorkload(resource any) (ret bool) {
-	kuberesource.MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		ret = kuberesource.IsContrastPod(spec)
-		return spec
-	})
-	return ret
-}
-
-func isCoordinator(resource any) bool {
-	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-	if ok &&
-		r.Spec != nil &&
-		r.Spec.Template != nil &&
-		r.Spec.Template.Spec != nil &&
-		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
-		r.Spec.Template.Labels[kuberesource.ContrastRoleLabelKey] == string(manifest.RoleCoordinator) {
-		return true
-	}
-	return false
-}
-
 func patchCoordinatorAllowInsecure(resource any, usedPlatforms kuberesource.PlatformCollection, allowInsecure bool) {
-	if !allowInsecure || !isCoordinator(resource) {
+	if !allowInsecure || !kuberesource.IsCoordinator(resource) {
 		return
 	}
 	platformList := usedPlatforms.Platforms()
@@ -459,9 +437,9 @@ func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (
 			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(object)
 			if err != nil {
 				logger.Warn("Could not convert resource into ApplyConfiguration", "path", path, "err", err)
-			} else if isContrastWorkload(applyConfig) {
+			} else if kuberesource.IsContrastWorkload(applyConfig) {
 				containsCC = true
-				if isCoordinator(applyConfig) {
+				if kuberesource.IsCoordinator(applyConfig) {
 					r, ok := applyConfig.(interface{ GetNamespace() *string })
 					if ok {
 						ns := r.GetNamespace()
@@ -612,7 +590,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 	}
 
 	return mapContrastWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
-		if flags.collateralProxyURL != "" && isCoordinator(res) {
+		if flags.collateralProxyURL != "" && kuberesource.IsCoordinator(res) {
 			res = kuberesource.SetCollateralProxyEnv([]any{res}, flags.collateralProxyURL)[0]
 		}
 		memoryProfile := kuberesource.MemoryProfile(flags.calculatePodMemory)
@@ -653,7 +631,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 }
 
 func injectInitializer(resource any, coordinatorNamespace, collateralProxyURL string, memoryProfile kuberesource.MemoryProfile) error {
-	if isCoordinator(resource) {
+	if kuberesource.IsCoordinator(resource) {
 		return nil
 	}
 	if coordinatorNamespace == "" {
@@ -671,7 +649,7 @@ func injectInitializer(resource any, coordinatorNamespace, collateralProxyURL st
 }
 
 func injectServiceMesh(resource any, memoryProfile kuberesource.MemoryProfile) error {
-	if isCoordinator(resource) {
+	if kuberesource.IsCoordinator(resource) {
 		return nil
 	}
 	if _, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy(memoryProfile)); err != nil {
@@ -947,7 +925,7 @@ func patchIDBlockAnnotation(res any, mnf *manifest.Manifest) error {
 			return meta, spec, nil
 		}
 
-		cpuCount := strconv.FormatInt(podVCPUCount(spec), 10)
+		cpuCount := strconv.FormatInt(kuberesource.PodVCPUCount(spec), 10)
 
 		if meta == nil {
 			meta = &applymetav1.ObjectMetaApplyConfiguration{}
@@ -987,22 +965,6 @@ func snpGuestPolicyForProduct(refVals []manifest.SNPReferenceValues, platform pl
 	return abi.SnpPolicy{}, false
 }
 
-// podVCPUCount mirrors Kata's CPU sizing, including one CPU for hypervisor overhead.
-func podVCPUCount(spec *applycorev1.PodSpecApplyConfiguration) int64 {
-	var regular, init int64
-	for _, container := range spec.Containers {
-		regular += getCPUCount(container.Resources)
-	}
-	for _, container := range spec.InitContainers {
-		cpus := getCPUCount(container.Resources)
-		init += cpus
-		if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
-			regular += cpus
-		}
-	}
-	return (max(regular, init, getCPUCount(spec.Resources))+999)/1000 + 1
-}
-
 func selectTDXReferenceValues(fileMap map[string][]*unstructured.Unstructured, mnf *manifest.Manifest, embedded manifest.EmbeddedReferenceValues) error {
 	required := make(map[string][]manifest.HexString)
 	err := mapContrastWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
@@ -1022,7 +984,7 @@ func selectTDXReferenceValues(fileMap map[string][]*unstructured.Unstructured, m
 			if !ok || len(values.RTMR0ByVCPU) == 0 {
 				return nil, fmt.Errorf("no vCPU measurement mapping for runtime handler %s", handler)
 			}
-			cpus := podVCPUCount(spec)
+			cpus := kuberesource.PodVCPUCount(spec)
 			rtmr0, ok := values.RTMR0ByVCPU[int(cpus)]
 			if !ok {
 				return nil, fmt.Errorf("no RTMR0 for %d vCPUs with runtime handler %s", cpus, handler)
@@ -1068,13 +1030,6 @@ func selectTDXReferenceValues(fileMap map[string][]*unstructured.Unstructured, m
 		}
 	}
 	return nil
-}
-
-func getCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) int64 {
-	if resources != nil && resources.Limits != nil {
-		return resources.Limits.Cpu().MilliValue()
-	}
-	return 0
 }
 
 type generateFlags struct {
