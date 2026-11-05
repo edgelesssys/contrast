@@ -35,7 +35,20 @@
 
 1. Update your BIOS to a version that supports AMD SEV-SNP. Updating to the latest available version is recommended as newer versions will likely contain security patches for AMD SEV-SNP.
 2. Enter BIOS setup to enable SMEE, IOMMU, RMP coverage, and SEV-SNP. Set the SEV-ES ASID Space Limit to a non-zero number (higher is better).
-3. Download the latest firmware version for your processor from [AMD](https://www.amd.com/de/developer/sev.html), unpack it, and place it in `/lib/firmware/amd`.
+3. Download the latest firmware version for your processor from [AMD](https://www.amd.com/de/developer/sev.html), unpack it, and place it in `/lib/firmware/updates/amd`.
+   Make sure to strip the version from the downloaded files, the directory structure should look like this for Milan:
+
+   ```raw
+   /lib/firmware/updates/amd
+   `-- amd_sev_fam19h_model0xh.sbin
+   /lib/firmware/amd
+   |-- amd_sev_fam17h_model0xh.sbin
+   |-- amd_sev_fam17h_model3xh.sbin
+   |-- amd_sev_fam19h_model0xh.sbin
+   |-- amd_sev_fam19h_model1xh.sbin
+   |-- amd_sev_fam19h_modelaxh.sbin
+   `-- amd_sev_fam1ah_model0xh.sbin
+   ```
 
 Consult AMD's [Using SEV with AMD EPYC Processors user guide](https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/tuning-guides/58207-using-sev-with-amd-epyc-processors.pdf) for more information.
 
