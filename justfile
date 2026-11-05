@@ -222,7 +222,7 @@ e2e-release source platform=default_platform set=default_set: soft-clean k8s-log
 deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (runtime target platform) (write-namespace target) (apply "runtime" platform) (generate cli platform) (apply target platform)
 
 # Populate the workspace with a runtime class deployment
-runtime target=default_deploy_target platform=default_platform set=default_set:
+runtime target=default_deploy_target set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     platforms=$(just collect-platforms)
@@ -231,16 +231,7 @@ runtime target=default_deploy_target platform=default_platform set=default_set:
         just node-installer "$platform"
     done
 
-    mkdir -p ./{{ workspace_dir }}/runtime
-    if [[ "${node_installer_target_conf_type}" != "none" ]]; then
-        nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
-            --image-replacements ./{{ workspace_dir }}/just.containerlookup \
-            --namespace {{ target }}${namespace_suffix-} \
-            --node-installer-target-conf-type ${node_installer_target_conf_type} \
-            --platform {{ platform }} \
-            node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
-    fi
-
+    mkdir -p "./{{ workspace_dir }}/runtime"
     nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \

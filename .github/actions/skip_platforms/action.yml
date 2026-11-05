@@ -27,10 +27,10 @@ runs:
         # Platforms of e2e_nightly.yml. Metal-QEMU-SNP-DEV only runs maintenance there.
         nightly_platforms='["Metal-QEMU-SNP", "Metal-QEMU-SNP-GPU", "Metal-QEMU-TDX", "Metal-QEMU-TDX-GPU", "Metal-QEMU-SNP-DEV"]'
         release_test_platforms='[
-          {"name": "Metal-QEMU-SNP", "node-installer-target-conf": "none", "linux-runner": "SNP", "is-public": true},
-          {"name": "Metal-QEMU-SNP-GPU", "node-installer-target-conf": "k3s", "linux-runner": "SNP-GPU", "is-public": false},
-          {"name": "Metal-QEMU-TDX", "node-installer-target-conf": "k3s", "linux-runner": "TDX", "is-public": false},
-          {"name": "Metal-QEMU-TDX-GPU", "node-installer-target-conf": "none", "linux-runner": "TDX-GPU", "is-public": true}
+          {"name": "Metal-QEMU-SNP", "linux-runner": "SNP", "is-public": true},
+          {"name": "Metal-QEMU-SNP-GPU", "linux-runner": "SNP-GPU", "is-public": false},
+          {"name": "Metal-QEMU-TDX", "linux-runner": "TDX", "is-public": false},
+          {"name": "Metal-QEMU-TDX-GPU", "linux-runner": "TDX-GPU", "is-public": true}
         ]'
 
         skip=$(tr ', ' '\n\n' <<<"${SKIP_PLATFORMS}" | jq -R 'select(. != "")' | jq -cs 'unique')
