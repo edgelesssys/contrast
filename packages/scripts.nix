@@ -795,4 +795,19 @@
       mdsh --inputs "$@"
     '';
   };
+
+  bump-version = writeShellApplication {
+    name = "bump-version";
+    runtimeInputs = with pkgs; [ gnused ];
+    text = ''
+      version=$1
+      echo -n "$version" > version.txt
+
+      # The apitypes and sdk Go modules are released together with Contrast, as v0.<minor>.<patch>.
+      release="''${version%%-*}"
+
+      sed -i -E "s#(edgelesssys/contrast) v[^ ]+#\1 v$release#" sdk/go.mod
+      sed -i -E "s#(edgelesssys/contrast/(apitypes|sdk)) v[^ ]+#\1 v0.''${release#*.}#" go.mod sdk/go.mod policy-test/go.mod
+    '';
+  };
 }
