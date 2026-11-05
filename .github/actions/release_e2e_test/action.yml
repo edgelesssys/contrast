@@ -68,17 +68,17 @@ runs:
       env:
         WITHOUT_V: ${{ inputs.without_v }}
       run: test -n "${WITHOUT_V}" || { echo "without_v is empty, refusing to test an unknown version"; exit 1; }
-    - name: Align version.txt with the version that was built
-      uses: ./.github/actions/bump_version
-      with:
-        version: ${{ inputs.without_v }}
-        commit: false
     - uses: ./.github/actions/setup_nix
       if: inputs.self_hosted != 'true'
       with:
         githubToken: ${{ inputs.github_token }}
         cachixToken: ${{ inputs.cachix_token }}
     - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+    - name: Align version.txt with the version that was built
+      uses: ./.github/actions/bump_version
+      with:
+        version: ${{ inputs.without_v }}
+        commit: false
 
     # --- darwin-only setup ---
     - name: Connect to tailscale
