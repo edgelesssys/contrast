@@ -23,7 +23,6 @@ jobs:
       packages: write
     env:
       PLATFORM: Metal-QEMU-SNP
-      NODE_INSTALLER_TARGET_CONF_TYPE: none
       CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
       SET: base
     steps:
@@ -43,7 +42,6 @@ jobs:
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
           default_platform=${PLATFORM}
-          node_installer_target_conf_type=${NODE_INSTALLER_TARGET_CONF_TYPE}
           namespace_suffix="-$id-ci"
           set="${SET}"
           EOF
