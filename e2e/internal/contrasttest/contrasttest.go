@@ -49,14 +49,13 @@ var Flags testFlags
 
 // testFlags contains the flags for the test.
 type testFlags struct {
-	PlatformStr                 string
-	ImageReplacementsFile       string
-	GenpolicyCachePath          string
-	NamespaceFile               string
-	NamespaceSuffix             string
-	NodeInstallerTargetConfType string
-	SyncTicketFile              string
-	InsecureEnableDebugShell    bool
+	PlatformStr              string
+	ImageReplacementsFile    string
+	GenpolicyCachePath       string
+	NamespaceFile            string
+	NamespaceSuffix          string
+	SyncTicketFile           string
+	InsecureEnableDebugShell bool
 }
 
 // RegisterFlags registers the flags that are shared between all tests.
@@ -66,7 +65,6 @@ func RegisterFlags() {
 	flag.StringVar(&Flags.NamespaceFile, "namespace-file", "", "file to store the namespace in")
 	flag.StringVar(&Flags.NamespaceSuffix, "namespace-suffix", "", "suffix to append to the namespace")
 	flag.StringVar(&Flags.PlatformStr, "platform", "", "Deployment platform")
-	flag.StringVar(&Flags.NodeInstallerTargetConfType, "node-installer-target-conf-type", "", "Type of node installer target configuration to generate (k3s,...)")
 	flag.StringVar(&Flags.SyncTicketFile, "sync-ticket-file", "", "file that contains the sync ticket")
 	flag.BoolVar(&Flags.InsecureEnableDebugShell, "insecure-enable-debug-shell-access", false, "enable the debug shell service")
 }
@@ -81,7 +79,6 @@ type ContrastTest struct {
 	Platform                       platforms.Platform
 	NamespaceFile                  string
 	RuntimeClassName               string
-	NodeInstallerTargetConfType    string
 	NodeInstallerImagePullerConfig []byte
 	GHCRToken                      string
 	Kubeclient                     *kubeclient.Kubeclient

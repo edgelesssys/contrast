@@ -41,15 +41,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       - name: Create justfile.env
-        env:
-          DISTRO: ${{ matrix.distro }}
         run: |
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
           # TDX does not require an ID Block, so we don't check the hardware.
           # This allows us to run the test on a GitHub runner.
           default_platform="Metal-QEMU-TDX"
-          node_installer_target_conf_type="${DISTRO}"
           set=${SET}
           EOF
       - name: Build and push container images
@@ -74,8 +71,15 @@ jobs:
           # Not a typo, RKE2 launches containerd with the k3s socket path.
           echo "CONTAINER_RUNTIME_ENDPOINT=/run/k3s/containerd/containerd.sock" >>"${GITHUB_ENV}"
       - name: Deploy Contrast Node Installer
+        env:
+          DISTRO: ${{ matrix.distro }}
         run: |
           just write-namespace default
+          nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
+            --node-installer-target-conf-type "${DISTRO}" \
+            --namespace default \
+            node-installer-target-conf |
+            kubectl apply -f -
           just runtime default
           kubectl wait --for=condition=Ready nodes --all --timeout=300s
           just apply runtime
