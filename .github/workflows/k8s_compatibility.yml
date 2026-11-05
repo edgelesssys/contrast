@@ -18,6 +18,7 @@ jobs:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         distro:
           - k3s
