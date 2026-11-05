@@ -9,9 +9,6 @@ while [ $# -gt 0 ]; do
   --image-replacements)
     imageReplacements="$2"
     ;;
-  --target-conf-type)
-    targetConfType="$2"
-    ;;
   --namespace)
     ns="$2"
     ;;
@@ -51,7 +48,8 @@ EOF
 debugshell=$(grep '^ghcr.io/edgelesssys/contrast/debugshell:latest=' "$imageReplacements" | tail -1 | cut -d= -f2-)
 
 containerdPath="/run/containerd/containerd.sock"
-if [[ ${targetConfType} == "k3s" ]]; then
+# TODO(CON-443): containerd socket should be obtained from the nodeinstaller config
+if kubectl version -o yaml | yq .serverVersion.gitVersion | grep -q k3s; then
   containerdPath="/var/run/k3s/containerd/containerd.sock"
 fi
 sed "s|@@REPLACE_CTR_PATH@@|$containerdPath|" "$DEBUGGER_YAML" >"$dir/debugger.yml"
