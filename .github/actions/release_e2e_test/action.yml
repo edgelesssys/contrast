@@ -19,9 +19,6 @@ inputs:
   platform_name:
     description: Platform name, e.g. Metal-QEMU-SNP
     required: true
-  node_installer_target_conf:
-    description: Node installer target configuration, e.g. none or k3s
-    required: true
   self_hosted:
     description: Whether this is a self-hosted runner ('true' or 'false')
     required: true
@@ -186,7 +183,6 @@ runs:
         VERSION: ${{ inputs.version }}
         S3_BASE_URL: ${{ inputs.s3_base_url }}
         PLATFORM_NAME: ${{ inputs.platform_name }}
-        NODE_INSTALLER_TARGET_CONF: ${{ inputs.node_installer_target_conf }}
         CLI_ARCH: ${{ inputs.cli_arch }}
         GENPOLICY_CACHE_PATH: ${{ github.workspace }}/workspace/layers-cache.json
       run: |
@@ -206,7 +202,6 @@ runs:
           --tag "${VERSION}" \
           "${source_args[@]}" \
           --platform "${PLATFORM_NAME}" \
-          --node-installer-target-conf "${NODE_INSTALLER_TARGET_CONF}" \
           --bin-name "contrast-${CLI_ARCH}" \
           --use-loadbalancer="${use_loadbalancer}" \
           --namespace-file workspace/just.namespace
