@@ -261,7 +261,6 @@ The Contrast Coordinator compares these value against both `LAUNCH_MIT_VECTOR` a
 
 The bits for individual mitigations are published as part of AMD's security bulletins, for example on [CVE-2025-0033].
 Notice that the mitigation might differ between different processor families.
-In the mentioned CVE, the mitigation bit is 1 for Milan, but 0 for Genoa.
 
 [CVE-2025-0033]: https://www.amd.com/en/resources/product-security/bulletin/amd-sb-3020.html
 
