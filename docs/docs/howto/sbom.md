@@ -1,6 +1,6 @@
 # Software bill of materials
 
-This page lists the SBOMs published with each Contrast release and shows how to scan them.
+This guide shows how to use the software bills of materials (SBOMs) published with each Contrast release, for independent vulnerability scanning and for licensing and regulatory compliance.
 
 :::warning
 
@@ -14,57 +14,81 @@ Read a scan of your own against those files before acting on it.
 ## Applicability
 
 For vulnerability management, license compliance, and regulatory requirements such as the EU Cyber Resilience Act and [BSI TR-03183-2](https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TR03183/BSI-TR-03183-2_v2_1_0.pdf?__blob=publicationFile).
+Contrast aims to meet the standards the BSI sets for SBOM content and quality.
 
 ## Prerequisites
 
-A CycloneDX-aware scanner, for example [Grype](https://github.com/anchore/grype), [Trivy](https://github.com/aquasecurity/trivy), or [Dependency-Track](https://dependencytrack.org/).
+The [GitHub CLI](https://cli.github.com/) to download the assets, plus whichever tools match what you want to check:
+
+| Tool | Checks |
+| --- | --- |
+| [Grype](https://github.com/anchore/grype) or [Trivy](https://github.com/aquasecurity/trivy) | Vulnerabilities in the Go and Rust components |
+| [vulnix](https://github.com/nix-community/vulnix) | Vulnerabilities in the Nix components, which the other scanners skip |
+| [Trivy](https://github.com/aquasecurity/trivy) | Licenses |
+| [sbomqs](https://github.com/interlynk-io/sbomqs) | BSI TR-03183-2 conformance |
 
 ## How-to
 
 ### Published SBOMs
 
-Every release publishes these assets in [CycloneDX](https://cyclonedx.org/) JSON format:
+Every release publishes these assets in the BSI-recommended [CycloneDX](https://cyclonedx.org/) JSON format:
 
 | Asset | Covers |
 | --- | --- |
-| `contrast-cli-x86_64-linux.cdx.json` | The Linux CLI release binary, including the genpolicy it embeds |
-| `contrast-cli-aarch64-darwin.cdx.json` | The same for the macOS CLI release binary |
+| `contrast-cli-x86_64-linux.cdx.json` | The Linux CLI release binary |
+| `contrast-cli-aarch64-darwin.cdx.json` | The macOS CLI release binary |
 | `contrast-runtime-confidential.cdx.json` | Everything that runs inside a confidential VM: Coordinator, initializer, service mesh, image puller and store, initdata processor, guest kernel and image, and the SNP and TDX guest firmware |
-| `contrast-runtime-non-confidential.cdx.json` | The parts that run on the host: node installer and the Kata runtime |
+| `contrast-runtime-non-confidential.cdx.json` | The parts that run on the host: node installer and Kata runtimes |
 
-The CLI SBOM is per platform because each platform ships a different binary.
-Pick the one matching the binary you downloaded.
-
-### Scan an SBOM
-
-Download the SBOM and scan it without unpacking or rebuilding anything:
+### Download an SBOM
 
 ```bash
 version=$(gh release view --repo edgelesssys/contrast --json tagName -q .tagName)
 gh release download "$version" --repo edgelesssys/contrast --pattern 'contrast-runtime-confidential.cdx.json'
+```
+
+### Scan for vulnerabilities
+
+Grype and Trivy resolve the Go and Rust components:
+
+```bash
 grype sbom:contrast-runtime-confidential.cdx.json
 ```
 
-Contrast runs the same kind of scan in CI, using `osv-scanner` and `vulnix`:
+The Nix components carry a `pkg:nix` purl, which public vulnerability databases don't index, so those need vulnix:
 
 ```bash
-nix run .#base.scripts.vuln-scan -- contrast-runtime-confidential.cdx.json
+vulnix --closure contrast-runtime-confidential.cdx.json
+```
+
+Contrast runs both kinds of scan in CI on every release and nightly, so that we can respond to emerging advisories.
+
+### Check licenses
+
+```bash
+trivy sbom --scanners license contrast-runtime-confidential.cdx.json
+```
+
+### Check BSI conformance
+
+```bash
+sbomqs score --profile bsi-v2.1 --detailed contrast-runtime-confidential.cdx.json
 ```
 
 ### Match a binary to its SBOM
 
-The CLI SBOM records the digest of the published binary, so a tool can pair the two without a rebuild:
+The CLI SBOMs record the digests of the published binaries, so a tool can pair the two automatically:
 
 ```bash
-sha256sum contrast
+sha256sum contrast-x86_64-linux
 jq -r '.metadata.component.hashes[] | select(.alg == "SHA-256") | .content' contrast-cli-x86_64-linux.cdx.json
 ```
 
-### Accuracy and integrity
+Together with a reproducible build, that digest lets you verify the whole chain from our source to the binary you run.
 
-The SBOMs are generated from the same Nix build that produces the release artifacts, so they describe what's actually shipped rather than what a scanner infers from a finished binary.
+### Integrity
 
-They're regular release assets, so `gh release verify-asset` checks them like any other file:
+The SBOMs are regular release assets, so `gh release verify-asset` checks them like any other file:
 
 ```bash
 gh release verify-asset "$version" contrast-runtime-confidential.cdx.json --repo edgelesssys/contrast

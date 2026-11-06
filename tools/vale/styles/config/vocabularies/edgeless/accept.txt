@@ -217,3 +217,7 @@ Xeon
 xsltproc
 Zipkin
 # keep-sorted end
+vulnix
+sbomqs
+CycloneDX
+purls?
