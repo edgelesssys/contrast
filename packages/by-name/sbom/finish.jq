@@ -94,8 +94,8 @@ def ack($v):
     | fill_supplier
     | bsi_taxonomy
     | (($deployable[.["bom-ref"] // ""]) as $h
-       | if ((.purl // "") | startswith("pkg:nix")) and ((.hashes // []) | length == 0) and $h
-         then .hashes = [ { alg: "SHA-256", content: $h } ] else . end)
+       | if ((.purl // "") | startswith("pkg:nix")) and $h
+         then add_prop("nix:narinfo:nar_hash"; "sha256:" + $h) else . end)
     | (if .licenses then .licenses |= map(ack("concluded")) else . end)
     | (if .evidence.licenses then .evidence.licenses |= map(ack("declared")) else . end)
   ))
