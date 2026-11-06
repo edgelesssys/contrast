@@ -137,7 +137,6 @@ _e2e target=default_deploy_target platform=default_platform set=default_set: sof
             --genpolicy-cache-path ./{{ workspace_dir }}/layers-cache.json \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --platform {{ platform }} \
-            --node-installer-target-conf-type "${node_installer_target_conf_type}" \
             --namespace-suffix=${namespace_suffix-} \
             --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket \
             --insecure-enable-debug-shell-access=${debug:-false}
@@ -215,16 +214,15 @@ e2e-release source platform=default_platform set=default_set: soft-clean k8s-log
     nix shell .#{{ set }}.contrast.e2e --command release.test -test.v \
             "${source_args[@]}" \
             --platform {{ platform }} \
-            --node-installer-target-conf ${node_installer_target_conf_type} \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --bin-name "contrast-$(nix eval --raw --impure --expr builtins.currentSystem)" \
             --use-loadbalancer=true
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (runtime target platform) (write-namespace target) (apply "runtime" platform) (generate cli platform) (apply target platform)
+deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (runtime target) (write-namespace target) (apply "runtime" platform) (generate cli platform) (apply target platform)
 
 # Populate the workspace with a runtime class deployment
-runtime target=default_deploy_target platform=default_platform set=default_set:
+runtime target=default_deploy_target set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     platforms=$(just collect-platforms)
@@ -233,20 +231,10 @@ runtime target=default_deploy_target platform=default_platform set=default_set:
         just node-installer "$platform"
     done
 
-    mkdir -p ./{{ workspace_dir }}/runtime
-    if [[ "${node_installer_target_conf_type}" != "none" ]]; then
-        nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
-            --image-replacements ./{{ workspace_dir }}/just.containerlookup \
-            --namespace {{ target }}${namespace_suffix-} \
-            --node-installer-target-conf-type ${node_installer_target_conf_type} \
-            --platform {{ platform }} \
-            node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
-    fi
-
+    mkdir -p "./{{ workspace_dir }}/runtime"
     nix shell .#{{ set }}.contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
-        --node-installer-target-conf-type ${node_installer_target_conf_type} \
         --platform "$platforms" \
         runtime > "./{{ workspace_dir }}/runtime/runtime.yml"
 
@@ -356,8 +344,10 @@ apply target=default_deploy_target platform=default_platform:
     kubectl create namespace $ns --dry-run=client -o yaml | kubectl apply -f -
     case {{ target }} in
         "runtime")
-            if [[ -f ./{{ workspace_dir }}/runtime/target-conf.yml ]]; then
-                kubectl apply -f ./{{ workspace_dir }}/runtime/target-conf.yml
+            if kubectl get cm -n default contrast-e2e-nodeinstaller-config >/dev/null 2>&1; then
+              kubectl get cm -n default contrast-e2e-nodeinstaller-config -o 'json' \
+                | jq --arg ns "$ns" '.metadata = {name: "contrast-node-installer-target-config", namespace: $ns}' \
+                | kubectl apply -f -
             fi
             if kubectl get secret -n default contrast-e2e-registry-auth >/dev/null 2>&1; then
               kubectl get secret -n default contrast-e2e-registry-auth -o 'jsonpath={.data.contrast-imagepuller\.toml}' \
@@ -627,7 +617,6 @@ policy-rpc target="policy-rpc": soft-clean (runtime target) (write-namespace tar
     settings=$(nix build .#base.kata.genpolicy.settings --no-link --print-out-paths)
     nix run -L .#base.scripts.get-agent-rpcs -- \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
-        --target-conf-type "${node_installer_target_conf_type}" \
         --runtime-class "$rc" \
         --namespace "$ns" \
         --rules "$rules/genpolicy-rules.rego" \
@@ -691,8 +680,6 @@ rctemplate := '''
 container_registry=""
 # Platform to deploy on
 default_platform="Metal-QEMU-SNP"
-# Node installer target config map to deploy.
-node_installer_target_conf_type="k3s"
 # Enable insecure debug features like debug shell access.
 debug="false"
 # Pull images onto a disk instead of into guest memory.

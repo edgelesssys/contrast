@@ -1,0 +1,9 @@
+# k3s and drop-in: this machine runs the multi-runtime test
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: contrast-e2e-nodeinstaller-config
+  namespace: "default"
+data:
+  containerd-import-dir: var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.d
+  systemd-unit-name: k3s.service

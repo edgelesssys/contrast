@@ -1,0 +1,9 @@
+# k3s and legacy config: we need to test legacy somewhere
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: contrast-e2e-nodeinstaller-config
+  namespace: "default"
+data:
+  containerd-config-path: var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+  systemd-unit-name: k3s.service

@@ -1,0 +1,9 @@
+# Scaleway Kosmos and drop-in
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: contrast-e2e-nodeinstaller-config
+  namespace: "default"
+data:
+  containerd-import-dir: etc/containerd/conf.d/
+  systemd-unit-name: "containerd.service"
