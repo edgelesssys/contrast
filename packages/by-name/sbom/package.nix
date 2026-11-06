@@ -17,7 +17,6 @@
 let
   inherit (lib.contrast)
     collectDerivations
-    buildableOn
     vendoredSbomsOf
     supplier
     org
@@ -59,7 +58,7 @@ let
 
   # Plain-identifier product subject per category (full SBOM is "contrast").
   categoryId = {
-    cli = "contrast-cli";
+    cli = "contrast-cli-${stdenv.hostPlatform.system}";
     runtimeConfidential = "contrast-runtime-confidential";
     runtimeNonConfidential = "contrast-runtime-non-confidential";
   };
@@ -67,7 +66,7 @@ let
   mkSbom =
     name: roots:
     let
-      entries = buildableOn stdenv.hostPlatform (collectDerivations [ ] roots);
+      entries = collectDerivations [ ] roots;
       target = linkFarm "contrast-${name}-matrix" entries;
     in
     withMetadata categoryId.${name} target (

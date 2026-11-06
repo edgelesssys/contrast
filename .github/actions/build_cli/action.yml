@@ -1,14 +1,10 @@
 name: build CLI
-description: Build the Contrast CLI release binary for a given system
+description: Build the Contrast CLI release binary and its SBOM for a given system
 
 inputs:
   system:
     description: Nix system (e.g. x86_64-linux, aarch64-darwin)
     required: true
-  sbom-path:
-    description: Path to the CLI SBOM to validate, if provided
-    required: false
-    default: ''
 
 runs:
   using: "composite"
@@ -22,12 +18,23 @@ runs:
         mkdir -p workspace
         nix build -L ".#${SET}.contrast.cli-release"
         cp result/bin/contrast "workspace/contrast-${SYSTEM}"
-    - name: Verify CLI SBOM
-      if: ${{ inputs.sbom-path != '' }}
+    - name: Create and verify CLI SBOM
       shell: bash
       env:
-        SBOM_PATH: ${{ inputs.sbom-path }}
+        SET: base
+        SYSTEM: ${{ inputs.system }}
       run: |
+        set -euo pipefail
+        sbom=$(nix run ".#${SET}.scripts.finalize-sbom" -- cli)
+
+        name=$(jq -r '.metadata.component.name' <<<"$sbom")
+        if [[ $name != "contrast-cli-${SYSTEM}" ]]; then
+          echo "SBOM identifies itself as '${name}', expected 'contrast-cli-${SYSTEM}'" >&2
+          exit 1
+        fi
+        printf '%s\n' "$sbom" > "workspace/${name}.cdx.json"
+
+        # The SBOM has to describe the Nix output we just built, not some other one.
         cli=$(cd result && pwd -P)
         hash=$(nix-hash --type sha256 --base32 "$cli")
         jq -e --arg ref "${cli##*/}" --arg hash "sha256:$hash" '
@@ -35,4 +42,4 @@ runs:
             .["bom-ref"] == $ref and
             any(.properties[]?; .name == "nix:narinfo:nar_hash" and .value == $hash)
           )
-        ' "$SBOM_PATH" > /dev/null
+        ' "workspace/${name}.cdx.json" > /dev/null
