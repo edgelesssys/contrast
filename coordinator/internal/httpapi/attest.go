@@ -5,6 +5,8 @@ package httpapi
 
 import (
 	"context"
+	"crypto/hpke"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,6 +30,7 @@ var (
 	errGettingState       = errors.New("getting state")
 	errGettingHistory     = errors.New("getting history")
 	errGettingAttestation = errors.New("getting attestation report")
+	errGeneratingHPKEKey  = errors.New("generating HPKE key")
 )
 
 // StateGuard is a stateguard.Guard at runtime, but can be stubbed in tests.
@@ -36,13 +39,10 @@ type StateGuard interface {
 	GetHistory(ctx context.Context) ([][]byte, map[manifest.HexString][]byte, error)
 }
 
-// AttestationHandler handles POST requests to the attestation endpoints.
+// AttestationHandler handles POST requests to the unversioned attestation endpoint, which predates API versioning.
 type AttestationHandler struct {
 	Issuer     atls.Issuer
 	StateGuard StateGuard
-	// CapabilitiesDigest is the digest of the capabilities, see [apitypes.CapabilitiesResponse.Digest].
-	// It is returned with the attestation and bound into the report data if using the versioned endpoint.
-	CapabilitiesDigest []byte
 }
 
 func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*apitypesv1.AttestationResponse, int, error) {
@@ -57,9 +57,107 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ap
 		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingState, err)
 	}
 
-	manifests, policies, err := h.StateGuard.GetHistory(ctx)
+	coordinatorState, err := getCoordinatorState(ctx, h.StateGuard, state)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingHistory, err)
+		return nil, http.StatusInternalServerError, err
+	}
+
+	transitionHash := state.LatestTransition().TransitionHash
+	reportData := apitypesv1.ConstructReportData(nonce, transitionHash[:], coordinatorState)
+	attestation, err := h.Issuer.Issue(ctx, reportData)
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingAttestation, err)
+	}
+
+	resp := &apitypesv1.AttestationResponse{
+		Version:           constants.Version,
+		AttestationType:   h.Issuer.OID(),
+		RawAttestationDoc: attestation,
+		CoordinatorState:  *coordinatorState,
+	}
+
+	return resp, http.StatusOK, nil
+}
+
+func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	serveAttestation(w, r, h.getResponse)
+}
+
+// VersionedAttestationHandler handles POST requests to the attestation endpoint of API version v1.
+//
+// Unlike the unversioned endpoint, it also answers if the Coordinator has no manifest or awaits recovery,
+// and reports which of these is the case. Each response carries a fresh HPKE public key of the Coordinator,
+// whose private key is kept in PendingKeys for a follow-up request.
+type VersionedAttestationHandler struct {
+	Issuer     atls.Issuer
+	StateGuard StateGuard
+	// CapabilitiesDigest is the digest of the capabilities, see [apitypes.CapabilitiesResponse.Digest].
+	// It is returned with the attestation and bound into the report data.
+	CapabilitiesDigest [sha256.Size]byte
+	// PendingKeys receives the private key of the HPKE key pair generated for each exchange.
+	PendingKeys *PendingKeys
+}
+
+func (h *VersionedAttestationHandler) getResponse(ctx context.Context, nonce []byte) (*apitypesv1.AttestationResponse, int, error) {
+	resp := &apitypesv1.AttestationResponse{
+		Version:            constants.Version,
+		AttestationType:    h.Issuer.OID(),
+		CapabilitiesDigest: h.CapabilitiesDigest[:],
+	}
+
+	// The transition digest stays empty unless the Coordinator is active, as does the Coordinator state.
+	var transitionDigest []byte
+	state, err := h.StateGuard.GetState(ctx)
+	switch {
+	case errors.Is(err, stateguard.ErrNoState):
+		resp.Status = apitypesv1.StatusUninitialized
+	case errors.Is(err, stateguard.ErrStaleState):
+		resp.Status = apitypesv1.StatusStale
+	case err != nil:
+		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingState, err)
+	default:
+		resp.Status = apitypesv1.StatusActive
+		coordinatorState, err := getCoordinatorState(ctx, h.StateGuard, state)
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
+		}
+		resp.CoordinatorState = *coordinatorState
+		latest := state.LatestTransition()
+		transitionDigest = latest.TransitionHash[:]
+		resp.LatestTransitionSignature = latest.Signature
+	}
+
+	// The key isn't bound to the Coordinator's state, so that a Coordinator awaiting recovery can hand one out, too.
+	hpkeKey, err := hpke.MLKEM768X25519().GenerateKey()
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGeneratingHPKEKey, err)
+	}
+	resp.HPKEPubKey = hpkeKey.PublicKey().Bytes()
+
+	reportData, err := apitypesv1.ConstructAttestationReportData(nonce, transitionDigest, resp)
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("constructing report data: %w", err)
+	}
+	resp.RawAttestationDoc, err = h.Issuer.Issue(ctx, reportData)
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingAttestation, err)
+	}
+
+	// Only keep the key once there is a report vouching for it.
+	h.PendingKeys.Put([apitypesv1.NonceSize]byte(nonce), hpkeKey)
+
+	return resp, http.StatusOK, nil
+}
+
+func (h *VersionedAttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	serveAttestation(w, r, h.getResponse)
+}
+
+// getCoordinatorState collects the state an active Coordinator reports on its attestation endpoints.
+func getCoordinatorState(ctx context.Context, guard StateGuard, state *stateguard.State) (*apitypesv1.CoordinatorState, error) {
+	manifests, policies, err := guard.GetHistory(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errGettingHistory, err)
 	}
 
 	ca := state.CA()
@@ -71,29 +169,12 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ap
 	for _, policy := range policies {
 		coordinatorState.Policies = append(coordinatorState.Policies, policy)
 	}
-
-	transitionHash := state.LatestTransition().TransitionHash
-	reportData := apitypesv1.ConstructReportData(nonce, transitionHash[:], coordinatorState)
-	if h.CapabilitiesDigest != nil {
-		reportData = apitypesv1.ConstructReportDataWithCapabilities(nonce, transitionHash[:], h.CapabilitiesDigest, coordinatorState)
-	}
-	attestation, err := h.Issuer.Issue(ctx, reportData)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingAttestation, err)
-	}
-
-	resp := &apitypesv1.AttestationResponse{
-		Version:            constants.Version,
-		AttestationType:    h.Issuer.OID(),
-		RawAttestationDoc:  attestation,
-		CapabilitiesDigest: h.CapabilitiesDigest,
-		CoordinatorState:   *coordinatorState,
-	}
-
-	return resp, http.StatusOK, nil
+	return coordinatorState, nil
 }
 
-func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// serveAttestation handles a request to an attestation endpoint. The endpoints share their request format
+// and differ only in the response, which getResponse provides for the nonce of the request.
+func serveAttestation(w http.ResponseWriter, r *http.Request, getResponse func(ctx context.Context, nonce []byte) (*apitypesv1.AttestationResponse, int, error)) {
 	if r.Method != apitypesv1.AttestMethod {
 		w.Header().Set("Allow", apitypesv1.AttestMethod)
 		writeJSONError(w, http.StatusMethodNotAllowed, errMethodNotAllowed)
@@ -131,13 +212,13 @@ func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Nonce) != 32 {
-		writeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: got %d, expected 32", errNonceLength, len(req.Nonce)))
+	if len(req.Nonce) != apitypesv1.NonceSize {
+		writeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: got %d, expected %d", errNonceLength, len(req.Nonce), apitypesv1.NonceSize))
 		return
 	}
 
 	ctx := r.Context()
-	resp, errCode, err := h.getResponse(ctx, req.Nonce)
+	resp, errCode, err := getResponse(ctx, req.Nonce)
 	if err != nil {
 		writeJSONError(w, errCode, err)
 		return

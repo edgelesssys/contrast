@@ -34,6 +34,11 @@ func (c *Client) GetAttestation(ctx context.Context, nonce []byte) ([]byte, erro
 		return nil, fmt.Errorf("bad nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
 
+	// TODO(charludo): negotiate by default once the versioned API is stable.
+	if !c.versionedAPIRequested() {
+		return c.httpapi.DoJSON(ctx, apitypesv1.AttestMethod, apitypesv1.LegacyAttestPath, &apitypesv1.AttestationRequest{Nonce: nonce})
+	}
+
 	version, err := c.NegotiateAPIVersion(ctx)
 	switch {
 	case errors.Is(err, ErrMinimumAPIVersionUnmet):
@@ -55,6 +60,13 @@ func (c *Client) GetAttestation(ctx context.Context, nonce []byte) ([]byte, erro
 	}
 }
 
+// ErrCoordinatorUninitialized is returned if the Coordinator attests that no manifest has been set yet.
+var ErrCoordinatorUninitialized = errors.New("the Coordinator has no manifest")
+
+// ErrCoordinatorNeedsRecovery is returned if the Coordinator attests that it has persisted state but no secrets,
+// e.g. after a restart, and needs to be recovered.
+var ErrCoordinatorNeedsRecovery = errors.New("the Coordinator needs to be recovered")
+
 // ValidateAttestation validates the Coordinator state returned by [Client.GetAttestation].
 //
 // The input for this function should be the nonce passed into GetAttestation and the byte slice returned by it.
@@ -70,6 +82,10 @@ func (c *Client) GetAttestation(ctx context.Context, nonce []byte) ([]byte, erro
 // newer than the API version the attestation was fetched with, validation fails with
 // [ErrMinimumAPIVersionUnmet].
 //
+// A versioned endpoint also answers if the Coordinator has no state to report, in which case validation fails with
+// [ErrCoordinatorUninitialized] or [ErrCoordinatorNeedsRecovery]. Such a Coordinator reports no manifest to take
+// reference values from, so the attestation backing these errors isn't validated.
+//
 // Note: this function does not verify manifest content! It's the callers responsibility to compare
 // the latest manifest with an expected manifest, if that exists, or verify that all manifest
 // fields match their expectations.
@@ -83,15 +99,55 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 		return nil, fmt.Errorf("unmarshalling attestation document: %w", err)
 	}
 
-	if len(resp.Manifests) == 0 {
-		return nil, fmt.Errorf("coordinator state does not include manifests")
+	attestationVersion, negotiatedCapabilities := c.negotiation()
+	// The unversioned endpoint only answers if the Coordinator is active.
+	status := apitypesv1.StatusActive
+	switch attestationVersion {
+	case legacyAPIVersion:
+	case apiv1.Version:
+		if len(resp.CapabilitiesDigest) == 0 {
+			return nil, fmt.Errorf("attestation for API version %s doesn't include a capabilities digest", attestationVersion)
+		}
+		status = resp.Status
+	default:
+		return nil, fmt.Errorf("ValidateAttestation is not implemented for API version %q", attestationVersion)
 	}
-	var latestManifest manifest.Manifest
-	if err := json.Unmarshal(resp.Manifests[len(resp.Manifests)-1], &latestManifest); err != nil {
-		return nil, fmt.Errorf("unmarshalling latest manifest: %w", err)
+
+	// latestManifest and transitionDigest stay unset unless the Coordinator is active.
+	var latestManifest *manifest.Manifest
+	var transitionDigest []byte
+	var errStatus error
+	switch status {
+	case apitypesv1.StatusActive:
+		if len(resp.Manifests) == 0 {
+			return nil, fmt.Errorf("coordinator state does not include manifests")
+		}
+		latestManifest = &manifest.Manifest{}
+		if err := json.Unmarshal(resp.Manifests[len(resp.Manifests)-1], latestManifest); err != nil {
+			return nil, fmt.Errorf("unmarshalling latest manifest: %w", err)
+		}
+		if err := latestManifest.Validate(); err != nil {
+			return nil, fmt.Errorf("validating latest manifest: %w", err)
+		}
+		transitions := history.BuildTransitionChain(resp.Manifests)
+		digest := transitions[len(transitions)-1].Digest()
+		transitionDigest = digest[:]
+		if attestationVersion != legacyAPIVersion && len(resp.LatestTransitionSignature) == 0 {
+			return nil, fmt.Errorf("attestation for API version %s doesn't include the latest transition signature", attestationVersion)
+		}
+	case apitypesv1.StatusUninitialized:
+		errStatus = ErrCoordinatorUninitialized
+	case apitypesv1.StatusStale:
+		errStatus = ErrCoordinatorNeedsRecovery
+	default:
+		return nil, fmt.Errorf("attestation reports unknown Coordinator status %q", string(status))
 	}
-	if err := latestManifest.Validate(); err != nil {
-		return nil, fmt.Errorf("validating latest manifest: %w", err)
+	if errStatus != nil && (len(resp.Manifests) != 0 || len(resp.Policies) != 0 || len(resp.RootCA) != 0 || len(resp.MeshCA) != 0 || len(resp.LatestTransitionSignature) != 0) {
+		return nil, fmt.Errorf("attestation reports Coordinator state although its status is %q", string(status))
+	}
+
+	if errStatus != nil {
+		return nil, fmt.Errorf("%w (not validated: there is no manifest to take reference values from)", errStatus)
 	}
 
 	kdsGetter := certcache.NewCachedHTTPSGetter(c.fsstore, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"), c.collateralProxy)
@@ -101,26 +157,20 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 	if c.validatorsFromManifestOverride != nil {
 		validatorsFromManifest = c.validatorsFromManifestOverride
 	}
-	validator, err := validatorsFromManifest(kdsGetter, &latestManifest, c.log)
+	validator, err := validatorsFromManifest(kdsGetter, latestManifest, c.log)
 	if err != nil {
 		return nil, fmt.Errorf("getting validators: %w", err)
 	}
 
-	transitions := history.BuildTransitionChain(resp.Manifests)
-	transitionDigest := transitions[len(transitions)-1].Digest()
-
-	attestationVersion, negotiatedCapabilities := c.negotiation()
 	var reportData [apitypesv1.ReportDataSize]byte
 	switch attestationVersion {
 	case legacyAPIVersion:
-		reportData = apitypesv1.ConstructReportData(nonce, transitionDigest[:], &resp.CoordinatorState)
+		reportData = apitypesv1.ConstructReportData(nonce, transitionDigest, &resp.CoordinatorState)
 	case apiv1.Version:
-		if len(resp.CapabilitiesDigest) == 0 {
-			return nil, fmt.Errorf("attestation for API version %s doesn't include a capabilities digest", attestationVersion)
+		reportData, err = apitypesv1.ConstructAttestationReportData(nonce, transitionDigest, resp)
+		if err != nil {
+			return nil, fmt.Errorf("constructing report data: %w", err)
 		}
-		reportData = apitypesv1.ConstructReportDataWithCapabilities(nonce, transitionDigest[:], resp.CapabilitiesDigest, &resp.CoordinatorState)
-	default:
-		return nil, fmt.Errorf("ValidateAttestation is not implemented for API version %q", attestationVersion)
 	}
 
 	if err := validator.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
@@ -144,11 +194,14 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 		}
 	}
 
+	// The legacy endpoint doesn't report the latest transition signature, so it stays empty.
 	state := CoordinatorState{
-		Manifests: resp.Manifests,
-		Policies:  resp.Policies,
-		RootCA:    resp.RootCA,
-		MeshCA:    resp.MeshCA,
+		Manifests:                 resp.Manifests,
+		Policies:                  resp.Policies,
+		RootCA:                    resp.RootCA,
+		MeshCA:                    resp.MeshCA,
+		LatestTransitionHash:      transitionDigest,
+		LatestTransitionSignature: resp.LatestTransitionSignature,
 	}
 	return &state, nil
 }

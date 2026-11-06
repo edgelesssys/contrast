@@ -124,8 +124,9 @@ func TestValidateAttestation(t *testing.T) {
 		d := apitypes.CapabilitiesResponse{APIVersions: versions}.Digest()
 		return d[:]
 	}
+	// response returns the attestation of an active Coordinator. Without a capabilities digest, it's the response of the legacy endpoint.
 	response := func(capabilitiesDigest []byte, manifests ...[]byte) *apitypesv1.AttestationResponse {
-		return &apitypesv1.AttestationResponse{
+		resp := &apitypesv1.AttestationResponse{
 			AttestationType:    testOID,
 			RawAttestationDoc:  testNonce,
 			CapabilitiesDigest: capabilitiesDigest,
@@ -133,6 +134,24 @@ func TestValidateAttestation(t *testing.T) {
 				Manifests: manifests,
 			},
 		}
+		if capabilitiesDigest != nil {
+			resp.Status = apitypesv1.StatusActive
+			resp.HPKEPubKey = []byte("hpke-pub-key")
+			resp.LatestTransitionSignature = []byte("transition-signature")
+		}
+		return resp
+	}
+	// withStatus sets the status, and drops the latest transition signature, which only an active Coordinator reports.
+	withStatus := func(status apitypesv1.Status, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
+		resp.Status = status
+		if status != apitypesv1.StatusActive {
+			resp.LatestTransitionSignature = nil
+		}
+		return resp
+	}
+	withTransitionSignature := func(signature []byte, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
+		resp.LatestTransitionSignature = signature
+		return resp
 	}
 
 	for name, tc := range map[string]struct {
@@ -144,6 +163,8 @@ func TestValidateAttestation(t *testing.T) {
 		validateErr    error
 		wantErr        string
 		wantErrIs      error
+		// wantUnvalidated is set if the error must be returned without the attestation having been validated.
+		wantUnvalidated bool
 	}{
 		"success": {
 			nonce:    testNonce,
@@ -165,10 +186,11 @@ func TestValidateAttestation(t *testing.T) {
 			resp:           response(digest("v2", apiv1.Version), testManifest),
 		},
 		"no manifests": {
-			nonce:    testNonce,
-			versions: []string{apiv1.Version},
-			resp:     response(digest(apiv1.Version)),
-			wantErr:  "coordinator state does not include manifests",
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            response(digest(apiv1.Version)),
+			wantErr:         "coordinator state does not include manifests",
+			wantUnvalidated: true,
 		},
 		"bad nonce": {
 			wantErr: "want 32",
@@ -181,10 +203,62 @@ func TestValidateAttestation(t *testing.T) {
 			wantErr:     assert.AnError.Error(),
 		},
 		"versioned attestation without capabilities digest": {
-			nonce:    testNonce,
-			versions: []string{apiv1.Version},
-			resp:     response(nil, testManifest),
-			wantErr:  "doesn't include a capabilities digest",
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            response(nil, testManifest),
+			wantErr:         "doesn't include a capabilities digest",
+			wantUnvalidated: true,
+		},
+		"versioned attestation without status": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus("", response(digest(apiv1.Version), testManifest)),
+			wantErr:         "unknown Coordinator status",
+			wantUnvalidated: true,
+		},
+		"versioned attestation with unknown status": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus("bogus", response(digest(apiv1.Version), testManifest)),
+			wantErr:         "unknown Coordinator status",
+			wantUnvalidated: true,
+		},
+		"uninitialized coordinator": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus(apitypesv1.StatusUninitialized, response(digest(apiv1.Version))),
+			wantErr:         "not validated",
+			wantErrIs:       ErrCoordinatorUninitialized,
+			wantUnvalidated: true,
+		},
+		"coordinator awaiting recovery": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus(apitypesv1.StatusStale, response(digest(apiv1.Version))),
+			wantErr:         "not validated",
+			wantErrIs:       ErrCoordinatorNeedsRecovery,
+			wantUnvalidated: true,
+		},
+		"versioned attestation without latest transition signature": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withTransitionSignature(nil, response(digest(apiv1.Version), testManifest)),
+			wantErr:         "doesn't include the latest transition signature",
+			wantUnvalidated: true,
+		},
+		"uninitialized coordinator reporting a transition signature": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withTransitionSignature([]byte("transition-signature"), withStatus(apitypesv1.StatusUninitialized, response(digest(apiv1.Version)))),
+			wantErr:         "reports Coordinator state although",
+			wantUnvalidated: true,
+		},
+		"uninitialized coordinator reporting state": {
+			nonce:           testNonce,
+			versions:        []string{apiv1.Version},
+			resp:            withStatus(apitypesv1.StatusUninitialized, response(digest(apiv1.Version), testManifest)),
+			wantErr:         "reports Coordinator state although",
+			wantUnvalidated: true,
 		},
 		"negotiated with forged capabilities": {
 			nonce:     testNonce,
@@ -225,6 +299,11 @@ func TestValidateAttestation(t *testing.T) {
 				srv := httptest.NewServer(coordinatorHandler(tc.versions, nil))
 				t.Cleanup(srv.Close)
 				c = New(srv.URL)
+				if tc.versions != nil {
+					// Opt into the versioned API.
+					_, err = c.NegotiateAPIVersion(t.Context())
+					require.NoError(err)
+				}
 				// Fetch an attestation to make the Client settle on an API version.
 				_, err = c.GetAttestation(t.Context(), testNonce)
 				require.NoError(err)
@@ -248,6 +327,9 @@ func TestValidateAttestation(t *testing.T) {
 					assert.ErrorIs(err, tc.wantErrIs)
 				}
 				assert.Nil(state)
+				if tc.nonce != nil {
+					assert.Equal(tc.wantUnvalidated, validator.gotReportData == nil, "attestation validated")
+				}
 				return
 			}
 			assert.NoError(err)
@@ -255,35 +337,51 @@ func TestValidateAttestation(t *testing.T) {
 			transitions := history.BuildTransitionChain(tc.resp.Manifests)
 			latestTransitionHash := transitions[len(transitions)-1].Digest()
 			expected := &CoordinatorState{
-				Manifests: tc.resp.Manifests,
-				Policies:  tc.resp.Policies,
-				RootCA:    tc.resp.RootCA,
-				MeshCA:    tc.resp.MeshCA,
+				Manifests:                 tc.resp.Manifests,
+				Policies:                  tc.resp.Policies,
+				RootCA:                    tc.resp.RootCA,
+				MeshCA:                    tc.resp.MeshCA,
+				LatestTransitionHash:      latestTransitionHash[:],
+				LatestTransitionSignature: tc.resp.LatestTransitionSignature,
 			}
 
 			assert.Equal(expected, state)
 
 			wantReportData := apitypesv1.ConstructReportData(tc.nonce, latestTransitionHash[:], &tc.resp.CoordinatorState)
 			if tc.resp.CapabilitiesDigest != nil {
-				wantReportData = apitypesv1.ConstructReportDataWithCapabilities(tc.nonce, latestTransitionHash[:], tc.resp.CapabilitiesDigest, &tc.resp.CoordinatorState)
+				wantReportData, err = apitypesv1.ConstructAttestationReportData(tc.nonce, latestTransitionHash[:], tc.resp)
+				require.NoError(err)
 			}
 			assert.Equal(wantReportData[:], validator.gotReportData)
 		})
 	}
 }
 
-// TestGetAttestationEndpoint ensures the attestation is fetched from the newest endpoint both sides support.
+// TestGetAttestationEndpoint ensures the attestation is fetched from the newest endpoint both sides support,
+// if the versioned API was requested, and from the legacy endpoint otherwise.
 func TestGetAttestationEndpoint(t *testing.T) {
 	for name, tc := range map[string]struct {
 		versions          []string
 		minimumAPIVersion string
+		apiVersion        string
+		negotiate         bool
 
 		wantPath  string
 		wantErrIs error
 	}{
-		"coordinator supports v1": {
+		"versioned API not requested": {
 			versions: []string{apiv1.Version},
-			wantPath: apitypesv1.AttestPath,
+			wantPath: apitypesv1.LegacyAttestPath,
+		},
+		"versioned API requested by negotiation": {
+			versions:  []string{apiv1.Version},
+			negotiate: true,
+			wantPath:  apitypesv1.AttestPath,
+		},
+		"versioned API requested by pinned API version": {
+			versions:   []string{apiv1.Version},
+			apiVersion: apiv1.Version,
+			wantPath:   apitypesv1.AttestPath,
 		},
 		"coordinator predates API versioning": {
 			wantPath: apitypesv1.LegacyAttestPath,
@@ -314,7 +412,11 @@ func TestGetAttestationEndpoint(t *testing.T) {
 			srv := httptest.NewServer(coordinatorHandler(tc.versions, &gotPath))
 			t.Cleanup(srv.Close)
 
-			client := New(srv.URL).WithMinimumAPIVersion(tc.minimumAPIVersion)
+			client := New(srv.URL).WithMinimumAPIVersion(tc.minimumAPIVersion).WithAPIVersion(tc.apiVersion)
+			if tc.negotiate {
+				_, err := client.NegotiateAPIVersion(t.Context())
+				require.NoError(err)
+			}
 			_, err := client.GetAttestation(t.Context(), make([]byte, 32))
 			if tc.wantErrIs != nil {
 				require.ErrorIs(err, tc.wantErrIs)

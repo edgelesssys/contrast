@@ -19,8 +19,7 @@ import (
 // SupportedAPIVersions are the API versions this SDK can speak, newest first.
 //
 // The Coordinator advertises this list on its capabilities endpoint.
-// TODO(charludo): empty because the Coordinator serves no versioned endpoint yet.
-var SupportedAPIVersions = []string{}
+var SupportedAPIVersions = []string{apiv1.Version}
 
 // ErrNoCommonAPIVersion is returned if the SDK and the Coordinator share no API version.
 var ErrNoCommonAPIVersion = errors.New("no common API version")
@@ -78,6 +77,13 @@ func newestCommonAPIVersion(caps *apitypes.CapabilitiesResponse) (string, bool) 
 		}
 	}
 	return "", false
+}
+
+// versionedAPIRequested reports whether the caller opted into the versioned API.
+func (c *Client) versionedAPIRequested() bool {
+	c.negotiateMu.Lock()
+	defer c.negotiateMu.Unlock()
+	return c.minimumAPIVersion != "" || c.negotiatedVersion != ""
 }
 
 const legacyAPIVersion = ""

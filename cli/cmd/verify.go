@@ -5,9 +5,11 @@ package cmd
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -16,6 +18,7 @@ import (
 	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/history/configmapstore"
@@ -49,6 +52,8 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
+	cmd.Flags().String("coordinator-http", "", "base URL of the coordinator's HTTP API, for example http://192.0.2.1:1314, required if a minimum API version is pinned")
+	must(cmd.Flags().MarkHidden("coordinator-http"))
 	addCollateralProxyFlag(cmd)
 	if insecureRuntimesAllowed() {
 		cmd.Flags().Bool("INSECURE", false, "allow verification of insecure (non-CC) deployments")
@@ -90,7 +95,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	resp, err := getCoordinatorState(cmd.Context(), kdsDir, mnfst, flags.coordinator, flags.collateralProxyURL, flags.minimumAPIVersion, log)
+	resp, err := getCoordinatorState(cmd.Context(), kdsDir, mnfst, manifestBytes, flags.coordinator, flags.coordinatorHTTP, flags.collateralProxyURL, flags.minimumAPIVersion, log)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
 	}
@@ -115,11 +120,11 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		}
 		filelist[fmt.Sprintf("initdata.%x.toml", digest)] = initdata
 	}
-	history, err := configmapstore.RecoverConfigMaps(resp.Manifests, resp.Policies, resp.LatestTransitionHash, resp.LatestTransitionSignature)
+	historyResources, err := configmapstore.RecoverConfigMaps(resp.Manifests, resp.Policies, resp.LatestTransitionHash, resp.LatestTransitionSignature)
 	if err != nil {
 		return fmt.Errorf("getting Coordinator history: %w", err)
 	}
-	historyBytes, err := kuberesource.EncodeResources(history...)
+	historyBytes, err := kuberesource.EncodeResources(historyResources...)
 	if err != nil {
 		return fmt.Errorf("encoding Coordinator history: %w", err)
 	}
@@ -147,6 +152,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 type verifyFlags struct {
 	manifestPath          string
 	coordinator           string
+	coordinatorHTTP       string
 	workspaceDir          string
 	collateralProxyURL    string
 	allowInsecureRuntimes bool
@@ -159,6 +165,10 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 		return nil, err
 	}
 	coordinator, err := cmd.Flags().GetString("coordinator")
+	if err != nil {
+		return nil, err
+	}
+	coordinatorHTTP, err := cmd.Flags().GetString("coordinator-http")
 	if err != nil {
 		return nil, err
 	}
@@ -197,6 +207,7 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	return &verifyFlags{
 		manifestPath:          manifestPath,
 		coordinator:           coordinator,
+		coordinatorHTTP:       coordinatorHTTP,
 		workspaceDir:          workspaceDir,
 		collateralProxyURL:    collateralProxyURL,
 		allowInsecureRuntimes: allowInsecureRuntimes,
@@ -219,24 +230,19 @@ func writeFilelist(dir string, filelist map[string][]byte) error {
 	return nil
 }
 
-func checkMinimumAPIVersion(manifestPin, flagPin string) error {
-	source, pin := "the minimum-api-version flag", flagPin
-	if pin == "" {
-		source, pin = "the manifest", manifestPin
-	}
-	if pin == "" {
-		return nil
-	}
-	return fmt.Errorf("%w: %s requires at least API version %s, but the CLI uses the gRPC API", sdk.ErrMinimumAPIVersionUnmet, source, pin)
-}
-
-// getCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
-func getCoordinatorState(ctx context.Context, kdsDir string, m manifest.Manifest, endpoint, collateralProxy, minimumAPIVersion string, log *slog.Logger) (sdk.CoordinatorState, error) {
+// getCoordinatorState fetches and verifies the state of the Coordinator running the expected manifest m.
+//
+// If the minimum-api-version flag or m pin a minimum API version, it uses the Coordinator's HTTP API.
+// Otherwise, it calls GetManifests on the Coordinator's userapi via aTLS.
+func getCoordinatorState(ctx context.Context, kdsDir string, m manifest.Manifest, manifestBytes []byte, endpoint, httpEndpoint, collateralProxy, minimumAPIVersion string, log *slog.Logger) (sdk.CoordinatorState, error) {
 	if err := m.Validate(); err != nil {
 		return sdk.CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
 	}
-	if err := checkMinimumAPIVersion(m.MinimumAPIVersion, minimumAPIVersion); err != nil {
-		return sdk.CoordinatorState{}, err
+	if pin := cmp.Or(minimumAPIVersion, m.MinimumAPIVersion); pin != "" {
+		if httpEndpoint == "" {
+			return sdk.CoordinatorState{}, fmt.Errorf("API version %s is pinned, but the coordinator-http flag isn't set", pin)
+		}
+		return getCoordinatorStateHTTP(ctx, kdsDir, httpEndpoint, manifestBytes, collateralProxy, pin, log)
 	}
 
 	kdsCache := fsstore.New(afero.NewBasePathFs(afero.NewOsFs(), kdsDir), log.WithGroup("kds-cache"))
@@ -271,4 +277,35 @@ func getCoordinatorState(ctx context.Context, kdsDir string, m manifest.Manifest
 		LatestTransitionHash:      resp.LatestTransition.TransitionHash,
 		LatestTransitionSignature: resp.LatestTransition.Signature,
 	}, nil
+}
+
+// getCoordinatorStateHTTP fetches and verifies the Coordinator state via the Coordinator's HTTP API at baseURL.
+//
+// Unlike the aTLS handshake of the userapi, [sdk.Client.ValidateAttestation] takes the reference values from the latest manifest the Coordinator reports.
+func getCoordinatorStateHTTP(ctx context.Context, kdsDir, baseURL string, expectedManifest []byte, collateralProxy, minimumAPIVersion string, log *slog.Logger) (sdk.CoordinatorState, error) {
+	client := sdk.New(baseURL).
+		WithSlog(log).
+		WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), kdsDir)).
+		WithCollateralProxy(collateralProxy).
+		WithMinimumAPIVersion(minimumAPIVersion)
+
+	nonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
+	if err != nil {
+		return sdk.CoordinatorState{}, fmt.Errorf("generating nonce: %w", err)
+	}
+
+	log.Debug("Getting attestation", "url", baseURL)
+
+	attestation, err := client.GetAttestation(ctx, nonce)
+	if err != nil {
+		return sdk.CoordinatorState{}, fmt.Errorf("getting attestation: %w", err)
+	}
+	state, err := client.ValidateAttestation(ctx, nonce, attestation)
+	if err != nil {
+		return sdk.CoordinatorState{}, fmt.Errorf("validating attestation: %w", err)
+	}
+	if len(state.Manifests) == 0 || !bytes.Equal(expectedManifest, state.Manifests[len(state.Manifests)-1]) {
+		return sdk.CoordinatorState{}, errors.New("active manifest does not match expected manifest")
+	}
+	return *state, nil
 }
