@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
     ;;
   esac
 done
-set -- ${positional[@]+"${positional[@]}"}
+set -- "${positional[@]}"
 
 [[ $# -ge 1 && $# -le 2 ]] || usage
 
