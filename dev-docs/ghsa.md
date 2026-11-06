@@ -87,7 +87,9 @@ So we rewrite the description every time, and the steps below say what we do wit
 
 6. Create a [patch release](release.md#patch) for the latest released version.
 
-7. From the advisory's drop-down menu, select _Publish Advisory_ and click the button.
+7. Coordinate the advisory publication with Privatemode.
+
+8. From the advisory's drop-down menu, select _Publish Advisory_ and click the button.
 
 ## FAQ
 
