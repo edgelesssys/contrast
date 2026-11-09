@@ -22,23 +22,26 @@ on:
       - .github/workflows/docs_publish.yml
       - packages/by-name/contrast/docs/**
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 concurrency:
   group: docs-deploy
   cancel-in-progress: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
 jobs:
-  deploy:
-    name: Publish docs to GitHub Pages
+  build:
+    name: Build docs
     runs-on: ubuntu-24.04
+    # Builds code pinned in docs/yarn.lock, which is not reviewed in detail. This job must never
+    # hold write credentials or secrets.
+    permissions:
+      contents: read
     # Prevent the job from running on forked PRs, for security reasons.
+    # Closed PRs only need their preview removed, which doesn't require a build.
     if: |
       (github.event_name == 'push' && github.ref_name == 'main') ||
       (github.event_name == 'workflow_dispatch' && github.ref_name == 'main') ||
-      (github.event_name == 'pull_request' && github.repository_owner == github.event.pull_request.head.repo.owner.login)
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && github.repository_owner == github.event.pull_request.head.repo.owner.login)
     env:
       PREVIEW: ${{ github.event_name == 'pull_request' }}
       SET: base
@@ -49,27 +52,68 @@ jobs:
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          # Use the cache read-only: no cachix write token for jobs that build unreviewed code.
+          cachixToken: ""
 
       - name: Build production website
         if: env.PREVIEW == 'false'
         run: |
           nix build -L ".#${SET}.contrast.docs"
-      - name: Publish docs to GitHub Pages
-        if: env.PREVIEW == 'false'
-        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
-        with:
-          folder: ./result
-          branch: gh-pages
-          clean-exclude: pr-preview
-          force: false
-
       - name: Build preview website
         if: env.PREVIEW == 'true'
         run: |
           nix build -L --impure --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.${SET}.contrast.docs.override { docusaurusBaseUrl = \"contrast/pr-preview/pr-${{ github.event.number }}\"; }"
+      - name: Collect build output
+        env:
+          TARGET: ${{ runner.temp }}
+        run: |
+          # ./result is a symlink into the Nix store, which upload-artifact would not follow.
+          cp -rL result "$TARGET/site"
+      - name: Upload website
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: docs-site
+          path: ${{ runner.temp }}/site
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish docs to GitHub Pages
+    runs-on: ubuntu-24.04
+    needs: build
+    # Run if the build succeeded, or if it was skipped because a PR was closed (preview cleanup).
+    # This job must not execute any code from docs/yarn.lock.
+    if: |
+      !cancelled() && (
+        needs.build.result == 'success' ||
+        (github.event_name == 'pull_request' && github.event.action == 'closed' && github.repository_owner == github.event.pull_request.head.repo.owner.login)
+      )
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      PREVIEW: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download website
+        if: github.event.action != 'closed'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: docs-site
+          path: ${{ runner.temp }}/site
+
+      - name: Publish docs to GitHub Pages
+        if: env.PREVIEW == 'false'
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        with:
+          folder: ${{ runner.temp }}/site
+          branch: gh-pages
+          clean-exclude: pr-preview
+          force: false
       - name: Deploy preview
         if: env.PREVIEW == 'true'
         uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
         with:
-          source-dir: ./result
+          source-dir: ${{ runner.temp }}/site
