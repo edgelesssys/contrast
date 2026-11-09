@@ -92,6 +92,7 @@
           "MaskedPaths": [
             "/proc/acpi",
             "/proc/asound",
+            "/proc/interrupts",
             "/proc/kcore",
             "/proc/keys",
             "/proc/latency_stats",
