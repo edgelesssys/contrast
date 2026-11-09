@@ -9,7 +9,7 @@ replace github.com/edgelesssys/contrast/apitypes => ../apitypes
 // Upstream is poorly maintained, use edgelesssys fork instead.
 replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20261013140315-ce43fe5589cd
 
-replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20261013132829-7a9ace10598e
+replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20261027073724-e4b917838318
 
 require (
 	github.com/edgelesssys/contrast v1.26.0
