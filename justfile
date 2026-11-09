@@ -359,8 +359,9 @@ apply target=default_deploy_target platform=default_platform:
             if [[ -f ./{{ workspace_dir }}/runtime/target-conf.yml ]]; then
                 kubectl apply -f ./{{ workspace_dir }}/runtime/target-conf.yml
             fi
-            if kubectl get secret -n default contrast-e2e-registry-auth >/dev/null 2>&1; then
-              kubectl get secret -n default contrast-e2e-registry-auth -o 'jsonpath={.data.contrast-imagepuller\.toml}' \
+            registryConfig=$(kubectl get secret -n default contrast-e2e-registry-auth --ignore-not-found -o 'jsonpath={.data.contrast-imagepuller\.toml}')
+            if [[ -n "${registryConfig}" ]]; then
+              echo "$registryConfig" \
               | base64 -d \
               | kubectl create secret generic -n "$ns" contrast-node-installer-imagepuller-config --from-file=contrast-imagepuller.toml=/dev/stdin
             elif [[ -n "${contrast_ghcr_read:-}" ]]; then
@@ -372,6 +373,8 @@ apply target=default_deploy_target platform=default_platform:
                 kubectl create secret generic contrast-node-installer-imagepuller-config \
                     --from-file "contrast-imagepuller.toml"="./{{ workspace_dir }}/contrast-imagepuller.toml" \
                     --namespace $(tail -1 ./{{ workspace_dir }}/just.namespace)
+            else
+              echo "No image pull secret found in cluster or environment, proceeding unauthenticated." >&2
             fi
             kubectl apply -f ./{{ workspace_dir }}/runtime/runtime.yml
         ;;
