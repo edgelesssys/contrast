@@ -11,7 +11,7 @@ rec {
   inherit (runtime) version;
   go = fetchzip {
     url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-go-static-${version}-amd64.tar.zst";
-    hash = "sha256-r6jlSxLVhC+08+s7Y7EEY2B/kxGhNoa85MdYfK8wCy0=";
+    hash = "sha256-FdPv/C78T2q2hi/FtNikeHiDFsIVmQLadw8hrZx3TPE=";
     stripRoot = false;
     nativeBuildInputs = [ zstd ];
 
@@ -21,7 +21,7 @@ rec {
 
   rust = fetchzip {
     url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.zst";
-    hash = "sha256-kYB9/8+QHCiu/Gr2bLPqDC2riUAACxs959HIQdW2rTo=";
+    hash = "sha256-God5+2kzpY+qyU6U302NTwuaThcWT/ssXZXA/JzCFck=";
     stripRoot = false;
     nativeBuildInputs = [ zstd ];
 

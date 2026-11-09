@@ -4,20 +4,19 @@ Date: Wed, 13 May 2026 16:19:54 +0200
 Subject: [PATCH] agent: use config file as override
 
 ---
- src/agent/src/config.rs | 240 +++++++++++++++++++++-------------------
- 1 file changed, 125 insertions(+), 115 deletions(-)
+ src/agent/src/config.rs | 238 +++++++++++++++++++++-------------------
+ 1 file changed, 124 insertions(+), 114 deletions(-)
 
 diff --git a/src/agent/src/config.rs b/src/agent/src/config.rs
-index adfdf397c3ec29050f64a107571c1e986a6c4a8e..7597f0f6fc7cf3737e0770f63b7fb67f09d8fc5e 100644
+index 9f560f2e57b880305c5f4941b727331f2399afba..74d18c88b011c578cbb02b9acc9d1ddf90af519b 100644
 --- a/src/agent/src/config.rs
 +++ b/src/agent/src/config.rs
-@@ -294,108 +294,7 @@ impl FromStr for AgentConfig {
+@@ -290,107 +290,7 @@ impl FromStr for AgentConfig {
              toml::from_str(s).map_err(anyhow::Error::new)?;
          let mut agent_config: AgentConfig = Default::default();
  
 -        // Overwrite default values with the configuration files ones.
 -        config_override!(agent_config_builder, agent_config, debug_console);
--        config_override!(agent_config_builder, agent_config, dev_mode);
 -        config_override!(
 -            agent_config_builder,
 -            agent_config,
@@ -121,7 +120,7 @@ index adfdf397c3ec29050f64a107571c1e986a6c4a8e..7597f0f6fc7cf3737e0770f63b7fb67f
  
          Ok(agent_config)
      }
-@@ -405,19 +304,6 @@ impl AgentConfig {
+@@ -400,19 +300,6 @@ impl AgentConfig {
      #[instrument]
      #[allow(clippy::redundant_closure_call)]
      pub fn from_cmdline(file: &str, args: Vec<String>) -> Result<AgentConfig> {
@@ -141,7 +140,7 @@ index adfdf397c3ec29050f64a107571c1e986a6c4a8e..7597f0f6fc7cf3737e0770f63b7fb67f
          let mut config: AgentConfig = Default::default();
          let cmdline = fs::read_to_string(file)?;
          let params: Vec<&str> = cmdline.split_ascii_whitespace().collect();
-@@ -669,6 +555,23 @@ impl AgentConfig {
+@@ -663,6 +550,23 @@ impl AgentConfig {
              config.mem_agent = Some(mac);
          }
  
@@ -165,7 +164,7 @@ index adfdf397c3ec29050f64a107571c1e986a6c4a8e..7597f0f6fc7cf3737e0770f63b7fb67f
          config.override_config_from_envs();
  
          Ok(config)
-@@ -704,6 +607,113 @@ impl AgentConfig {
+@@ -698,6 +602,112 @@ impl AgentConfig {
              self.policy_file = policy_file;
          }
      }
@@ -174,7 +173,6 @@ index adfdf397c3ec29050f64a107571c1e986a6c4a8e..7597f0f6fc7cf3737e0770f63b7fb67f
 +    fn override_config_from_builder(&mut self, builder: AgentConfigBuilder) -> Result<()> {
 +        // Overwrite default values with the configuration files ones.
 +        config_override!(builder, self, debug_console);
-+        config_override!(builder, self, dev_mode);
 +        config_override!(
 +            builder,
 +            self,

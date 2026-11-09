@@ -9,10 +9,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  1 file changed, 27 deletions(-)
 
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index a362396b6f29d26ce3d3b8e9ec2bf343f94cf156..3cfeeb431beccb639652ca8eee9e811bf862961d 100644
+index d4d917f385fdf451d5f95eb7e088ee82822a4022..316bb8a32143be985f3cda46a9fd67939527c6ce 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
-@@ -411,33 +411,6 @@ async fn start_sandbox(
+@@ -412,33 +412,6 @@ async fn start_sandbox(
      let (tx, rx) = tokio::sync::oneshot::channel();
      sandbox.lock().await.sender = Some(tx);
  

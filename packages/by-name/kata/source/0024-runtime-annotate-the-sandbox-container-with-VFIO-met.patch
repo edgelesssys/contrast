@@ -25,10 +25,10 @@ index cb6213400165a0aa0d96d1d43de2d28d04349e65..0643d975f8d771bcaccc589a95a7d205
  
  	if modeIsGK {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 12ff3e20d7d3be0858b9f9beb7e76aa1e8d77443..396350473ca45b1ec0b7c8b5270dd508da81b389 100644
+index 2139cef3c7eaaade79afbf366633b1903b62b712..8fa00785cb71c4fb38818133d9d2e3b2f170dcd2 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -762,9 +762,19 @@ impl AgentPolicy {
+@@ -765,9 +765,19 @@ impl AgentPolicy {
  
          // Generate expected device entries and annotation key-value pairs for VFIO devices
          let mut runtime_anno_patterns = BTreeMap::new();

@@ -13,7 +13,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  5 files changed, 69 insertions(+), 10 deletions(-)
 
 diff --git a/src/runtime/pkg/katautils/config.go b/src/runtime/pkg/katautils/config.go
-index 01828cd05e3bcc0805bc383141c06bc9c59d1b4a..d33facc08192daecbe67c76bbddde674c8ac74ae 100644
+index e3175ea3539db53d8e543ff0f8fac1ffc8bdd124..a439da78dbfcf28219d8b72597d012d30543eedc 100644
 --- a/src/runtime/pkg/katautils/config.go
 +++ b/src/runtime/pkg/katautils/config.go
 @@ -179,6 +179,7 @@ type hypervisor struct {
@@ -24,7 +24,7 @@ index 01828cd05e3bcc0805bc383141c06bc9c59d1b4a..d33facc08192daecbe67c76bbddde674
  }
  
  type guestExtensionImage struct {
-@@ -1130,6 +1131,7 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
+@@ -1133,6 +1134,7 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
  		SnpGuestPolicy:                h.SnpGuestPolicy,
  		MeasurementAlgo:               h.GetMeasurementAlgo(),
  		GuestExtensionImages:          guestExtensionImages,
@@ -138,7 +138,7 @@ index 55c4176f443dbf87040a59e2e0aadbe471fe4bbf..a1a964910ee5edb0c0042567601b47f5
  		return fmt.Errorf("failed to write magic number to initdata image: %v", err)
  	}
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 86707d4e7ef094970ac0d54ac37ca13e4868c352..aad670320b73975edce9cbc3527f94ad3465f8e1 100644
+index b7e01b1124788d7aaf60318ffa5d9dc683e0e384..647e6c7c8bfebafe57cdcae7aae544d28c9c4d72 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -1144,6 +1144,10 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi

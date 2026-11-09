@@ -28,10 +28,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  3 files changed, 11 insertions(+), 6 deletions(-)
 
 diff --git a/src/runtime/pkg/containerd-shim-v2/service.go b/src/runtime/pkg/containerd-shim-v2/service.go
-index c9fad70d0540a3667cc237e2af97ef90c03d90b1..7f4f430782f05a8e9c7775f27c9d7adacda29e4f 100644
+index 0715ae6a951aa0ebd64cc61ddc3a541836d14a87..f42399ed7547ed54a7c7e5a3f94e0f72ff6916ef 100644
 --- a/src/runtime/pkg/containerd-shim-v2/service.go
 +++ b/src/runtime/pkg/containerd-shim-v2/service.go
-@@ -446,7 +446,7 @@ func (s *service) Create(ctx context.Context, r *taskAPI.CreateTaskRequest) (_ *
+@@ -450,7 +450,7 @@ func (s *service) Create(ctx context.Context, r *taskAPI.CreateTaskRequest) (_ *
  
  	select {
  	case <-ctx.Done():

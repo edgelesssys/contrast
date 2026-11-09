@@ -12,7 +12,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 9 insertions(+), 63 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 5b6beed298d2881d48118ca02679ef8ae88c9237..ceaa01c7204534de748b0876eb69841e783375f9 100644
+index 7a3653a76d0b60fb98443b3b3066aa01ced28174..9f52b19e1547b8c29e8ce2b88540a6b2f8f4a64b 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -211,18 +211,6 @@
@@ -35,7 +35,7 @@ index 5b6beed298d2881d48118ca02679ef8ae88c9237..ceaa01c7204534de748b0876eb69841e
      },
      "devices": {
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 19394aa0528ee11051a13006cf25cc143eba8ae5..50fd839fe16eec1c9ed05ac54ebd4af64c315adb 100644
+index 27ab71c5034836d55ec9d02baec08a8fa24590ce..257b818a5a295a96e18b2542fc9bd8edda9d0379 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -501,46 +501,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
@@ -76,7 +76,7 @@ index 19394aa0528ee11051a13006cf25cc143eba8ae5..50fd839fe16eec1c9ed05ac54ebd4af6
 -
 -    let file_name = Path::new(&destination_string).file_name().unwrap();
 -    let name = OsString::from(file_name).into_string().unwrap();
--    let source = format!("{}{name}$", &settings_image.mount_source);
+-    let source = format!("{}{name}$", settings_image.mount_source);
 -
 -    p_mounts.push(policy::KataMount {
 -        destination: destination_string,
@@ -86,7 +86,7 @@ index 19394aa0528ee11051a13006cf25cc143eba8ae5..50fd839fe16eec1c9ed05ac54ebd4af6
 -    });
 -}
 diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
-index c7d18c777f17684cd19384eb662bf4388b5030cd..84f7d1949560af32c6956f348f05a456dd9a546d 100644
+index 42d6355b28d799fd354b5c8d26a2981709c9ab5e..7463cc5e5f3216ad7baada378992a8628cb9761d 100644
 --- a/src/tools/genpolicy/src/settings.rs
 +++ b/src/tools/genpolicy/src/settings.rs
 @@ -38,7 +38,6 @@ pub struct Volumes {
@@ -107,7 +107,7 @@ index c7d18c777f17684cd19384eb662bf4388b5030cd..84f7d1949560af32c6956f348f05a456
      pub mount_source: String,
      pub driver: String,
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 20613af48c2285f924f623929e7b0ee59f0fcc6f..a38d450cdb9ca528f2e77f17c6ed3f3f3730c0d8 100644
+index cddd7a5f5f3c2b9675dc9a0e00d093631189f663..d1b0f7ad2231a68a93c4957e16e274c6c5a71a38 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -27,6 +27,7 @@ use crate::utils::Config;
@@ -118,7 +118,7 @@ index 20613af48c2285f924f623929e7b0ee59f0fcc6f..a38d450cdb9ca528f2e77f17c6ed3f3f
  use log::debug;
  use protocols::agent;
  use serde::{Deserialize, Serialize};
-@@ -299,6 +300,7 @@ pub fn get_container_mounts_and_storages(
+@@ -309,6 +310,7 @@ pub fn get_container_mounts_and_storages(
      settings: &settings::Settings,
      podSpec: &pod::PodSpec,
  ) {
@@ -126,7 +126,7 @@ index 20613af48c2285f924f623929e7b0ee59f0fcc6f..a38d450cdb9ca528f2e77f17c6ed3f3f
      if let Some(volumes) = &podSpec.volumes {
          if let Some(volume_mounts) = &container.volumeMounts {
              for volume in volumes {
-@@ -312,19 +314,19 @@ pub fn get_container_mounts_and_storages(
+@@ -322,19 +324,19 @@ pub fn get_container_mounts_and_storages(
                              volume_mount,
                              &podSpec.securityContext,
                          );
@@ -142,7 +142,7 @@ index 20613af48c2285f924f623929e7b0ee59f0fcc6f..a38d450cdb9ca528f2e77f17c6ed3f3f
 +    // Check that all VOLUME declarations have corresponding volume mounts.
      if let Some(volumes) = &container.registry.config_layer.config.Volumes {
 -        for volume in volumes {
--            debug!("get_container_mounts_and_storages: {:?}", &volume);
+-            debug!("get_container_mounts_and_storages: {:?}", volume);
 -
 -            mount_and_storage::get_image_mount_and_storage(settings, policy_mounts, volume.0);
 +        let volumePaths: BTreeSet<_> = volumes.keys().cloned().collect();
@@ -151,4 +151,4 @@ index 20613af48c2285f924f623929e7b0ee59f0fcc6f..a38d450cdb9ca528f2e77f17c6ed3f3f
 +            panic!("The following volumes declared in image config don't have corresponding Kubernetes mounts: {uncoveredPaths:?}");
          }
      }
-     if settings.cluster_config.guest_pull {
+ }

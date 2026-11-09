@@ -704,7 +704,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "oci-spec";
@@ -1067,8 +1067,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/cloud-hypervisor/cloud-hypervisor";
-          rev = "00e106e53e7ba48b01f194f7887b20b9a0bfb905";
-          sha256 = "07jghgszi146libnxgyy6nhkpbyndpp9wmr3jc3fl8y4my1i1p25";
+          rev = "038ce5a72d761380a02f714a4eb4ca63e0ea073d";
+          sha256 = "0hd70ls76zqiyyky3prw8y00a1qw98ipiqsz8yd6bs4xrl9qa4vy";
         };
         authors = [
           "The Cloud Hypervisor Authors"
@@ -1081,16 +1081,16 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.14.0";
+            packageId = "vmm-sys-util";
           }
         ];
 
       };
       "arbitrary-int" = rec {
         crateName = "arbitrary-int";
-        version = "2.1.1";
+        version = "2.2.0";
         edition = "2021";
-        sha256 = "1dzsag2m0vyhi0nvzdrlmfkhj2ll9hf6zj0i8jf7xwzq300q2flr";
+        sha256 = "0r1viihkvb7490hdwpvcy9nb32lcwx33j6afh39lyfqlqjh8gcqa";
         libName = "arbitrary_int";
         authors = [
           "Daniel Lehmann <danlehmannmuc@gmail.com>"
@@ -1101,11 +1101,14 @@ rec {
           "arbitrary" = [ "dep:arbitrary" ];
           "bin-proto" = [ "dep:bin-proto" ];
           "borsh" = [ "dep:borsh" ];
+          "bytecheck" = [ "dep:bytecheck" ];
           "bytemuck" = [ "dep:bytemuck" ];
           "defmt" = [ "dep:defmt" ];
           "num-traits" = [ "dep:num-traits" ];
           "quickcheck" = [ "dep:quickcheck" ];
+          "rkyv" = [ "dep:rkyv" "bytecheck" ];
           "schemars" = [ "dep:schemars" "std" ];
+          "schemars1" = [ "dep:schemars1" "std" ];
           "serde" = [ "dep:serde" ];
         };
       };
@@ -1252,7 +1255,7 @@ rec {
         dependencies = [
           {
             name = "event-listener";
-            packageId = "event-listener 5.4.1";
+            packageId = "event-listener 5.4.2";
           }
           {
             name = "event-listener-strategy";
@@ -1630,7 +1633,7 @@ rec {
         dependencies = [
           {
             name = "event-listener";
-            packageId = "event-listener 5.4.1";
+            packageId = "event-listener 5.4.2";
             usesDefaultFeatures = false;
           }
           {
@@ -1763,7 +1766,7 @@ rec {
           }
           {
             name = "event-listener";
-            packageId = "event-listener 5.4.1";
+            packageId = "event-listener 5.4.2";
           }
           {
             name = "futures-lite";
@@ -2060,10 +2063,10 @@ rec {
       };
       "aws-lc-rs" = rec {
         crateName = "aws-lc-rs";
-        version = "1.16.3";
+        version = "1.18.1";
         edition = "2021";
-        links = "aws_lc_rs_1_16_3_sys";
-        sha256 = "13q3i8j2nfykpw0yln0n21m70nfgls5b9gz1lxgsf94hwqzzpihf";
+        links = "aws_lc_rs_1_18_1_sys";
+        sha256 = "07k2hf51mp5sh47f3dbj5xkygqjr4rrr0j4743llsqwdb03x70dj";
         libName = "aws_lc_rs";
         authors = [
           "AWS-LibCrypto"
@@ -2089,6 +2092,7 @@ rec {
           "bindgen" = [ "aws-lc-sys?/bindgen" "aws-lc-fips-sys?/bindgen" ];
           "default" = [ "aws-lc-sys" "alloc" "ring-io" "ring-sig-verify" ];
           "fips" = [ "dep:aws-lc-fips-sys" ];
+          "legacy-des" = [ "aws-lc-sys?/all-bindings" ];
           "non-fips" = [ "aws-lc-sys" ];
           "prebuilt-nasm" = [ "aws-lc-sys?/prebuilt-nasm" ];
           "ring-io" = [ "dep:untrusted" ];
@@ -2098,10 +2102,10 @@ rec {
       };
       "aws-lc-sys" = rec {
         crateName = "aws-lc-sys";
-        version = "0.40.0";
+        version = "0.45.0";
         edition = "2021";
-        links = "aws_lc_0_40_0";
-        sha256 = "1rrghm82i50zz40ykizqnrn65lavf856hqfiz6wffh8ybvp3f07m";
+        links = "aws_lc_0_45_0";
+        sha256 = "09qvqgsy424myj9g1xf1jwa726aqaspjq45qc0p9mmzsahxnrzwv";
         build = "builder/main.rs";
         libName = "aws_lc_sys";
         authors = [
@@ -2126,6 +2130,11 @@ rec {
           {
             name = "fs_extra";
             packageId = "fs_extra";
+          }
+          {
+            name = "pkg-config";
+            packageId = "pkg-config";
+            target = { target, features }: (target."unix" or false);
           }
         ];
         features = {
@@ -2589,9 +2598,9 @@ rec {
       };
       "bilge" = rec {
         crateName = "bilge";
-        version = "0.3.0";
-        edition = "2021";
-        sha256 = "0rdhhz079qrp7axqap9qrn92k1cgir2alyfhpdxwrmc4csc79717";
+        version = "0.5.0";
+        edition = "2024";
+        sha256 = "1cpzjl3paqvfh4h6ss6b47laaw943755vynbdig91iz0s7sy41nf";
         authors = [
           "Hecatia Elegua"
         ];
@@ -2608,15 +2617,16 @@ rec {
           }
         ];
         features = {
+          "schemars" = [ "bilge-impl/schemars" "arbitrary-int/schemars1" ];
           "serde" = [ "bilge-impl/serde" "arbitrary-int/serde" ];
         };
         resolvedDefaultFeatures = [ "default" ];
       };
       "bilge-impl" = rec {
         crateName = "bilge-impl";
-        version = "0.3.0";
-        edition = "2021";
-        sha256 = "0fakyzzd73phn9zz5sgm50vqs0q7gm7mwijn5g6kbq9gyi4nw5x1";
+        version = "0.5.0";
+        edition = "2024";
+        sha256 = "1dnnm3ps00m1031f4drj3xfg7ijp81rpa2ks819cwzs502i7idd2";
         procMacro = true;
         libName = "bilge_impl";
         authors = [
@@ -2627,12 +2637,13 @@ rec {
         dependencies = [
           {
             name = "itertools";
-            packageId = "itertools 0.14.0";
+            packageId = "itertools 0.15.0";
           }
           {
-            name = "proc-macro-error2";
-            packageId = "proc-macro-error2";
+            name = "manyhow";
+            packageId = "manyhow";
             usesDefaultFeatures = false;
+            features = [ "macros" "syn2" ];
           }
           {
             name = "proc-macro2";
@@ -3726,10 +3737,6 @@ rec {
             packageId = "api_client";
           }
           {
-            name = "kata-sys-util";
-            packageId = "kata-sys-util";
-          }
-          {
             name = "kata-types";
             packageId = "kata-types";
             features = [ "safe-path" ];
@@ -3737,12 +3744,12 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "serde";
             packageId = "serde";
-            features = [ "derive" "rc" "derive" ];
+            features = [ "derive" "derive" "rc" ];
           }
           {
             name = "serde_json";
@@ -3755,7 +3762,7 @@ rec {
           {
             name = "tokio";
             packageId = "tokio";
-            features = [ "sync" "rt" ];
+            features = [ "rt" "sync" ];
           }
         ];
 
@@ -4165,6 +4172,10 @@ rec {
             features = [ "async" "sandbox" ];
           }
           {
+            name = "hypervisor";
+            packageId = "hypervisor";
+          }
+          {
             name = "kata-sys-util";
             packageId = "kata-sys-util";
           }
@@ -4176,7 +4187,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "oci-spec";
@@ -4201,6 +4212,14 @@ rec {
             packageId = "runtime-spec";
           }
           {
+            name = "slog";
+            packageId = "slog";
+          }
+          {
+            name = "slog-scope";
+            packageId = "slog-scope";
+          }
+          {
             name = "strum";
             packageId = "strum 0.24.1";
             features = [ "derive" ];
@@ -4212,7 +4231,21 @@ rec {
           {
             name = "tokio";
             packageId = "tokio";
-            features = [ "rt-multi-thread" "process" "fs" ];
+            features = [ "fs" "process" "rt-multi-thread" ];
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "rstest";
+            packageId = "rstest";
+          }
+          {
+            name = "tempfile";
+            packageId = "tempfile";
           }
         ];
 
@@ -5532,7 +5565,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "thiserror";
@@ -5541,11 +5574,11 @@ rec {
           {
             name = "vm-memory";
             packageId = "vm-memory";
-            features = [ "backend-mmap" "backend-atomic" ];
+            features = [ "backend-atomic" "backend-mmap" ];
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
 
@@ -5610,14 +5643,14 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         devDependencies = [
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "test-utils";
@@ -5690,7 +5723,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "test-utils";
@@ -5765,14 +5798,14 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         devDependencies = [
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "test-utils";
@@ -5783,11 +5816,11 @@ rec {
           "default" = [ "legacy-irq" "msi-irq" ];
           "kvm-bindings" = [ "dep:kvm-bindings" ];
           "kvm-ioctls" = [ "dep:kvm-ioctls" ];
-          "kvm-irq" = [ "kvm-ioctls" "kvm-bindings" ];
-          "kvm-legacy-irq" = [ "legacy-irq" "kvm-irq" ];
-          "kvm-msi-generic" = [ "msi-irq" "kvm-irq" ];
+          "kvm-irq" = [ "kvm-bindings" "kvm-ioctls" ];
+          "kvm-legacy-irq" = [ "kvm-irq" "legacy-irq" ];
+          "kvm-msi-generic" = [ "kvm-irq" "msi-irq" ];
           "kvm-msi-irq" = [ "kvm-msi-generic" ];
-          "split-irq" = [ "kvm-ioctls" "kvm-bindings" ];
+          "split-irq" = [ "kvm-bindings" "kvm-ioctls" ];
           "split-legacy-irq" = [ "legacy-irq" "split-irq" ];
         };
         resolvedDefaultFeatures = [ "default" "kvm-bindings" "kvm-ioctls" "kvm-irq" "kvm-legacy-irq" "kvm-msi-generic" "kvm-msi-irq" "legacy-irq" "msi-irq" "split-irq" "split-legacy-irq" ];
@@ -5832,7 +5865,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         devDependencies = [
@@ -5942,7 +5975,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "test-utils";
@@ -6057,14 +6090,14 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         devDependencies = [
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "serde_json";
@@ -6159,7 +6192,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "nydus-api";
@@ -6223,7 +6256,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         devDependencies = [
@@ -6234,12 +6267,12 @@ rec {
           {
             name = "vm-memory";
             packageId = "vm-memory";
-            features = [ "backend-mmap" "backend-atomic" ];
+            features = [ "backend-atomic" "backend-mmap" ];
           }
         ];
         features = {
           "fuse-backend-rs" = [ "dep:fuse-backend-rs" ];
-          "vhost" = [ "virtio-mmio" "vhost-rs/vhost-user-frontend" "vhost-rs/vhost-kern" ];
+          "vhost" = [ "vhost-rs/vhost-kern" "vhost-rs/vhost-user-frontend" "virtio-mmio" ];
           "vhost-net" = [ "vhost" "vhost-rs/vhost-net" ];
           "vhost-rs" = [ "dep:vhost-rs" ];
           "vhost-user" = [ "vhost" ];
@@ -6248,8 +6281,8 @@ rec {
           "vhost-user-net" = [ "vhost-user" ];
           "virtio-balloon" = [ "virtio-mmio" ];
           "virtio-blk" = [ "virtio-mmio" ];
-          "virtio-fs" = [ "virtio-mmio" "fuse-backend-rs/virtiofs" "nydus-rafs/virtio-fs" ];
-          "virtio-fs-pro" = [ "virtio-fs" "nydus-storage/backend-registry" "nydus-storage/backend-oss" ];
+          "virtio-fs" = [ "fuse-backend-rs/virtiofs" "nydus-rafs/virtio-fs" "virtio-mmio" ];
+          "virtio-fs-pro" = [ "nydus-storage/backend-oss" "nydus-storage/backend-registry" "virtio-fs" ];
           "virtio-mem" = [ "virtio-mmio" ];
           "virtio-net" = [ "virtio-mmio" ];
           "virtio-rng" = [ "virtio-mmio" ];
@@ -7009,7 +7042,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" "mman" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" "mman" ];
           }
           {
             name = "procfs";
@@ -7079,7 +7112,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
             features = [ "with-serde" ];
           }
         ];
@@ -7105,7 +7138,7 @@ rec {
           "atomic-guest-memory" = [ "vm-memory/backend-atomic" ];
           "dbs-upcall" = [ "dep:dbs-upcall" ];
           "dbs-virtio-devices" = [ "dep:dbs-virtio-devices" ];
-          "host-device" = [ "dep:vfio-bindings" "dep:vfio-ioctls" "dep:dbs-pci" ];
+          "host-device" = [ "dep:dbs-pci" "dep:vfio-bindings" "dep:vfio-ioctls" ];
           "hotplug" = [ "virtio-vsock" ];
           "vhost-net" = [ "dbs-virtio-devices/vhost-net" ];
           "vhost-user-blk" = [ "dbs-virtio-devices/vhost-user-blk" ];
@@ -7113,8 +7146,8 @@ rec {
           "vhost-user-net" = [ "dbs-virtio-devices/vhost-user-net" ];
           "virtio-balloon" = [ "dbs-virtio-devices/virtio-balloon" "virtio-queue" ];
           "virtio-blk" = [ "dbs-virtio-devices/virtio-blk" "virtio-queue" ];
-          "virtio-fs" = [ "dbs-virtio-devices/virtio-fs-pro" "virtio-queue" "atomic-guest-memory" ];
-          "virtio-mem" = [ "dbs-virtio-devices/virtio-mem" "virtio-queue" "atomic-guest-memory" ];
+          "virtio-fs" = [ "atomic-guest-memory" "dbs-virtio-devices/virtio-fs-pro" "virtio-queue" ];
+          "virtio-mem" = [ "atomic-guest-memory" "dbs-virtio-devices/virtio-mem" "virtio-queue" ];
           "virtio-net" = [ "dbs-virtio-devices/virtio-net" "virtio-queue" ];
           "virtio-queue" = [ "dep:virtio-queue" ];
           "virtio-rng" = [ "dbs-virtio-devices/virtio-rng" "virtio-queue" ];
@@ -7605,11 +7638,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "parking" "std" ];
       };
-      "event-listener 5.4.1" = rec {
+      "event-listener 5.4.2" = rec {
         crateName = "event-listener";
-        version = "5.4.1";
+        version = "5.4.2";
         edition = "2021";
-        sha256 = "1asnp3agbr8shcl001yd935m167ammyi8hnvl0q1ycajryn6cfz1";
+        sha256 = "1lk9sv7r07l58jk263s18896l55mx9jv0g1rm4hj2mpi3paas8ss";
         libName = "event_listener";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
@@ -7618,11 +7651,6 @@ rec {
         license = "Apache-2.0 OR MIT";
         repository = "https://github.com/smol-rs/event-listener";
         dependencies = [
-          {
-            name = "concurrent-queue";
-            packageId = "concurrent-queue";
-            usesDefaultFeatures = false;
-          }
           {
             name = "parking";
             packageId = "parking";
@@ -7637,12 +7665,12 @@ rec {
         features = {
           "critical-section" = [ "dep:critical-section" ];
           "default" = [ "std" ];
-          "loom" = [ "concurrent-queue/loom" "parking?/loom" "dep:loom" ];
+          "loom" = [ "parking?/loom" "dep:loom" ];
           "parking" = [ "dep:parking" ];
-          "portable-atomic" = [ "portable-atomic-util" "portable_atomic_crate" "concurrent-queue/portable-atomic" ];
+          "portable-atomic" = [ "portable-atomic-util" "portable_atomic_crate" ];
           "portable-atomic-util" = [ "dep:portable-atomic-util" ];
           "portable_atomic_crate" = [ "dep:portable_atomic_crate" ];
-          "std" = [ "concurrent-queue/std" "parking" ];
+          "std" = [ "parking" ];
         };
         resolvedDefaultFeatures = [ "default" "parking" "std" ];
       };
@@ -7660,7 +7688,7 @@ rec {
         dependencies = [
           {
             name = "event-listener";
-            packageId = "event-listener 5.4.1";
+            packageId = "event-listener 5.4.2";
             usesDefaultFeatures = false;
           }
           {
@@ -7694,7 +7722,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         features = {
@@ -8254,7 +8282,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
             optional = true;
           }
         ];
@@ -8266,7 +8294,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         features = {
@@ -9069,6 +9097,13 @@ rec {
             packageId = "cfg-if 1.0.4";
           }
           {
+            name = "js-sys";
+            packageId = "js-sys";
+            optional = true;
+            usesDefaultFeatures = false;
+            target = { target, features }: (("wasm32" == target."arch" or null) && (("unknown" == target."os" or null) || ("none" == target."os" or null)) && (builtins.elem "atomics" targetFeatures));
+          }
+          {
             name = "libc";
             packageId = "libc";
             usesDefaultFeatures = false;
@@ -9138,18 +9173,25 @@ rec {
             packageId = "wasip3";
             target = { target, features }: (("wasm32" == target."arch" or null) && ("wasi" == target."os" or null) && ("p3" == target."env" or null));
           }
+          {
+            name = "wasm-bindgen";
+            packageId = "wasm-bindgen";
+            optional = true;
+            usesDefaultFeatures = false;
+            target = { target, features }: (("wasm32" == target."arch" or null) && (("unknown" == target."os" or null) || ("none" == target."os" or null)));
+          }
         ];
         features = {
           "sys_rng" = [ "dep:rand_core" ];
           "wasm_js" = [ "dep:wasm-bindgen" "dep:js-sys" ];
         };
-        resolvedDefaultFeatures = [ "std" "sys_rng" ];
+        resolvedDefaultFeatures = [ "std" "sys_rng" "wasm_js" ];
       };
       "getset" = rec {
         crateName = "getset";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2018";
-        sha256 = "04pr6qj9xf5krk1sqkwpn84zhk4z46y7fj8mjxrx8qbmwh8zrw4w";
+        sha256 = "0xvslz4f4siivbgcx8kd8nv81483dk1ayf8jgp716hmymax45x3c";
         procMacro = true;
         authors = [
           "Ana Hobden <ana@hoverbear.org>"
@@ -9158,10 +9200,6 @@ rec {
         license = "MIT";
         repository = "https://github.com/jbaublitz/getset";
         dependencies = [
-          {
-            name = "proc-macro-error2";
-            packageId = "proc-macro-error2";
-          }
           {
             name = "proc-macro2";
             packageId = "proc-macro2";
@@ -9341,11 +9379,11 @@ rec {
         features = {
         };
       };
-      "h2 0.4.14" = rec {
+      "h2 0.4.16" = rec {
         crateName = "h2";
-        version = "0.4.14";
+        version = "0.4.16";
         edition = "2021";
-        sha256 = "0cw7jk7kn2vn6f8w8ssh6gis1mljnfjxd606gvi4sjpyjayfy7qp";
+        sha256 = "09syqqhvh36b3rwyn8vjhiz597hfki1hcz3hwagb3cs1ifapmwx9";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Sean McArthur <sean@seanmonstar.com>"
@@ -10122,7 +10160,7 @@ rec {
           }
           {
             name = "socket2";
-            packageId = "socket2 0.5.10";
+            packageId = "socket2 0.4.10";
             optional = true;
             features = [ "all" ];
           }
@@ -10204,7 +10242,7 @@ rec {
           }
           {
             name = "h2";
-            packageId = "h2 0.4.14";
+            packageId = "h2 0.4.16";
             optional = true;
           }
           {
@@ -10281,9 +10319,9 @@ rec {
       };
       "hyper-rustls" = rec {
         crateName = "hyper-rustls";
-        version = "0.27.9";
+        version = "0.27.10";
         edition = "2021";
-        sha256 = "03vfnsm873wsp1dk0q85nxvk7w6syp8c2m5bcdjcyfgg4786ijik";
+        sha256 = "0lvz2bxpphyxmkws5ysfnydvsd0q4smbwgy254g92irjf1afda6z";
         libName = "hyper_rustls";
         license = "Apache-2.0 OR ISC OR MIT";
         repository = "https://github.com/rustls/hyper-rustls";
@@ -10332,11 +10370,6 @@ rec {
             name = "tower-service";
             packageId = "tower-service";
           }
-          {
-            name = "webpki-roots";
-            packageId = "webpki-roots";
-            optional = true;
-          }
         ];
         devDependencies = [
           {
@@ -10373,7 +10406,7 @@ rec {
           "webpki-roots" = [ "dep:webpki-roots" ];
           "webpki-tokio" = [ "webpki-roots" ];
         };
-        resolvedDefaultFeatures = [ "aws-lc-rs" "http1" "http2" "log" "logging" "native-tokio" "ring" "rustls-native-certs" "tls12" "webpki-roots" "webpki-tokio" ];
+        resolvedDefaultFeatures = [ "aws-lc-rs" "http1" "http2" "log" "logging" "native-tokio" "ring" "rustls-native-certs" "tls12" ];
       };
       "hyper-timeout 0.4.1" = rec {
         crateName = "hyper-timeout";
@@ -10537,6 +10570,7 @@ rec {
           "alpn" = [ "native-tls/alpn" ];
           "vendored" = [ "native-tls/vendored" ];
         };
+        resolvedDefaultFeatures = [ "alpn" ];
       };
       "hyper-util" = rec {
         crateName = "hyper-util";
@@ -10787,7 +10821,7 @@ rec {
             packageId = "dragonball";
             optional = true;
             target = { target, features }: (("x86_64" == target."arch" or null) || ("aarch64" == target."arch" or null));
-            features = [ "atomic-guest-memory" "virtio-vsock" "hotplug" "virtio-blk" "virtio-net" "virtio-fs" "vhost-net" "dbs-upcall" "virtio-mem" "virtio-balloon" "virtio-rng" "vhost-user-net" "host-device" ];
+            features = [ "atomic-guest-memory" "dbs-upcall" "host-device" "hotplug" "vhost-net" "vhost-user-net" "virtio-balloon" "virtio-blk" "virtio-fs" "virtio-mem" "virtio-net" "virtio-rng" "virtio-vsock" ];
           }
           {
             name = "futures";
@@ -10804,12 +10838,12 @@ rec {
           {
             name = "hyper";
             packageId = "hyper 1.10.1";
-            features = [ "http1" "server" "client" ];
+            features = [ "client" "http1" "server" ];
           }
           {
             name = "hyper-util";
             packageId = "hyper-util";
-            features = [ "tokio" "server-auto" "server-graceful" "client-legacy" ];
+            features = [ "client-legacy" "server-auto" "server-graceful" "tokio" ];
           }
           {
             name = "hyperlocal";
@@ -10840,7 +10874,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "once_cell";
@@ -10871,7 +10905,7 @@ rec {
           {
             name = "qapi";
             packageId = "qapi";
-            features = [ "qmp" "async-tokio-all" ];
+            features = [ "async-tokio-all" "qmp" ];
           }
           {
             name = "qapi-qmp";
@@ -10933,7 +10967,7 @@ rec {
           {
             name = "tokio";
             packageId = "tokio";
-            features = [ "sync" "fs" "process" "io-util" ];
+            features = [ "fs" "io-util" "process" "sync" ];
           }
           {
             name = "tracing";
@@ -10945,8 +10979,12 @@ rec {
             features = [ "async" ];
           }
           {
+            name = "virtio-bindings";
+            packageId = "virtio-bindings";
+          }
+          {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         buildDependencies = [
@@ -11968,6 +12006,29 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "use_alloc" "use_std" ];
       };
+      "itertools 0.15.0" = rec {
+        crateName = "itertools";
+        version = "0.15.0";
+        edition = "2018";
+        sha256 = "1p412hriqm4kxn7x1539vz2p5c5s1v2m36m4kis2ai4dyn9syjwb";
+        authors = [
+          "bluss"
+        ];
+        license = "MIT OR Apache-2.0";
+        repository = "https://github.com/rust-itertools/itertools";
+        dependencies = [
+          {
+            name = "either";
+            packageId = "either";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "default" = [ "use_std" ];
+          "use_std" = [ "use_alloc" "either/use_std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "use_alloc" "use_std" ];
+      };
       "itoa" = rec {
         crateName = "itoa";
         version = "1.0.18";
@@ -12721,7 +12782,7 @@ rec {
           {
             name = "async-compression";
             packageId = "async-compression";
-            features = [ "tokio" "gzip" ];
+            features = [ "gzip" "tokio" ];
           }
           {
             name = "async-recursion";
@@ -12824,7 +12885,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "oci-spec";
@@ -12873,6 +12934,11 @@ rec {
           {
             name = "runtime-spec";
             packageId = "runtime-spec";
+          }
+          {
+            name = "rustix";
+            packageId = "rustix 0.38.44";
+            features = [ "mount" ];
           }
           {
             name = "rustjail";
@@ -13033,7 +13099,7 @@ rec {
           {
             name = "clap";
             packageId = "clap";
-            features = [ "derive" "derive" "cargo" ];
+            features = [ "derive" "cargo" "derive" ];
           }
           {
             name = "hex";
@@ -13071,7 +13137,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "oci-spec";
@@ -13183,6 +13249,12 @@ rec {
             features = [ "fs" "io-util" ];
           }
         ];
+        devDependencies = [
+          {
+            name = "tempfile";
+            packageId = "tempfile";
+          }
+        ];
 
       };
       "kata-ctl" = rec {
@@ -13226,7 +13298,11 @@ rec {
           {
             name = "clap";
             packageId = "clap";
-            features = [ "derive" "derive" "cargo" ];
+            features = [ "derive" "cargo" "derive" ];
+          }
+          {
+            name = "common";
+            packageId = "common";
           }
           {
             name = "csv";
@@ -13247,12 +13323,12 @@ rec {
           {
             name = "hyper";
             packageId = "hyper 1.10.1";
-            features = [ "http1" "server" "client" ];
+            features = [ "client" "http1" "server" ];
           }
           {
             name = "hyper-util";
             packageId = "hyper-util";
-            features = [ "tokio" "server-auto" "server-graceful" "client-legacy" ];
+            features = [ "client-legacy" "server-auto" "server-graceful" "tokio" ];
           }
           {
             name = "kata-sys-util";
@@ -13278,7 +13354,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "privdrop";
@@ -13300,17 +13376,17 @@ rec {
           }
           {
             name = "reqwest";
-            packageId = "reqwest 0.12.28";
+            packageId = "reqwest 0.13.3";
             usesDefaultFeatures = false;
             target = { target, features }: (!("s390x" == target."arch" or null));
-            features = [ "json" "blocking" "rustls-tls" ];
+            features = [ "blocking" "json" "rustls" ];
           }
           {
             name = "reqwest";
-            packageId = "reqwest 0.12.28";
+            packageId = "reqwest 0.13.3";
             usesDefaultFeatures = false;
             target = { target, features }: ("s390x" == target."arch" or null);
-            features = [ "json" "blocking" "native-tls" ];
+            features = [ "blocking" "json" "native-tls" ];
           }
           {
             name = "ron";
@@ -13392,7 +13468,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         devDependencies = [
@@ -13403,7 +13479,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "semver";
@@ -13477,7 +13553,7 @@ rec {
             name = "kube";
             packageId = "kube";
             usesDefaultFeatures = false;
-            features = [ "client" "jsonpatch" "rustls-tls" "ring" ];
+            features = [ "client" "jsonpatch" "ring" "rustls-tls" ];
           }
           {
             name = "libc";
@@ -13511,7 +13587,7 @@ rec {
           {
             name = "tokio";
             packageId = "tokio";
-            features = [ "rt-multi-thread" "macros" "signal" "sync" "time" "net" "io-util" ];
+            features = [ "io-util" "macros" "net" "rt-multi-thread" "signal" "sync" "time" ];
           }
           {
             name = "toml_edit";
@@ -13590,7 +13666,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" "fs" "mount" "sched" "process" "ioctl" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" "fs" "ioctl" "mount" "process" "sched" ];
           }
           {
             name = "oci-spec";
@@ -13707,7 +13783,7 @@ rec {
           {
             name = "opentelemetry-otlp";
             packageId = "opentelemetry-otlp";
-            features = [ "trace" "grpc-tonic" ];
+            features = [ "grpc-tonic" "trace" ];
           }
           {
             name = "opentelemetry_sdk";
@@ -13791,7 +13867,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "num_cpus";
@@ -13857,7 +13933,7 @@ rec {
             name = "tokio";
             packageId = "tokio";
             optional = true;
-            features = [ "time" "rt" ];
+            features = [ "rt" "time" ];
           }
           {
             name = "toml";
@@ -13868,7 +13944,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "rstest";
@@ -14339,7 +14415,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
             optional = true;
           }
           {
@@ -14383,7 +14459,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
 
@@ -15004,6 +15080,81 @@ rec {
         ];
 
       };
+      "manyhow" = rec {
+        crateName = "manyhow";
+        version = "0.13.1";
+        edition = "2021";
+        sha256 = "0nnn1yi8vvv7m95q7aiazfc97infn3ay8cmbpy47n6rwpn9m3k2n";
+        license = "MIT OR Apache-2.0";
+        repository = "https://github.com/ModProg/manyhow";
+        dependencies = [
+          {
+            name = "manyhow-macros";
+            packageId = "manyhow-macros";
+            rename = "macros";
+            optional = true;
+          }
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 2.0.117";
+            rename = "syn2";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "printing" "parsing" ];
+          }
+        ];
+        devDependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+            features = [ "span-locations" ];
+          }
+        ];
+        features = {
+          "darling" = [ "darling_core" ];
+          "darling_core" = [ "dep:darling_core" ];
+          "default" = [ "syn" "macros" ];
+          "macros" = [ "dep:macros" ];
+          "syn" = [ "syn3" ];
+          "syn1" = [ "dep:syn1" ];
+          "syn2" = [ "dep:syn2" ];
+          "syn3" = [ "dep:syn3" ];
+        };
+        resolvedDefaultFeatures = [ "macros" "syn2" ];
+      };
+      "manyhow-macros" = rec {
+        crateName = "manyhow-macros";
+        version = "0.13.1";
+        edition = "2021";
+        sha256 = "1m8ny3i1bkj58p6fz4l54z20vd9gy0bbb34fk24i847656hyqcf6";
+        procMacro = true;
+        libName = "manyhow_macros";
+        license = "MIT OR Apache-2.0";
+        repository = "https://github.com/ModProg/manyhow";
+        dependencies = [
+          {
+            name = "proc-macro-utils";
+            packageId = "proc-macro-utils";
+          }
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+        ];
+
+      };
       "maplit" = rec {
         crateName = "maplit";
         version = "1.0.2";
@@ -15070,7 +15221,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" "fs" "sched" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" "fs" "sched" ];
           }
           {
             name = "page_size";
@@ -15102,7 +15253,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" "user" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" "user" ];
           }
           {
             name = "once_cell";
@@ -15226,7 +15377,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
 
@@ -15498,7 +15649,7 @@ rec {
           "alpn" = [ "security-framework/alpn" ];
           "vendored" = [ "openssl/vendored" ];
         };
-        resolvedDefaultFeatures = [ "default" ];
+        resolvedDefaultFeatures = [ "alpn" "default" ];
       };
       "netlink-packet-core" = rec {
         crateName = "netlink-packet-core";
@@ -18846,21 +18997,25 @@ rec {
       "pcilibs-rs" = rec {
         crateName = "pcilibs-rs";
         version = "0.1.0";
-        edition = "2018";
+        edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/kata-containers/pcilibs-rs";
-          rev = "28308229a8601b5dd616a9f9907002dec781e3ac";
-          sha256 = "0g6mwqjb64zsdyllb10wi2z4s792z3v93kvfspfm1shbm4m46qd3";
+          rev = "f6831fa878ec315ab477ccb88fbf8ec6cbd4cdca";
+          sha256 = "0w78wg7s8fjmyyyj1qa5l9fmy6x4rgs6df49c5rq3g3pwfffspld";
         };
         libName = "pcilibs_rs";
         authors = [
           "The Kata Containers community <kata-dev@lists.katacontainers.io>"
         ];
-        license = "Apache-2.0";
+        license = "Apache-2.0 AND MIT";
         repository = "https://github.com/kata-containers/pcilibs-rs.git";
         homepage = "https://katacontainers.io/";
         dependencies = [
+          {
+            name = "libc";
+            packageId = "libc";
+          }
           {
             name = "nix";
             packageId = "nix 0.31.3";
@@ -18893,6 +19048,8 @@ rec {
           }
         ];
         features = {
+          "cc" = [ "dep:anyhow" ];
+          "testfs" = [ "dep:tempfile" ];
         };
       };
       "pem" = rec {
@@ -19908,75 +20065,46 @@ rec {
         ];
 
       };
-      "proc-macro-error-attr2" = rec {
-        crateName = "proc-macro-error-attr2";
-        version = "2.0.0";
+      "proc-macro-utils" = rec {
+        crateName = "proc-macro-utils";
+        version = "0.10.0";
         edition = "2021";
-        sha256 = "1ifzi763l7swl258d8ar4wbpxj4c9c2im7zy89avm6xv6vgl5pln";
-        procMacro = true;
-        libName = "proc_macro_error_attr2";
-        authors = [
-          "CreepySkeleton <creepy-skeleton@yandex.ru>"
-          "GnomedDev <david2005thomas@gmail.com>"
-        ];
+        sha256 = "0wbhpdb1rp4h6f6m82ignhpb2hgji30bvdbpb0hvq0747nhhibzf";
+        libName = "proc_macro_utils";
         license = "MIT OR Apache-2.0";
-        repository = "https://github.com/GnomedDev/proc-macro-error-2";
+        repository = "https://github.com/ModProg/proc-macro-utils";
         dependencies = [
           {
             name = "proc-macro2";
             packageId = "proc-macro2";
-          }
-          {
-            name = "quote";
-            packageId = "quote";
-          }
-        ];
-
-      };
-      "proc-macro-error2" = rec {
-        crateName = "proc-macro-error2";
-        version = "2.0.1";
-        edition = "2021";
-        sha256 = "00lq21vgh7mvyx51nwxwf822w2fpww1x0z8z0q47p8705g2hbv0i";
-        libName = "proc_macro_error2";
-        authors = [
-          "CreepySkeleton <creepy-skeleton@yandex.ru>"
-          "GnomedDev <david2005thomas@gmail.com>"
-        ];
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/GnomedDev/proc-macro-error-2";
-        dependencies = [
-          {
-            name = "proc-macro-error-attr2";
-            packageId = "proc-macro-error-attr2";
-          }
-          {
-            name = "proc-macro2";
-            packageId = "proc-macro2";
-          }
-          {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "syn";
-            packageId = "syn 2.0.117";
             optional = true;
-            usesDefaultFeatures = false;
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+            optional = true;
+          }
+          {
+            name = "smallvec";
+            packageId = "smallvec";
+            optional = true;
+            features = [ "const_generics" ];
           }
         ];
         devDependencies = [
           {
-            name = "syn";
-            packageId = "syn 2.0.117";
-            features = [ "full" ];
+            name = "quote";
+            packageId = "quote";
           }
         ];
         features = {
-          "default" = [ "syn-error" ];
-          "syn-error" = [ "dep:syn" ];
+          "default" = [ "proc-macro2" "proc-macro" "parser" "quote" ];
+          "parser" = [ "smallvec" "proc-macro2" ];
+          "proc-macro2" = [ "dep:proc-macro2" ];
+          "quote" = [ "dep:quote" ];
+          "smallvec" = [ "dep:smallvec" ];
         };
-        resolvedDefaultFeatures = [ "default" "syn-error" ];
+        resolvedDefaultFeatures = [ "default" "parser" "proc-macro" "proc-macro2" "quote" "smallvec" ];
       };
       "proc-macro2" = rec {
         crateName = "proc-macro2";
@@ -20840,7 +20968,7 @@ rec {
           }
         ];
         features = {
-          "async" = [ "ttrpc/async" "async-trait" ];
+          "async" = [ "async-trait" "ttrpc/async" ];
           "async-trait" = [ "dep:async-trait" ];
         };
         resolvedDefaultFeatures = [ "async" "async-trait" "default" "with-serde" ];
@@ -21209,13 +21337,13 @@ rec {
           "rustls-ring" = [ "dep:rustls" "ring" "proto/rustls-ring" "proto/ring" ];
           "smol" = [ "dep:smol" ];
         };
-        resolvedDefaultFeatures = [ "aws-lc-rs" "ring" "runtime-tokio" "rustls" "rustls-aws-lc-rs" "rustls-ring" ];
+        resolvedDefaultFeatures = [ "aws-lc-rs" "runtime-tokio" "rustls-aws-lc-rs" ];
       };
       "quinn-proto" = rec {
         crateName = "quinn-proto";
-        version = "0.11.15";
+        version = "0.11.18";
         edition = "2021";
-        sha256 = "0gknq1m2b9g3fsndka2gn7f2k45vb0zdssrh1qpkql7cbdf97jsg";
+        sha256 = "1z6931x1gn4mkhrbbbww3syb4c8awc229bqz5x7lyqvnw6ynsx59";
         libName = "quinn_proto";
         license = "MIT OR Apache-2.0";
         repository = "https://github.com/quinn-rs/quinn";
@@ -21232,7 +21360,7 @@ rec {
           }
           {
             name = "getrandom";
-            packageId = "getrandom 0.3.4";
+            packageId = "getrandom 0.4.2";
             usesDefaultFeatures = false;
             target = { target, features }: ((builtins.elem "wasm" target."family") && ("unknown" == target."os" or null));
             features = [ "wasm_js" ];
@@ -21243,7 +21371,11 @@ rec {
           }
           {
             name = "rand";
-            packageId = "rand 0.9.4";
+            packageId = "rand 0.10.1";
+          }
+          {
+            name = "rand_pcg";
+            packageId = "rand_pcg";
           }
           {
             name = "ring";
@@ -21314,7 +21446,7 @@ rec {
           "rustls-log" = [ "rustls?/logging" ];
           "rustls-ring" = [ "dep:rustls" "rustls?/ring" "ring" ];
         };
-        resolvedDefaultFeatures = [ "aws-lc-rs" "ring" "rustls-aws-lc-rs" "rustls-ring" ];
+        resolvedDefaultFeatures = [ "aws-lc-rs" "rustls-aws-lc-rs" ];
       };
       "quinn-udp" = rec {
         crateName = "quinn-udp";
@@ -21348,7 +21480,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_IO" "Win32_Networking_WinSock" ];
           }
@@ -21650,7 +21782,7 @@ rec {
           "std_rng" = [ "dep:rand_chacha" ];
           "thread_rng" = [ "std" "std_rng" "os_rng" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "default" "os_rng" "small_rng" "std" "std_rng" "thread_rng" ];
+        resolvedDefaultFeatures = [ "alloc" "os_rng" "small_rng" "std" "std_rng" "thread_rng" ];
       };
       "rand_chacha 0.3.1" = rec {
         crateName = "rand_chacha";
@@ -21834,6 +21966,27 @@ rec {
           "std" = [ "getrandom?/std" ];
         };
         resolvedDefaultFeatures = [ "os_rng" "std" ];
+      };
+      "rand_pcg" = rec {
+        crateName = "rand_pcg";
+        version = "0.10.2";
+        edition = "2024";
+        sha256 = "0sp817pvwb3d2nxb1ww1y0f8x3kc4w198j2iqvs742hwgq9z986a";
+        authors = [
+          "The Rand Project Developers"
+        ];
+        license = "MIT OR Apache-2.0";
+        repository = "https://github.com/rust-random/rngs";
+        homepage = "https://rust-random.github.io/book";
+        dependencies = [
+          {
+            name = "rand_core";
+            packageId = "rand_core 0.10.1";
+          }
+        ];
+        features = {
+          "serde" = [ "dep:serde" ];
+        };
       };
       "rdrand" = rec {
         crateName = "rdrand";
@@ -22368,7 +22521,7 @@ rec {
           }
           {
             name = "h2";
-            packageId = "h2 0.4.14";
+            packageId = "h2 0.4.16";
             optional = true;
             target = { target, features }: (!("wasm32" == target."arch" or null));
           }
@@ -22446,22 +22599,6 @@ rec {
             target = { target, features }: (!("wasm32" == target."arch" or null));
           }
           {
-            name = "quinn";
-            packageId = "quinn";
-            optional = true;
-            usesDefaultFeatures = false;
-            target = { target, features }: (!("wasm32" == target."arch" or null));
-            features = [ "rustls" "runtime-tokio" ];
-          }
-          {
-            name = "rustls";
-            packageId = "rustls";
-            optional = true;
-            usesDefaultFeatures = false;
-            target = { target, features }: (!("wasm32" == target."arch" or null));
-            features = [ "std" "tls12" ];
-          }
-          {
             name = "rustls-pki-types";
             packageId = "rustls-pki-types";
             optional = true;
@@ -22505,14 +22642,6 @@ rec {
             target = { target, features }: (!("wasm32" == target."arch" or null));
           }
           {
-            name = "tokio-rustls";
-            packageId = "tokio-rustls";
-            optional = true;
-            usesDefaultFeatures = false;
-            target = { target, features }: (!("wasm32" == target."arch" or null));
-            features = [ "tls12" ];
-          }
-          {
             name = "tower";
             packageId = "tower 0.5.3";
             usesDefaultFeatures = false;
@@ -22550,12 +22679,6 @@ rec {
             packageId = "web-sys";
             target = { target, features }: ("wasm32" == target."arch" or null);
             features = [ "AbortController" "AbortSignal" "Headers" "Request" "RequestInit" "RequestMode" "Response" "Window" "FormData" "Blob" "BlobPropertyBag" "ServiceWorkerGlobalScope" "RequestCredentials" "File" "ReadableStream" "RequestCache" ];
-          }
-          {
-            name = "webpki-roots";
-            packageId = "webpki-roots";
-            optional = true;
-            target = { target, features }: (!("wasm32" == target."arch" or null));
           }
         ];
         devDependencies = [
@@ -22639,7 +22762,7 @@ rec {
           "system-proxy" = [ "hyper-util/client-proxy-system" ];
           "zstd" = [ "tower-http/decompression-zstd" ];
         };
-        resolvedDefaultFeatures = [ "__rustls" "__rustls-ring" "__tls" "blocking" "charset" "default" "default-tls" "h2" "http2" "json" "native-tls" "rustls-tls" "rustls-tls-webpki-roots" "rustls-tls-webpki-roots-no-provider" "system-proxy" ];
+        resolvedDefaultFeatures = [ "__tls" "blocking" "charset" "default" "default-tls" "h2" "http2" "json" "system-proxy" ];
       };
       "reqwest 0.13.3" = rec {
         crateName = "reqwest";
@@ -22679,7 +22802,7 @@ rec {
           }
           {
             name = "h2";
-            packageId = "h2 0.4.14";
+            packageId = "h2 0.4.16";
             optional = true;
             target = { target, features }: (!(("wasm32" == target."arch" or null) && (("unknown" == target."os" or null) || ("none" == target."os" or null))));
           }
@@ -22712,6 +22835,12 @@ rec {
             features = [ "http1" "tls12" ];
           }
           {
+            name = "hyper-tls";
+            packageId = "hyper-tls";
+            optional = true;
+            target = { target, features }: (!(("wasm32" == target."arch" or null) && (("unknown" == target."os" or null) || ("none" == target."os" or null))));
+          }
+          {
             name = "hyper-util";
             packageId = "hyper-util";
             target = { target, features }: (!(("wasm32" == target."arch" or null) && (("unknown" == target."os" or null) || ("none" == target."os" or null))));
@@ -22725,6 +22854,13 @@ rec {
           {
             name = "log";
             packageId = "log";
+            target = { target, features }: (!(("wasm32" == target."arch" or null) && (("unknown" == target."os" or null) || ("none" == target."os" or null))));
+          }
+          {
+            name = "native-tls";
+            packageId = "native-tls";
+            rename = "native-tls-crate";
+            optional = true;
             target = { target, features }: (!(("wasm32" == target."arch" or null) && (("unknown" == target."os" or null) || ("none" == target."os" or null))));
           }
           {
@@ -22792,6 +22928,12 @@ rec {
             usesDefaultFeatures = false;
             target = { target, features }: (!(("wasm32" == target."arch" or null) && (("unknown" == target."os" or null) || ("none" == target."os" or null))));
             features = [ "net" "time" ];
+          }
+          {
+            name = "tokio-native-tls";
+            packageId = "tokio-native-tls";
+            optional = true;
+            target = { target, features }: (!(("wasm32" == target."arch" or null) && (("unknown" == target."os" or null) || ("none" == target."os" or null))));
           }
           {
             name = "tokio-rustls";
@@ -22933,7 +23075,7 @@ rec {
           "system-proxy" = [ "hyper-util/client-proxy-system" ];
           "zstd" = [ "tower-http/decompression-zstd" ];
         };
-        resolvedDefaultFeatures = [ "__rustls" "__rustls-aws-lc-rs" "__tls" "blocking" "http2" "json" "query" "rustls" "rustls-no-provider" "stream" ];
+        resolvedDefaultFeatures = [ "__native-tls" "__native-tls-alpn" "__rustls" "__rustls-aws-lc-rs" "__tls" "blocking" "http2" "json" "native-tls" "query" "rustls" "rustls-no-provider" "stream" ];
       };
       "resource" = rec {
         crateName = "resource";
@@ -23002,12 +23144,12 @@ rec {
           {
             name = "hyper";
             packageId = "hyper 1.10.1";
-            features = [ "http1" "server" "client" ];
+            features = [ "client" "http1" "server" ];
           }
           {
             name = "hyper-util";
             packageId = "hyper-util";
-            features = [ "tokio" "server-auto" "server-graceful" "client-legacy" ];
+            features = [ "client-legacy" "server-auto" "server-graceful" "tokio" ];
           }
           {
             name = "hyperlocal";
@@ -23057,7 +23199,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "oci-spec";
@@ -23639,7 +23781,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "runtimes";
@@ -23726,12 +23868,12 @@ rec {
           {
             name = "hyper";
             packageId = "hyper 1.10.1";
-            features = [ "http1" "server" "client" ];
+            features = [ "client" "http1" "server" ];
           }
           {
             name = "hyper-util";
             packageId = "hyper-util";
-            features = [ "tokio" "server-auto" "server-graceful" "client-legacy" ];
+            features = [ "client-legacy" "server-auto" "server-graceful" "tokio" ];
           }
           {
             name = "hypervisor";
@@ -23766,7 +23908,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "oci-spec";
@@ -23776,12 +23918,12 @@ rec {
           {
             name = "opentelemetry";
             packageId = "opentelemetry 0.18.0";
-            features = [ "rt-tokio-current-thread" "trace" "rt-tokio" ];
+            features = [ "rt-tokio" "rt-tokio-current-thread" "trace" ];
           }
           {
             name = "opentelemetry-jaeger";
             packageId = "opentelemetry-jaeger";
-            features = [ "rt-tokio" "hyper_collector_client" "collector_client" ];
+            features = [ "collector_client" "hyper_collector_client" "rt-tokio" ];
           }
           {
             name = "persist";
@@ -23795,15 +23937,6 @@ rec {
             name = "prometheus";
             packageId = "prometheus";
             features = [ "process" ];
-          }
-          {
-            name = "protobuf";
-            packageId = "protobuf";
-          }
-          {
-            name = "protocols";
-            packageId = "protocols";
-            features = [ "async" ];
           }
           {
             name = "resource";
@@ -23863,6 +23996,19 @@ rec {
           }
         ];
         devDependencies = [
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "protobuf";
+            packageId = "protobuf";
+          }
+          {
+            name = "protocols";
+            packageId = "protocols";
+            features = [ "async" ];
+          }
           {
             name = "rstest";
             packageId = "rstest";
@@ -24334,7 +24480,7 @@ rec {
           "thread" = [ "linux-raw-sys/prctl" ];
           "use-libc" = [ "libc_errno" "libc" "libc-extra-traits" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "default" "fs" "libc-extra-traits" "param" "process" "std" "system" "thread" "time" "use-libc-auxv" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "fs" "libc-extra-traits" "mount" "param" "process" "std" "system" "thread" "time" "use-libc-auxv" ];
       };
       "rustix 1.1.4" = rec {
         crateName = "rustix";
@@ -24517,7 +24663,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "oci-spec";
@@ -24581,7 +24727,7 @@ rec {
           {
             name = "tokio";
             packageId = "tokio";
-            features = [ "sync" "io-util" "process" "time" "macros" "rt" "fs" ];
+            features = [ "fs" "io-util" "macros" "process" "rt" "sync" "time" ];
           }
           {
             name = "tokio-vsock";
@@ -24618,9 +24764,9 @@ rec {
       };
       "rustls" = rec {
         crateName = "rustls";
-        version = "0.23.40";
+        version = "0.23.46";
         edition = "2021";
-        sha256 = "12qnv3ag4wrw7aj8jng74kgrilpjm2b1rfcjaac8h691frccv1pg";
+        sha256 = "1pwg7i8drr70374amj96952cils9mpwyijd5rx1mqdp9q3c3pqa8";
         license = "Apache-2.0 OR ISC OR MIT";
         repository = "https://github.com/rustls/rustls";
         homepage = "https://github.com/rustls/rustls";
@@ -24898,9 +25044,9 @@ rec {
       };
       "rustls-webpki" = rec {
         crateName = "rustls-webpki";
-        version = "0.103.13";
+        version = "0.103.15";
         edition = "2021";
-        sha256 = "0vkm7z9pnxz5qz66p2kmyy2pwx0g4jnsbqk5xzfhs4czcjl2ki31";
+        sha256 = "1hhanq3lz384v4nccacnjfwsyy99n3yc6m6iw8kljz8yicfwzhzk";
         libName = "webpki";
         license = "ISC";
         repository = "https://github.com/rustls/webpki";
@@ -24932,7 +25078,7 @@ rec {
           "alloc" = [ "ring?/alloc" "pki-types/alloc" ];
           "aws-lc-rs" = [ "dep:aws-lc-rs" "aws-lc-rs/aws-lc-sys" "aws-lc-rs/prebuilt-nasm" ];
           "aws-lc-rs-fips" = [ "dep:aws-lc-rs" "aws-lc-rs/fips" ];
-          "aws-lc-rs-unstable" = [ "aws-lc-rs" "aws-lc-rs/unstable" ];
+          "aws-lc-rs-unstable" = [ "aws-lc-rs" ];
           "default" = [ "std" ];
           "ring" = [ "dep:ring" ];
           "std" = [ "alloc" "pki-types/std" ];
@@ -26275,6 +26421,10 @@ rec {
             packageId = "logging";
           }
           {
+            name = "persist";
+            packageId = "persist";
+          }
+          {
             name = "runtimes";
             packageId = "runtimes";
           }
@@ -26553,7 +26703,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "oci-spec";
@@ -26579,7 +26729,7 @@ rec {
           {
             name = "slog";
             packageId = "slog";
-            features = [ "std" "release_max_level_trace" "max_level_trace" ];
+            features = [ "max_level_trace" "release_max_level_trace" "std" ];
           }
           {
             name = "slog-async";
@@ -26684,12 +26834,12 @@ rec {
           {
             name = "hyper";
             packageId = "hyper 1.10.1";
-            features = [ "http1" "server" "client" ];
+            features = [ "client" "http1" "server" ];
           }
           {
             name = "hyper-util";
             packageId = "hyper-util";
-            features = [ "tokio" "server-auto" "server-graceful" "client-legacy" ];
+            features = [ "client-legacy" "server-auto" "server-graceful" "tokio" ];
           }
           {
             name = "hyperlocal";
@@ -26706,7 +26856,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "tokio";
@@ -27244,35 +27394,6 @@ rec {
             packageId = "winapi";
             target = { target, features }: (target."windows" or false);
             features = [ "handleapi" "ws2ipdef" "ws2tcpip" ];
-          }
-        ];
-        features = {
-        };
-        resolvedDefaultFeatures = [ "all" ];
-      };
-      "socket2 0.5.10" = rec {
-        crateName = "socket2";
-        version = "0.5.10";
-        edition = "2021";
-        sha256 = "0y067ki5q946w91xlz2sb175pnfazizva6fi3kfp639mxnmpc8z2";
-        authors = [
-          "Alex Crichton <alex@alexcrichton.com>"
-          "Thomas de Zeeuw <thomasdezeeuw@gmail.com>"
-        ];
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/rust-lang/socket2";
-        homepage = "https://github.com/rust-lang/socket2";
-        dependencies = [
-          {
-            name = "libc";
-            packageId = "libc";
-            target = { target, features }: (target."unix" or false);
-          }
-          {
-            name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
-            target = { target, features }: (target."windows" or false);
-            features = [ "Win32_Foundation" "Win32_Networking_WinSock" "Win32_System_IO" "Win32_System_Threading" "Win32_System_WindowsProgramming" ];
           }
         ];
         features = {
@@ -28015,7 +28136,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
 
@@ -28145,7 +28266,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
         ];
 
@@ -28824,7 +28945,7 @@ rec {
           "tls12" = [ "rustls/tls12" ];
           "zlib" = [ "rustls/zlib" ];
         };
-        resolvedDefaultFeatures = [ "aws-lc-rs" "aws_lc_rs" "logging" "ring" "tls12" ];
+        resolvedDefaultFeatures = [ "aws-lc-rs" "aws_lc_rs" "logging" "tls12" ];
       };
       "tokio-stream" = rec {
         crateName = "tokio-stream";
@@ -29348,7 +29469,7 @@ rec {
           }
           {
             name = "h2";
-            packageId = "h2 0.4.14";
+            packageId = "h2 0.4.16";
             optional = true;
           }
           {
@@ -31316,7 +31437,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         features = {
@@ -31364,7 +31485,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         features = {
@@ -31436,7 +31557,7 @@ rec {
           {
             name = "nix";
             packageId = "nix 0.31.3";
-            features = [ "fs" "mount" "sched" "process" "ioctl" "signal" "socket" "feature" "user" "hostname" "term" "event" "mman" "reboot" ];
+            features = [ "event" "feature" "fs" "hostname" "ioctl" "mman" "mount" "process" "reboot" "sched" "signal" "socket" "term" "user" ];
           }
           {
             name = "oci-spec";
@@ -31576,7 +31697,7 @@ rec {
           }
           {
             name = "vmm-sys-util";
-            packageId = "vmm-sys-util 0.15.0";
+            packageId = "vmm-sys-util";
           }
         ];
         devDependencies = [
@@ -31667,35 +31788,7 @@ rec {
         repository = "https://github.com/rust-vmm/vm-superio";
 
       };
-      "vmm-sys-util 0.14.0" = rec {
-        crateName = "vmm-sys-util";
-        version = "0.14.0";
-        edition = "2021";
-        sha256 = "12dpg8svi05y4vh5hg9jiiibwp4nd9v7i69ld3la7yrby9mkc7yj";
-        libName = "vmm_sys_util";
-        authors = [
-          "Intel Virtualization Team <vmm-maintainers@intel.com>"
-        ];
-        license = "BSD-3-Clause";
-        repository = "https://github.com/rust-vmm/vmm-sys-util";
-        dependencies = [
-          {
-            name = "bitflags";
-            packageId = "bitflags 1.3.2";
-            target = { target, features }: (("linux" == target."os" or null) || ("android" == target."os" or null));
-          }
-          {
-            name = "libc";
-            packageId = "libc";
-          }
-        ];
-        features = {
-          "serde" = [ "dep:serde" ];
-          "serde_derive" = [ "dep:serde_derive" ];
-          "with-serde" = [ "serde" "serde_derive" ];
-        };
-      };
-      "vmm-sys-util 0.15.0" = rec {
+      "vmm-sys-util" = rec {
         crateName = "vmm-sys-util";
         version = "0.15.0";
         edition = "2021";
@@ -32898,25 +32991,6 @@ rec {
         edition = "2021";
         sha256 = "0b59x5mzsilk42w59nif3lfhc24pgzb0v35pi6p01qy37z7424gk";
         libName = "webpki_root_certs";
-        license = "CDLA-Permissive-2.0";
-        repository = "https://github.com/rustls/webpki-roots";
-        homepage = "https://github.com/rustls/webpki-roots";
-        dependencies = [
-          {
-            name = "rustls-pki-types";
-            packageId = "rustls-pki-types";
-            rename = "pki-types";
-            usesDefaultFeatures = false;
-          }
-        ];
-
-      };
-      "webpki-roots" = rec {
-        crateName = "webpki-roots";
-        version = "1.0.7";
-        edition = "2021";
-        sha256 = "17gblaqmp51znxd2c18c04k8yfnf7s77c04n6hdmzxbcr52fxxaj";
-        libName = "webpki_roots";
         license = "CDLA-Permissive-2.0";
         repository = "https://github.com/rustls/webpki-roots";
         homepage = "https://github.com/rustls/webpki-roots";
@@ -34574,7 +34648,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_IO" "Win32_System_Pipes" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Pipes" "Win32_System_Threading" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.59.0" = rec {
         crateName = "windows-sys";
@@ -34835,274 +34909,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_System" "Win32_System_Com" "Win32_System_Threading" "Win32_UI" "Win32_UI_Shell" "default" ];
-      };
-      "windows-sys 0.60.2" = rec {
-        crateName = "windows-sys";
-        version = "0.60.2";
-        edition = "2021";
-        sha256 = "1jrbc615ihqnhjhxplr2kw7rasrskv9wj3lr80hgfd42sbj01xgj";
-        libName = "windows_sys";
-        authors = [
-          "Microsoft"
-        ];
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-        dependencies = [
-          {
-            name = "windows-targets";
-            packageId = "windows-targets 0.53.5";
-            usesDefaultFeatures = false;
-          }
-        ];
-        features = {
-          "Wdk" = [ "Win32_Foundation" ];
-          "Wdk_Devices" = [ "Wdk" ];
-          "Wdk_Devices_Bluetooth" = [ "Wdk_Devices" ];
-          "Wdk_Devices_HumanInterfaceDevice" = [ "Wdk_Devices" ];
-          "Wdk_Foundation" = [ "Wdk" ];
-          "Wdk_Graphics" = [ "Wdk" ];
-          "Wdk_Graphics_Direct3D" = [ "Wdk_Graphics" ];
-          "Wdk_NetworkManagement" = [ "Wdk" ];
-          "Wdk_NetworkManagement_Ndis" = [ "Wdk_NetworkManagement" ];
-          "Wdk_NetworkManagement_WindowsFilteringPlatform" = [ "Wdk_NetworkManagement" ];
-          "Wdk_Storage" = [ "Wdk" ];
-          "Wdk_Storage_FileSystem" = [ "Wdk_Storage" ];
-          "Wdk_Storage_FileSystem_Minifilters" = [ "Wdk_Storage_FileSystem" ];
-          "Wdk_System" = [ "Wdk" ];
-          "Wdk_System_IO" = [ "Wdk_System" ];
-          "Wdk_System_Memory" = [ "Wdk_System" ];
-          "Wdk_System_OfflineRegistry" = [ "Wdk_System" ];
-          "Wdk_System_Registry" = [ "Wdk_System" ];
-          "Wdk_System_SystemInformation" = [ "Wdk_System" ];
-          "Wdk_System_SystemServices" = [ "Wdk_System" ];
-          "Wdk_System_Threading" = [ "Wdk_System" ];
-          "Win32" = [ "Win32_Foundation" ];
-          "Win32_Data" = [ "Win32" ];
-          "Win32_Data_HtmlHelp" = [ "Win32_Data" ];
-          "Win32_Data_RightsManagement" = [ "Win32_Data" ];
-          "Win32_Devices" = [ "Win32" ];
-          "Win32_Devices_AllJoyn" = [ "Win32_Devices" ];
-          "Win32_Devices_Beep" = [ "Win32_Devices" ];
-          "Win32_Devices_BiometricFramework" = [ "Win32_Devices" ];
-          "Win32_Devices_Bluetooth" = [ "Win32_Devices" ];
-          "Win32_Devices_Cdrom" = [ "Win32_Devices" ];
-          "Win32_Devices_Communication" = [ "Win32_Devices" ];
-          "Win32_Devices_DeviceAndDriverInstallation" = [ "Win32_Devices" ];
-          "Win32_Devices_DeviceQuery" = [ "Win32_Devices" ];
-          "Win32_Devices_Display" = [ "Win32_Devices" ];
-          "Win32_Devices_Dvd" = [ "Win32_Devices" ];
-          "Win32_Devices_Enumeration" = [ "Win32_Devices" ];
-          "Win32_Devices_Enumeration_Pnp" = [ "Win32_Devices_Enumeration" ];
-          "Win32_Devices_Fax" = [ "Win32_Devices" ];
-          "Win32_Devices_HumanInterfaceDevice" = [ "Win32_Devices" ];
-          "Win32_Devices_Nfc" = [ "Win32_Devices" ];
-          "Win32_Devices_Nfp" = [ "Win32_Devices" ];
-          "Win32_Devices_PortableDevices" = [ "Win32_Devices" ];
-          "Win32_Devices_Properties" = [ "Win32_Devices" ];
-          "Win32_Devices_Pwm" = [ "Win32_Devices" ];
-          "Win32_Devices_Sensors" = [ "Win32_Devices" ];
-          "Win32_Devices_SerialCommunication" = [ "Win32_Devices" ];
-          "Win32_Devices_Tapi" = [ "Win32_Devices" ];
-          "Win32_Devices_Usb" = [ "Win32_Devices" ];
-          "Win32_Devices_WebServicesOnDevices" = [ "Win32_Devices" ];
-          "Win32_Foundation" = [ "Win32" ];
-          "Win32_Gaming" = [ "Win32" ];
-          "Win32_Globalization" = [ "Win32" ];
-          "Win32_Graphics" = [ "Win32" ];
-          "Win32_Graphics_Dwm" = [ "Win32_Graphics" ];
-          "Win32_Graphics_Gdi" = [ "Win32_Graphics" ];
-          "Win32_Graphics_GdiPlus" = [ "Win32_Graphics" ];
-          "Win32_Graphics_Hlsl" = [ "Win32_Graphics" ];
-          "Win32_Graphics_OpenGL" = [ "Win32_Graphics" ];
-          "Win32_Graphics_Printing" = [ "Win32_Graphics" ];
-          "Win32_Graphics_Printing_PrintTicket" = [ "Win32_Graphics_Printing" ];
-          "Win32_Management" = [ "Win32" ];
-          "Win32_Management_MobileDeviceManagementRegistration" = [ "Win32_Management" ];
-          "Win32_Media" = [ "Win32" ];
-          "Win32_Media_Audio" = [ "Win32_Media" ];
-          "Win32_Media_DxMediaObjects" = [ "Win32_Media" ];
-          "Win32_Media_KernelStreaming" = [ "Win32_Media" ];
-          "Win32_Media_Multimedia" = [ "Win32_Media" ];
-          "Win32_Media_Streaming" = [ "Win32_Media" ];
-          "Win32_Media_WindowsMediaFormat" = [ "Win32_Media" ];
-          "Win32_NetworkManagement" = [ "Win32" ];
-          "Win32_NetworkManagement_Dhcp" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_Dns" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_InternetConnectionWizard" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_IpHelper" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_Multicast" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_Ndis" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_NetBios" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_NetManagement" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_NetShell" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_NetworkDiagnosticsFramework" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_P2P" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_QoS" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_Rras" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_Snmp" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_WNet" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_WebDav" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_WiFi" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_WindowsConnectionManager" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_WindowsFilteringPlatform" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_WindowsFirewall" = [ "Win32_NetworkManagement" ];
-          "Win32_NetworkManagement_WindowsNetworkVirtualization" = [ "Win32_NetworkManagement" ];
-          "Win32_Networking" = [ "Win32" ];
-          "Win32_Networking_ActiveDirectory" = [ "Win32_Networking" ];
-          "Win32_Networking_Clustering" = [ "Win32_Networking" ];
-          "Win32_Networking_HttpServer" = [ "Win32_Networking" ];
-          "Win32_Networking_Ldap" = [ "Win32_Networking" ];
-          "Win32_Networking_WebSocket" = [ "Win32_Networking" ];
-          "Win32_Networking_WinHttp" = [ "Win32_Networking" ];
-          "Win32_Networking_WinInet" = [ "Win32_Networking" ];
-          "Win32_Networking_WinSock" = [ "Win32_Networking" ];
-          "Win32_Networking_WindowsWebServices" = [ "Win32_Networking" ];
-          "Win32_Security" = [ "Win32" ];
-          "Win32_Security_AppLocker" = [ "Win32_Security" ];
-          "Win32_Security_Authentication" = [ "Win32_Security" ];
-          "Win32_Security_Authentication_Identity" = [ "Win32_Security_Authentication" ];
-          "Win32_Security_Authorization" = [ "Win32_Security" ];
-          "Win32_Security_Credentials" = [ "Win32_Security" ];
-          "Win32_Security_Cryptography" = [ "Win32_Security" ];
-          "Win32_Security_Cryptography_Catalog" = [ "Win32_Security_Cryptography" ];
-          "Win32_Security_Cryptography_Certificates" = [ "Win32_Security_Cryptography" ];
-          "Win32_Security_Cryptography_Sip" = [ "Win32_Security_Cryptography" ];
-          "Win32_Security_Cryptography_UI" = [ "Win32_Security_Cryptography" ];
-          "Win32_Security_DiagnosticDataQuery" = [ "Win32_Security" ];
-          "Win32_Security_DirectoryServices" = [ "Win32_Security" ];
-          "Win32_Security_EnterpriseData" = [ "Win32_Security" ];
-          "Win32_Security_ExtensibleAuthenticationProtocol" = [ "Win32_Security" ];
-          "Win32_Security_Isolation" = [ "Win32_Security" ];
-          "Win32_Security_LicenseProtection" = [ "Win32_Security" ];
-          "Win32_Security_NetworkAccessProtection" = [ "Win32_Security" ];
-          "Win32_Security_WinTrust" = [ "Win32_Security" ];
-          "Win32_Security_WinWlx" = [ "Win32_Security" ];
-          "Win32_Storage" = [ "Win32" ];
-          "Win32_Storage_Cabinets" = [ "Win32_Storage" ];
-          "Win32_Storage_CloudFilters" = [ "Win32_Storage" ];
-          "Win32_Storage_Compression" = [ "Win32_Storage" ];
-          "Win32_Storage_DistributedFileSystem" = [ "Win32_Storage" ];
-          "Win32_Storage_FileHistory" = [ "Win32_Storage" ];
-          "Win32_Storage_FileSystem" = [ "Win32_Storage" ];
-          "Win32_Storage_Imapi" = [ "Win32_Storage" ];
-          "Win32_Storage_IndexServer" = [ "Win32_Storage" ];
-          "Win32_Storage_InstallableFileSystems" = [ "Win32_Storage" ];
-          "Win32_Storage_IscsiDisc" = [ "Win32_Storage" ];
-          "Win32_Storage_Jet" = [ "Win32_Storage" ];
-          "Win32_Storage_Nvme" = [ "Win32_Storage" ];
-          "Win32_Storage_OfflineFiles" = [ "Win32_Storage" ];
-          "Win32_Storage_OperationRecorder" = [ "Win32_Storage" ];
-          "Win32_Storage_Packaging" = [ "Win32_Storage" ];
-          "Win32_Storage_Packaging_Appx" = [ "Win32_Storage_Packaging" ];
-          "Win32_Storage_ProjectedFileSystem" = [ "Win32_Storage" ];
-          "Win32_Storage_StructuredStorage" = [ "Win32_Storage" ];
-          "Win32_Storage_Vhd" = [ "Win32_Storage" ];
-          "Win32_Storage_Xps" = [ "Win32_Storage" ];
-          "Win32_System" = [ "Win32" ];
-          "Win32_System_AddressBook" = [ "Win32_System" ];
-          "Win32_System_Antimalware" = [ "Win32_System" ];
-          "Win32_System_ApplicationInstallationAndServicing" = [ "Win32_System" ];
-          "Win32_System_ApplicationVerifier" = [ "Win32_System" ];
-          "Win32_System_ClrHosting" = [ "Win32_System" ];
-          "Win32_System_Com" = [ "Win32_System" ];
-          "Win32_System_Com_Marshal" = [ "Win32_System_Com" ];
-          "Win32_System_Com_StructuredStorage" = [ "Win32_System_Com" ];
-          "Win32_System_Com_Urlmon" = [ "Win32_System_Com" ];
-          "Win32_System_ComponentServices" = [ "Win32_System" ];
-          "Win32_System_Console" = [ "Win32_System" ];
-          "Win32_System_CorrelationVector" = [ "Win32_System" ];
-          "Win32_System_DataExchange" = [ "Win32_System" ];
-          "Win32_System_DeploymentServices" = [ "Win32_System" ];
-          "Win32_System_DeveloperLicensing" = [ "Win32_System" ];
-          "Win32_System_Diagnostics" = [ "Win32_System" ];
-          "Win32_System_Diagnostics_Ceip" = [ "Win32_System_Diagnostics" ];
-          "Win32_System_Diagnostics_Debug" = [ "Win32_System_Diagnostics" ];
-          "Win32_System_Diagnostics_Debug_Extensions" = [ "Win32_System_Diagnostics_Debug" ];
-          "Win32_System_Diagnostics_Etw" = [ "Win32_System_Diagnostics" ];
-          "Win32_System_Diagnostics_ProcessSnapshotting" = [ "Win32_System_Diagnostics" ];
-          "Win32_System_Diagnostics_ToolHelp" = [ "Win32_System_Diagnostics" ];
-          "Win32_System_Diagnostics_TraceLogging" = [ "Win32_System_Diagnostics" ];
-          "Win32_System_DistributedTransactionCoordinator" = [ "Win32_System" ];
-          "Win32_System_Environment" = [ "Win32_System" ];
-          "Win32_System_ErrorReporting" = [ "Win32_System" ];
-          "Win32_System_EventCollector" = [ "Win32_System" ];
-          "Win32_System_EventLog" = [ "Win32_System" ];
-          "Win32_System_EventNotificationService" = [ "Win32_System" ];
-          "Win32_System_GroupPolicy" = [ "Win32_System" ];
-          "Win32_System_HostCompute" = [ "Win32_System" ];
-          "Win32_System_HostComputeNetwork" = [ "Win32_System" ];
-          "Win32_System_HostComputeSystem" = [ "Win32_System" ];
-          "Win32_System_Hypervisor" = [ "Win32_System" ];
-          "Win32_System_IO" = [ "Win32_System" ];
-          "Win32_System_Iis" = [ "Win32_System" ];
-          "Win32_System_Ioctl" = [ "Win32_System" ];
-          "Win32_System_JobObjects" = [ "Win32_System" ];
-          "Win32_System_Js" = [ "Win32_System" ];
-          "Win32_System_Kernel" = [ "Win32_System" ];
-          "Win32_System_LibraryLoader" = [ "Win32_System" ];
-          "Win32_System_Mailslots" = [ "Win32_System" ];
-          "Win32_System_Mapi" = [ "Win32_System" ];
-          "Win32_System_Memory" = [ "Win32_System" ];
-          "Win32_System_Memory_NonVolatile" = [ "Win32_System_Memory" ];
-          "Win32_System_MessageQueuing" = [ "Win32_System" ];
-          "Win32_System_MixedReality" = [ "Win32_System" ];
-          "Win32_System_Ole" = [ "Win32_System" ];
-          "Win32_System_PasswordManagement" = [ "Win32_System" ];
-          "Win32_System_Performance" = [ "Win32_System" ];
-          "Win32_System_Performance_HardwareCounterProfiling" = [ "Win32_System_Performance" ];
-          "Win32_System_Pipes" = [ "Win32_System" ];
-          "Win32_System_Power" = [ "Win32_System" ];
-          "Win32_System_ProcessStatus" = [ "Win32_System" ];
-          "Win32_System_Recovery" = [ "Win32_System" ];
-          "Win32_System_Registry" = [ "Win32_System" ];
-          "Win32_System_RemoteDesktop" = [ "Win32_System" ];
-          "Win32_System_RemoteManagement" = [ "Win32_System" ];
-          "Win32_System_RestartManager" = [ "Win32_System" ];
-          "Win32_System_Restore" = [ "Win32_System" ];
-          "Win32_System_Rpc" = [ "Win32_System" ];
-          "Win32_System_Search" = [ "Win32_System" ];
-          "Win32_System_Search_Common" = [ "Win32_System_Search" ];
-          "Win32_System_SecurityCenter" = [ "Win32_System" ];
-          "Win32_System_Services" = [ "Win32_System" ];
-          "Win32_System_SetupAndMigration" = [ "Win32_System" ];
-          "Win32_System_Shutdown" = [ "Win32_System" ];
-          "Win32_System_StationsAndDesktops" = [ "Win32_System" ];
-          "Win32_System_SubsystemForLinux" = [ "Win32_System" ];
-          "Win32_System_SystemInformation" = [ "Win32_System" ];
-          "Win32_System_SystemServices" = [ "Win32_System" ];
-          "Win32_System_Threading" = [ "Win32_System" ];
-          "Win32_System_Time" = [ "Win32_System" ];
-          "Win32_System_TpmBaseServices" = [ "Win32_System" ];
-          "Win32_System_UserAccessLogging" = [ "Win32_System" ];
-          "Win32_System_Variant" = [ "Win32_System" ];
-          "Win32_System_VirtualDosMachines" = [ "Win32_System" ];
-          "Win32_System_WindowsProgramming" = [ "Win32_System" ];
-          "Win32_System_Wmi" = [ "Win32_System" ];
-          "Win32_UI" = [ "Win32" ];
-          "Win32_UI_Accessibility" = [ "Win32_UI" ];
-          "Win32_UI_ColorSystem" = [ "Win32_UI" ];
-          "Win32_UI_Controls" = [ "Win32_UI" ];
-          "Win32_UI_Controls_Dialogs" = [ "Win32_UI_Controls" ];
-          "Win32_UI_HiDpi" = [ "Win32_UI" ];
-          "Win32_UI_Input" = [ "Win32_UI" ];
-          "Win32_UI_Input_Ime" = [ "Win32_UI_Input" ];
-          "Win32_UI_Input_KeyboardAndMouse" = [ "Win32_UI_Input" ];
-          "Win32_UI_Input_Pointer" = [ "Win32_UI_Input" ];
-          "Win32_UI_Input_Touch" = [ "Win32_UI_Input" ];
-          "Win32_UI_Input_XboxController" = [ "Win32_UI_Input" ];
-          "Win32_UI_InteractionContext" = [ "Win32_UI" ];
-          "Win32_UI_Magnification" = [ "Win32_UI" ];
-          "Win32_UI_Shell" = [ "Win32_UI" ];
-          "Win32_UI_Shell_Common" = [ "Win32_UI_Shell" ];
-          "Win32_UI_Shell_PropertiesSystem" = [ "Win32_UI_Shell" ];
-          "Win32_UI_TabletPC" = [ "Win32_UI" ];
-          "Win32_UI_TextServices" = [ "Win32_UI" ];
-          "Win32_UI_WindowsAndMessaging" = [ "Win32_UI" ];
-          "Win32_Web" = [ "Win32" ];
-          "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
-        };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Networking" "Win32_Networking_WinSock" "Win32_System" "Win32_System_IO" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_System" "Win32_System_Com" "Win32_System_IO" "Win32_System_Threading" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.61.2" = rec {
         crateName = "windows-sys";
@@ -35447,7 +35254,7 @@ rec {
           }
           {
             name = "windows_i686_gnullvm";
-            packageId = "windows_i686_gnullvm 0.52.6";
+            packageId = "windows_i686_gnullvm";
             target = { target, features }: (target.name == "i686-pc-windows-gnullvm");
           }
           {
@@ -35468,64 +35275,6 @@ rec {
           {
             name = "windows_x86_64_msvc";
             packageId = "windows_x86_64_msvc 0.52.6";
-            target = { target, features }: ((("x86_64" == target."arch" or null) || ("arm64ec" == target."arch" or null)) && ("msvc" == target."env" or null) && (!(target."windows_raw_dylib" or false)));
-          }
-        ];
-
-      };
-      "windows-targets 0.53.5" = rec {
-        crateName = "windows-targets";
-        version = "0.53.5";
-        edition = "2021";
-        sha256 = "1wv9j2gv3l6wj3gkw5j1kr6ymb5q6dfc42yvydjhv3mqa7szjia9";
-        libName = "windows_targets";
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-        dependencies = [
-          {
-            name = "windows-link";
-            packageId = "windows-link";
-            usesDefaultFeatures = false;
-            target = { target, features }: (target."windows_raw_dylib" or false);
-          }
-          {
-            name = "windows_aarch64_gnullvm";
-            packageId = "windows_aarch64_gnullvm 0.53.1";
-            target = { target, features }: (target.name == "aarch64-pc-windows-gnullvm");
-          }
-          {
-            name = "windows_aarch64_msvc";
-            packageId = "windows_aarch64_msvc 0.53.1";
-            target = { target, features }: (("aarch64" == target."arch" or null) && ("msvc" == target."env" or null) && (!(target."windows_raw_dylib" or false)));
-          }
-          {
-            name = "windows_i686_gnu";
-            packageId = "windows_i686_gnu 0.53.1";
-            target = { target, features }: (("x86" == target."arch" or null) && ("gnu" == target."env" or null) && (!("llvm" == target."abi" or null)) && (!(target."windows_raw_dylib" or false)));
-          }
-          {
-            name = "windows_i686_gnullvm";
-            packageId = "windows_i686_gnullvm 0.53.1";
-            target = { target, features }: (target.name == "i686-pc-windows-gnullvm");
-          }
-          {
-            name = "windows_i686_msvc";
-            packageId = "windows_i686_msvc 0.53.1";
-            target = { target, features }: (("x86" == target."arch" or null) && ("msvc" == target."env" or null) && (!(target."windows_raw_dylib" or false)));
-          }
-          {
-            name = "windows_x86_64_gnu";
-            packageId = "windows_x86_64_gnu 0.53.1";
-            target = { target, features }: (("x86_64" == target."arch" or null) && ("gnu" == target."env" or null) && (!("llvm" == target."abi" or null)) && (!(target."windows_raw_dylib" or false)));
-          }
-          {
-            name = "windows_x86_64_gnullvm";
-            packageId = "windows_x86_64_gnullvm 0.53.1";
-            target = { target, features }: (target.name == "x86_64-pc-windows-gnullvm");
-          }
-          {
-            name = "windows_x86_64_msvc";
-            packageId = "windows_x86_64_msvc 0.53.1";
             target = { target, features }: ((("x86_64" == target."arch" or null) || ("arm64ec" == target."arch" or null)) && ("msvc" == target."env" or null) && (!(target."windows_raw_dylib" or false)));
           }
         ];
@@ -35572,15 +35321,6 @@ rec {
         repository = "https://github.com/microsoft/windows-rs";
 
       };
-      "windows_aarch64_gnullvm 0.53.1" = rec {
-        crateName = "windows_aarch64_gnullvm";
-        version = "0.53.1";
-        edition = "2021";
-        sha256 = "0lqvdm510mka9w26vmga7hbkmrw9glzc90l4gya5qbxlm1pl3n59";
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-
-      };
       "windows_aarch64_msvc 0.48.5" = rec {
         crateName = "windows_aarch64_msvc";
         version = "0.48.5";
@@ -35601,15 +35341,6 @@ rec {
         authors = [
           "Microsoft"
         ];
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-
-      };
-      "windows_aarch64_msvc 0.53.1" = rec {
-        crateName = "windows_aarch64_msvc";
-        version = "0.53.1";
-        edition = "2021";
-        sha256 = "01jh2adlwx043rji888b22whx4bm8alrk3khjpik5xn20kl85mxr";
         license = "MIT OR Apache-2.0";
         repository = "https://github.com/microsoft/windows-rs";
 
@@ -35638,16 +35369,7 @@ rec {
         repository = "https://github.com/microsoft/windows-rs";
 
       };
-      "windows_i686_gnu 0.53.1" = rec {
-        crateName = "windows_i686_gnu";
-        version = "0.53.1";
-        edition = "2021";
-        sha256 = "18wkcm82ldyg4figcsidzwbg1pqd49jpm98crfz0j7nqd6h6s3ln";
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-
-      };
-      "windows_i686_gnullvm 0.52.6" = rec {
+      "windows_i686_gnullvm" = rec {
         crateName = "windows_i686_gnullvm";
         version = "0.52.6";
         edition = "2021";
@@ -35655,15 +35377,6 @@ rec {
         authors = [
           "Microsoft"
         ];
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-
-      };
-      "windows_i686_gnullvm 0.53.1" = rec {
-        crateName = "windows_i686_gnullvm";
-        version = "0.53.1";
-        edition = "2021";
-        sha256 = "030qaxqc4salz6l4immfb6sykc6gmhyir9wzn2w8mxj8038mjwzs";
         license = "MIT OR Apache-2.0";
         repository = "https://github.com/microsoft/windows-rs";
 
@@ -35692,15 +35405,6 @@ rec {
         repository = "https://github.com/microsoft/windows-rs";
 
       };
-      "windows_i686_msvc 0.53.1" = rec {
-        crateName = "windows_i686_msvc";
-        version = "0.53.1";
-        edition = "2021";
-        sha256 = "1hi6scw3mn2pbdl30ji5i4y8vvspb9b66l98kkz350pig58wfyhy";
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-
-      };
       "windows_x86_64_gnu 0.48.5" = rec {
         crateName = "windows_x86_64_gnu";
         version = "0.48.5";
@@ -35721,15 +35425,6 @@ rec {
         authors = [
           "Microsoft"
         ];
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-
-      };
-      "windows_x86_64_gnu 0.53.1" = rec {
-        crateName = "windows_x86_64_gnu";
-        version = "0.53.1";
-        edition = "2021";
-        sha256 = "16d4yiysmfdlsrghndr97y57gh3kljkwhfdbcs05m1jasz6l4f4w";
         license = "MIT OR Apache-2.0";
         repository = "https://github.com/microsoft/windows-rs";
 
@@ -35758,15 +35453,6 @@ rec {
         repository = "https://github.com/microsoft/windows-rs";
 
       };
-      "windows_x86_64_gnullvm 0.53.1" = rec {
-        crateName = "windows_x86_64_gnullvm";
-        version = "0.53.1";
-        edition = "2021";
-        sha256 = "1qbspgv4g3q0vygkg8rnql5c6z3caqv38japiynyivh75ng1gyhg";
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-
-      };
       "windows_x86_64_msvc 0.48.5" = rec {
         crateName = "windows_x86_64_msvc";
         version = "0.48.5";
@@ -35787,15 +35473,6 @@ rec {
         authors = [
           "Microsoft"
         ];
-        license = "MIT OR Apache-2.0";
-        repository = "https://github.com/microsoft/windows-rs";
-
-      };
-      "windows_x86_64_msvc 0.53.1" = rec {
-        crateName = "windows_x86_64_msvc";
-        version = "0.53.1";
-        edition = "2021";
-        sha256 = "0l6npq76vlq4ksn4bwsncpr8508mk0gmznm6wnhjg95d19gzzfyn";
         license = "MIT OR Apache-2.0";
         repository = "https://github.com/microsoft/windows-rs";
 
@@ -36691,7 +36368,7 @@ rec {
           }
           {
             name = "event-listener";
-            packageId = "event-listener 5.4.1";
+            packageId = "event-listener 5.4.2";
           }
           {
             name = "futures-core";
