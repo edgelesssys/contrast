@@ -102,13 +102,13 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: docs-site
-          path: site
+          path: ${{ runner.temp }}/site
 
       - name: Publish docs to GitHub Pages
         if: env.PREVIEW == 'false'
         uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
         with:
-          folder: ./site
+          folder: ${{ runner.temp }}/site
           branch: gh-pages
           clean-exclude: pr-preview
           force: false
@@ -116,4 +116,4 @@ jobs:
         if: env.PREVIEW == 'true'
         uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
         with:
-          source-dir: ./site
+          source-dir: ${{ runner.temp }}/site
