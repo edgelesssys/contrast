@@ -13,6 +13,10 @@
     | select($kinds | index($rpc.kind))
 ]
 
+# Filter out responses
+# TODO(burgerdev): switch to stateful testing
+| [ .[] | select(.request != null)]
+
 # Collect sandbox/container IDs
 | {
     rpcs: .,

@@ -9,7 +9,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  1 file changed, 22 insertions(+), 8 deletions(-)
 
 diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
-index 6cf20244364926760c9bcaddcde517dd92e804ad..77f93f1686765e723f7357c9e392c6fcf513ca9e 100644
+index 48d464800a4d86b8d8f65f790e6d7c5742632e7b..2c350c0d29860b118fdb8ec451b2a8ca4386253c 100644
 --- a/src/agent/src/confidential_data_hub/mod.rs
 +++ b/src/agent/src/confidential_data_hub/mod.rs
 @@ -8,7 +8,7 @@

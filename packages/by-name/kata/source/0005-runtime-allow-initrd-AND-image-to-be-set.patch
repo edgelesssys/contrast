@@ -11,18 +11,17 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
 ---
  .../kata-types/src/config/hypervisor/mod.rs     |  5 -----
  .../crates/hypervisor/ch-config/src/convert.rs  |  4 ----
- .../runtimes/virt_container/src/factory/vm.rs   |  4 ----
  .../runtimes/virt_container/src/sandbox.rs      |  7 +++----
  .../virtcontainers/hypervisor_config_darwin.go  |  2 --
  .../virtcontainers/hypervisor_config_linux.go   |  2 --
  src/runtime/virtcontainers/qemu.go              | 17 ++---------------
- 7 files changed, 5 insertions(+), 36 deletions(-)
+ 6 files changed, 5 insertions(+), 32 deletions(-)
 
 diff --git a/src/libs/kata-types/src/config/hypervisor/mod.rs b/src/libs/kata-types/src/config/hypervisor/mod.rs
-index f4043e8958230445ecdeede9b7184487df3b2a4f..871c2d062f49703a95a9e77781a07c6d3b091c07 100644
+index a5cba1b0662869090c9ee5d381e2eecd9ef21b17..09bc9fddc6b3c71d57c1de416647aa9b31c804a3 100644
 --- a/src/libs/kata-types/src/config/hypervisor/mod.rs
 +++ b/src/libs/kata-types/src/config/hypervisor/mod.rs
-@@ -511,11 +511,6 @@ impl BootInfo {
+@@ -512,11 +512,6 @@ impl BootInfo {
          validate_path!(self.image, "guest boot image file {} is invalid: {}")?;
          validate_path!(self.initrd, "guest initrd image file {} is invalid: {}")?;
          validate_path!(self.firmware, "firmware image file {} is invalid: {}")?;
@@ -35,10 +34,10 @@ index f4043e8958230445ecdeede9b7184487df3b2a4f..871c2d062f49703a95a9e77781a07c6d
          let l = [
              VIRTIO_BLK_PCI,
 diff --git a/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs b/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
-index 471afd95c487cf65f0a79ec5f43a9e6bd18453dd..da07e24494cdc4932210042ea17d8c488c0b8307 100644
+index a86c1e72442749decc6d99bf6d5244136c884a81..e3397ae06902f3addbf3b2609100e0e99ec2c27b 100644
 --- a/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
 +++ b/src/runtime-rs/crates/hypervisor/ch-config/src/convert.rs
-@@ -140,10 +140,6 @@ impl TryFrom<NamedHypervisorConfig> for VmConfig {
+@@ -82,10 +82,6 @@ impl TryFrom<NamedHypervisorConfig> for VmConfig {
          let use_initrd = !boot_info.initrd.is_empty();
          let use_image = !boot_info.image.is_empty();
  
@@ -49,26 +48,11 @@ index 471afd95c487cf65f0a79ec5f43a9e6bd18453dd..da07e24494cdc4932210042ea17d8c48
          if !use_initrd && !use_image {
              return Err(VmConfigError::NoBootFile);
          }
-diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs b/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
-index b069ace6533b0a3b7b079adb21b3e10ccb26a545..b9bc6092f7d331c27c304c742b87783c22fcee9d 100644
---- a/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
-+++ b/src/runtime-rs/crates/runtimes/virt_container/src/factory/vm.rs
-@@ -116,10 +116,6 @@ impl VmConfig {
-             return Err(anyhow!("missing image and initrd path"));
-         }
- 
--        if has_image && has_initrd {
--            return Err(anyhow!("image and initrd path cannot both be set"));
--        }
--
-         Ok(())
-     }
- 
 diff --git a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-index 7d1d7aeb7c9cf0be9884ec3edb28438e346382cc..80c62f87bfafdc68c7891a047c9356040bacd175 100644
+index d6122bcd30aab08235e3aeada3ccf25f26df16c1..469ad06ef138e69f45cdf7576da5b12cfd3e6170 100644
 --- a/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
 +++ b/src/runtime-rs/crates/runtimes/virt_container/src/sandbox.rs
-@@ -664,11 +664,10 @@ impl VirtSandbox {
+@@ -921,11 +921,10 @@ impl VirtSandbox {
          let boot_info = self.hypervisor.hypervisor_config().await.boot_info;
          let security_info = self.hypervisor.hypervisor_config().await.security_info;
  
@@ -110,7 +94,7 @@ index 1e21e4867cd1a8efe63bdce10bc34224100b78a3..594fee62464e0f62a9a0cbafd283c7dd
  
  	if err := conf.CheckTemplateConfig(); err != nil {
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index b21ef94bba6f1dd76cd3d14ba18bc601c1b87ca4..86707d4e7ef094970ac0d54ac37ca13e4868c352 100644
+index 1de98b264e14fc1f365624a015573f8129f61e1e..b7e01b1124788d7aaf60318ffa5d9dc683e0e384 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -980,25 +980,12 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu

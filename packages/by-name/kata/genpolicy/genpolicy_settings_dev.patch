@@ -1,11 +1,11 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 032973f528712794907bb753fa2fda53c7afd5d9..7e4021db2b3fc3ff224bd82f9d8dc2df909e38f5 100644
+index 9f52b19e1547b8c29e8ce2b88540a6b2f8f4a64b..dbaa6ee61e65b97998ca1fa051d599712298278a 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -227,7 +227,10 @@
-                 "gpu_anno_value_regex": "^nvidia\\.com/gpu=[0-9]+$",
+@@ -222,7 +222,10 @@
                  "gpu_gk_device_type": "vfio-pci-gk",
                  "pgpu_resource_keys": [
+                     "nvidia.com/gpu",
 -                    "nvidia.com/pgpu"
 +                    "nvidia.com/pgpu",
 +                    "nvidia.com/GB100_B200",
@@ -14,16 +14,16 @@ index 032973f528712794907bb753fa2fda53c7afd5d9..7e4021db2b3fc3ff224bd82f9d8dc2df
                  ]
              }
          }
-@@ -336,7 +339,7 @@
+@@ -331,7 +334,7 @@
          "enable_configmap_secret_storages": false
      },
      "cluster_config": {
 -        "pause_container_image": "mcr.microsoft.com/oss/kubernetes/pause:3.6",
 +        "pause_container_image": "ghcr.io/edgelesssys/kubernetes/pause:3.6",
          "guest_pull": true,
-         "pause_container_id_policy": "v1",
          "emptydir_type": "block-encrypted",
-@@ -362,7 +365,8 @@
+         "cgroup_mount_extras_allowed": [
+@@ -356,7 +359,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
@@ -33,7 +33,7 @@ index 032973f528712794907bb753fa2fda53c7afd5d9..7e4021db2b3fc3ff224bd82f9d8dc2df
              ]
          },
          "UpdateInterfaceRequest": {
-@@ -379,7 +383,9 @@
+@@ -373,7 +377,9 @@
          ],
          "ExecProcessRequest": {
              "allowed_commands": [],
@@ -44,7 +44,7 @@ index 032973f528712794907bb753fa2fda53c7afd5d9..7e4021db2b3fc3ff224bd82f9d8dc2df
          },
          "UpdateRoutesRequest": {
              "forbidden_device_names": [
-@@ -404,8 +410,8 @@
+@@ -398,8 +404,8 @@
          },
          "CloseStdinRequest": false,
          "GetDiagnosticDataRequest": false,

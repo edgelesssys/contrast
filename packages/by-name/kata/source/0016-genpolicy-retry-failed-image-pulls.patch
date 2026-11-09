@@ -11,7 +11,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 67 insertions(+), 24 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 6a0be3f4b7d97e30d542fb8389b0f7e37041cec5..ff700085bc5df3919124e4cf190bf77a4e18e816 100644
+index 7539b7977d421620cbc4619931c8300369cccb95..2c0fbc5dd3e4d7be6d2bd4a1082362c3b212b81f 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -23,9 +23,9 @@ use oci_client::{
@@ -36,12 +36,12 @@ index 6a0be3f4b7d97e30d542fb8389b0f7e37041cec5..ff700085bc5df3919124e4cf190bf77a
 -        {
 -            Ok((m, d, c)) => (m, d, c),
 -            Err(oci_client::errors::OciDistributionError::AuthenticationFailure(message)) => {
--                panic!("Container image registry authentication failure ({}). Are docker credentials set-up for current user?", &message);
+-                panic!("Container image registry authentication failure ({}). Are docker credentials set-up for current user?", message);
 -            }
 -            Err(e) => {
 -                panic!(
 -                    "Failed to pull container image manifest and config - error: {:#?}",
--                    &e
+-                    e
 -                );
 +        let mut pull_attempt: u8 = 0;
 +        let (manifest, digest_hash, config_layer_str) = loop {
@@ -152,10 +152,10 @@ index cef105a10365a3c93ad083b2519278e026e95db4..e3f5143f418ad82f85fc2c1f261ddc5b
      }
  }
 diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
-index 5226364fcf32380653649fc8f6dd268d66b6ed1e..591c01c9514f3915576313b3b81492d3c181c8bd 100644
+index 13c00fdc0dd6ae07f0f5c71a948554816da43411..e1f1ff608263a43934ff8dee3686ef3573c33357 100644
 --- a/src/tools/genpolicy/tests/policy/main.rs
 +++ b/src/tools/genpolicy/tests/policy/main.rs
-@@ -123,6 +123,7 @@ mod tests {
+@@ -144,6 +144,7 @@ mod tests {
              version: false,
              yaml_file: workdir.join("pod.yaml").to_str().map(|s| s.to_string()),
              initdata: kata_types::initdata::InitData::new("sha256", "0.1.0"),

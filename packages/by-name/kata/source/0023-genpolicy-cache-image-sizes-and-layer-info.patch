@@ -76,7 +76,7 @@ index 4a2e7e975a97b2a524d94de5778d84d55acbb184..82f4400c294539fcc2a91223cfa27f63
  
      pub fn persist(&self) {
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504bef1e25f8 100644
+index 2c0fbc5dd3e4d7be6d2bd4a1082362c3b212b81f..88d933be2f31897e7112c87eee080a11e18d9b74 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -73,6 +73,28 @@ pub struct ImageLayer {
@@ -108,7 +108,7 @@ index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504b
  }
  
  /// See https://docs.docker.com/reference/dockerfile/#volume.
-@@ -599,7 +621,7 @@ async fn get_image_layers(
+@@ -598,7 +620,7 @@ async fn get_image_layers(
  ) -> Result<Vec<ImageLayer>> {
      let mut layer_index = 0;
      let mut layers = Vec::new();
@@ -117,7 +117,7 @@ index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504b
      for layer in &manifest.layers {
          if layer
              .media_type
-@@ -607,15 +629,20 @@ async fn get_image_layers(
+@@ -606,15 +628,20 @@ async fn get_image_layers(
              || layer.media_type.eq(manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE)
          {
              if layer_index < config_layer.rootfs.diff_ids.len() {
@@ -141,7 +141,7 @@ index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504b
                  layers.push(imageLayer);
              } else {
                  return Err(anyhow!("Too many Docker gzip layers"));
-@@ -625,6 +652,11 @@ async fn get_image_layers(
+@@ -624,6 +651,11 @@ async fn get_image_layers(
          }
      }
  
@@ -153,7 +153,7 @@ index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504b
      Ok(layers)
  }
  
-@@ -650,7 +682,7 @@ async fn get_users_from_layer(
+@@ -649,7 +681,7 @@ async fn get_users_from_layer(
      let mut compressed_path = decompressed_path.clone();
      compressed_path.set_extension("gz");
  
@@ -162,7 +162,7 @@ index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504b
          client,
          reference,
          layer_digest,
-@@ -659,7 +691,8 @@ async fn get_users_from_layer(
+@@ -658,7 +690,8 @@ async fn get_users_from_layer(
      )
      .await
      {
@@ -172,7 +172,7 @@ index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504b
      };
  
      match get_users_from_decompressed_layer(&decompressed_path) {
-@@ -670,6 +703,7 @@ async fn get_users_from_layer(
+@@ -669,6 +702,7 @@ async fn get_users_from_layer(
          Ok((passwd, group)) => {
              let layer = ImageLayer {
                  diff_id: diff_id.to_string(),
@@ -180,7 +180,7 @@ index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504b
                  passwd,
                  group,
              };
-@@ -685,7 +719,7 @@ async fn create_decompressed_layer_file(
+@@ -684,7 +718,7 @@ async fn create_decompressed_layer_file(
      layer_digest: &str,
      decompressed_path: &Path,
      compressed_path: &Path,
@@ -189,7 +189,7 @@ index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504b
      info!(
          "create_decompressed_layer_file: pulling layer {:?}",
          layer_digest
-@@ -708,10 +742,11 @@ async fn create_decompressed_layer_file(
+@@ -707,10 +741,11 @@ async fn create_decompressed_layer_file(
          .truncate(true)
          .open(decompressed_path)?;
      let mut gz_decoder = flate2::read::GzDecoder::new(compressed_file);
@@ -204,7 +204,7 @@ index ff700085bc5df3919124e4cf190bf77a4e18e816..48aedc24d22f430a50f5bde550b0504b
  
  pub fn get_users_from_decompressed_layer(path: &Path) -> Result<(String, String)> {
 diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
-index 1c25a1850b7c0b850ec17e3b3f5da48202c0a42e..db487573871b6f86eef5880738872a613dd49b4d 100644
+index 25b8ff8d95fad5af1ede45422f20b303c9d3cbba..9023105d64dc20b902399fae3a01eaf28211bc7d 100644
 --- a/src/tools/genpolicy/src/registry_containerd.rs
 +++ b/src/tools/genpolicy/src/registry_containerd.rs
 @@ -7,7 +7,8 @@

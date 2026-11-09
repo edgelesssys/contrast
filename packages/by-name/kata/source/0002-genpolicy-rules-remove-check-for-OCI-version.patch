@@ -9,10 +9,10 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  1 file changed, 3 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 59912766b9d478f00076a78e1ae5607fa4fb6abe..c6ae9fac33d479e151a9d7db0c50001bf8114e30 100644
+index fab59c0cceb1fed39a2dc688a370cbef7effe17d..135789497bc8645699668a1f47a30f22327f6247 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -103,9 +103,6 @@ CreateContainerRequest := {"ops": ops, "allowed": true} if {
+@@ -105,9 +105,6 @@ CreateContainerRequest := {"ops": ops, "allowed": true} if {
      add_namespace_to_state := allow_namespace(p_namespace, i_namespace)
      ops_builder2 := concat_op_if_not_null(ops_builder1, add_namespace_to_state)
  

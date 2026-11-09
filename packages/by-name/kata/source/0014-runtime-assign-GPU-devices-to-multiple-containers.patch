@@ -45,10 +45,10 @@ index 9da6d19852828bfd4ebf2ff42a467141706a4f33..cb6213400165a0aa0d96d1d43de2d28d
  
  	}
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 71a57c70fb9da3a82d00c7c7130df8773bd1e3fe..bcd0b28bbcb702de7238ea322390ca7fda25906a 100644
+index 255dd0ae91d8cfa34ca216cac24c7b0359c2464d..033f9f93928afae2575b1b1064d831acf7faa136 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -1231,6 +1231,17 @@ impl Container {
+@@ -1252,6 +1252,17 @@ impl Container {
          let limits = self.resources.as_ref()?.limits.as_ref()?;
          sum_limits_by_keys(limits, pgpu_resource_keys)
      }
@@ -67,10 +67,10 @@ index 71a57c70fb9da3a82d00c7c7130df8773bd1e3fe..bcd0b28bbcb702de7238ea322390ca7f
  
  fn compress_default_capabilities(
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 414d4ac7becc13c8e859fb5babdcfeba1424fd2d..12ff3e20d7d3be0858b9f9beb7e76aa1e8d77443 100644
+index 8bb6c5e5ec2a53102c4138ea771ea15e16e9c961..2139cef3c7eaaade79afbf366633b1903b62b712 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -815,6 +815,20 @@ impl AgentPolicy {
+@@ -818,6 +818,20 @@ impl AgentPolicy {
                  "^io\\.kubernetes\\.container\\.terminationMessagePolicy$".to_string(),
                  "^(File|FallbackToLogsOnError)$".to_string(),
              );
