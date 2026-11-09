@@ -550,8 +550,7 @@ func (e *ValidationError) Unwrap() []error {
 func (e *ValidationError) formatError(path string) string {
 	var sb strings.Builder
 	for i, err := range e.errs {
-		var ve *ValidationError
-		if errors.As(err, &ve) {
+		if ve, ok := errors.AsType[*ValidationError](err); ok {
 			sb.WriteString(ve.formatError(path + "." + ve.path))
 		} else {
 			sb.WriteString(path)
@@ -595,8 +594,7 @@ func (e *ValidationError) OnlyExpectedMissingReferenceValues() bool {
 			return false
 		}
 
-		var emrve ExpectedMissingReferenceValueError
-		if !errors.As(err, &emrve) {
+		if _, ok := errors.AsType[ExpectedMissingReferenceValueError](err); !ok {
 			return false
 		}
 	}

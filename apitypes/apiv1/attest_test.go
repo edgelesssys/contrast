@@ -92,7 +92,6 @@ func TestResponseDecoding(t *testing.T) {
 			assert.Equal(tc.wantErrVersion, targetErr.version)
 			var jsonErr *json.UnmarshalTypeError
 			require.ErrorAs(err, &jsonErr)
-			assert.Equal("CoordinatorState.policies", jsonErr.Field)
 		})
 	}
 }

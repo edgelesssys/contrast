@@ -13,21 +13,6 @@ final: prev:
   #   };
   # });
 
-  # TODO(govulncheck-fix): DROP once nixpkgs ships the go version pinned below.
-  go_1_26 = prev.go_1_26.overrideAttrs (
-    finalAttrs: _prevAttrs: {
-      version = "1.26.10";
-      src = final.fetchurl {
-        url = "https://go.dev/dl/go${finalAttrs.version}.src.tar.gz";
-        hash = "sha256-/WPog7ovK/ypPBZGsx6+9j4rHk0rMXyXidl2po2B828=";
-      };
-    }
-  );
-  # Overridden go version makes helm rebuild. Helm has a flaky (possibly network dependent?) test.
-  kubernetes-helm = prev.kubernetes-helm.overrideAttrs (_: {
-    doCheck = false;
-  });
-
   # aiohttp pulled in via black has timing-sensitive tests that fail under parallel load on our CI builders
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (_pyFinal: pyPrev: {
@@ -62,6 +47,27 @@ final: prev:
         stripLen = 1;
       })
     ];
+  });
+
+  # Update the vendored brotli submodules to v1.2.1.
+  # https://github.com/tianocore/edk2/pull/13461
+  # TODO(charludo): DROP once nixpkgs pin contains an edk2 release containing the above PR.
+  edk2 = prev.edk2.overrideAttrs (prevAttrs: {
+    src = prevAttrs.src.overrideAttrs (prevSrcAttrs: {
+      postPatch = prevSrcAttrs.postPatch + ''
+        for dir in BaseTools/Source/C/BrotliCompress/brotli MdeModulePkg/Library/BrotliCustomDecompressLib/brotli; do
+          rm -r "$dir"
+          cp -r --no-preserve=mode ${final.brotli.src} "$dir"
+        done
+      '';
+    });
+  });
+
+  # The cargo setup hook forces a system aws-lc, which zizmor lacks as a build input.
+  # TODO(charludo): DROP once nixpkgs pin contains https://github.com/NixOS/nixpkgs/commit/eeae8a6c12ee.
+  zizmor = prev.zizmor.overrideAttrs (prevAttrs: {
+    buildInputs = prevAttrs.buildInputs or [ ] ++ [ final.aws-lc ];
+    nativeBuildInputs = prevAttrs.nativeBuildInputs or [ ] ++ [ final.pkg-config ];
   });
 
   # The GitHub repository does not have an active release cycle and the main

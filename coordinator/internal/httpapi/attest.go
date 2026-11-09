@@ -116,8 +116,7 @@ func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer bodyReader.Close()
 	body, err := io.ReadAll(bodyReader)
 	if err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
+		if maxBytesErr, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			writeJSONError(w, http.StatusRequestEntityTooLarge, maxBytesErr)
 			return
 		}
