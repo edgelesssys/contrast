@@ -13,7 +13,7 @@ buildGoModule {
   src = ../../../tools/fifo;
 
   proxyVendor = true;
-  vendorHash = "sha256-pQQ5smkFW8+06a2KQ0PJqkvjQZSSXbB92+c5UpJHlhA=";
+  vendorHash = "sha256-ZZYO4vi8ReaRKGHMaYwnmbZK4gAFFSyA5LUy98qDu6I=";
 
   env.CGO_ENABLED = 0;
 
