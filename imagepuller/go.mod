@@ -18,7 +18,7 @@ require (
 	google.golang.org/protobuf v1.36.12 // indirect
 )
 
-require google.golang.org/grpc v1.84.0
+require google.golang.org/grpc v1.85.0
 
 require (
 	cyphar.com/go-pathrs v0.2.5 // indirect
@@ -49,7 +49,7 @@ require (
 	github.com/ulikunitz/xz v0.5.17 // indirect
 	github.com/varlink/go v0.4.1-0.20261015173642-c935be0c53f7 // indirect
 	github.com/vbatts/tar-split v0.12.3 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260817212433-ac3dfec99bb1 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 )
