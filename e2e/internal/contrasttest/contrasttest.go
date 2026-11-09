@@ -39,6 +39,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -544,22 +545,28 @@ func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 
 func (ct *ContrastTest) getImagePullSecret(ctx context.Context, t *testing.T) []any {
 	const (
-		namespace     = "default"
-		configMapName = "contrast-e2e-registry-auth"
-		key           = "contrast-imagepuller.toml"
+		namespace          = "default"
+		registrySecretName = "contrast-e2e-registry-auth"
+		registrySecretKey  = "contrast-imagepuller.toml"
 	)
-	cm, err := ct.Kubeclient.Client.CoreV1().Secrets(namespace).Get(ctx, configMapName, metav1.GetOptions{})
+	var allResources []any
+
+	secret, err := ct.Kubeclient.Client.CoreV1().Secrets(namespace).Get(ctx, registrySecretName, metav1.GetOptions{})
 	if err == nil {
-		toml, ok := cm.Data[key]
-		require.Truef(t, ok, "Secret %s/%s does not contain the required key %s", namespace, configMapName, key)
-		return []any{kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, toml)}
+		toml, ok := secret.Data[registrySecretKey]
+		require.Truef(t, ok, "Secret %s/%s does not contain the required key %s", namespace, registrySecretName, registrySecretKey)
+		allResources = append(allResources, kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, toml))
+	} else if apierrors.IsNotFound(err) {
+		t.Logf("Could not fetch Secret %s/%s, falling back to configuration from environment", namespace, registrySecretName)
+		if len(ct.NodeInstallerImagePullerConfig) > 0 {
+			allResources = append(allResources, kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, ct.NodeInstallerImagePullerConfig))
+		} else {
+			t.Logf("Could not configure registry auth from environment, proceeding unauthenticated")
+		}
+	} else {
+		require.NoError(t, err)
 	}
-	t.Logf("Could not fetch Secret %s/%s, falling back to configuration from environment", namespace, configMapName)
-	if len(ct.NodeInstallerImagePullerConfig) > 0 {
-		return []any{kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, ct.NodeInstallerImagePullerConfig)}
-	}
-	t.Logf("Could not configure registry auth from environment, proceeding unauthenticated")
-	return nil
+	return allResources
 }
 
 const (
