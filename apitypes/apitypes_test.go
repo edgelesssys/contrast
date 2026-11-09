@@ -25,8 +25,7 @@ func TestNoExternalImports(t *testing.T) {
 		}
 		// Mode 0 only scans the directory for import statements, it does not resolve them.
 		pkg, err := build.ImportDir(dir, 0)
-		var noGo *build.NoGoError
-		if errors.As(err, &noGo) {
+		if _, ok := errors.AsType[*build.NoGoError](err); ok {
 			return nil
 		}
 		require.NoError(t, err)

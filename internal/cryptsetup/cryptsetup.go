@@ -392,8 +392,7 @@ func runCryptsetupCmd(ctx context.Context, args ...string) (string, error) {
 	}
 	cmd := exec.CommandContext(ctx, "cryptsetup", args...)
 	output, err := cmd.Output()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 		return "", fmt.Errorf("executing '%s': %w, stderr: %s", cmd.String(), err, exitErr.Stderr)
 	} else if err != nil {
 		return "", fmt.Errorf("executing '%s': %w", cmd.String(), err)

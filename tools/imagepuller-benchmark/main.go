@@ -80,8 +80,7 @@ func cleanup(storagePath string) error {
 
 	cmd := exec.CommandContext(ctx, "findmnt", "-rn", "-o", "TARGET")
 	output, err := cmd.Output()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 		return fmt.Errorf("findmnt returned non-zero exit code, stderr is: %s", string(exitErr.Stderr))
 	} else if err != nil {
 		return fmt.Errorf("failed to execute findmnt: %w", err)
@@ -117,8 +116,7 @@ func cleanup(storagePath string) error {
 
 func findChildPid(ctx context.Context, ppid int) (int, error) {
 	out, err := exec.CommandContext(ctx, "ps", "-o", "pid=", "--ppid", fmt.Sprint(ppid)).Output()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 		return 0, fmt.Errorf("ps returned non-zero exit code, stderr is: %s", string(exitErr.Stderr))
 	} else if err != nil {
 		return 0, fmt.Errorf("failed to execute ps: %w", err)

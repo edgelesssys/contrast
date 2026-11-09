@@ -68,8 +68,7 @@ func wipeExt4Blocks(ctx context.Context, devPath string) error {
 	// Run mkfs.ext4 in dry-run mode to get the blocks that would be used by the filesystem.
 	cmd := exec.CommandContext(ctx, "mkfs.ext4", "-b", strconv.Itoa(sectorSize), "-F", "-n", devPath)
 	out, err := cmd.Output()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 		return fmt.Errorf("executing %s: %w, stderr: %q", cmd.String(), err, exitErr.Stderr)
 	} else if err != nil {
 		return fmt.Errorf("executing %s: %w, output: %q", cmd.String(), err, out)
