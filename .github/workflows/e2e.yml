@@ -76,6 +76,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+      - name: Set registry auth file
+        run: |
+          printf 'REGISTRY_AUTH_FILE=%s\n' "${DOCKER_CONFIG:-$HOME/.docker}/config.json" >> "$GITHUB_ENV"
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
@@ -89,10 +92,6 @@ jobs:
         if: env.TEST_NAME != 'release'
         run: |
           just coordinator initializer port-forwarder openssl service-mesh-proxy memdump debugshell node-installer
-      - name: Build and push the (impure) containerd-reproducer image
-        if: env.TEST_NAME == 'containerd-11644-reproducer'
-        run: |
-          just containerd-reproducer
       - name: Get credentials for CI cluster
         if: (!inputs.self-hosted)
         run: |
