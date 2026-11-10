@@ -18,13 +18,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
 
+	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
@@ -87,32 +87,84 @@ func (s *Server) MakeInsecure() {
 // SetManifest registers a new manifest at the Coordinator.
 func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
+	// A pin set via gRPC would lock out the caller, so the requested manifest must not pin a version either.
+	resp, _, err := s.setManifest(ctx, req, s.authorizeSignatureOrPeer, checkAPIVersion(grpcAPIVersion), checkAPIVersion(grpcAPIVersion))
+	return resp, err
+}
 
+// SetManifestSigned registers a new manifest at the Coordinator, like [Server.SetManifest], for callers
+// that can't present a client certificate, like those of the HTTP API.
+//
+// Updates must therefore carry a workload owner signature, verified against the WorkloadOwnerPubKeys
+// of the manifest in force. A signature on the initial manifest is verified against its own WorkloadOwnerPubKeys.
+//
+// apiVersion is the version of the API the request was made with. The request is rejected if the manifest in force
+// pins a newer minimum API version. The requested manifest may pin any valid version, as the versioned API is where pins are managed.
+func (s *Server) SetManifestSigned(ctx context.Context, apiVersion int, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, *stateguard.State, error) {
+	s.logger.Info("SetManifestSigned called")
+	return s.setManifest(ctx, req, s.authorizeSignature, checkAPIVersion(apiVersion), checkAPIVersionPin)
+}
+
+// authorizer checks that a SetManifest request is authorized by one of the given workload owner keys,
+// for a transition from latestTransitionHash.
+type authorizer func(ctx context.Context, keys []manifest.HexString, latestTransitionHash [history.HashSize]byte, req *userapi.SetManifestRequest) error
+
+// authorizeSignatureOrPeer authorizes requests of the gRPC API, by their signature or, if they carry none,
+// by the client certificate of the caller.
+func (s *Server) authorizeSignatureOrPeer(ctx context.Context, keys []manifest.HexString, latestTransitionHash [history.HashSize]byte, req *userapi.SetManifestRequest) error {
+	err := validateSignature(keys, latestTransitionHash, req)
+	switch {
+	case errors.Is(err, errNoSignature):
+		if err := validatePeer(ctx, keys); err != nil {
+			s.logger.Warn("SetManifest peer validation failed", "err", err)
+			return status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
+		}
+		return nil
+	case err != nil:
+		s.logger.Warn("SetManifest signature validation failed", "err", err)
+		return statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
+	}
+	return nil
+}
+
+// authorizeSignature authorizes requests by their signature only.
+func (s *Server) authorizeSignature(_ context.Context, keys []manifest.HexString, latestTransitionHash [history.HashSize]byte, req *userapi.SetManifestRequest) error {
+	if err := validateSignature(keys, latestTransitionHash, req); err != nil {
+		s.logger.Warn("SetManifestSigned signature validation failed", "err", err)
+		return statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
+	}
+	return nil
+}
+
+// setManifest implements both SetManifest variants. checkCurrent and checkRequested enforce the minimum API
+// version pinned by the manifest in force and by the requested manifest, respectively.
+//
+// The manifest in force is checked here, against the state the update replaces, rather than only before the
+// request reaches the UserAPI: a concurrent update could pin a version in between.
+func (s *Server) setManifest(ctx context.Context, req *userapi.SetManifestRequest, authorize authorizer, checkCurrent, checkRequested func(*manifest.Manifest) error) (*userapi.SetManifestResponse, *stateguard.State, error) {
 	oldState, err := s.guard.GetState(ctx)
 	switch {
 	case errors.Is(err, stateguard.ErrStaleState):
-		return nil, statusErr(codes.FailedPrecondition, ErrNeedsRecovery)
+		return nil, nil, statusErr(codes.FailedPrecondition, ErrNeedsRecovery)
 	case errors.Is(err, stateguard.ErrNoState):
 		// This is fine, we are going to set the initial manifest.
 	case err != nil:
-		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
+		return nil, nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	default:
-		if err := checkMinimumAPIVersion(oldState.Manifest()); err != nil {
-			return nil, err
+		if err := checkCurrent(oldState.Manifest()); err != nil {
+			return nil, nil, err
 		}
 	}
 
 	var m *manifest.Manifest
 	if err := json.Unmarshal(req.Manifest, &m); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %v", err)
+		return nil, nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %v", err)
 	}
 	if m == nil {
-		return nil, status.Error(codes.InvalidArgument, "manifest must not be null")
+		return nil, nil, status.Errorf(codes.InvalidArgument, "manifest is null")
 	}
-	// A pinned manifest set via gRPC would lock the deployment out of all further manifest management, as the HTTP API doesn't offer it yet.
-	// TODO(charludo): DROP once HTTP API v1 ships.
-	if err := checkMinimumAPIVersion(m); err != nil {
-		return nil, err
+	if err := checkRequested(m); err != nil {
+		return nil, nil, err
 	}
 
 	var resp userapi.SetManifestResponse
@@ -121,50 +173,44 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 	if oldState != nil {
 		oldManifest := oldState.Manifest()
 		// Subsequent SetManifest call, check permissions of caller.
-		if err := validateSignature(oldManifest.WorkloadOwnerPubKeys, oldState.LatestTransition().TransitionHash, req); err != nil && !errors.Is(err, errNoSignature) {
-			s.logger.Warn("SetManifest signature validation failed", "err", err)
-			return nil, statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
-		} else if errors.Is(err, errNoSignature) {
-			if err := validatePeer(ctx, oldManifest.WorkloadOwnerPubKeys); err != nil {
-				s.logger.Warn("SetManifest peer validation failed", "err", err)
-				return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
-			}
+		if err := authorize(ctx, oldManifest.WorkloadOwnerPubKeys, oldState.LatestTransition().TransitionHash, req); err != nil {
+			return nil, nil, err
 		}
 		se = oldState.SeedEngine()
 		if slices.Compare(oldManifest.SeedshareOwnerPubKeys, m.SeedshareOwnerPubKeys) != 0 {
 			s.logger.Warn("SetManifest detected attempted seedshare owners change", "from", oldManifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
-			return nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
+			return nil, nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
 		}
 		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(oldState.LatestTransition().TransitionHash[:], req.GetPreviousTransitionHash()) {
-			return nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' does not match latest state '%x'", req.GetPreviousTransitionHash(), oldState.LatestTransition().TransitionHash)
+			return nil, nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' does not match latest state '%x'", req.GetPreviousTransitionHash(), oldState.LatestTransition().TransitionHash)
 		}
 	} else {
 		// First SetManifest call, initialize seed engine.
-		if req.Signature != nil {
-			if err := validateSignature(m.WorkloadOwnerPubKeys, [history.HashSize]byte{}, req); err != nil {
-				s.logger.Warn("SetManifest signature validation failed for initial manifest", "err", err)
-				return nil, statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
+		// The initial manifest is trusted on first use, unless the caller asks for it to be checked.
+		if len(req.Signature) != 0 {
+			if err := authorize(ctx, m.WorkloadOwnerPubKeys, [history.HashSize]byte{}, req); err != nil {
+				return nil, nil, err
 			}
 		}
 		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(req.GetPreviousTransitionHash(), make([]byte, history.HashSize)) {
-			return nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' requested but manifest history is empty", req.GetPreviousTransitionHash())
+			return nil, nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' requested but manifest history is empty", req.GetPreviousTransitionHash())
 		}
 		seed, err := cryptohelpers.GenerateRandomBytes(constants.SecretSeedSize)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "generating random bytes for seed: %v", err)
+			return nil, nil, status.Errorf(codes.Internal, "generating random bytes for seed: %v", err)
 		}
 		salt, err := cryptohelpers.GenerateRandomBytes(constants.SecretSeedSaltSize)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "generating random bytes for seed salt: %v", err)
+			return nil, nil, status.Errorf(codes.Internal, "generating random bytes for seed salt: %v", err)
 		}
 
 		seedShares, err := manifest.EncryptSeedShares(seed, m.SeedshareOwnerPubKeys)
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
+			return nil, nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
 		}
 		se, err = seedengine.New(seed, salt)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "setting seed: %v", err)
+			return nil, nil, status.Errorf(codes.Internal, "setting seed: %v", err)
 		}
 		resp.SeedSharesDoc = &userapi.SeedShareDocument{
 			Salt:       salt,
@@ -174,7 +220,7 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 
 	if err := s.checkManifestSecurity(m); err != nil {
 		s.logger.Warn("SetManifest rejected the manifest", "err", err)
-		return nil, statusErr(codes.InvalidArgument, err)
+		return nil, nil, statusErr(codes.InvalidArgument, err)
 	}
 
 	state, err := s.guard.UpdateState(ctx, oldState, se, req.GetManifest(), req.GetPolicies())
@@ -183,13 +229,13 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		if errors.Is(err, stateguard.ErrConcurrentUpdate) {
 			code = codes.FailedPrecondition
 		}
-		return nil, statusErrf(code, err, "updating Coordinator state: %v", err)
+		return nil, nil, statusErrf(code, err, "updating Coordinator state: %v", err)
 	}
 	resp.MeshCA = state.CA().GetMeshCACert()
 	resp.RootCA = state.CA().GetRootCACert()
 
 	s.logger.Info("SetManifest succeeded")
-	return &resp, nil
+	return &resp, state, nil
 }
 
 // GetManifests retrieves the current CA certificates, the manifest history and all policies.
@@ -204,7 +250,7 @@ func (s *Server) GetManifests(ctx context.Context, _ *userapi.GetManifestsReques
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	}
-	if err := checkMinimumAPIVersion(state.Manifest()); err != nil {
+	if err := checkAPIVersion(grpcAPIVersion)(state.Manifest()); err != nil {
 		return nil, err
 	}
 
@@ -291,15 +337,44 @@ func (s *Server) checkManifestSecurity(mnfst *manifest.Manifest) error {
 	return nil
 }
 
-// checkMinimumAPIVersion rejects gRPC requests if the manifest pins a minimum API version.
+// grpcAPIVersion is the version of the gRPC API. It predates API versioning and counts as version zero,
+// which no pin admits.
+const grpcAPIVersion = 0
+
+// checkAPIVersionPin rejects a manifest whose minimum API version pin isn't a valid API version.
 //
-// The gRPC API predates API versioning and counts as version zero, which no pin admits.
-func checkMinimumAPIVersion(mnfst *manifest.Manifest) error {
+// Once the manifest is in force, every request is checked against its pin. An invalid pin would lock out all of them.
+func checkAPIVersionPin(mnfst *manifest.Manifest) error {
 	if mnfst.MinimumAPIVersion == "" {
 		return nil
 	}
-	return statusErrf(codes.FailedPrecondition, ErrAPIVersionTooOld,
-		"%v: the manifest requires at least API version %s, but the request used the gRPC API", ErrAPIVersionTooOld, mnfst.MinimumAPIVersion)
+	if _, err := apitypes.ParseAPIVersion(mnfst.MinimumAPIVersion); err != nil {
+		return status.Errorf(codes.InvalidArgument, "invalid MinimumAPIVersion: %v", err)
+	}
+	return nil
+}
+
+// checkAPIVersion returns a check that rejects requests made with the given API version if the manifest pins a
+// newer minimum API version.
+func checkAPIVersion(apiVersion int) func(*manifest.Manifest) error {
+	return func(mnfst *manifest.Manifest) error {
+		if mnfst.MinimumAPIVersion == "" {
+			return nil
+		}
+		minVersion, err := apitypes.ParseAPIVersion(mnfst.MinimumAPIVersion)
+		if err != nil {
+			return status.Errorf(codes.Internal, "parsing the manifest's MinimumAPIVersion: %v", err)
+		}
+		if apiVersion >= minVersion {
+			return nil
+		}
+		requested := fmt.Sprintf("version v%d", apiVersion)
+		if apiVersion == grpcAPIVersion {
+			requested = "the gRPC API"
+		}
+		return statusErrf(codes.FailedPrecondition, ErrAPIVersionTooOld,
+			"%v: the manifest requires at least API version %s, but the request used %s", ErrAPIVersionTooOld, mnfst.MinimumAPIVersion, requested)
+	}
 }
 
 type seedAuthorizer struct {
@@ -340,9 +415,7 @@ func validateSignature(keys []manifest.HexString, latestTransitionHash [history.
 		ManifestHash:           history.Digest(req.Manifest),
 		PreviousTransitionHash: latestTransitionHash,
 	}
-	hash := tr.Digest()
-	// Hash again because we do hash+sign on the blob that contains the hex-encoded next transition hash.
-	hash = history.Digest(hex.AppendEncode(nil, hash[:]))
+	hash := tr.OwnerSigningDigest()
 
 	for _, key := range keys {
 		trustedWorkloadOwnerKey, err := manifest.ParseWorkloadOwnerPublicKey(key)

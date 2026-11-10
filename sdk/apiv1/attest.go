@@ -6,7 +6,6 @@
 package apiv1
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -143,13 +142,8 @@ func (a *API) ValidateAttestation(ctx context.Context, nonce []byte, attestation
 	}
 
 	// The capabilities digest is authenticated now, so it tells whether the negotiation can be trusted.
-	if a.cfg.NegotiatedCapabilities != nil {
-		if negotiated := a.cfg.NegotiatedCapabilities(); negotiated != nil {
-			negotiatedDigest := negotiated.Digest()
-			if !bytes.Equal(negotiatedDigest[:], resp.CapabilitiesDigest) {
-				return nil, fmt.Errorf("%w: the capabilities used for negotiation don't match the capabilities the Coordinator attested to", apiversion.ErrDowngrade)
-			}
-		}
+	if err := a.checkNegotiatedCapabilities(resp.CapabilitiesDigest); err != nil {
+		return nil, err
 	}
 
 	for _, minVersion := range []string{a.minimumAPIVersion(), latestManifest.MinimumAPIVersion} {

@@ -18,6 +18,19 @@ import (
 //
 // If the func fails and port-forwarding had an error, too, the func is retried up to two times.
 func (k *Kubeclient) WithForwardedPort(ctx context.Context, namespace, podName, remotePort string, f func(addr string) error) error {
+	return k.withForwardedPort(ctx, namespace, podName, remotePort, true, f)
+}
+
+// WithForwardedPortOnce is like [Kubeclient.WithForwardedPort], but invokes the func at most once. Only setting up
+// the port-forwarding is retried.
+//
+// Use it for funcs that must not be repeated, like requests that change the state of the Coordinator: a failure
+// can't tell whether the request reached the Coordinator before the connection broke.
+func (k *Kubeclient) WithForwardedPortOnce(ctx context.Context, namespace, podName, remotePort string, f func(addr string) error) error {
+	return k.withForwardedPort(ctx, namespace, podName, remotePort, false, f)
+}
+
+func (k *Kubeclient) withForwardedPort(ctx context.Context, namespace, podName, remotePort string, retryFunc bool, f func(addr string) error) error {
 	var funcErr error
 	for i := range 3 {
 		// Apply backoff after first attempt.
@@ -41,6 +54,9 @@ func (k *Kubeclient) WithForwardedPort(ctx context.Context, namespace, podName, 
 			return nil
 		}
 		log.Error("port-forwarded func failed", "error", funcErr)
+		if !retryFunc {
+			return funcErr
+		}
 		select {
 		case err := <-errorCh:
 			log.Error("Encountered port forwarding error", "error", err)
@@ -69,7 +85,8 @@ func (k *Kubeclient) portForwardPod(ctx context.Context, namespace, podName, rem
 	// The portforwarding goroutine closes this channel when it's ready.
 	readyCh := make(chan struct{})
 	// Any error returned by the background port-forwarder is sent to this channel.
-	errorCh := make(chan error)
+	// It has room for the one error the goroutine can send, so that it can exit even if nobody receives the error.
+	errorCh := make(chan error, 1)
 
 	// Ports are forwarded by upgrading this POST request to a SPDY connection.
 	req := k.Client.CoreV1().RESTClient().Post().
