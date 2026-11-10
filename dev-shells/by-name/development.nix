@@ -13,6 +13,7 @@
   just,
   kubectl,
   kubernetes-helm,
+  pre-commit,
   yq-go,
   # keep-sorted end
   mkShell,
@@ -21,6 +22,13 @@
 let
   hooks = git-hooks-lib.run {
     src = ../..;
+    # pre-commit's tests require a source-built .NET SDK on Darwin.
+    package = pre-commit.overridePythonAttrs (old: {
+      doCheck = false;
+      dontUsePytestCheck = true;
+      nativeCheckInputs = [ ];
+      env = removeAttrs (old.env or { }) [ "DOTNET_ROOT" ];
+    });
     hooks = import ../git-hooks.nix;
   };
 in
