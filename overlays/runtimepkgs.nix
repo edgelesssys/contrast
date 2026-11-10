@@ -33,18 +33,18 @@ else
                       NIX_RUSTFLAGS = "-C link-arg=-Wl,-dead_strip_dylibs";
                     };
 
-                  # Regression guard: assert the darwin binary has no
-                  # /nix/store dylib load commands. `otool -L`'s first line
-                  # is the binary's own path (itself under /nix/store), so
-                  # skip it. Catches anything new dyld-linked from nixpkgs,
-                  # not just iconv.
+                  # Regression guard: assert the darwin binary only loads
+                  # dylibs shipped with macOS. `otool -L`'s first line is the
+                  # binary's own path, so skip it. Catches anything new
+                  # dyld-linked from nixpkgs or the build host (Homebrew,
+                  # /usr/local), not just iconv.
                   postInstall =
                     (oldAttrs.postInstall or "")
                     + prev.lib.optionalString prev.stdenv.hostPlatform.isDarwin ''
-                      nixstore_deps=$(otool -L "$out/bin/genpolicy" | tail -n +2 | grep '/nix/store' || true)
-                      if [[ -n "$nixstore_deps" ]]; then
-                        echo "error: genpolicy has /nix/store paths in its dyld load commands:" >&2
-                        echo "$nixstore_deps" >&2
+                      foreign_deps=$(otool -L "$out/bin/genpolicy" | tail -n +2 | grep -Ev '^[[:space:]]+(/usr/lib/|/System/Library/)' || true)
+                      if [[ -n "$foreign_deps" ]]; then
+                        echo "error: genpolicy loads dylibs that don't ship with macOS:" >&2
+                        echo "$foreign_deps" >&2
                         exit 1
                       fi
                     '';
