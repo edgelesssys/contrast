@@ -18,7 +18,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -87,20 +86,82 @@ func (s *Server) MakeInsecure() {
 // SetManifest registers a new manifest at the Coordinator.
 func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
+	resp, _, err := s.setManifest(ctx, req, s.authorizeSignatureOrPeer)
+	return resp, err
+}
 
+// SetManifestSigned registers a new manifest at the Coordinator, like [Server.SetManifest], for callers
+// that can't present a client certificate, like those of the HTTP API.
+//
+// The request must therefore carry a workload owner signature, verified against the WorkloadOwnerPubKeys
+// of the manifest in force for updates, and against those of the requested manifest for the initial manifest.
+func (s *Server) SetManifestSigned(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, *stateguard.State, error) {
+	s.logger.Info("SetManifestSigned called")
+	return s.setManifest(ctx, req, s.authorizeSignature)
+}
+
+// authorizer checks that a SetManifest request is authorized by one of the workload owner keys.
+type authorizer func(ctx context.Context, keys []manifest.HexString, latestTransitionHash [history.HashSize]byte, initial bool, req *userapi.SetManifestRequest) error
+
+// authorizeSignatureOrPeer authorizes requests of the gRPC API.
+func (s *Server) authorizeSignatureOrPeer(ctx context.Context, keys []manifest.HexString, latestTransitionHash [history.HashSize]byte, initial bool, req *userapi.SetManifestRequest) error {
+	if initial {
+		// The initial manifest is trusted on first use, unless the caller asks for it to be checked.
+		if req.Signature == nil {
+			return nil
+		}
+		if err := validateSignature(keys, latestTransitionHash, req); err != nil {
+			s.logger.Warn("SetManifest signature validation failed for initial manifest", "err", err)
+			return statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
+		}
+		return nil
+	}
+
+	err := validateSignature(keys, latestTransitionHash, req)
+	switch {
+	case errors.Is(err, errNoSignature):
+		if err := validatePeer(ctx, keys); err != nil {
+			s.logger.Warn("SetManifest peer validation failed", "err", err)
+			return status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
+		}
+		return nil
+	case err != nil:
+		s.logger.Warn("SetManifest signature validation failed", "err", err)
+		return statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
+	}
+	return nil
+}
+
+// authorizeSignature authorizes requests by their signature only.
+func (s *Server) authorizeSignature(_ context.Context, keys []manifest.HexString, latestTransitionHash [history.HashSize]byte, initial bool, req *userapi.SetManifestRequest) error {
+	if initial && len(keys) == 0 && len(req.Signature) == 0 {
+		// There is no key to check against, so the initial manifest is trusted on first use.
+		return nil
+	}
+	if err := validateSignature(keys, latestTransitionHash, req); err != nil {
+		s.logger.Warn("SetManifestSigned signature validation failed", "initial", initial, "err", err)
+		return statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
+	}
+	return nil
+}
+
+func (s *Server) setManifest(ctx context.Context, req *userapi.SetManifestRequest, authorize authorizer) (*userapi.SetManifestResponse, *stateguard.State, error) {
 	oldState, err := s.guard.GetState(ctx)
 	switch {
 	case errors.Is(err, stateguard.ErrStaleState):
-		return nil, statusErr(codes.FailedPrecondition, ErrNeedsRecovery)
+		return nil, nil, statusErr(codes.FailedPrecondition, ErrNeedsRecovery)
 	case errors.Is(err, stateguard.ErrNoState):
 		// This is fine, we are going to set the initial manifest.
 	case err != nil:
-		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
+		return nil, nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	}
 
 	var m *manifest.Manifest
 	if err := json.Unmarshal(req.Manifest, &m); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %v", err)
+		return nil, nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %v", err)
+	}
+	if m == nil {
+		return nil, nil, status.Errorf(codes.InvalidArgument, "manifest is null")
 	}
 
 	var resp userapi.SetManifestResponse
@@ -109,50 +170,41 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 	if oldState != nil {
 		oldManifest := oldState.Manifest()
 		// Subsequent SetManifest call, check permissions of caller.
-		if err := validateSignature(oldManifest.WorkloadOwnerPubKeys, oldState.LatestTransition().TransitionHash, req); err != nil && !errors.Is(err, errNoSignature) {
-			s.logger.Warn("SetManifest signature validation failed", "err", err)
-			return nil, statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
-		} else if errors.Is(err, errNoSignature) {
-			if err := validatePeer(ctx, oldManifest.WorkloadOwnerPubKeys); err != nil {
-				s.logger.Warn("SetManifest peer validation failed", "err", err)
-				return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
-			}
+		if err := authorize(ctx, oldManifest.WorkloadOwnerPubKeys, oldState.LatestTransition().TransitionHash, false, req); err != nil {
+			return nil, nil, err
 		}
 		se = oldState.SeedEngine()
 		if slices.Compare(oldManifest.SeedshareOwnerPubKeys, m.SeedshareOwnerPubKeys) != 0 {
 			s.logger.Warn("SetManifest detected attempted seedshare owners change", "from", oldManifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
-			return nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
+			return nil, nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
 		}
 		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(oldState.LatestTransition().TransitionHash[:], req.GetPreviousTransitionHash()) {
-			return nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' does not match latest state '%x'", req.GetPreviousTransitionHash(), oldState.LatestTransition().TransitionHash)
+			return nil, nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' does not match latest state '%x'", req.GetPreviousTransitionHash(), oldState.LatestTransition().TransitionHash)
 		}
 	} else {
 		// First SetManifest call, initialize seed engine.
-		if req.Signature != nil {
-			if err := validateSignature(m.WorkloadOwnerPubKeys, [history.HashSize]byte{}, req); err != nil {
-				s.logger.Warn("SetManifest signature validation failed for initial manifest", "err", err)
-				return nil, statusErrf(codes.PermissionDenied, ErrInvalidSignature, "validating manifest signature: %v", err)
-			}
+		if err := authorize(ctx, m.WorkloadOwnerPubKeys, [history.HashSize]byte{}, true, req); err != nil {
+			return nil, nil, err
 		}
 		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(req.GetPreviousTransitionHash(), make([]byte, history.HashSize)) {
-			return nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' requested but manifest history is empty", req.GetPreviousTransitionHash())
+			return nil, nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' requested but manifest history is empty", req.GetPreviousTransitionHash())
 		}
 		seed, err := cryptohelpers.GenerateRandomBytes(constants.SecretSeedSize)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "generating random bytes for seed: %v", err)
+			return nil, nil, status.Errorf(codes.Internal, "generating random bytes for seed: %v", err)
 		}
 		salt, err := cryptohelpers.GenerateRandomBytes(constants.SecretSeedSaltSize)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "generating random bytes for seed salt: %v", err)
+			return nil, nil, status.Errorf(codes.Internal, "generating random bytes for seed salt: %v", err)
 		}
 
 		seedShares, err := manifest.EncryptSeedShares(seed, m.SeedshareOwnerPubKeys)
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
+			return nil, nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
 		}
 		se, err = seedengine.New(seed, salt)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "setting seed: %v", err)
+			return nil, nil, status.Errorf(codes.Internal, "setting seed: %v", err)
 		}
 		resp.SeedSharesDoc = &userapi.SeedShareDocument{
 			Salt:       salt,
@@ -162,7 +214,7 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 
 	if err := s.checkManifestSecurity(m); err != nil {
 		s.logger.Warn("SetManifest rejected the manifest", "err", err)
-		return nil, statusErr(codes.InvalidArgument, err)
+		return nil, nil, statusErr(codes.InvalidArgument, err)
 	}
 
 	state, err := s.guard.UpdateState(ctx, oldState, se, req.GetManifest(), req.GetPolicies())
@@ -171,13 +223,13 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		if errors.Is(err, stateguard.ErrConcurrentUpdate) {
 			code = codes.FailedPrecondition
 		}
-		return nil, statusErrf(code, err, "updating Coordinator state: %v", err)
+		return nil, nil, statusErrf(code, err, "updating Coordinator state: %v", err)
 	}
 	resp.MeshCA = state.CA().GetMeshCACert()
 	resp.RootCA = state.CA().GetRootCACert()
 
 	s.logger.Info("SetManifest succeeded")
-	return &resp, nil
+	return &resp, state, nil
 }
 
 // GetManifests retrieves the current CA certificates, the manifest history and all policies.
@@ -309,9 +361,7 @@ func validateSignature(keys []manifest.HexString, latestTransitionHash [history.
 		ManifestHash:           history.Digest(req.Manifest),
 		PreviousTransitionHash: latestTransitionHash,
 	}
-	hash := tr.Digest()
-	// Hash again because we do hash+sign on the blob that contains the hex-encoded next transition hash.
-	hash = history.Digest(hex.AppendEncode(nil, hash[:]))
+	hash := tr.OwnerSigningDigest()
 
 	for _, key := range keys {
 		trustedWorkloadOwnerKey, err := manifest.ParseWorkloadOwnerPublicKey(key)

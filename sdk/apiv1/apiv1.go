@@ -12,10 +12,14 @@
 package apiv1
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/edgelesssys/contrast/apitypes"
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/sdk/internal/apiversion"
 	"github.com/edgelesssys/contrast/sdk/internal/httpapi"
 )
 
@@ -53,4 +57,23 @@ func (a *API) minimumAPIVersion() string {
 		return ""
 	}
 	return a.cfg.MinimumAPIVersion()
+}
+
+// checkNegotiatedCapabilities fails with the SDK's ErrAPIVersionDowngrade if the SDK client negotiated the API version
+// with capabilities other than the ones whose digest the Coordinator attested to.
+//
+// It must only be called once the attestation carrying attestedDigest has been validated.
+func (a *API) checkNegotiatedCapabilities(attestedDigest []byte) error {
+	if a.cfg.NegotiatedCapabilities == nil {
+		return nil
+	}
+	negotiated := a.cfg.NegotiatedCapabilities()
+	if negotiated == nil {
+		return nil
+	}
+	negotiatedDigest := negotiated.Digest()
+	if !bytes.Equal(negotiatedDigest[:], attestedDigest) {
+		return fmt.Errorf("%w: the capabilities used for negotiation don't match the capabilities the Coordinator attested to", apiversion.ErrDowngrade)
+	}
+	return nil
 }

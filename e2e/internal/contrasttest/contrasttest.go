@@ -364,6 +364,24 @@ func (ct *ContrastTest) RunSet(ctx context.Context, args ...string) error {
 	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), append(args, ct.WorkDir)...)
 }
 
+// RunSetHTTP runs the contrast set subcommand with the given arguments,
+// pinning the given minimum API version so that the manifest is set through the Coordinator's HTTP API.
+func (ct *ContrastTest) RunSetHTTP(ctx context.Context, minimumAPIVersion string, args ...string) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
+
+	if err := ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace); err != nil {
+		return fmt.Errorf("waiting for coordinator: %w", err)
+	}
+	if err := ct.Kubeclient.WaitForPod(ctx, ct.Namespace, "port-forwarder-coordinator"); err != nil {
+		return fmt.Errorf("waiting for port-forwarder-coordinator: %w", err)
+	}
+	return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", apitypes.Port, func(addr string) error {
+		httpArgs := []string{"--coordinator-http", "http://" + addr, "--minimum-api-version", minimumAPIVersion}
+		return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), append(append(httpArgs, args...), ct.WorkDir)...)
+	})
+}
+
 // Set runs the contrast set subcommand and fails the test if it is not successful.
 func (ct *ContrastTest) Set(t *testing.T) {
 	require.NoError(t, ct.RunSet(t.Context()))

@@ -406,7 +406,7 @@ func (s *stubGuard) GetState(context.Context) (*stateguard.State, error) {
 	return stateguard.NewStateForTest(nil, m, nil, s.ca), nil
 }
 
-func (s *stubGuard) GetHistory(context.Context) ([][]byte, map[manifest.HexString][]byte, error) {
+func (s *stubGuard) GetHistoryOf(context.Context, *stateguard.State) ([][]byte, map[manifest.HexString][]byte, error) {
 	if s.getHistoryErr != nil {
 		return nil, nil, s.getHistoryErr
 	}
