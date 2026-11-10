@@ -4,6 +4,8 @@
 package cmd
 
 import (
+	"bytes"
+	"cmp"
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
@@ -12,6 +14,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,7 +23,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/apitypes"
+	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
 	"github.com/edgelesssys/contrast/internal/history"
@@ -27,6 +34,9 @@ import (
 	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/sdk"
+	"github.com/edgelesssys/contrast/sdk/apiv1"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -60,6 +70,10 @@ issuer certificates.`,
 	cmd.Flags().StringP("signature", "s", "", "path to a detached transition signature (DER) file")
 	must(cmd.MarkFlagFilename("signature"))
 	addCollateralProxyFlag(cmd)
+	cmd.Flags().String("coordinator-http", "", "base URL of the coordinator's HTTP API, for example http://192.0.2.1:1314, required if a minimum API version is pinned")
+	must(cmd.Flags().MarkHidden("coordinator-http"))
+	cmd.Flags().String("minimum-api-version", "", "oldest Coordinator HTTP API version to accept, for example v1")
+	must(cmd.Flags().MarkHidden("minimum-api-version"))
 
 	return cmd
 }
@@ -135,72 +149,95 @@ func runSet(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	kdsGetter, err := cachedHTTPSGetter(log, flags.collateralProxyURL)
-	if err != nil {
-		return fmt.Errorf("configuring KDS cache: %w", err)
-	}
-	validator, err := m.CoordinatorValidator(log, kdsGetter)
-	if err != nil {
-		return fmt.Errorf("getting validators: %w", err)
-	}
+	policyDocs := getInitdataDocuments(policies)
+	out := cmd.OutOrStdout()
 
-	var dialr *dialer.Dialer
-	if workloadOwnerKey == nil {
-		dialr = dialer.New(atls.NoIssuer, validator, atls.NoMetrics, nil, log)
+	var rootCA, meshCA, seedSharesFile []byte
+	if pin := cmp.Or(flags.minimumAPIVersion, m.MinimumAPIVersion); pin != "" {
+		if flags.coordinatorHTTP == "" {
+			return fmt.Errorf("API version %s is pinned, but the coordinator-http flag isn't set", pin)
+		}
+		result, err := setManifestHTTP(cmd.Context(), out, &httpSetRequest{
+			baseURL:                flags.coordinatorHTTP,
+			collateralProxy:        flags.collateralProxyURL,
+			minimumAPIVersion:      pin,
+			manifest:               manifestBytes,
+			policies:               policyDocs,
+			atomic:                 flags.atomic,
+			previousTransitionHash: previousTransitionHash,
+			signature:              signatureBytes,
+			workloadOwnerKey:       workloadOwnerKey,
+		}, log)
+		if err != nil {
+			var apiErr *apitypes.APIError
+			if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusForbidden {
+				printPermissionDeniedHelp(out, signatureBytes, workloadOwnerKey)
+			}
+			return setManifestError(err)
+		}
+		rootCA, meshCA = result.RootCA, result.MeshCA
+		if result.SeedSharesDoc != nil {
+			var indented bytes.Buffer
+			if err := json.Indent(&indented, result.SeedSharesDoc, "", "  "); err != nil {
+				return fmt.Errorf("formatting seed shares: %w", err)
+			}
+			seedSharesFile = indented.Bytes()
+		}
 	} else {
-		dialr = dialer.NewWithKey(atls.NoIssuer, validator, atls.NoMetrics, nil, workloadOwnerKey, log)
-	}
+		kdsGetter, err := cachedHTTPSGetter(log, flags.collateralProxyURL)
+		if err != nil {
+			return fmt.Errorf("configuring KDS cache: %w", err)
+		}
+		validator, err := m.CoordinatorValidator(log, kdsGetter)
+		if err != nil {
+			return fmt.Errorf("getting validators: %w", err)
+		}
 
-	conn, err := dialr.Dial(cmd.Context(), flags.coordinator)
-	if err != nil {
-		return fmt.Errorf("failed to dial coordinator: %w", err)
-	}
-	defer conn.Close()
+		var dialr *dialer.Dialer
+		if workloadOwnerKey == nil {
+			dialr = dialer.New(atls.NoIssuer, validator, atls.NoMetrics, nil, log)
+		} else {
+			dialr = dialer.NewWithKey(atls.NoIssuer, validator, atls.NoMetrics, nil, workloadOwnerKey, log)
+		}
 
-	client := userapi.NewUserAPIClient(conn)
-	req := &userapi.SetManifestRequest{
-		Manifest:               manifestBytes,
-		Policies:               getInitdataDocuments(policies),
-		PreviousTransitionHash: previousTransitionHash,
-		Signature:              signatureBytes,
-	}
-	resp, err := setLoop(cmd.Context(), client, cmd.OutOrStdout(), req)
-	if err != nil {
-		grpcSt, ok := status.FromError(err)
-		if ok {
-			if grpcSt.Code() == codes.PermissionDenied {
-				msg := "Permission denied."
-				if signatureBytes != nil {
-					msg += " Ensure the signature is valid and corresponds to the latest transition hash."
-				} else if workloadOwnerKey == nil {
-					msg += " Specify a workload owner key with --workload-owner-key."
-				} else {
-					msg += " Ensure you are using a trusted workload owner key."
-				}
-				fmt.Fprintln(cmd.OutOrStdout(), msg)
+		conn, err := dialr.Dial(cmd.Context(), flags.coordinator)
+		if err != nil {
+			return fmt.Errorf("failed to dial coordinator: %w", err)
+		}
+		defer conn.Close()
+
+		client := userapi.NewUserAPIClient(conn)
+		req := &userapi.SetManifestRequest{
+			Manifest:               manifestBytes,
+			Policies:               policyDocs,
+			PreviousTransitionHash: previousTransitionHash,
+			Signature:              signatureBytes,
+		}
+		resp, err := setLoop(cmd.Context(), client, out, req)
+		if err != nil {
+			if status.Code(err) == codes.PermissionDenied {
+				printPermissionDeniedHelp(out, signatureBytes, workloadOwnerKey)
+			}
+			return setManifestError(err)
+		}
+		rootCA, meshCA = resp.RootCA, resp.MeshCA
+		if resp.SeedSharesDoc != nil {
+			seedSharesFile, err = json.MarshalIndent(resp.SeedSharesDoc, "", "  ")
+			if err != nil {
+				return fmt.Errorf("marshaling seed shares: %w", err)
 			}
 		}
-		additionalHelp := ""
-		if strings.Contains(err.Error(), "quote field MR_CONFIG_ID") || strings.Contains(err.Error(), "report field HOST_DATA") {
-			additionalHelp = " (coordinator did not match the expectations, is the version correct and did you run `contrast generate`?)"
-		}
-		return fmt.Errorf("setting manifest%s: %w", additionalHelp, err)
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Manifest set successfully")
+	fmt.Fprintln(out, "✔️ Manifest set successfully")
 
 	filelist := map[string][]byte{
-		coordRootPEMFilename: resp.RootCA,
-		meshCAPEMFilename:    resp.MeshCA,
+		coordRootPEMFilename: rootCA,
+		meshCAPEMFilename:    meshCA,
 	}
-
-	if resp.SeedSharesDoc != nil {
-		fmt.Fprintln(cmd.OutOrStdout(), "✔️ Seed shares received")
-		seedShareFile, err := json.MarshalIndent(resp.SeedSharesDoc, "", "  ")
-		if err != nil {
-			return fmt.Errorf("marshaling seed shares: %w", err)
-		}
-		filelist[seedSharesFilename] = seedShareFile
+	if seedSharesFile != nil {
+		fmt.Fprintln(out, "✔️ Seed shares received")
+		filelist[seedSharesFilename] = seedSharesFile
 	}
 
 	if err := writeFilelist(flags.workspaceDir, filelist); err != nil {
@@ -208,6 +245,27 @@ func runSet(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// printPermissionDeniedHelp tells the user how to authorize a manifest update the Coordinator rejected.
+func printPermissionDeniedHelp(out io.Writer, signature []byte, workloadOwnerKey *ecdsa.PrivateKey) {
+	msg := "Permission denied."
+	if signature != nil {
+		msg += " Ensure the signature is valid and corresponds to the latest transition hash."
+	} else if workloadOwnerKey == nil {
+		msg += " Specify a workload owner key with --workload-owner-key."
+	} else {
+		msg += " Ensure you are using a trusted workload owner key."
+	}
+	fmt.Fprintln(out, msg)
+}
+
+func setManifestError(err error) error {
+	additionalHelp := ""
+	if strings.Contains(err.Error(), "quote field MR_CONFIG_ID") || strings.Contains(err.Error(), "report field HOST_DATA") {
+		additionalHelp = " (coordinator did not match the expectations, is the version correct and did you run `contrast generate`?)"
+	}
+	return fmt.Errorf("setting manifest%s: %w", additionalHelp, err)
 }
 
 type setFlags struct {
@@ -219,6 +277,8 @@ type setFlags struct {
 	signaturePath        string
 	workspaceDir         string
 	collateralProxyURL   string
+	coordinatorHTTP      string
+	minimumAPIVersion    string
 }
 
 func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
@@ -259,6 +319,19 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	flags.collateralProxyURL, err = cmd.Flags().GetString("collateral-proxy")
 	if err != nil {
 		return nil, fmt.Errorf("getting collateral-proxy flag: %w", err)
+	}
+	flags.coordinatorHTTP, err = cmd.Flags().GetString("coordinator-http")
+	if err != nil {
+		return nil, fmt.Errorf("getting coordinator-http flag: %w", err)
+	}
+	flags.minimumAPIVersion, err = cmd.Flags().GetString("minimum-api-version")
+	if err != nil {
+		return nil, fmt.Errorf("getting minimum-api-version flag: %w", err)
+	}
+	if flags.minimumAPIVersion != "" {
+		if _, err := apitypes.ParseAPIVersion(flags.minimumAPIVersion); err != nil {
+			return nil, fmt.Errorf("invalid minimum-api-version: %w", err)
+		}
 	}
 
 	if flags.workspaceDir != "" {
@@ -351,4 +424,124 @@ func setLoop(
 	}
 
 	return doer.resp, nil
+}
+
+// httpSetRequest holds the inputs of setManifestHTTP.
+type httpSetRequest struct {
+	// baseURL is the root of the Coordinator's HTTP API.
+	baseURL           string
+	collateralProxy   string
+	minimumAPIVersion string
+
+	manifest []byte
+	policies [][]byte
+	// atomic is set if the manifest must only be set at previousTransitionHash.
+	atomic                 bool
+	previousTransitionHash []byte
+	// signature is a detached signature of the transition. If it's nil, the transition is signed with workloadOwnerKey, if set.
+	signature        []byte
+	workloadOwnerKey *ecdsa.PrivateKey
+}
+
+// setManifestHTTP sets the manifest through the Coordinator's HTTP API and validates the attested result.
+func setManifestHTTP(ctx context.Context, out io.Writer, req *httpSetRequest, log *slog.Logger) (result *apiv1.SetManifestResult, retErr error) {
+	kdsDir, err := cachedir("kds")
+	if err != nil {
+		return nil, fmt.Errorf("getting cache dir: %w", err)
+	}
+	client := sdk.New(req.baseURL).
+		WithSlog(log).
+		WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), kdsDir)).
+		WithCollateralProxy(req.collateralProxy).
+		WithMinimumAPIVersion(req.minimumAPIVersion)
+
+	spinner := spinner.New("  Waiting for coordinator ", 500*time.Millisecond, out)
+	spinner.Start()
+	defer func() {
+		if retErr != nil {
+			spinner.Stop("\r❌\n")
+		} else {
+			spinner.Stop("\x1b[2K\r✔️ Connected to coordinator\n")
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
+	defer cancel()
+
+	doer := retry.DoerFunc(func(ctx context.Context) error {
+		version, err := client.NegotiateAPIVersion(ctx)
+		if err != nil {
+			return fmt.Errorf("negotiating API version: %w", err)
+		}
+		switch version {
+		case apiv1.Version:
+			result, err = setManifestV1(ctx, client.V1(), req)
+			return err
+		default:
+			return fmt.Errorf("setting a manifest isn't implemented for API version %q", version)
+		}
+	})
+	// Only retry if the Coordinator couldn't be reached, as the request isn't idempotent.
+	if err := retry.NewIntervalRetrier(doer, time.Second, isDialError).Do(ctx); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// setManifestV1 sets the manifest through version v1 of the Coordinator's HTTP API.
+func setManifestV1(ctx context.Context, api *apiv1.API, req *httpSetRequest) (*apiv1.SetManifestResult, error) {
+	signature := req.signature
+	if signature == nil && req.workloadOwnerKey != nil {
+		latestTransition := req.previousTransitionHash
+		if !req.atomic {
+			var err error
+			latestTransition, err = getLatestTransitionV1(ctx, api)
+			if err != nil {
+				return nil, fmt.Errorf("getting latest transition: %w", err)
+			}
+		}
+		var err error
+		signature, err = sdk.SignManifestTransition(req.workloadOwnerKey, req.manifest, latestTransition)
+		if err != nil {
+			return nil, fmt.Errorf("signing transition: %w", err)
+		}
+	}
+
+	nonce, err := cryptohelpers.GenerateRandomBytes(apitypesv1.NonceSize)
+	if err != nil {
+		return nil, fmt.Errorf("generating nonce: %w", err)
+	}
+	return api.SetManifest(ctx, &apitypesv1.SetManifestRequest{
+		Nonce:                  nonce,
+		Manifest:               req.manifest,
+		Policies:               req.policies,
+		PreviousTransitionHash: req.previousTransitionHash,
+		Signature:              signature,
+	})
+}
+
+// getLatestTransitionV1 returns the hash of the Coordinator's latest transition, or nil if it has no manifest yet.
+func getLatestTransitionV1(ctx context.Context, api *apiv1.API) ([]byte, error) {
+	nonce, err := cryptohelpers.GenerateRandomBytes(apitypesv1.NonceSize)
+	if err != nil {
+		return nil, fmt.Errorf("generating nonce: %w", err)
+	}
+	attestation, err := api.GetAttestation(ctx, nonce)
+	if err != nil {
+		return nil, fmt.Errorf("getting attestation: %w", err)
+	}
+	state, err := api.ValidateAttestation(ctx, nonce, attestation)
+	switch {
+	case errors.Is(err, apiv1.ErrCoordinatorUninitialized):
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("validating attestation: %w", err)
+	}
+	return state.LatestTransitionHash, nil
+}
+
+// isDialError reports whether err occurred while connecting, in which case no request was sent.
+func isDialError(err error) bool {
+	var opErr *net.OpError
+	return errors.As(err, &opErr) && opErr.Op == "dial"
 }

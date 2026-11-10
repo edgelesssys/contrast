@@ -10,9 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"mime"
 	"net/http"
 
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
@@ -36,7 +34,7 @@ var (
 // StateGuard is a stateguard.Guard at runtime, but can be stubbed in tests.
 type StateGuard interface {
 	GetState(context.Context) (*stateguard.State, error)
-	GetHistory(ctx context.Context) ([][]byte, map[manifest.HexString][]byte, error)
+	GetHistoryOf(ctx context.Context, state *stateguard.State) ([][]byte, map[manifest.HexString][]byte, error)
 }
 
 // AttestationHandler handles POST requests to the unversioned attestation endpoint, which predates API versioning.
@@ -155,7 +153,7 @@ func (h *VersionedAttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 
 // getCoordinatorState collects the state an active Coordinator reports on its attestation endpoints.
 func getCoordinatorState(ctx context.Context, guard StateGuard, state *stateguard.State) (*apitypesv1.CoordinatorState, error) {
-	manifests, policies, err := guard.GetHistory(ctx)
+	manifests, policies, err := guard.GetHistoryOf(ctx, state)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errGettingHistory, err)
 	}
@@ -175,40 +173,9 @@ func getCoordinatorState(ctx context.Context, guard StateGuard, state *stateguar
 // serveAttestation handles a request to an attestation endpoint. The endpoints share their request format
 // and differ only in the response, which getResponse provides for the nonce of the request.
 func serveAttestation(w http.ResponseWriter, r *http.Request, getResponse func(ctx context.Context, nonce []byte) (*apitypesv1.AttestationResponse, int, error)) {
-	if r.Method != apitypesv1.AttestMethod {
-		w.Header().Set("Allow", apitypesv1.AttestMethod)
-		writeJSONError(w, http.StatusMethodNotAllowed, errMethodNotAllowed)
-		return
-	}
-
-	contentType := r.Header.Get("Content-Type")
-	mediaType, _, err := mime.ParseMediaType(contentType)
-	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, err)
-		return
-	}
-	if mediaType != "application/json" {
-		writeJSONError(w, http.StatusUnsupportedMediaType, errContentType)
-		return
-	}
-
-	// Limit size to a small value to avoid abuse (nonce only expected).
-	bodyReader := http.MaxBytesReader(w, r.Body, 1024)
-	defer bodyReader.Close()
-	body, err := io.ReadAll(bodyReader)
-	if err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
-			writeJSONError(w, http.StatusRequestEntityTooLarge, maxBytesErr)
-			return
-		}
-		writeJSONError(w, http.StatusBadRequest, err)
-		return
-	}
-
 	var req apitypesv1.AttestationRequest
-	if err := json.Unmarshal(body, &req); err != nil {
-		writeJSONError(w, http.StatusBadRequest, err)
+	// Limit size to a small value to avoid abuse (nonce only expected).
+	if !decodeJSONRequest(w, r, apitypesv1.AttestMethod, 1024, &req) {
 		return
 	}
 
@@ -224,12 +191,7 @@ func serveAttestation(w http.ResponseWriter, r *http.Request, getResponse func(c
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(false)
-	if err := enc.Encode(resp); err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
-	}
+	writeJSONResponse(w, resp)
 }
 
 func writeJSONError(w http.ResponseWriter, status int, err error) {
@@ -242,7 +204,7 @@ func writeJSONError(w http.ResponseWriter, status int, err error) {
 		Version:    constants.Version,
 		StatusCode: status,
 		Code:       errorCode(err, status),
-		Err:        err.Error(),
+		Err:        errorMessage(err),
 	}
 	if errEncode := json.NewEncoder(w).Encode(apiErr); errEncode != nil {
 		log.Printf("encoding error response %v failed: %v", err, errEncode)

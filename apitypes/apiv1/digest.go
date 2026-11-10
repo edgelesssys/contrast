@@ -38,7 +38,9 @@ func hashed(value []byte) []byte {
 }
 
 // fixed checks that a field has the fixed length the digest construction expects it to have.
-func fixed(name string, value []byte, size int) error {
+//
+// Nonces and digests are distinct sizes that currently coincide, which is why size always receives the same value.
+func fixed(name string, value []byte, size int) error { //nolint:unparam // see above
 	if len(value) != size {
 		return fmt.Errorf("invalid %s length: got %d, expected %d", name, len(value), size)
 	}

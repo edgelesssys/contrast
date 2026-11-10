@@ -355,6 +355,104 @@ func TestSetManifest(t *testing.T) {
 	})
 }
 
+func TestSetManifestSigned(t *testing.T) {
+	trustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[0])
+	untrustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
+	withKey, err := json.Marshal(manifestWithWorkloadOwnerKey(trustedKey))
+	require.NoError(t, err)
+	withoutKey, err := json.Marshal(manifestWithWorkloadOwnerKey(nil))
+	require.NoError(t, err)
+
+	sign := func(key *ecdsa.PrivateKey, manifest []byte, previous [history.HashSize]byte) []byte {
+		tr := &history.Transition{ManifestHash: history.Digest(manifest), PreviousTransitionHash: previous}
+		digest := tr.OwnerSigningDigest()
+		sig, err := ecdsa.SignASN1(rand.Reader, key, digest[:])
+		require.NoError(t, err)
+		return sig
+	}
+	initialTransition := (&history.Transition{ManifestHash: history.Digest(withKey)}).Digest()
+
+	for name, tc := range map[string]struct {
+		initial  []byte
+		peerKey  *ecdsa.PrivateKey
+		req      *userapi.SetManifestRequest
+		wantCode codes.Code
+	}{
+		"initial manifest without keys needs no signature": {
+			req: &userapi.SetManifestRequest{Manifest: withoutKey},
+		},
+		"initial manifest without keys rejects a signature": {
+			req:      &userapi.SetManifestRequest{Manifest: withoutKey, Signature: sign(trustedKey, withoutKey, [history.HashSize]byte{})},
+			wantCode: codes.PermissionDenied,
+		},
+		"initial manifest with keys needs a signature": {
+			peerKey:  trustedKey,
+			req:      &userapi.SetManifestRequest{Manifest: withKey},
+			wantCode: codes.PermissionDenied,
+		},
+		"initial manifest signed by its key": {
+			req: &userapi.SetManifestRequest{Manifest: withKey, Signature: sign(trustedKey, withKey, [history.HashSize]byte{})},
+		},
+		"initial manifest signed by another key": {
+			req:      &userapi.SetManifestRequest{Manifest: withKey, Signature: sign(untrustedKey, withKey, [history.HashSize]byte{})},
+			wantCode: codes.PermissionDenied,
+		},
+		"update needs a signature": {
+			initial:  withKey,
+			peerKey:  trustedKey,
+			req:      &userapi.SetManifestRequest{Manifest: withKey},
+			wantCode: codes.PermissionDenied,
+		},
+		"update signed by the key of the manifest in force": {
+			initial: withKey,
+			req:     &userapi.SetManifestRequest{Manifest: withKey, Signature: sign(trustedKey, withKey, initialTransition)},
+		},
+		"update signed over the wrong previous transition": {
+			initial:  withKey,
+			req:      &userapi.SetManifestRequest{Manifest: withKey, Signature: sign(trustedKey, withKey, [history.HashSize]byte{})},
+			wantCode: codes.PermissionDenied,
+		},
+		"update signed by another key": {
+			initial:  withKey,
+			req:      &userapi.SetManifestRequest{Manifest: withKey, Signature: sign(untrustedKey, withKey, initialTransition)},
+			wantCode: codes.PermissionDenied,
+		},
+		"null manifest": {
+			req:      &userapi.SetManifestRequest{Manifest: []byte("null")},
+			wantCode: codes.InvalidArgument,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			coordinator := newCoordinator()
+			if tc.initial != nil {
+				_, err := coordinator.SetManifest(rpcContext(t.Context(), trustedKey), &userapi.SetManifestRequest{Manifest: tc.initial})
+				require.NoError(err)
+			}
+
+			resp, state, err := coordinator.SetManifestSigned(rpcContext(t.Context(), tc.peerKey), tc.req)
+			if tc.wantCode != codes.OK {
+				require.Equal(tc.wantCode, status.Code(err))
+				if tc.wantCode == codes.PermissionDenied && tc.req.Signature != nil {
+					require.ErrorIs(err, ErrInvalidSignature)
+				}
+				return
+			}
+			require.NoError(err)
+			require.Equal(state.CA().GetRootCACert(), resp.RootCA)
+			require.Equal(state.CA().GetMeshCACert(), resp.MeshCA)
+			require.Equal(tc.req.Manifest, state.ManifestBytes())
+			wantTransition := (&history.Transition{ManifestHash: history.Digest(tc.req.Manifest)}).Digest()
+			if tc.initial != nil {
+				wantTransition = (&history.Transition{ManifestHash: history.Digest(tc.req.Manifest), PreviousTransitionHash: initialTransition}).Digest()
+			}
+			require.Equal(wantTransition, state.LatestTransition().TransitionHash)
+			require.Equal(tc.initial == nil, resp.SeedSharesDoc != nil)
+		})
+	}
+}
+
 func TestGetManifests(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)

@@ -15,10 +15,8 @@ import (
 // TestConstructReportDataGolden pins the byte layout of the report data digest.
 //
 // The digest is baked into attestation reports and reproduced independently by every client,
-// so any change here silently breaks verification against already-deployed Coordinators.
+// so any change here breaks verification against already-deployed Coordinators.
 // If this test fails, the change needs a new API version, not a new test value.
-//
-// Only the layout of the unversioned /attest endpoint is pinned, which is released and must never change.
 func TestConstructReportDataGolden(t *testing.T) {
 	nonce := make([]byte, 32)
 	for i := range nonce {
@@ -51,7 +49,7 @@ func TestConstructReportDataGolden(t *testing.T) {
 
 // TestConstructAttestationReportDataGolden pins the byte layout of the report data digest of the versioned endpoint.
 //
-// The same caveat as for [TestConstructReportDataGolden] applies: a failure means the change needs a new API version.
+// The same warning as for [TestConstructReportDataGolden] applies.
 func TestConstructAttestationReportDataGolden(t *testing.T) {
 	nonce := make([]byte, NonceSize)
 	for i := range nonce {
@@ -69,9 +67,8 @@ func TestConstructAttestationReportDataGolden(t *testing.T) {
 	for name, tc := range map[string]struct {
 		transitionDigest []byte
 		resp             *AttestationResponse
-		// wantPreimage spells out the layout independently of the implementation.
-		wantPreimage [][]byte
-		want         string
+		wantPreimage     [][]byte
+		want             string
 	}{
 		"active": {
 			transitionDigest: transitionDigest,
@@ -186,4 +183,79 @@ func TestConstructAttestationReportDataRejectsBadInput(t *testing.T) {
 func sum(s string) []byte {
 	digest := sha256.Sum256([]byte(s))
 	return digest[:]
+}
+
+// TestConstructSetManifestReportDataGolden pins the byte layout of the report data digest of the manifest endpoint.
+//
+// The same warning as for [TestConstructReportDataGolden] applies.
+func TestConstructSetManifestReportDataGolden(t *testing.T) {
+	nonce := make([]byte, NonceSize)
+	for i := range nonce {
+		nonce[i] = byte(i)
+	}
+	transitionDigest := make([]byte, DigestSize)
+	for i := range transitionDigest {
+		transitionDigest[i] = byte(0xa0 + i)
+	}
+	state := CoordinatorState{RootCA: []byte("root-ca"), MeshCA: []byte("mesh-ca")}
+
+	for name, tc := range map[string]struct {
+		resp         *SetManifestResponse
+		wantPreimage [][]byte
+		want         string
+	}{
+		"initial": {
+			resp: &SetManifestResponse{SeedSharesDoc: []byte("seed-shares"), CoordinatorState: state},
+			wantPreimage: [][]byte{
+				sum("contrast manifest v1"), nonce, transitionDigest,
+				sum("root-ca"), sum("mesh-ca"), sum("seed-shares"),
+			},
+			want: "3f149242cd35ea7bae7c42fa9703a1bb7ba2e5b06967db4e79360bf02c365e50" +
+				"0000000000000000000000000000000000000000000000000000000000000000",
+		},
+		"update": {
+			resp: &SetManifestResponse{CoordinatorState: state},
+			wantPreimage: [][]byte{
+				sum("contrast manifest v1"), nonce, transitionDigest,
+				sum("root-ca"), sum("mesh-ca"), sum(""),
+			},
+			want: "7392f5a3647207e00ba709557269e4ca31e6ed7b8356e1d553f82468ee28fa70" +
+				"0000000000000000000000000000000000000000000000000000000000000000",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			got, err := ConstructSetManifestReportData(nonce, transitionDigest, tc.resp)
+			assert.NoError(err)
+			assert.Equal(tc.want, hex.EncodeToString(got[:]))
+
+			wantDigest := sha256.Sum256(bytes.Join(tc.wantPreimage, nil))
+			assert.Equal(wantDigest[:], got[:sha256.Size])
+		})
+	}
+}
+
+func TestConstructSetManifestReportDataRejectsBadInput(t *testing.T) {
+	for name, tc := range map[string]struct {
+		nonce            []byte
+		transitionDigest []byte
+	}{
+		"short nonce": {
+			nonce:            make([]byte, NonceSize-1),
+			transitionDigest: make([]byte, DigestSize),
+		},
+		"long transition digest": {
+			nonce:            make([]byte, NonceSize),
+			transitionDigest: make([]byte, DigestSize+1),
+		},
+		"no transition digest": {
+			nonce: make([]byte, NonceSize),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := ConstructSetManifestReportData(tc.nonce, tc.transitionDigest, &SetManifestResponse{})
+			assert.Error(t, err)
+		})
+	}
 }

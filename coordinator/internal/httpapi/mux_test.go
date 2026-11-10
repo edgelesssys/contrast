@@ -31,7 +31,7 @@ func TestMuxAttestation(t *testing.T) {
 
 	issuer := &stubIssuer{oid: asn1.ObjectIdentifier{1, 2, 3}}
 	guard := &stubGuard{ca: ca}
-	srv := httptest.NewServer(NewMux(issuer, guard))
+	srv := httptest.NewServer(NewMux(issuer, guard, &stubManifestSetter{}))
 	t.Cleanup(srv.Close)
 
 	do := func(t *testing.T, method, path string, body []byte) []byte {
