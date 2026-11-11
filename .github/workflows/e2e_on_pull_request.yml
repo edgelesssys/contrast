@@ -36,7 +36,7 @@ jobs:
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          cachixToken: ${{ github.event_name != 'pull_request' && secrets.CACHIX_AUTH_TOKEN || '' }}
       - name: Resolve skipped platforms
         id: platforms
         uses: ./.github/actions/skip_platforms
@@ -78,7 +78,7 @@ jobs:
       debug-shell: true
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
-      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      CACHIX_AUTH_TOKEN: ${{ github.event_name != 'pull_request' && secrets.CACHIX_AUTH_TOKEN || '' }}
       NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
       TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
       CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
