@@ -53,8 +53,8 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/update
-      - name: Validate and apply update
-        id: apply
+      - name: Check update base
+        id: base
         if: steps.update.outputs.artifact != ''
         run: |
           [[ "$(cat "$RUNNER_TEMP/update/base.sha")" == "$(git rev-parse HEAD)" ]] || {
@@ -62,7 +62,16 @@ jobs:
             exit 0
           }
           [[ -s "$RUNNER_TEMP/update/update.patch" ]] || exit 0
-          python3 tools/ci/apply-generated-patch.py "$RUNNER_TEMP/update/update.patch"
+          echo 'current=true' >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/apply_generated_patch
+        if: steps.base.outputs.current == 'true'
+        with:
+          patch: ${{ runner.temp }}/update/update.patch
+      - name: Prepare PR body
+        id: apply
+        if: steps.base.outputs.current == 'true'
+        run: |
+          git diff --cached --quiet && exit 0
           {
             echo 'Automated update prepared without write credentials.'
             echo

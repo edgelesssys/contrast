@@ -19,8 +19,6 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ""
-      - name: Test CI patch validation
-        run: python3 -m unittest discover -s tools/ci -v
       - name: nix flake check
         run: |
           nix -L flake check

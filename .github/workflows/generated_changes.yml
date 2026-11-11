@@ -54,11 +54,15 @@ jobs:
           path: ${{ runner.temp }}/changes
       - name: Apply generated changes
         if: steps.pr.outputs.number != ''
+        uses: ./trusted/.github/actions/apply_generated_patch
+        with:
+          patch: ${{ runner.temp }}/changes/generated.patch
+          working-directory: target
+      - name: Commit generated changes
+        if: steps.pr.outputs.number != ''
         working-directory: target
         run: |
-          patch="$RUNNER_TEMP/changes/generated.patch"
-          [[ -s "$patch" ]] || exit 0
-          python3 ../trusted/tools/ci/apply-generated-patch.py "$patch"
+          git diff --cached --quiet && exit 0
           git -c user.name=edgelessci -c user.email=edgelessci@users.noreply.github.com \
             commit -m "fixup: update generated code"
       - name: Push to unchanged Renovate head
