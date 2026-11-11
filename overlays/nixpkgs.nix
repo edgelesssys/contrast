@@ -13,6 +13,17 @@ final: prev:
   #   };
   # });
 
+  # TODO(govulncheck-fix): DROP once nixpkgs ships the go version pinned below.
+  go_1_27 = prev.go_1_27.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "1.27.4";
+      src = final.fetchurl {
+        url = "https://go.dev/dl/go${finalAttrs.version}.src.tar.gz";
+        hash = "sha256-c8+4VxrsDAEXdofbhxY9Rqog6XeWcncokaoXZU2aYJk=";
+      };
+    }
+  );
+
   # aiohttp pulled in via black has timing-sensitive tests that fail under parallel load on our CI builders
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (_pyFinal: pyPrev: {
