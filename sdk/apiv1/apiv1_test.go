@@ -10,10 +10,16 @@ import (
 	"encoding/asn1"
 )
 
+// testPolicy is the policy referenced by testManifest.
+var testPolicy = []byte("version = \"0.1.0\"\nalgorithm = \"sha256\"\n\n[data]\n\"policy.rego\" = \"package agent_policy\"\n")
+
+// otherPolicy is a policy that testManifest doesn't reference.
+var otherPolicy = []byte("version = \"0.1.0\"\nalgorithm = \"sha256\"\n\n[data]\n\"policy.rego\" = \"package other_policy\"\n")
+
 var testManifest = []byte(`
 {
   "Policies": {
-    "ef27c1c91a0ce044c67f0ec10d7c66ea9f178453dc96a233e97f0675578042f2": {
+    "ec432606698641f33d970e8ba0655ec98ee420d10078c18ba13c18c0753d4f5c": {
       "SANs": ["coordinator"],
       "WorkloadSecretID": "apps/v1/StatefulSet/default/coordinator",
       "Role": "coordinator"
