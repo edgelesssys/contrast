@@ -12,7 +12,7 @@ import (
 )
 
 // NewMux returns the handler serving all endpoints of the Coordinator's HTTP API.
-func NewMux(issuer atls.Issuer, guard StateGuard) *http.ServeMux {
+func NewMux(issuer atls.Issuer, guard StateGuard, userAPI ManifestSetter) *http.ServeMux {
 	capabilities := NewCapabilitiesHandler()
 	pendingKeys := NewPendingKeys()
 
@@ -28,6 +28,11 @@ func NewMux(issuer atls.Issuer, guard StateGuard) *http.ServeMux {
 		StateGuard:         guard,
 		CapabilitiesDigest: capabilities.Digest(),
 		PendingKeys:        pendingKeys,
+	}})
+	mux.Handle(apitypesv1.ManifestPath, &APIVersionGate{Version: 1, StateGuard: guard, Next: &SetManifestHandler{
+		Issuer:     issuer,
+		StateGuard: guard,
+		UserAPI:    userAPI,
 	}})
 	return mux
 }

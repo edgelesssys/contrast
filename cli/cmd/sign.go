@@ -6,7 +6,6 @@ package cmd
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -110,7 +109,7 @@ func runSign(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("loading workload owner key: %w", err)
 	}
 
-	signingHash := sha256.Sum256(transitionHashHex)
+	signingHash := tr.OwnerSigningDigest()
 	sig, err := ecdsa.SignASN1(rand.Reader, workloadOwnerKey, signingHash[:])
 	if err != nil {
 		return fmt.Errorf("signing transition hash: %w", err)

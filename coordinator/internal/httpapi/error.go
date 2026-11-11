@@ -10,6 +10,8 @@ import (
 	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/coordinator/internal/userapi"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // errorCode classifies err into the stable error code reported to HTTP API clients.
@@ -38,5 +40,31 @@ func errorCode(err error, statusCode int) apitypes.ErrorCode {
 		return apitypes.ErrorCodeInvalidArgument
 	default:
 		return apitypes.ErrorCodeInternal
+	}
+}
+
+// errorMessage returns the message of err to report to HTTP API clients.
+//
+// Errors of the gRPC UserAPI, which some endpoints share their logic with, are stripped of their gRPC framing,
+// as they didn't travel over gRPC.
+func errorMessage(err error) string {
+	if s, ok := status.FromError(err); ok {
+		return s.Message()
+	}
+	return err.Error()
+}
+
+// httpStatusFromGRPC maps the gRPC status of an error of the UserAPI to the HTTP status code reported for it,
+// as documented on the [apitypes.ErrorCode] the error maps to.
+func httpStatusFromGRPC(err error) int {
+	switch status.Code(err) {
+	case codes.InvalidArgument:
+		return http.StatusBadRequest
+	case codes.PermissionDenied:
+		return http.StatusForbidden
+	case codes.FailedPrecondition:
+		return http.StatusPreconditionFailed
+	default:
+		return http.StatusInternalServerError
 	}
 }

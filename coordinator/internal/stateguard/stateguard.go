@@ -359,9 +359,16 @@ func (g *Guard) GetHistory(ctx context.Context) ([][]byte, map[manifest.HexStrin
 	if err != nil {
 		return nil, nil, err
 	}
+	return g.GetHistoryOf(ctx, state)
+}
+
+// GetHistoryOf returns the history leading up to the given state, like [Guard.GetHistory] does for the current state.
+//
+// Callers that report a state along with its history should use this, so that both match even if the Coordinator's state advances in between.
+func (g *Guard) GetHistoryOf(_ context.Context, state *State) ([][]byte, map[manifest.HexString][]byte, error) {
 	var manifests [][]byte
 	policies := make(map[manifest.HexString][]byte)
-	err = g.hist.WalkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
+	err := g.hist.WalkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
 		manifestBytes, err := g.hist.GetManifest(t.ManifestHash)
 		if err != nil {
 			return err
