@@ -347,6 +347,8 @@ type MeshCertResponseV1 struct {
     CertChain []byte `json:"cert_chain"`
     // PEM-encoded certificate when workloads also trust workloads from previous manifests.
     RootCACert []byte `json:"root_ca_cert"`
+    // Signature by the mesh CA key over the digest below.
+    Signature []byte `json:"signature"`
 }
 ```
 
@@ -354,6 +356,24 @@ The Coordinator rejects the request unless the nonce is pending, the CSR signatu
 
 The response isn't attested, matching the gRPC path, where the initializer dials the Coordinator without a validator.
 It carries no workload secret, unlike `NewMeshCertResponse`.
+
+Under gRPC, the aTLS connection still keeps an intermediary from editing a genuine response, as it can't relay the handshake without the initializer's key.
+Without it, an intermediary could relay both requests to the genuine Coordinator, keep the genuine `CertChain`, and replace `MeshCACert` or `RootCACert`.
+The workload would then present a genuine identity to clients that verified the deployment, while trusting an attacker's CA for its own connections to peers.
+
+The Coordinator therefore signs the response with the mesh CA key, which is the key that also signs the workload certificate:
+
+```
+digest = sha256(sha256("contrast mesh cert response v1") || nonce || sha256(meshCACert) || sha256(certChain) || sha256(rootCACert))
+sig = ECDSA-Sign(meshCAKey, digest)
+```
+
+The initializer accepts the response only if the leaf of `CertChain` carries the public key of its CSR, the leaf is signed by the key of `MeshCACert`, and the signature verifies under that key.
+Checking the leaf against `MeshCACert` alone wouldn't suffice, as it doesn't bind `RootCACert`.
+An attacker could pair a root of their own with a forged intermediate certificate for the genuine intermediate key, and the chain would still verify.
+
+An intermediary can then only replace the response as a whole, with certificates the genuine CA didn't sign.
+This leaves the workload as isolated from verifying peers as an impostor Coordinator does under gRPC today.
 
 Security is unchanged for the certificates.
 The Coordinator additionally obtains proof of possession of the certificate key.
