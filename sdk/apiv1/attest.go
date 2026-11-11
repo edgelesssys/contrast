@@ -16,6 +16,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/sdk/internal/apiversion"
+	"github.com/edgelesssys/contrast/sdk/internal/policies"
 )
 
 // ErrCoordinatorUninitialized is returned if the Coordinator attests that no manifest has been set yet.
@@ -136,6 +137,9 @@ func (a *API) ValidateAttestation(ctx context.Context, nonce []byte, attestation
 	}
 	if err := validator.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+	if err := policies.CheckReferenced(resp.Manifests, resp.Policies); err != nil {
+		return nil, fmt.Errorf("checking policies against manifest history: %w", err)
 	}
 
 	// The capabilities digest is authenticated now, so it tells whether the negotiation can be trusted.
