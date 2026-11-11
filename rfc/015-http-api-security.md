@@ -215,7 +215,7 @@ The body carries a client nonce, the manifest, the policies, the previous transi
 ```
 h  = Transition{ManifestHash: sha256(manifest), PreviousTransitionHash: prev}.Digest()
 h' = sha256(hex(h))
-sig = ECDSA-Sign(workloadOwnerKey, h')
+sig = ECDSA-Sign(workloadOwnerKey, h')    (ASN.1 DER)
 ```
 
 ```go
@@ -376,6 +376,9 @@ The Coordinator therefore signs the response with the mesh CA key, which is the 
 digest = sha256(sha256("contrast mesh cert response v1") || nonce || sha256(meshCACert) || sha256(certChain) || sha256(rootCACert))
 sig = ECDSA-Sign(meshCAKey, digest)
 ```
+
+The 32-byte digest is signed directly as the message hash and isn't hashed again.
+The signature is ASN.1 DER-encoded, as for the workload owner signature on `POST /v1/manifest`.
 
 The initializer accepts the response only if the leaf of `CertChain` carries the public key of its CSR, the leaf is signed by the key of `MeshCACert`, and the signature verifies under that key.
 Checking the leaf against `MeshCACert` alone wouldn't suffice, as it doesn't bind `RootCACert`.
