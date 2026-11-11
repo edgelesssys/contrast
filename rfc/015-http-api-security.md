@@ -20,7 +20,7 @@ Following the structure of [RFC 012](012-application-level-verification.md), the
 
 1. The mechanisms must be usable over plain HTTP, with TLS terminated by an arbitrary party (the component itself, a TLS-intercepting proxy,...).
 2. For each request, the guarantees of the corresponding gRPC method must be preserved:
-   1. Freshness: a response, or an authenticated request, must be bound to *this specific* exchange.
+   1. Freshness: a response, or an authenticated request, must be bound to *this specific* exchange, or, for a signed request, to the state transition it applies to.
    2. Authenticity: the Coordinator must be identifiable as one allowed by the expected manifest.
    3. Confidentiality: secrets must be readable only by their intended recipient, independent of the transport.
    4. Authorization: privileged requests must be provably issued by a party the manifest permits.
@@ -203,6 +203,10 @@ Without a manifest in the response, the client validates the report against the 
 The released `POST /attest` keeps its current report data construction unchanged, the new fields are only added under `/v1/`.
 Security is unchanged. The added key, `Status`, `CapabilitiesDigest`, and `LatestTransitionSignature` are covered by `reportData`, meaning they inherit the existing freshness and authenticity guarantees.
 
+`Version` and `AttestationType` aren't bound.
+`Version` is informational, and a swapped `AttestationType` only selects the validator, which the report then has to pass.
+`Manifests` are bound through the transition hash, which the client recomputes from them, and `Policies` through the policy hashes in those manifests, which the client checks them against.
+
 
 #### `POST /v1/manifest` (SetManifest)
 
@@ -255,6 +259,8 @@ reportData = sha256(sha256("contrast manifest v1") || nonce || transitionHash ||
 
 Returning the attested state from the call itself, instead of having the client follow up with `/v1/attest`, keeps the guarantee the gRPC method gives today, namely that the CA certificates received belong to the manifest just set.
 Since `/v1/attest` doesn't return it, this is also the only way to authenticate the seed share document.
+
+The unbound fields are the same as for `/v1/attest`.
 
 #### `POST /v1/recover` (Recover)
 
@@ -326,6 +332,9 @@ This saves the client a follow-up `/v1/attest` to confirm that recovery succeede
 Security is unchanged.
 The seed is readable only by a Coordinator that produced a valid report over the HPKE key in response to this client's nonce.
 
+The unbound fields are the same as for `/v1/attest`.
+The capabilities digest isn't repeated, as the preceding `/v1/attest` binds it.
+
 #### `POST /v1/mesh/cert` (NewMeshCert)
 
 This requires two requests, as described in [Case 3](#case-3-client-authenticates-itself-to-the-coordinator-mesh-api).
@@ -377,6 +386,22 @@ This leaves the workload as isolated from verifying peers as an impostor Coordin
 
 Security is unchanged for the certificates.
 The Coordinator additionally obtains proof of possession of the certificate key.
+
+All response fields are covered by the mesh CA signature.
+In the request, `AttestationType` isn't bound, for the same reason as in `/v1/attest`.
+
+### What replaces aTLS
+
+aTLS gave each of the following properties to every message by default.
+Over HTTP, each one has to be provided explicitly.
+
+| Property aTLS gave by default | Replacement |
+| --- | --- |
+| Coordinator authentication | TEE report over the report data. None for `/v1/mesh/cert`, as in gRPC today, but its response is signed by the mesh CA key that signs the workload certificate. |
+| Client authorization | Workload owner or seed share owner signature for the User API, report and CSR for the Mesh API. |
+| Confidentiality of secrets | HPKE seal to the attested key. |
+| Integrity of the message | Only the fields covered by report data or signature. The remaining fields are listed per endpoint. |
+| Freshness | A nonce per exchange. The `/v1/manifest` signature is bound to the previous transition instead. |
 
 ## Out of scope
 
