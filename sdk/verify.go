@@ -17,6 +17,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/sdk/internal/policies"
 )
 
 // GetAttestation requests attestation evidence from the unversioned /attest endpoint of the Coordinator's HTTP API.
@@ -80,6 +81,9 @@ func (c *Client) ValidateAttestation(ctx context.Context, nonce []byte, attestat
 	reportData := apitypesv1.ConstructReportData(nonce, transitionDigest[:], &resp.CoordinatorState)
 	if err := validator.Validate(ctx, resp.AttestationType, resp.RawAttestationDoc, reportData[:]); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+	if err := policies.CheckReferenced(resp.Manifests, resp.Policies); err != nil {
+		return nil, fmt.Errorf("checking policies against manifest history: %w", err)
 	}
 
 	for _, minVersion := range []string{c.minimumAPIVersion, latestManifest.MinimumAPIVersion} {

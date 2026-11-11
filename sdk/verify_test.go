@@ -119,13 +119,21 @@ func TestValidateAttestation(t *testing.T) {
 		return out
 	}
 	response := func(manifests ...[]byte) *apitypesv1.AttestationResponse {
-		return &apitypesv1.AttestationResponse{
+		resp := &apitypesv1.AttestationResponse{
 			AttestationType:   asn1.ObjectIdentifier{1, 2, 3},
 			RawAttestationDoc: testNonce,
 			CoordinatorState: apitypesv1.CoordinatorState{
 				Manifests: manifests,
 			},
 		}
+		if len(manifests) > 0 {
+			resp.Policies = [][]byte{testPolicy}
+		}
+		return resp
+	}
+	withPolicies := func(policies [][]byte, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
+		resp.Policies = policies
+		return resp
 	}
 
 	for name, tc := range map[string]struct {
@@ -170,6 +178,16 @@ func TestValidateAttestation(t *testing.T) {
 			resp:              response(testManifest),
 			wantErr:           "older than the minimum",
 			wantErrIs:         ErrMinimumAPIVersionUnmet,
+		},
+		"policy missing": {
+			nonce:   testNonce,
+			resp:    withPolicies(nil, response(testManifest)),
+			wantErr: "missing",
+		},
+		"policy not referenced by any manifest": {
+			nonce:   testNonce,
+			resp:    withPolicies([][]byte{testPolicy, otherPolicy}, response(testManifest)),
+			wantErr: "isn't referenced by any manifest",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -254,10 +272,16 @@ func TestGetAttestationEndpoint(t *testing.T) {
 	}
 }
 
+// testPolicy is the policy referenced by testManifest.
+var testPolicy = []byte("version = \"0.1.0\"\nalgorithm = \"sha256\"\n\n[data]\n\"policy.rego\" = \"package agent_policy\"\n")
+
+// otherPolicy is a policy that testManifest doesn't reference.
+var otherPolicy = []byte("version = \"0.1.0\"\nalgorithm = \"sha256\"\n\n[data]\n\"policy.rego\" = \"package other_policy\"\n")
+
 var testManifest = []byte(`
 {
   "Policies": {
-    "ef27c1c91a0ce044c67f0ec10d7c66ea9f178453dc96a233e97f0675578042f2": {
+    "ec432606698641f33d970e8ba0655ec98ee420d10078c18ba13c18c0753d4f5c": {
       "SANs": ["coordinator"],
       "WorkloadSecretID": "apps/v1/StatefulSet/default/coordinator",
       "Role": "coordinator"
