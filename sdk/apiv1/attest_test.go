@@ -109,7 +109,7 @@ func TestValidateAttestation(t *testing.T) {
 	}
 	// response returns the attestation of an active Coordinator.
 	response := func(capabilitiesDigest []byte, manifests ...[]byte) *apitypesv1.AttestationResponse {
-		return &apitypesv1.AttestationResponse{
+		resp := &apitypesv1.AttestationResponse{
 			AttestationType:           asn1.ObjectIdentifier{1, 2, 3},
 			RawAttestationDoc:         testNonce,
 			CapabilitiesDigest:        capabilitiesDigest,
@@ -120,6 +120,14 @@ func TestValidateAttestation(t *testing.T) {
 				Manifests: manifests,
 			},
 		}
+		if len(manifests) > 0 {
+			resp.Policies = [][]byte{testPolicy}
+		}
+		return resp
+	}
+	withPolicies := func(policies [][]byte, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
+		resp.Policies = policies
+		return resp
 	}
 	// withStatus sets the status, and drops the latest transition signature, which only an active Coordinator reports.
 	withStatus := func(status apitypesv1.Status, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
@@ -249,6 +257,16 @@ func TestValidateAttestation(t *testing.T) {
 			resp:              response(digest(Version), testManifest),
 			wantErr:           "older than the minimum",
 			wantErrIs:         apiversion.ErrMinimumUnmet,
+		},
+		"policy missing": {
+			nonce:   testNonce,
+			resp:    withPolicies(nil, response(digest(Version), testManifest)),
+			wantErr: "missing",
+		},
+		"policy not referenced by any manifest": {
+			nonce:   testNonce,
+			resp:    withPolicies([][]byte{testPolicy, otherPolicy}, response(digest(Version), testManifest)),
+			wantErr: "isn't referenced by any manifest",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
