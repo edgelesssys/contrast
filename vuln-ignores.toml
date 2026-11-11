@@ -140,6 +140,27 @@ title = "`zvariant_derive` is unmaintained"
 link = "https://osv.dev/vulnerability/RUSTSEC-2026-0372"
 reason = "The crate is unmaintained. The agent only includes it through the zbus crate, which remains maintained."
 
+[osv.GO-2026-6860]
+package = "golang.org/x/net"
+title = "Avoid quadratic complexity when coalescing text nodes in html in golang.org/x/net"
+link = "https://osv.dev/vulnerability/GO-2026-6860"
+reason = "Only affects golang.org/x/net/html, which no Contrast module imports. govulncheck confirms the vulnerable code isn't called."
+drop_when = "once all go.mod files require golang.org/x/net >= 0.62.0."
+
+[osv.GO-2026-6866]
+package = "golang.org/x/net"
+title = "Check all ancestor namespace transitions when rendering raw text in html in golang.org/x/net"
+link = "https://osv.dev/vulnerability/GO-2026-6866"
+reason = "Only affects golang.org/x/net/html, which no Contrast module imports. govulncheck confirms the vulnerable code isn't called."
+drop_when = "once all go.mod files require golang.org/x/net >= 0.62.0."
+
+[osv.RUSTSEC-2026-0441]
+package = "pin-utils"
+title = "`pin-utils` is unmaintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0441"
+reason = "The crate is unmaintained, with no known vulnerability. Kata only includes it through the default aio feature of the nix 0.26.4 crate. Waiting for kata update"
+drop_when = "once kata's Cargo.lock has no pin-utils."
+
 [vulnix.libusb.CVE-2026-23679]
 title = "libusb < 1.0.30 NULL Pointer Dereference in parse_interface()"
 link = "https://nvd.nist.gov/vuln/detail/CVE-2026-23679"
@@ -474,3 +495,14 @@ reason = "Incorrect free in pcre2_jit_match. systemd is not using the function."
 title = "In PCRE2 before 10.48, pcre2_serialize_encode might disclose two bytes to an adversary, typically in a situation where …"
 link = "https://nvd.nist.gov/vuln/detail/CVE-2026-89162"
 reason = "quote: 'pcre2_serialize_encode might disclose two bytes to an adversary, typically in a situation where the access available to the adversary is already unsafe'"
+
+[vulnix.brotli.CVE-2026-111497]
+title = "A buffer overflow vulnerability in the Brotli decoder (c/dec/decode.c) in Google Brotli versions 1.0.3 through 1.2.0 on..."
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-111497"
+reason = "False positive: google/brotli is fixed in 1.2.1. vulnix ignores the CPE vendor and matches the andybalholm:brotli (Go port) entry, which is affected before 1.2.7. (but which we don't use)"
+
+[vulnix.edk2.CVE-2026-111497]
+title = "A buffer overflow vulnerability in the Brotli decoder (c/dec/decode.c) in Google Brotli versions 1.0.3 through 1.2.0 on..."
+link = "https://nvd.nist.gov/vuln/detail/CVE-2026-111497"
+reason = "The edk2 overlay replaces the vendored brotli submodules with brotli 1.2.1. Additionally, OVMF-SNP and OVMF-TDX don't link BrotliCustomDecompressLib."
+drop_when = "once nixpkgs ships an edk2 release newer than 202608 and the overlay is dropped."
