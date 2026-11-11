@@ -35,6 +35,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
+	"github.com/edgelesssys/contrast/sdk/apiv1"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -385,38 +386,9 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 	}
 
 	// Test the HTTP API attestation endpoint, too.
-
-	cacheDir := os.Getenv(constants.CacheDirEnvVar)
-	if cacheDir == "" {
-		return fmt.Errorf("contrasttest.New should have set env var %q, but it's empty", constants.CacheDirEnvVar)
-	}
-	nonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
+	state, err := ct.AttestViaSDK(ctx, "", nil)
 	if err != nil {
-		return fmt.Errorf("generating nonce: %w", err)
-	}
-	var client *sdk.Client
-	var serializedAttestation []byte
-	err = ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", apitypes.Port, func(addr string) error {
-		client = sdk.New(fmt.Sprintf("http://%s", addr)).WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), cacheDir))
-		resp, err := client.GetAttestation(ctx, nonce)
-		if err != nil {
-			return fmt.Errorf("getting attestation: %w", err)
-		}
-		serializedAttestation = resp
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("calling HTTP API: %w", err)
-	}
-
-	var state *sdk.CoordinatorState
-	err = ct.withForwardedCollateralProxy(ctx, func(proxyBaseURL string) error {
-		var err error
-		state, err = client.WithCollateralProxy(proxyBaseURL).ValidateAttestation(ctx, nonce, serializedAttestation)
 		return err
-	})
-	if err != nil {
-		return fmt.Errorf("validating attestation: %w", err)
 	}
 
 	expectedManifest, err := os.ReadFile(ct.ManifestPath())
@@ -435,6 +407,78 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// AttestViaSDK fetches an attestation from the Coordinator's HTTP API with the SDK and validates it.
+//
+// If apiVersion is empty, it uses the unversioned endpoint. Otherwise, it negotiates the API version with the Coordinator,
+// which must result in apiVersion.
+// If configure is set, it's applied to the SDK client before the attestation is fetched.
+func (ct *ContrastTest) AttestViaSDK(ctx context.Context, apiVersion string, configure func(*sdk.Client) *sdk.Client) (*sdk.CoordinatorState, error) {
+	cacheDir := os.Getenv(constants.CacheDirEnvVar)
+	if cacheDir == "" {
+		return nil, fmt.Errorf("contrasttest.New should have set env var %q, but it's empty", constants.CacheDirEnvVar)
+	}
+	nonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
+	if err != nil {
+		return nil, fmt.Errorf("generating nonce: %w", err)
+	}
+	var client *sdk.Client
+	var serializedAttestation []byte
+	err = ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", apitypes.Port, func(addr string) error {
+		client = sdk.New(fmt.Sprintf("http://%s", addr)).WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), cacheDir))
+		if configure != nil {
+			client = configure(client)
+		}
+		if apiVersion != "" {
+			negotiated, err := client.NegotiateAPIVersion(ctx)
+			if err != nil {
+				return fmt.Errorf("negotiating API version: %w", err)
+			}
+			if negotiated != apiVersion {
+				return fmt.Errorf("negotiated API version %q, want %q", negotiated, apiVersion)
+			}
+		}
+		var resp []byte
+		switch apiVersion {
+		case "":
+			resp, err = client.GetAttestation(ctx, nonce)
+		case apiv1.Version:
+			resp, err = client.V1().GetAttestation(ctx, nonce)
+		default:
+			return fmt.Errorf("API version %q isn't supported by the test", apiVersion)
+		}
+		if err != nil {
+			return fmt.Errorf("getting attestation: %w", err)
+		}
+		serializedAttestation = resp
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("calling HTTP API: %w", err)
+	}
+
+	var state *sdk.CoordinatorState
+	err = ct.withForwardedCollateralProxy(ctx, func(proxyBaseURL string) error {
+		client = client.WithCollateralProxy(proxyBaseURL)
+		switch apiVersion {
+		case "":
+			var err error
+			state, err = client.ValidateAttestation(ctx, nonce, serializedAttestation)
+			return err
+		default:
+			v1State, err := client.V1().ValidateAttestation(ctx, nonce, serializedAttestation)
+			if err != nil {
+				return err
+			}
+			state = (*sdk.CoordinatorState)(v1State)
+			return nil
+		}
+	})
+	if err != nil {
+		return nil, fmt.Errorf("validating attestation: %w", err)
+	}
+	return state, nil
 }
 
 // Verify runs the contrast verify subcommand and fails the test if it is not successful.

@@ -14,27 +14,31 @@ import (
 
 	"github.com/edgelesssys/contrast/apitypes"
 	"github.com/edgelesssys/contrast/sdk/apiv1"
+	"github.com/edgelesssys/contrast/sdk/internal/apiversion"
 )
 
 // SupportedAPIVersions are the API versions this SDK can speak, newest first.
 //
 // The Coordinator advertises this list on its capabilities endpoint.
-// TODO(charludo): empty because the Coordinator serves no versioned endpoint yet.
-var SupportedAPIVersions = []string{}
+var SupportedAPIVersions = []string{apiv1.Version}
 
 // ErrNoCommonAPIVersion is returned if the SDK and the Coordinator share no API version.
 var ErrNoCommonAPIVersion = errors.New("no common API version")
 
 // ErrMinimumAPIVersionUnmet is returned if the API version in use is older than the pinned minimum API version.
-var ErrMinimumAPIVersionUnmet = errors.New("minimum API version not met")
+var ErrMinimumAPIVersionUnmet = apiversion.ErrMinimumUnmet
 
-// ErrAPIVersionDowngrade is returned if the API version negotiation to doesn't match the capabilities the Coordinator attested to.
-var ErrAPIVersionDowngrade = errors.New("API version was downgraded")
+// ErrAPIVersionDowngrade is returned if the capabilities the API version was negotiated with don't match the capabilities the Coordinator attested to.
+var ErrAPIVersionDowngrade = apiversion.ErrDowngrade
 
 // NegotiateAPIVersion returns the newest API version supported by both this SDK and the Coordinator.
 //
 // If the negotiated version is older than the one pinned via [Client.WithMinimumAPIVersion], negotiation fails with [ErrMinimumAPIVersionUnmet].
 // If there is no shared version, it fails with [ErrNoCommonAPIVersion].
+// If no version can be negotiated, only the unversioned legacy API is left, so negotiation also fails with
+// [ErrMinimumAPIVersionUnmet] if a minimum API version is pinned.
+//
+// Use the returned version to pick the client of that version, like [Client.V1].
 //
 // The first successful result is cached, so this costs at most one successful request per [Client].
 func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
@@ -47,25 +51,36 @@ func (c *Client) NegotiateAPIVersion(ctx context.Context) (string, error) {
 		return c.negotiatedVersion, nil
 	}
 
-	body, err := c.httpapi.DoJSON(ctx, apitypes.CapabilitiesMethod, apitypes.CapabilitiesPath, nil)
+	version, caps, err := c.negotiate(ctx)
 	if err != nil {
-		return "", fmt.Errorf("getting capabilities: %w", err)
-	}
-	var caps apitypes.CapabilitiesResponse
-	if err := json.Unmarshal(body, &caps); err != nil {
-		return "", fmt.Errorf("unmarshalling capabilities: %w", err)
-	}
-
-	version, ok := newestCommonAPIVersion(&caps)
-	if !ok {
-		return "", fmt.Errorf("%w: Coordinator supports %v, SDK supports %v", ErrNoCommonAPIVersion, caps.APIVersions, SupportedAPIVersions)
+		if pinErr := enforceMinimumAPIVersion(legacyAPIVersion, c.minimumAPIVersion); pinErr != nil {
+			return "", fmt.Errorf("%w (negotiating API version: %w)", pinErr, err)
+		}
+		return "", err
 	}
 	if err := enforceMinimumAPIVersion(version, c.minimumAPIVersion); err != nil {
 		return "", fmt.Errorf("refusing to negotiate: %w", err)
 	}
 	c.negotiatedVersion = version
-	c.negotiatedCapabilities = &caps
+	c.negotiatedCapabilities = caps
 	return version, nil
+}
+
+// negotiate fetches the Coordinator's capabilities and returns the newest API version both sides support.
+func (c *Client) negotiate(ctx context.Context) (string, *apitypes.CapabilitiesResponse, error) {
+	body, err := c.httpapi.DoJSON(ctx, apitypes.CapabilitiesMethod, apitypes.CapabilitiesPath, nil)
+	if err != nil {
+		return "", nil, fmt.Errorf("getting capabilities: %w", err)
+	}
+	var caps apitypes.CapabilitiesResponse
+	if err := json.Unmarshal(body, &caps); err != nil {
+		return "", nil, fmt.Errorf("unmarshalling capabilities: %w", err)
+	}
+	version, ok := newestCommonAPIVersion(&caps)
+	if !ok {
+		return "", nil, fmt.Errorf("%w: Coordinator supports %v, SDK supports %v", ErrNoCommonAPIVersion, caps.APIVersions, SupportedAPIVersions)
+	}
+	return version, &caps, nil
 }
 
 // newestCommonAPIVersion returns the newest API version supported by both this SDK and
@@ -80,31 +95,30 @@ func newestCommonAPIVersion(caps *apitypes.CapabilitiesResponse) (string, bool) 
 	return "", false
 }
 
-const legacyAPIVersion = ""
+const legacyAPIVersion = apiversion.Legacy
 
 // enforceMinimumAPIVersion returns [ErrMinimumAPIVersionUnmet] if version is older than the optional minimum API version pin.
 func enforceMinimumAPIVersion(version string, minimum string) error {
-	if minimum == "" {
-		return nil
-	}
-	minVersion, err := apitypes.ParseAPIVersion(minimum)
-	if err != nil {
-		return fmt.Errorf("parsing the minimum API version: %w", err)
-	}
-	if version == legacyAPIVersion {
-		return fmt.Errorf("%w: the unversioned legacy API is older than the minimum %s required", ErrMinimumAPIVersionUnmet, minimum)
-	}
-	v, err := apitypes.ParseAPIVersion(version)
-	if err != nil {
-		return fmt.Errorf("parsing API version %q: %w", version, err)
-	}
-	if v < minVersion {
-		return fmt.Errorf("%w: API version %s is older than the minimum %s required", ErrMinimumAPIVersionUnmet, version, minimum)
-	}
-	return nil
+	return apiversion.EnforceMinimum(version, minimum)
 }
 
 // V1 returns a client for version v1 of the Coordinator's HTTP API.
+//
+// It shares the Client's configuration, including its minimum API version pin, see [Client.WithMinimumAPIVersion].
+// If the Client negotiated the API version, see [Client.NegotiateAPIVersion], attestations validated by the
+// returned client must attest to the capabilities that were negotiated with.
 func (c *Client) V1() *apiv1.API {
-	return apiv1.New(c.httpapi)
+	return apiv1.New(apiv1.Config{
+		HTTP:                   c.httpapi,
+		Validator:              c.coordinatorValidator,
+		MinimumAPIVersion:      func() string { return c.minimumAPIVersion },
+		NegotiatedCapabilities: c.negotiatedCapabilitiesOrNil,
+	})
+}
+
+// negotiatedCapabilitiesOrNil returns the capabilities the API version was negotiated with, or nil if it wasn't negotiated.
+func (c *Client) negotiatedCapabilitiesOrNil() *apitypes.CapabilitiesResponse {
+	c.negotiateMu.Lock()
+	defer c.negotiateMu.Unlock()
+	return c.negotiatedCapabilities
 }

@@ -7,11 +7,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/hpke"
 	"crypto/sha256"
 	"encoding/asn1"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
@@ -20,6 +23,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/stretchr/testify/assert"
@@ -182,30 +186,180 @@ func TestAttestationHandler(t *testing.T) {
 	}
 }
 
-func TestAttestationReportDataBindsCapabilities(t *testing.T) {
+// TestLegacyAttestationResponse ensures the unversioned endpoint keeps its released response,
+// without the fields that were added for the versioned endpoint.
+func TestLegacyAttestationResponse(t *testing.T) {
 	require := require.New(t)
 
+	handler := &AttestationHandler{
+		StateGuard: &stubGuard{ca: newTestCA(t)},
+		Issuer:     &stubIssuer{oid: asn1.ObjectIdentifier{1, 2, 3}},
+	}
+	resp, status, err := handler.getResponse(t.Context(), nonce)
+	require.NoError(err)
+	require.Equal(http.StatusOK, status)
+
+	respJSON, err := json.Marshal(resp)
+	require.NoError(err)
+	var fields map[string]json.RawMessage
+	require.NoError(json.Unmarshal(respJSON, &fields))
+	require.ElementsMatch(
+		[]string{"version", "raw_attestation_doc", "attestation_type", "manifests", "policies", "root_ca", "mesh_ca"},
+		slices.Collect(maps.Keys(fields)),
+	)
+}
+
+func TestVersionedAttestationHandler(t *testing.T) {
+	capabilitiesDigest := NewCapabilitiesHandler().Digest()
+	// stubGuard creates its state from no manifest bytes, see [stateguard.NewStateForTest].
+	transition := (&history.Transition{ManifestHash: history.Digest(nil)}).Digest()
+	transitionDigest := transition[:]
+
+	testCases := map[string]struct {
+		guard  *stubGuard
+		issuer *stubIssuer
+
+		wantStatus           apitypesv1.Status
+		wantTransitionDigest []byte
+		wantHTTPStatus       int
+		wantErr              error
+	}{
+		"active": {
+			guard:                &stubGuard{},
+			wantStatus:           apitypesv1.StatusActive,
+			wantTransitionDigest: transitionDigest,
+		},
+		"uninitialized": {
+			guard:      &stubGuard{getStateErr: stateguard.ErrNoState},
+			wantStatus: apitypesv1.StatusUninitialized,
+		},
+		"stale": {
+			guard:      &stubGuard{getStateErr: stateguard.ErrStaleState},
+			wantStatus: apitypesv1.StatusStale,
+		},
+		"unknown error during GetState": {
+			guard:          &stubGuard{getStateErr: assert.AnError},
+			wantHTTPStatus: http.StatusInternalServerError,
+			wantErr:        errGettingState,
+		},
+		"unknown error during GetHistory": {
+			guard:          &stubGuard{getHistoryErr: assert.AnError},
+			wantHTTPStatus: http.StatusInternalServerError,
+			wantErr:        errGettingHistory,
+		},
+		"unable to get attestation": {
+			guard:          &stubGuard{},
+			issuer:         &stubIssuer{issueErr: assert.AnError},
+			wantHTTPStatus: http.StatusInternalServerError,
+			wantErr:        errGettingAttestation,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			tc.guard.ca = newTestCA(t)
+			expectedOID := asn1.ObjectIdentifier{1, 2, 3}
+			if tc.issuer == nil {
+				tc.issuer = &stubIssuer{oid: expectedOID}
+			}
+			pendingKeys := NewPendingKeys()
+			handler := &VersionedAttestationHandler{
+				StateGuard:         tc.guard,
+				Issuer:             tc.issuer,
+				CapabilitiesDigest: capabilitiesDigest,
+				PendingKeys:        pendingKeys,
+			}
+
+			body, err := json.Marshal(&apitypesv1.AttestationRequest{Nonce: nonce})
+			require.NoError(err)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, apitypesv1.AttestPath, bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			res := rec.Result()
+			defer res.Body.Close()
+
+			if tc.wantErr != nil {
+				require.Equal(tc.wantHTTPStatus, res.StatusCode)
+				var apiErr apitypesv1.AttestationError
+				require.NoError(json.NewDecoder(res.Body).Decode(&apiErr))
+				require.Contains(apiErr.Err, tc.wantErr.Error())
+				_, ok := pendingKeys.Take([32]byte(nonce))
+				require.False(ok, "no key must be kept for a failed exchange")
+				return
+			}
+			require.Equal(http.StatusOK, res.StatusCode)
+
+			var resp apitypesv1.AttestationResponse
+			require.NoError(json.NewDecoder(res.Body).Decode(&resp))
+			require.Equal(constants.Version, resp.Version)
+			require.Equal(expectedOID, resp.AttestationType)
+			require.NotEmpty(resp.RawAttestationDoc)
+			require.Equal(tc.wantStatus, resp.Status)
+			require.Equal(capabilitiesDigest[:], resp.CapabilitiesDigest)
+			if tc.wantStatus == apitypesv1.StatusActive {
+				require.NotEmpty(resp.RootCA)
+				require.NotEmpty(resp.MeshCA)
+			} else {
+				require.Equal(apitypesv1.CoordinatorState{}, resp.CoordinatorState)
+				require.Empty(resp.LatestTransitionSignature)
+			}
+
+			// A client must be able to reproduce the report data from the response alone.
+			wantReportData, err := apitypesv1.ConstructAttestationReportData(nonce, tc.wantTransitionDigest, &resp)
+			require.NoError(err)
+			require.Equal(wantReportData, tc.issuer.gotReportData)
+
+			// The private key of the attested public key is kept for exactly one follow-up request.
+			hpkeKey, ok := pendingKeys.Take([32]byte(nonce))
+			require.True(ok)
+			require.Equal(hpke.MLKEM768X25519().ID(), hpkeKey.KEM().ID())
+			require.Equal(resp.HPKEPubKey, hpkeKey.PublicKey().Bytes())
+			_, ok = pendingKeys.Take([32]byte(nonce))
+			require.False(ok)
+
+			// The key is usable with the primitives RFC 015 selects.
+			pub, err := hpke.MLKEM768X25519().NewPublicKey(resp.HPKEPubKey)
+			require.NoError(err)
+			ciphertext, err := hpke.Seal(pub, hpke.HKDFSHA256(), hpke.AES256GCM(), []byte("info"), []byte("secret"))
+			require.NoError(err)
+			plaintext, err := hpke.Open(hpkeKey, hpke.HKDFSHA256(), hpke.AES256GCM(), []byte("info"), ciphertext)
+			require.NoError(err)
+			require.Equal([]byte("secret"), plaintext)
+		})
+	}
+}
+
+// TestVersionedAttestationFreshKeys ensures every exchange gets a key of its own.
+func TestVersionedAttestationFreshKeys(t *testing.T) {
+	require := require.New(t)
+
+	handler := &VersionedAttestationHandler{
+		StateGuard:  &stubGuard{ca: newTestCA(t)},
+		Issuer:      &stubIssuer{oid: asn1.ObjectIdentifier{1, 2, 3}},
+		PendingKeys: NewPendingKeys(),
+	}
+	first, _, err := handler.getResponse(t.Context(), nonce)
+	require.NoError(err)
+	second, _, err := handler.getResponse(t.Context(), nonce)
+	require.NoError(err)
+	require.NotEqual(first.HPKEPubKey, second.HPKEPubKey)
+
+	// The key of the later exchange replaces the one of the earlier exchange with the same nonce.
+	hpkeKey, ok := handler.PendingKeys.Take([32]byte(nonce))
+	require.True(ok)
+	require.Equal(second.HPKEPubKey, hpkeKey.PublicKey().Bytes())
+}
+
+func newTestCA(t *testing.T) *ca.CA {
+	t.Helper()
 	meshKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
 	rootKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[2])
 	ca, err := ca.New(rootKey, meshKey)
-	require.NoError(err)
-
-	capabilitiesDigest := NewCapabilitiesHandler().Digest()
-
-	reportDataFor := func(capabilitiesDigest []byte) [64]byte {
-		issuer := &stubIssuer{oid: asn1.ObjectIdentifier{1, 2, 3}}
-		handler := &AttestationHandler{
-			StateGuard:         &stubGuard{ca: ca},
-			Issuer:             issuer,
-			CapabilitiesDigest: capabilitiesDigest,
-		}
-		_, status, err := handler.getResponse(t.Context(), nonce)
-		require.NoError(err)
-		require.Equal(http.StatusOK, status)
-		return issuer.gotReportData
-	}
-
-	require.NotEqual(reportDataFor(nil), reportDataFor(capabilitiesDigest[:]))
+	require.NoError(t, err)
+	return ca
 }
 
 type stubIssuer struct {
