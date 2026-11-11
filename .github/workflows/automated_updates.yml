@@ -1,0 +1,84 @@
+name: publish vulnerability fixes
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] applies validated patches without executing updater code
+    workflows: [static checks]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  publish:
+    if: github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    concurrency:
+      group: publish-update-${{ github.event.workflow_run.name }}
+      cancel-in-progress: false
+    steps:
+      - name: Select update artifact
+        id: update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          artifact=govulncheck-update
+          branch=automated/govulncheck
+          title='deps: fix vulnerabilities reported by govulncheck'
+          number=$(gh pr list --repo "$GH_REPO" --head "$branch" --state open --json number --jq '.[0].number // empty')
+          if [[ -n "$number" ]]; then
+            exit 0
+          fi
+          id=$(gh api "repos/${GH_REPO}/actions/runs/${RUN_ID}/artifacts" \
+            --jq ".artifacts[] | select(.name == \"${artifact}\" and .expired == false) | .id")
+          [[ "$id" =~ ^[0-9]+$ ]] || exit 0
+          {
+            echo "artifact=$artifact"
+            echo "branch=$branch"
+            echo "title=$title"
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.update.outputs.artifact != ''
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: steps.update.outputs.artifact != ''
+        with:
+          name: ${{ steps.update.outputs.artifact }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/update
+      - name: Validate and apply update
+        id: apply
+        if: steps.update.outputs.artifact != ''
+        run: |
+          [[ "$(cat "$RUNNER_TEMP/update/base.sha")" == "$(git rev-parse HEAD)" ]] || {
+            echo 'Main advanced since the update was generated; skipping stale update.'
+            exit 0
+          }
+          [[ -s "$RUNNER_TEMP/update/update.patch" ]] || exit 0
+          python3 tools/ci/apply-generated-patch.py "$RUNNER_TEMP/update/update.patch"
+          {
+            echo 'Automated update prepared without write credentials.'
+            echo
+            cat "$RUNNER_TEMP/update/report.md"
+          } > "$RUNNER_TEMP/body.md"
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+      - name: Create update PR
+        if: steps.apply.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          title: ${{ steps.update.outputs.title }}
+          body-path: ${{ runner.temp }}/body.md
+          commit-message: ${{ steps.update.outputs.title }}
+          base: main
+          branch: ${{ steps.update.outputs.branch }}
+          labels: dependencies
+          committer: edgelessci <edgelessci@users.noreply.github.com>
+          author: edgelessci <edgelessci@users.noreply.github.com>
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
