@@ -6,8 +6,9 @@ inputs:
     description: "Token to authenticate with GitHub"
     required: true
   cachixToken:
-    description: "Token to authenticate with cachix"
-    required: true
+    description: "Optional Cachix write token; omit for read-only builds"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
