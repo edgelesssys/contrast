@@ -45,15 +45,11 @@ runs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ inputs.github_token }}
-    - name: Bump flake version to release version
-      uses: ./.github/actions/bump_version
-      with:
-        version: ${{ inputs.without_v }}
-        commit: 'false'
     - name: Create release artifacts
       id: create-artifacts
       uses: ./.github/actions/release_artifacts
       with:
+        version: ${{ inputs.without_v }}
         image_tag: ${{ inputs.effective_version }}
         container_registry: ${{ inputs.container_registry }}
         s3-bucket-path: pre-releases/${{ inputs.effective_version }}
@@ -78,8 +74,7 @@ runs:
         mkdir -p genpolicy-warmup
         cp $PATHS genpolicy-warmup/
         touch genpolicy-warmup/layers-cache.json
-        nix build -L ".#base.contrast.cli-release"
-        ./result/bin/contrast generate \
+        ./workspace/artifacts/contrast-x86_64-linux generate \
           --reference-values Metal-QEMU-SNP \
           --genpolicy-cache-path genpolicy-warmup/layers-cache.json \
           genpolicy-warmup/ \

@@ -651,6 +651,9 @@ demodir version="latest": undeploy
 push-release-images:
     #!/usr/bin/env bash
     set -euo pipefail
+    if [[ $container_registry != "ghcr.io/edgelesssys" ]]; then
+        echo "WARNING: not using container registry ghcr.io/edgelesssys." >&2
+    fi
     rm -f ./{{ workspace_dir }}/just.containerlookup
     images=(
       coordinator
@@ -666,6 +669,30 @@ push-release-images:
     # Insert the release version into the image references.
     version="v$(cat version.txt)"
     sed -i "s/@/:$version@/" ./{{ workspace_dir }}/just.containerlookup
+
+# Push release images, build release artifacts and upload them to the contrast-public S3 bucket.
+# version is the release version without v prefix written to version.txt, e.g. 1.2.3.
+release-artifacts version s3-bucket-path="": soft-clean
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Default to the original version, so dev builds keep the -pre suffix.
+    if [[ -z ${CONTRAST_IMAGE_TAG:-} ]]; then
+        export CONTRAST_IMAGE_TAG="v$(cat version.txt)"
+    fi
+    trap 'git restore version.txt cli/cmd/assets/image-replacements.txt go.mod **/go.mod' EXIT
+    nix run .#base.scripts.bump-version -- {{ version }}
+    just push-release-images
+    cp ./{{ workspace_dir }}/just.containerlookup cli/cmd/assets/image-replacements.txt
+    nix run .#base.scripts.build-release-artifacts -- \
+        --image-replacements ./{{ workspace_dir }}/just.containerlookup \
+        --out ./{{ workspace_dir }}/artifacts
+    nix run .#base.scripts.build-release-cli -- \
+        --system "$(nix eval --raw --impure --expr builtins.currentSystem)" \
+        --out ./{{ workspace_dir }}/artifacts
+    s3_path="{{ s3-bucket-path }}"
+    s3_path="${s3_path:-just-artifacts/$(date +%Y-%m-%d_%H-%M-%S)}"
+    aws s3 cp --recursive ./{{ workspace_dir }}/artifacts "s3://contrast-public/$s3_path"
+    echo "Artifacts available at https://contrast-public.s3.eu-central-1.amazonaws.com/${s3_path}/"
 
 # Remove deployment specific files.
 soft-clean: undeploy

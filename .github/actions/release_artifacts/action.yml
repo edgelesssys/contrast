@@ -2,6 +2,10 @@ name: create release artifacts
 description: Create release artifacts for the contrast project
 
 inputs:
+  version:
+    description: Version to build the artifacts for, without v prefix. Defaults to the version in version.txt.
+    required: false
+    default: ''
   image_tag:
     description: >
       Tag to push the container images under. Nightlies pass their date-suffixed version so they don't move the tag of an already published release.
@@ -12,7 +16,7 @@ inputs:
     required: true
   s3-bucket-path:
     description: S3 bucket path to upload the artifacts
-    required: false
+    required: true
 
 outputs:
   paths:
@@ -20,12 +24,17 @@ outputs:
     value: ${{ steps.artifact-paths.outputs.paths }}
   s3-bucket-url:
     description: URL of the S3 bucket where the artifacts were uploaded
-    value: ${{ steps.upload-artifacts.outputs.url }}
+    value: ${{ steps.create-artifacts.outputs.url }}
 
 runs:
   using: "composite"
   steps:
     - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+    - name: AWS login (IAM role)
+      uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+      with:
+        role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
+        aws-region: eu-central-1
     - name: Create justfile.env
       shell: bash
       env:
@@ -36,53 +45,37 @@ runs:
         container_registry=${CONTAINER_REGISTRY}
         set=${SET}
         EOF
-    - name: Push containers
+    - name: Build release artifacts
+      id: create-artifacts
       shell: bash
       env:
+        VERSION: ${{ inputs.version }}
         CONTRAST_IMAGE_TAG: ${{ inputs.image_tag }}
+        S3_BUCKET_PATH: ${{ inputs.s3-bucket-path }}/${{ github.run_id }}/${{ github.run_attempt }}
       run: |
-        just push-release-images
-        mv workspace/just.containerlookup image-replacements.txt
+        just release-artifacts "${VERSION:-$(cat version.txt)}" "$S3_BUCKET_PATH"
+        cp workspace/just.containerlookup image-replacements.txt
+        echo "url=https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/" | tee -a "$GITHUB_OUTPUT"
     - name: Upload image replacement file (for main branch PR)
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: image-replacements
         path: |
           image-replacements.txt
-    - name: Update cli assets
-      shell: bash
-      run: cp image-replacements.txt cli/cmd/assets/image-replacements.txt
     - name: Expected artifact paths
       id: artifact-paths
       shell: bash
       run: |
         cat << 'EOF' | tee -a "${GITHUB_OUTPUT}"
         paths<<EOM
-        workspace/contrast-x86_64-linux
-        workspace/coordinator*.yml
-        workspace/runtime-*.yml
-        workspace/emojivoto-demo.yml
-        workspace/mysql-demo.yml
-        workspace/vault-demo.yml
-        workspace/node-installer-target-config-k3s.yml
-        workspace/node-installer-target-config-rke2.yml
-        workspace/*.cdx.json
+        workspace/artifacts/contrast-x86_64-linux
+        workspace/artifacts/coordinator*.yml
+        workspace/artifacts/runtime-*.yml
+        workspace/artifacts/emojivoto-demo.yml
+        workspace/artifacts/mysql-demo.yml
+        workspace/artifacts/vault-demo.yml
+        workspace/artifacts/node-installer-target-config-k3s.yml
+        workspace/artifacts/node-installer-target-config-rke2.yml
+        workspace/artifacts/*.cdx.json
         EOM
         EOF
-    - name: Create resource definitions and runtime SBOMs
-      shell: bash
-      env:
-        SET: base
-      run: nix run .#${SET}.scripts.build-release-artifacts -- --image-replacements ./image-replacements.txt --out workspace
-    - name: Build CLI with SBOM
-      shell: bash
-      env:
-        SET: base
-        SYSTEM: x86_64-linux
-      run: nix run .#${SET}.scripts.build-release-cli -- --system $SYSTEM --out workspace
-    - id: upload-artifacts
-      uses: ./.github/actions/s3_upload
-      if: ${{ inputs.s3-bucket-path != '' }}
-      with:
-        files: ${{ steps.artifact-paths.outputs.paths }}
-        s3-bucket-path: ${{ inputs.s3-bucket-path }}/${{ github.run_id }}/${{ github.run_attempt }}
