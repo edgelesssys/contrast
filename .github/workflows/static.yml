@@ -1,12 +1,10 @@
 name: static checks
-
 on:
   workflow_dispatch:
   push:
     branches:
       - main
   pull_request:
-
 jobs:
   flake-check:
     runs-on: ubuntu-24.04
@@ -21,37 +19,43 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Test CI patch validation
+        run: python3 -m unittest discover -s tools/ci -v
       - name: nix flake check
         run: |
           nix -L flake check
-
   generate:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
-      contents: write
+      contents: read
     env:
       SET: base
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ !github.event.pull_request.head.repo.fork && github.head_ref || '' }}
-          token: ${{ !github.event.pull_request.head.repo.fork && secrets.NUNKI_CI_COMMIT_PUSH_PR || github.token }}
-          persist-credentials: true
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          cachixToken: ""
       - name: Run code generations & tidying
         run: |
           nix run ".#${SET}.scripts.generate"
-      - name: Check for modifications, commit changes on renovate PRs
-        uses: ./.github/actions/pushdiff
+      - name: Collect generated changes
+        run: |
+          git diff --binary HEAD > "$RUNNER_TEMP/generated.patch"
+      - name: Upload generated changes
+        if: github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork && startsWith(github.head_ref, 'renovate/')
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          error: Generated code needs to be updated, check the GitHub run summary for the diff.
-          suggested-fix: Run \`nix run ".#${SET}.scripts.generate"\` to run code generation.
-          renovate-commit-msg: "fixup: update generated code"
-
+          name: generated-changes
+          path: ${{ runner.temp }}/generated.patch
+          retention-days: 1
+      - name: Check generated changes
+        run: |
+          git diff --exit-code
   govulncheck:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -70,7 +74,6 @@ jobs:
       - name: Run govulncheck
         run: |
           nix run ".#${SET}.scripts.govulncheck"
-
   govulncheck-autofix:
     name: "Fix vulnerabilities and open a PR"
     needs: govulncheck
@@ -154,7 +157,6 @@ jobs:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "The govulncheck autofix failed"
           message: "No PR was opened, the vulnerabilities are still unfixed. Check the run for the error."
-
   golangci-lint:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -178,7 +180,6 @@ jobs:
       - name: Run golangci-lint
         run: |
           nix run ".#${SET}.scripts.golangci-lint"
-
   go-licenses:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -197,7 +198,6 @@ jobs:
       - name: Run go-licenses
         run: |
           nix run ".#${SET}.scripts.go-licenses-check"
-
   sdk-wasm-compat:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -228,7 +228,6 @@ jobs:
             echo "Compiled SDK exceeds size limit of 25MB"
             exit 1
           fi
-
   cli-build:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -247,7 +246,6 @@ jobs:
       - name: Build CLI
         run: |
           nix build ".#${SET}.contrast.cli"
-
   darwin-cli-build:
     needs: cli-build
     runs-on: macos-latest
@@ -270,7 +268,6 @@ jobs:
       - name: Build darwin CLI
         run: |
           nix build ".#${SET}.contrast.cli"
-
   sev-snp-measure-consistency:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -289,7 +286,6 @@ jobs:
       - name: Run sev-snp-measure-consistency
         run: |
           nix run ".#${SET}.scripts.sev-snp-measure-consistency"
-
   qemu-acpi-blobs-test:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
