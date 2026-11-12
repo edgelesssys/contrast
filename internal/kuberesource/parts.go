@@ -201,14 +201,16 @@ func NodeInstallerTargetConfig(target string) (*applycorev1.ConfigMapApplyConfig
 	case "k3s":
 		return applycorev1.ConfigMap(nodeinstallerTargetConfigName, ns).
 			WithData(map[string]string{
-				"containerd-import-dir": "var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.d",
-				"systemd-unit-name":     "k3s.service,k3s-agent.service",
+				"containerd-import-dir":  "var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.d",
+				"containerd-socket-path": "run/k3s/containerd/containerd.sock",
+				"systemd-unit-name":      "k3s.service,k3s-agent.service",
 			}), nil
 	case "rke2":
 		return applycorev1.ConfigMap(nodeinstallerTargetConfigName, ns).
 			WithData(map[string]string{
-				"containerd-import-dir": "var/lib/rancher/rke2/agent/etc/containerd/config-v3.toml.d",
-				"systemd-unit-name":     "rke2-server.service,rke2-agent.service",
+				"containerd-import-dir":  "var/lib/rancher/rke2/agent/etc/containerd/config-v3.toml.d",
+				"containerd-socket-path": "run/k3s/containerd/containerd.sock", // not a typo, RKE2 publishes the socket under k3s.
+				"systemd-unit-name":      "rke2-server.service,rke2-agent.service",
 			}), nil
 	case "empty":
 		return applycorev1.ConfigMap(nodeinstallerTargetConfigName, ns).WithData(map[string]string{}), nil
