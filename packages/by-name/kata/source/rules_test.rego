@@ -55,6 +55,22 @@ test_allow_storage_bad_shared if {
 	not allow_storage(p_container, i_storage, bundle_id, sandbox_id)
 }
 
+test_allow_pause_storage_expected if {
+	expected_i_pause_storage := object.union(expected_i_storage, {
+		"source": "pause",
+		"mount_point": "/run/kata-containers/bar/rootfs",
+	})
+	allow_storage(p_pause_container, expected_i_pause_storage, sandbox_id, sandbox_id)
+}
+
+test_allow_pause_storage_bad_source if {
+	# Use the image from expected_i_storage, which is not "pause", but use the expected mount point.
+	bad_i_storage := object.union(expected_i_storage, {
+		"mount_point": "/run/kata-containers/bar/rootfs",
+	})
+	not allow_storage(p_pause_container, bad_i_storage, sandbox_id, sandbox_id)
+}
+
 # Loaded from rules_test_data.json, as OPA otherwise infers types from the empty literals and rejects references to fields set only by genpolicy.
 # TODO(burgerdev): source from genpolicy-settings.json
 policy_data := data.test_fixtures.policy_data
@@ -80,6 +96,17 @@ p_container := {
     "Annotations": {
       "io.kubernetes.cri.container-type": "container",
       "io.katacontainers.pkg.oci.container_type": "pod_container"
+    }
+  }
+}
+
+p_pause_container := {
+  "image": "docker.io/foo/bar:v2", # genpolicy takes the reference image from the settings. The rule should work with any such image.
+  "storages": [p_storage], # p_storage should be mostly ignored by policy, because pause image is not guest pulled.
+  "OCI": {
+    "Annotations": {
+      "io.kubernetes.cri.container-type": "sandbox",
+      "io.katacontainers.pkg.oci.container_type": "pod_sandbox"
     }
   }
 }
