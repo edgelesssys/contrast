@@ -362,7 +362,19 @@ sudo ./svc.sh status
 Verify that the PATH in `/home/github/actions-runner/.path` contains
 the nix paths. The installer snapshots your PATH variable during
 installation. If the paths don't exist, then copy over your PATH into
-`/home/github/actions-runner/.path` and restart the service via:
+`/home/github/actions-runner/.path`.
+
+Enable an `XDG_RUNTIME_DIR` for the github user and configure it for actions.
+
+```bash
+loginctl enable-linger github
+cat >>/home/github/actions-runner/.env <<EOF
+XDG_RUNTIME_DIR=/run/user/$(id -u github)
+EOF
+```
+
+Finally, restart the actions runner to apply the path and environment changes:
+
 ```bash
 systemctl restart actions.runner.edgelesssys-contrast.$(hostname).service
 ```
