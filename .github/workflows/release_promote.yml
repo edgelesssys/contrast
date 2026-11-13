@@ -425,7 +425,9 @@ jobs:
           git tag "${VERSION}" "${release_ref}"
           git tag "apitypes/${module_version}" "${release_ref}"
           git tag "sdk/${module_version}" "${release_ref}"
-          git push --atomic origin "${VERSION}" "apitypes/${module_version}" "sdk/${module_version}"
+          # A minor release commit isn't on main, so mark the nightly ref there. Go ignores the prefix, as no nightly module exists.
+          git tag "nightly/${VERSION}" "${REF}"
+          git push --atomic origin "${VERSION}" "apitypes/${module_version}" "sdk/${module_version}" "nightly/${VERSION}"
       - name: Determine next patch pre-version
         id: next-patch
         env:
