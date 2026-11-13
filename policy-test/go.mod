@@ -24,7 +24,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/docker/cli v29.7.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.3 // indirect
-	github.com/edgelesssys/contrast/apitypes v0.26.0 // indirect
+	github.com/edgelesssys/contrast/apitypes v0.27.0 // indirect
 	github.com/edgelesssys/go-sev-guest v0.0.0-20261027073724-e4b917838318 // indirect
 	github.com/edgelesssys/go-tdx-guest v0.0.0-20261027073737-15e4e62a1ff7 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
