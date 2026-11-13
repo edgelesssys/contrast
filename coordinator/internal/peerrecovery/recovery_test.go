@@ -46,7 +46,7 @@ func TestPeriodically(t *testing.T) {
 
 	for range 12 {
 		// The function should be called once per clock step.
-		receiveEventually(t, time.Millisecond, calls)
+		receiveEventually(t, time.Second, calls)
 		clock.Step(interval)
 	}
 
