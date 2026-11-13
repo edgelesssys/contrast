@@ -67,7 +67,7 @@ jobs:
           if [[ "${KIND}" == "minor" ]]; then
             base=$(sed 's/-.*$//' version.txt)
           else
-            # version.txt is stale on release branches (nightly promotion never commits version bumps), so derive the next patch from the tags.
+            # Release branches cut before publish committed version bumps carry a stale version.txt, so derive the next patch from the tags.
             series="${WORKING_BRANCH#release/}"
             latest=$(git tag --list "${series}.*" | sort -V | tail -1)
             if [[ -z "${latest}" ]]; then

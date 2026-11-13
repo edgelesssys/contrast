@@ -70,6 +70,9 @@ A patch release works exactly like a minor one, except that it needs to run off 
 
     If a platform's runner is broken, see [Skipping a broken platform](#skipping-a-broken-platform).
 
+    Don't merge into the release branch until the release is published.
+    Publish puts the release commit on top of the nightly ref, so promote fails once the branch has moved past it.
+
 3. Check that in that run, all checks and tests passed, and that a draft release `vX.Y.Z-yyyy-mm-dd` with artifacts exists.
 
 4. Trigger the promote workflow with the explicit version (without one, it promotes the latest *minor* nightly from `main`):

@@ -187,7 +187,7 @@ jobs:
         uses: ./.github/actions/parse_version
         with:
           version: ${{ steps.effective-version.outputs.value }}
-      - name: Verify nightly ref is on release branch
+      - name: Verify nightly ref is the release branch head
         if: steps.version-info.outputs.part_patch != '0'
         env:
           GH_REPO: ${{ github.repository }}
@@ -196,10 +196,16 @@ jobs:
         run: |
           branch_uri=$(jq -rn --arg branch "${RELEASE_BRANCH}" '$branch | @uri')
           status=$(gh api "repos/${GH_REPO}/compare/${REF}...${branch_uri}" --jq '.status')
-          if [[ "${status}" != "identical" && "${status}" != "ahead" ]]; then
-            echo "::error::Nightly ref ${REF} is not on ${RELEASE_BRANCH} (compare status: ${status})."
-            exit 1
+          if [[ "${status}" == "identical" ]]; then
+            exit 0
           fi
+          # A rerun finds the branch past the nightly ref, on the release commit a previous attempt pushed.
+          if [[ "${status}" == "ahead" ]] && gh api "repos/${GH_REPO}/git/ref/tags/${FULL_VERSION}" > /dev/null; then
+            exit 0
+          fi
+          # The release commit goes on top of the nightly ref, and release/* requires linear history.
+          echo "::error::${RELEASE_BRANCH} has moved past nightly ref ${REF} (compare status: ${status}). Cut a new nightly."
+          exit 1
       - name: Checkout nightly ref
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -385,22 +391,68 @@ jobs:
       - name: Create and push release tag
         env:
           VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
-          REF: ${{ needs.prepare.outputs.nightly_ref }}
-        run: |
-          git fetch origin "${REF}"
-          # The apitypes and sdk Go modules are released together with Contrast, as v0.<minor>.<patch>.
-          module_version="v0.${VERSION#v*.}"
-          git tag "${VERSION}" "${REF}"
-          git tag "apitypes/${module_version}" "${REF}"
-          git tag "sdk/${module_version}" "${REF}"
-          git push --atomic origin "${VERSION}" "apitypes/${module_version}" "sdk/${module_version}"
-      - name: Update release branch to nightly ref
-        if: needs.prepare.outputs.KIND == 'minor'
-        env:
+          WITHOUT_V: ${{ needs.prepare.outputs.WITHOUT_V }}
           REF: ${{ needs.prepare.outputs.nightly_ref }}
           RELEASE_BRANCH: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
-        # release/* requires linear history so this push must be a fast-forward.
-        run: git push origin "${REF}:refs/heads/${RELEASE_BRANCH}"
+        run: |
+          git fetch origin "${REF}"
+          git checkout --detach "${REF}"
+          # The nightly built the artifacts with version.txt set to the release version, so the tag carries that change
+          # to rebuild them as-is.
+          current=$(<version.txt)
+          if [[ "${current}" != "${WITHOUT_V}" ]]; then
+            echo -n "${WITHOUT_V}" > version.txt
+            # Fixed dates keep the commit SHA stable, so a rerun pushes the same tags.
+            date=$(git show -s --format=%cI HEAD)
+            GIT_AUTHOR_DATE="${date}" GIT_COMMITTER_DATE="${date}" \
+              git -c user.name=edgelessci -c user.email=edgelessci@users.noreply.github.com \
+              commit -m "flake: ${current} -> ${WITHOUT_V}" -- version.txt
+          fi
+          release_ref=$(git rev-parse HEAD)
+          # The release branch takes the release commit as a fast-forward, so stop before tagging if something was
+          # merged since the nightly. A rerun finds the branch past the release commit, a new minor finds no branch.
+          branch_head=$(git ls-remote origin "refs/heads/${RELEASE_BRANCH}")
+          branch_head="${branch_head%%$'\t'*}"
+          if [[ -n "${branch_head}" && "${branch_head}" != "${REF}" ]]; then
+            git fetch origin "${branch_head}"
+            if ! git merge-base --is-ancestor "${release_ref}" "${branch_head}"; then
+              echo "::error::${RELEASE_BRANCH} has moved past nightly ref ${REF}. Cut a new nightly."
+              exit 1
+            fi
+          fi
+          # The apitypes and sdk Go modules are released together with Contrast, as v0.<minor>.<patch>.
+          module_version="v0.${VERSION#v*.}"
+          git tag "${VERSION}" "${release_ref}"
+          git tag "apitypes/${module_version}" "${release_ref}"
+          git tag "sdk/${module_version}" "${release_ref}"
+          # A minor release commit isn't on main, so mark the nightly ref there. Go ignores the prefix, as no nightly module exists.
+          git tag "nightly/${VERSION}" "${REF}"
+          git push --atomic origin "${VERSION}" "apitypes/${module_version}" "sdk/${module_version}" "nightly/${VERSION}"
+      - name: Determine next patch pre-version
+        id: next-patch
+        env:
+          WITHOUT_V: ${{ needs.prepare.outputs.WITHOUT_V }}
+        run: echo "value=${WITHOUT_V%.*}.$((${WITHOUT_V##*.} + 1))-pre" | tee -a "$GITHUB_OUTPUT"
+      - name: Bump to next patch pre-version
+        id: bump
+        # This runs the nightly ref's copy of the action, so the bump matches the files on that release branch.
+        uses: ./.github/actions/bump_version
+        with:
+          version: ${{ steps.next-patch.outputs.value }}
+          commit: false
+      - name: Update release branch
+        env:
+          COMMIT_MSG: ${{ steps.bump.outputs.commit-msg }}
+          RELEASE_BRANCH: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
+        run: |
+          # The branch moves on to the next -pre version, so builds from it never report the released version.
+          date=$(git show -s --format=%cI HEAD)
+          git add -u -- version.txt go.mod '*/go.mod'
+          GIT_AUTHOR_DATE="${date}" GIT_COMMITTER_DATE="${date}" \
+            git -c user.name=edgelessci -c user.email=edgelessci@users.noreply.github.com \
+            commit -m "${COMMIT_MSG}"
+          # release/* requires linear history so this push must be a fast-forward.
+          git push origin "HEAD:refs/heads/${RELEASE_BRANCH}"
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -419,50 +471,3 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
         run: gh release verify "${VERSION}" --repo "${{ github.repository }}"
-
-  prepare-release-branch-pr:
-    name: Prepare post-release PR to release branch
-    runs-on: ubuntu-24.04
-    needs: [prepare, publish]
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Checkout release branch
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
-          path: contrast-release
-          persist-credentials: false
-      - name: Determine next patch pre-version
-        id: next-patch
-        env:
-          WITHOUT_V: ${{ needs.prepare.outputs.WITHOUT_V }}
-        run: echo "value=${WITHOUT_V%.*}.$((${WITHOUT_V##*.} + 1))-pre" | tee -a "$GITHUB_OUTPUT"
-      - name: Bump release branch to next patch pre-version
-        if: hashFiles('contrast-release/sdk/go.mod') != ''
-        id: bump
-        uses: ./.github/actions/bump_version
-        with:
-          version: ${{ steps.next-patch.outputs.value }}
-          working-directory: contrast-release
-          commit: false
-      - name: Create PR
-        if: hashFiles('contrast-release/sdk/go.mod') != ''
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
-        with:
-          title: Post ${{ needs.prepare.outputs.WITHOUT_V }} release updates to ${{ needs.prepare.outputs.RELEASE_BRANCH }}
-          body: |
-            Bumping ${{ needs.prepare.outputs.RELEASE_BRANCH }} to ${{ steps.next-patch.outputs.value }} as part of the ${{ needs.prepare.outputs.WITHOUT_V }} release.
-            Merge before cutting the next patch nightly.
-          commit-message: ${{ steps.bump.outputs.commit-msg }}
-          base: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
-          draft: false
-          labels: "no changelog"
-          branch: automated/update-${{ needs.prepare.outputs.RELEASE_BRANCH }}-after-${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
-          committer: edgelessci <edgelessci@users.noreply.github.com>
-          author: edgelessci <edgelessci@users.noreply.github.com>
-          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-          path: ./contrast-release
