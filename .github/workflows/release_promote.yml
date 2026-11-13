@@ -426,11 +426,31 @@ jobs:
           git tag "apitypes/${module_version}" "${release_ref}"
           git tag "sdk/${module_version}" "${release_ref}"
           git push --atomic origin "${VERSION}" "apitypes/${module_version}" "sdk/${module_version}"
-      - name: Update release branch to release commit
+      - name: Determine next patch pre-version
+        id: next-patch
         env:
+          WITHOUT_V: ${{ needs.prepare.outputs.WITHOUT_V }}
+        run: echo "value=${WITHOUT_V%.*}.$((${WITHOUT_V##*.} + 1))-pre" | tee -a "$GITHUB_OUTPUT"
+      - name: Bump to next patch pre-version
+        id: bump
+        # This runs the nightly ref's copy of the action, so the bump matches the files on that release branch.
+        uses: ./.github/actions/bump_version
+        with:
+          version: ${{ steps.next-patch.outputs.value }}
+          commit: false
+      - name: Update release branch
+        env:
+          COMMIT_MSG: ${{ steps.bump.outputs.commit-msg }}
           RELEASE_BRANCH: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
-        # release/* requires linear history so this push must be a fast-forward.
-        run: git push origin "HEAD:refs/heads/${RELEASE_BRANCH}"
+        run: |
+          # The branch moves on to the next -pre version, so builds from it never report the released version.
+          date=$(git show -s --format=%cI HEAD)
+          git add -u -- version.txt go.mod '*/go.mod'
+          GIT_AUTHOR_DATE="${date}" GIT_COMMITTER_DATE="${date}" \
+            git -c user.name=edgelessci -c user.email=edgelessci@users.noreply.github.com \
+            commit -m "${COMMIT_MSG}"
+          # release/* requires linear history so this push must be a fast-forward.
+          git push origin "HEAD:refs/heads/${RELEASE_BRANCH}"
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -449,50 +469,3 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
         run: gh release verify "${VERSION}" --repo "${{ github.repository }}"
-
-  prepare-release-branch-pr:
-    name: Prepare post-release PR to release branch
-    runs-on: ubuntu-24.04
-    needs: [prepare, publish]
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Checkout release branch
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
-          path: contrast-release
-          persist-credentials: false
-      - name: Determine next patch pre-version
-        id: next-patch
-        env:
-          WITHOUT_V: ${{ needs.prepare.outputs.WITHOUT_V }}
-        run: echo "value=${WITHOUT_V%.*}.$((${WITHOUT_V##*.} + 1))-pre" | tee -a "$GITHUB_OUTPUT"
-      - name: Bump release branch to next patch pre-version
-        if: hashFiles('contrast-release/sdk/go.mod') != ''
-        id: bump
-        uses: ./.github/actions/bump_version
-        with:
-          version: ${{ steps.next-patch.outputs.value }}
-          working-directory: contrast-release
-          commit: false
-      - name: Create PR
-        if: hashFiles('contrast-release/sdk/go.mod') != ''
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
-        with:
-          title: Post ${{ needs.prepare.outputs.WITHOUT_V }} release updates to ${{ needs.prepare.outputs.RELEASE_BRANCH }}
-          body: |
-            Bumping ${{ needs.prepare.outputs.RELEASE_BRANCH }} to ${{ steps.next-patch.outputs.value }} as part of the ${{ needs.prepare.outputs.WITHOUT_V }} release.
-            Merge before cutting the next patch nightly.
-          commit-message: ${{ steps.bump.outputs.commit-msg }}
-          base: ${{ needs.prepare.outputs.RELEASE_BRANCH }}
-          draft: false
-          labels: "no changelog"
-          branch: automated/update-${{ needs.prepare.outputs.RELEASE_BRANCH }}-after-${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
-          committer: edgelessci <edgelessci@users.noreply.github.com>
-          author: edgelessci <edgelessci@users.noreply.github.com>
-          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-          path: ./contrast-release
