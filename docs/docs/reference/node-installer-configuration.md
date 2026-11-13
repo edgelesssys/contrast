@@ -40,6 +40,18 @@ imports = ["/etc/containerd/config.toml.d/*.toml"]
 
 If this field is empty, the node installer falls back to [`containerd-config-path`](#containerd-config-path), which is deprecated and unsafe.
 
+### `containerd-socket-path`
+
+The path to the containerd socket serving the Container Runtime Interface (CRI).
+If this is set, the node installer verifies its own installation using the CRI status API.
+It only restarts containerd if its runtime handler isn't registered.
+If left unset, the node installer infers the containerd state from its service launch time.
+
+Setting `containerd-socket-path` is recommended because the default time-based mechanism is prone to race conditions.
+There's a potential trade-off, though: in the default configuration, the node installer is guaranteed to eventually succeed.
+If the socket path is set and there's an issue with the runtime handler installation, the node installer will crash-loop and restart containerd on each run.
+To avoid such issues, a Contrast installation with changed configuration should be supervised.
+
 ### `containerd-config-path`
 
 :::warning
