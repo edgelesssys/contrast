@@ -89,7 +89,7 @@ for subdir in "$testdata"/*/; do
     -o jsonpath='{.metadata.name}{"\n"}' | tail -n1)
   kubectl exec --namespace "$ns" pod/debugger -- \
     debugshell-host "$ns" "$pod" \
-    cat /tmp/policy.jsonl 2>/dev/null >"$dir/policy.jsonl"
+    cat /tmp/policy.jsonl >"$dir/policy.jsonl"
 
   normalize-agent-rpcs "$dir/policy.jsonl" >"$subdir/base.json"
 done
