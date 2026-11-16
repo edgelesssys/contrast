@@ -141,7 +141,7 @@ func TestGetHistory(t *testing.T) {
 	}
 
 	// Verify manifest history.
-	manifests, policiesByHash, err := g.GetHistory(ctx)
+	manifests, policiesByHash, err := g.GetHistory(ctx, state)
 	require.NoError(err)
 	assert.Len(policiesByHash, numManifests+1) // 1 additional policy comes from newManifest
 	require.Len(manifests, numManifests)
