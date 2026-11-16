@@ -37,7 +37,7 @@ var (
 // StateGuard is a stateguard.Guard at runtime, but can be stubbed in tests.
 type StateGuard interface {
 	GetState(context.Context) (*stateguard.State, error)
-	GetHistory(ctx context.Context) ([][]byte, map[manifest.HexString][]byte, error)
+	GetHistory(ctx context.Context, state *stateguard.State) ([][]byte, map[manifest.HexString][]byte, error)
 }
 
 // AttestationHandler handles POST requests to the unversioned attestation endpoint, which predates API versioning.
@@ -158,7 +158,7 @@ func (h *VersionedAttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 
 // getCoordinatorState collects the state an active Coordinator reports on its attestation endpoints.
 func getCoordinatorState(ctx context.Context, guard StateGuard, state *stateguard.State) (*apitypesv1.CoordinatorState, error) {
-	manifests, policies, err := guard.GetHistory(ctx)
+	manifests, policies, err := guard.GetHistory(ctx, state)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errGettingHistory, err)
 	}

@@ -43,7 +43,7 @@ type guard interface {
 	// GetState returns the current state. If the error is nil, the state must be set.
 	GetState(context.Context) (*stateguard.State, error)
 	// GetHistory returns a slice of manifests and a map of policies referenced in the manifests.
-	GetHistory(context.Context) (manifests [][]byte, policies map[manifest.HexString][]byte, err error)
+	GetHistory(context.Context, *stateguard.State) (manifests [][]byte, policies map[manifest.HexString][]byte, err error)
 	// UpdateState advances the state to the given manifest and policies.
 	UpdateState(ctx context.Context, oldState *stateguard.State, se *seedengine.SeedEngine, manifest []byte, policies [][]byte) (newState *stateguard.State, err error)
 	// ResetState recovers to the latest persisted state, authorizing the recovery seed with the passed func.
@@ -193,7 +193,7 @@ func (s *Server) GetManifests(ctx context.Context, _ *userapi.GetManifestsReques
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	}
 
-	manifests, policies, err := s.guard.GetHistory(ctx)
+	manifests, policies, err := s.guard.GetHistory(ctx, state)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "getting history: %v", err)
 	}

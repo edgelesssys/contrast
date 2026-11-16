@@ -352,16 +352,12 @@ func (g *Guard) UpdateState(_ context.Context, oldState *State, se *seedengine.S
 	return nextState, nil
 }
 
-// GetHistory returns a list of manifests, the current manifest being last, and the policies
+// GetHistory returns a list of manifests, the manifest of the given state being last, and the policies
 // referenced in at least one of the manifests.
-func (g *Guard) GetHistory(ctx context.Context) ([][]byte, map[manifest.HexString][]byte, error) {
-	state, err := g.GetState(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
+func (g *Guard) GetHistory(_ context.Context, state *State) ([][]byte, map[manifest.HexString][]byte, error) {
 	var manifests [][]byte
 	policies := make(map[manifest.HexString][]byte)
-	err = g.hist.WalkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
+	err := g.hist.WalkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
 		manifestBytes, err := g.hist.GetManifest(t.ManifestHash)
 		if err != nil {
 			return err
