@@ -87,13 +87,15 @@ DefinitionBlock ("", "SSDT", 6, "BADAML", "BADAML", 0x20240306)
             {
                 Debug = "BADAML: _INI started"
 
-                // Scan base: 0x40000000 (1GB). The initrd is loaded by OVMF
-                // toward the upper end of guest RAM (empirically observed
-                // around 0x8B000000 on our 2.4GB test VMs), so starting at
-                // 1GB rather skips ~128 iterations that we know never contain
-                // the target. Starting the scan further also mitigates against
-                // unhandled #VC exit code 0x404 on SEV-SNP that were observed
-                // to cause intermittent guest terminations.
+                // Scan base: 0x40000000 (1GB). OVMF loads the initrd toward the
+                // upper end of guest RAM, so the low gigabyte never holds the
+                // target and skipping it saves ~128 iterations.
+                //
+                // Any read of memory that the guest has shared with the host
+                // raises #VC 0x404, which terminates the guest. The kernel's
+                // 2MB .bss..decrypted section is shared until free_initmem,
+                // after this payload ran, so the badaml guest boots with
+                // nokaslr to keep it at a fixed address far below the scan range.
                 Local0 = 0x40000000
 
                 Debug = "BADAML: coarse scanning memory for 0xdeadbeef"
