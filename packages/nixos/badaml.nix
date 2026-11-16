@@ -60,6 +60,12 @@ in
       "acpi.debug_layer=0x80"
       "acpi.debug_level=0x02"
       "log_buf_len=4M"
+      # On SEV-SNP the kernel's 2MB .bss..decrypted section is shared with the
+      # host until free_initmem, which runs after the payload. With physical
+      # KASLR it can land on a scan address, and the encrypted read raises
+      # #VC 0x404, which terminates the guest. A fixed kernel location keeps it
+      # below the scan range.
+      "nokaslr"
     ];
   };
 }
