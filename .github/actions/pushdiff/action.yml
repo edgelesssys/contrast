@@ -9,8 +9,8 @@ inputs:
     description: "Suggestion printed in addition to diff"
     required: true
   renovate-commit-msg:
-    description: "Commit message for changes on renovate branches"
-    required: true
+    description: "Commit message for changes on renovate branches. If unset, changes are not committed."
+    required: false
 
 runs:
   using: "composite"
@@ -40,6 +40,7 @@ runs:
     - name: Push changes
       if: |
         failure() &&
+        (inputs.renovate-commit-msg != '') &&
         (steps.check-diff.conclusion == 'failure') &&
         startsWith(github.head_ref, 'renovate/') &&
         (!github.event.pull_request.head.repo.fork)

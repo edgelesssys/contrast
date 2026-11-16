@@ -53,7 +53,6 @@ jobs:
         with:
           error: Testcases need to be updated, check the GitHub run summary for the diff.
           suggested-fix: Run \`just policy-rpc\` to fetch new testcases.
-          renovate-commit-msg: "fixup: update policy suite testcases"
       - name: Cleanup
         if: always()
         run: |
