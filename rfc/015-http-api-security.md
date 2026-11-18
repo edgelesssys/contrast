@@ -403,6 +403,7 @@ Over HTTP, each one has to be provided explicitly.
 | Coordinator authentication | TEE report over the report data. None for `/v1/mesh/cert`, as in gRPC today, but its response is signed by the mesh CA key that signs the workload certificate. |
 | Client authorization | Workload owner or seed share owner signature for the User API, report and CSR for the Mesh API. |
 | Confidentiality of secrets | HPKE seal to the attested key. |
+| Confidentiality of everything else | None. Manifests, manifest history, policies, reports, CSRs and certificates are sent in plaintext. Encryption was a byproduct of aTLS. They were never confidential, and `GetManifests` serves them to any client without authentication. |
 | Integrity of the message | Only the fields covered by report data or signature. The remaining fields are listed per endpoint. |
 | Freshness | A nonce per exchange. The `/v1/manifest` signature is bound to the previous transition instead. |
 
