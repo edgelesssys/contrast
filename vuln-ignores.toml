@@ -161,6 +161,27 @@ link = "https://osv.dev/vulnerability/RUSTSEC-2026-0441"
 reason = "The crate is unmaintained, with no known vulnerability. Kata only includes it through the default aio feature of the nix 0.26.4 crate. Waiting for kata update"
 drop_when = "once kata's Cargo.lock has no pin-utils."
 
+[osv.RUSTSEC-2026-0486]
+package = "rustix"
+title = "xattr functions mark unwritten bytes as initialized when given a zero-length buffer"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0486"
+reason = "Only the xattr read functions are affected. Kata pulls rustix 1.x in through xattr 1.6.1 (via tar), pathrs, tempfile, zbus and the async-* crates. tar only calls xattr::set and none of the others read xattrs, so the affected functions are never called. Waiting for kata update"
+drop_when = "once kata's Cargo.lock has rustix >= 1.1.6."
+
+[osv.RUSTSEC-2026-0542]
+package = "humantime"
+title = "humantime is unmaintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0542"
+reason = "The crate is unmaintained, with no known vulnerability. Kata only includes it through env_logger, kata-agent-ctl and kata-deploy. Waiting for kata update"
+drop_when = "once kata's Cargo.lock has no humantime."
+
+[osv.RUSTSEC-2026-0543]
+package = "chrono"
+title = "chrono is unmaintained"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0543"
+reason = "The crate is unmaintained, with no known vulnerability. Waiting for kata update"
+drop_when = "once kata's Cargo.lock has no chrono."
+
 [vulnix.libusb.CVE-2026-23679]
 title = "libusb < 1.0.30 NULL Pointer Dereference in parse_interface()"
 link = "https://nvd.nist.gov/vuln/detail/CVE-2026-23679"
