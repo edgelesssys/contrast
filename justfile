@@ -568,9 +568,9 @@ get-ghcr-read-token:
     token=$(nix run -L .#base.scripts.get-ghcr-read-token "projects/796962942582/secrets/ghcr-read-token/versions/latest")
     sed --follow-symlinks -i "s/^contrast_ghcr_read=.*/contrast_ghcr_read=\"${token}\"/" justfile.env
 
-# Run code generators.
-codegen:
-    nix run -L .#base.scripts.generate
+# Run code generators. Targets: all (default), go, kata, docs, testdata.
+codegen target="all":
+    nix run -L .#base.scripts.{{ if target == "all" { "generate" } else { "generate-" + target } }}
 
 # Fix vulnerabilities reported by govulncheck. Pass --dry-run to only report them.
 govulnfix *ARGS:
