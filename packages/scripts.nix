@@ -12,6 +12,40 @@
 {
   generate = writeShellApplication {
     name = "generate";
+    runtimeInputs = [
+      scripts.generate-kata
+      scripts.generate-go
+      scripts.generate-docs
+      scripts.generate-testdata
+    ];
+    text = ''
+      generate-kata
+      generate-go
+      generate-docs
+      generate-testdata
+    '';
+  };
+
+  generate-kata = writeShellApplication {
+    name = "generate-kata";
+    runtimeInputs = [
+      scripts.update-kata-cargo-nix
+      scripts.update-kata-protos
+    ];
+    text = ''
+      echo "Updating proto definitions from kata" >&2
+      update-kata-protos
+
+      echo "Updating src hash of kata.release-tarball" >&2
+      ./packages/by-name/kata/release-tarball/update.sh
+
+      echo "Regenerating kata Cargo.nix" >&2
+      update-kata-cargo-nix
+    '';
+  };
+
+  generate-go = writeShellApplication {
+    name = "generate-go";
     runtimeInputs = with pkgs; [
       go
       protobuf
@@ -22,16 +56,10 @@
       nix-update
       scripts.go-directive-sync
       scripts.gofix
-      scripts.update-kata-cargo-nix
-      scripts.update-kata-protos
-      yarn-berry_4.yarn-berry-fetcher
     ];
     text = ''
       echo "Syncing go directive versions in go.mod/go.work files" >&2
       go-directive-sync
-
-      echo "Updating proto definitions from kata" >&2
-      update-kata-protos
 
       while IFS= read -r dir; do
         echo "Running go mod tidy on $dir" >&2
@@ -70,26 +98,37 @@
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.kernelconfig
       echo "Updating vendorHash of policy-test package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.policy-test
-      echo "Updating src hash of kata.release-tarball" >&2
-      ./packages/by-name/kata/release-tarball/update.sh
 
+      gofix
+    '';
+  };
+
+  generate-docs = writeShellApplication {
+    name = "generate-docs";
+    runtimeInputs = with pkgs; [
+      nix
+      nix-update
+      yarn-berry_4.yarn-berry-fetcher
+    ];
+    text = ''
       echo "Updating yarn missing-hashes.json of contrast.docs package" >&2
       yarn-berry-fetcher missing-hashes docs/yarn.lock > docs/missing-hashes.json
       echo "Updating yarn offlineCache hash of contrast.docs package" >&2
       nix-update --version=skip --flake \
         --override-filename=packages/by-name/contrast/docs/package.nix \
         legacyPackages.x86_64-linux.base.contrast.docs
+    '';
+  };
 
-      echo "Regenerating kata Cargo.nix" >&2
-      update-kata-cargo-nix
-
+  generate-testdata = writeShellApplication {
+    name = "generate-testdata";
+    runtimeInputs = [ pkgs.nix ];
+    text = ''
       echo "Updating default kata-container configuration toml files" >&2
       nix run .#base.scripts.update-kata-configurations
 
       echo "Updating default kata kernel configuration files" >&2
       nix run .#base.scripts.update-kernel-configurations
-
-      gofix
     '';
   };
 
