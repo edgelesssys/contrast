@@ -178,9 +178,15 @@ func TestLoadOverridesFromDir(t *testing.T) {
 			fsLayout: map[string]string{
 				"some/dir/systemd-unit-name": "",
 			},
-			setupConf: &TargetConfig{},
+			setupConf: &TargetConfig{
+				containerdConfigPath: "default/config.toml",
+				systemdUnitNames:     []string{"containerd.service"},
+			},
 			targetDir: "some/dir",
-			wantErr:   true,
+			wantConfig: &TargetConfig{
+				containerdConfigPath: "default/config.toml",
+				systemdUnitNames:     []string{},
+			},
 		},
 		"unexpected file in target config dir": {
 			fsLayout: map[string]string{
