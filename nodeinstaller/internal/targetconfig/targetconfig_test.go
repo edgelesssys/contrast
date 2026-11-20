@@ -91,6 +91,7 @@ func TestLoadOverridesFromDir(t *testing.T) {
 		"valid overrides": {
 			fsLayout: map[string]string{
 				"some/dir/containerd-config-path": "custom/config.toml",
+				"some/dir/containerd-import-dir":  "custom/config.toml.d",
 				"some/dir/kata-config-path":       "custom/kata.toml",
 				"some/dir/systemd-unit-name":      "custom.service",
 			},
@@ -99,6 +100,7 @@ func TestLoadOverridesFromDir(t *testing.T) {
 			wantErr:   false,
 			wantConfig: &TargetConfig{
 				containerdConfigPath: "custom/config.toml",
+				containerdImportDir:  "custom/config.toml.d",
 				systemdUnitNames:     []string{"custom.service"},
 				kataConfigPath:       "custom/kata.toml",
 			},
@@ -156,17 +158,17 @@ func TestLoadOverridesFromDir(t *testing.T) {
 			targetDir: "some/dir",
 			wantErr:   true,
 		},
-		"kata-config-path file empty": {
+		"containerd-import-dir empty": {
 			fsLayout: map[string]string{
-				"some/dir/kata-config-path": "",
+				"some/dir/containerd-import-dir": "",
 			},
 			setupConf: &TargetConfig{},
 			targetDir: "some/dir",
 			wantErr:   true,
 		},
-		"restart-systemd-unit file empty": {
+		"kata-config-path file empty": {
 			fsLayout: map[string]string{
-				"some/dir/restart-systemd-unit": "",
+				"some/dir/kata-config-path": "",
 			},
 			setupConf: &TargetConfig{},
 			targetDir: "some/dir",
