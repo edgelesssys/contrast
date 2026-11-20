@@ -47,6 +47,12 @@ func NewTargetConfig(hostMount, runtimeBase string, pl platforms.Platform) (*Tar
 	return conf, nil
 }
 
+var keysWithMandatoryValues = map[string]struct{}{
+	"containerd-import-dir":  {},
+	"containerd-config-path": {},
+	"kata-config-path":       {},
+}
+
 // LoadOverridesFromDir loads target configuration overrides from the specified directory.
 func (c *TargetConfig) LoadOverridesFromDir(
 	targetConfigDir string,
@@ -69,7 +75,7 @@ func (c *TargetConfig) LoadOverridesFromDir(
 			return fmt.Errorf("reading file %q: %w", path, err)
 		}
 		dataStr := string(bytes.TrimSpace(data))
-		if dataStr == "" {
+		if _, needsValue := keysWithMandatoryValues[info.Name()]; dataStr == "" && needsValue {
 			return fmt.Errorf("%s cannot be empty", info.Name())
 		}
 		switch info.Name() {
