@@ -68,6 +68,7 @@ func (c *TargetConfig) LoadOverridesFromDir(
 			return err
 		}
 		if !info.Mode().IsRegular() {
+			log.Printf("Skipping configuration directory entry %q that's not a regular file", info.Name())
 			return nil
 		}
 		data, err := c.fs.ReadFile(path)
@@ -91,7 +92,8 @@ func (c *TargetConfig) LoadOverridesFromDir(
 			// TODO(burgerdev): this config knob should be replaced with one for the full installation directory.
 			c.kataConfigPath = dataStr
 		default:
-			return fmt.Errorf("unexpected file %q in target config dir %q", info.Name(), targetConfigDir)
+			// Deliberately ignored such that updated config can be applied before the nodeinstaller.
+			log.Printf("Skipping unknown configuration key %q", info.Name())
 		}
 		return nil
 	}); err != nil {
