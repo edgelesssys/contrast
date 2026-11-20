@@ -21,7 +21,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/sdk/apiv1"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -110,7 +109,6 @@ func TestGetAttestation(t *testing.T) {
 
 func TestValidateAttestation(t *testing.T) {
 	testNonce := make([]byte, 32)
-	testOID := asn1.ObjectIdentifier{1, 2, 3}
 
 	manifestWithMinAPIVersion := func(version string) []byte {
 		var m map[string]any
@@ -120,97 +118,76 @@ func TestValidateAttestation(t *testing.T) {
 		require.NoError(t, err)
 		return out
 	}
-	digest := func(versions ...string) []byte {
-		d := apitypes.CapabilitiesResponse{APIVersions: versions}.Digest()
-		return d[:]
-	}
-	response := func(capabilitiesDigest []byte, manifests ...[]byte) *apitypesv1.AttestationResponse {
-		return &apitypesv1.AttestationResponse{
-			AttestationType:    testOID,
-			RawAttestationDoc:  testNonce,
-			CapabilitiesDigest: capabilitiesDigest,
+	response := func(manifests ...[]byte) *apitypesv1.AttestationResponse {
+		resp := &apitypesv1.AttestationResponse{
+			AttestationType:   asn1.ObjectIdentifier{1, 2, 3},
+			RawAttestationDoc: testNonce,
 			CoordinatorState: apitypesv1.CoordinatorState{
 				Manifests: manifests,
 			},
 		}
+		if len(manifests) > 0 {
+			resp.Policies = [][]byte{testPolicy}
+		}
+		return resp
+	}
+	withPolicies := func(policies [][]byte, resp *apitypesv1.AttestationResponse) *apitypesv1.AttestationResponse {
+		resp.Policies = policies
+		return resp
 	}
 
 	for name, tc := range map[string]struct {
-		nonce          []byte
-		versions       []string
-		offlineVersion string
-		sdkVersions    []string
-		resp           *apitypesv1.AttestationResponse
-		validateErr    error
-		wantErr        string
-		wantErrIs      error
+		nonce             []byte
+		minimumAPIVersion string
+		resp              *apitypesv1.AttestationResponse
+		validateErr       error
+		wantErr           string
+		wantErrIs         error
+		// wantUnvalidated is set if the error must be returned without the attestation having been validated.
+		wantUnvalidated bool
 	}{
 		"success": {
-			nonce:    testNonce,
-			versions: []string{apiv1.Version},
-			resp:     response(digest(apiv1.Version), testManifest),
-		},
-		"success on legacy endpoint": {
 			nonce: testNonce,
-			resp:  response(nil, testManifest),
-		},
-		"coordinator supports a newer version than the SDK": {
-			nonce:    testNonce,
-			versions: []string{"v2", apiv1.Version},
-			resp:     response(digest("v2", apiv1.Version), testManifest),
-		},
-		"attestation relayed to a Client that didn't fetch it": {
-			nonce:          testNonce,
-			offlineVersion: apiv1.Version,
-			resp:           response(digest("v2", apiv1.Version), testManifest),
+			resp:  response(testManifest),
 		},
 		"no manifests": {
-			nonce:    testNonce,
-			versions: []string{apiv1.Version},
-			resp:     response(digest(apiv1.Version)),
-			wantErr:  "coordinator state does not include manifests",
+			nonce:           testNonce,
+			resp:            response(),
+			wantErr:         "coordinator state does not include manifests",
+			wantUnvalidated: true,
 		},
 		"bad nonce": {
+			resp:    response(testManifest),
 			wantErr: "want 32",
 		},
 		"failed validation": {
 			nonce:       testNonce,
-			versions:    []string{apiv1.Version},
-			resp:        response(digest(apiv1.Version), testManifest),
+			resp:        response(testManifest),
 			validateErr: assert.AnError,
 			wantErr:     assert.AnError.Error(),
 		},
-		"versioned attestation without capabilities digest": {
-			nonce:    testNonce,
-			versions: []string{apiv1.Version},
-			resp:     response(nil, testManifest),
-			wantErr:  "doesn't include a capabilities digest",
-		},
-		"negotiated with forged capabilities": {
+		"manifest pins an API version": {
 			nonce:     testNonce,
-			versions:  []string{apiv1.Version},
-			resp:      response(digest("v2", apiv1.Version), testManifest),
-			wantErrIs: ErrAPIVersionDowngrade,
-		},
-		"newer common version exists": {
-			nonce:       testNonce,
-			versions:    []string{"v2", apiv1.Version},
-			sdkVersions: []string{"v2", apiv1.Version},
-			resp:        response(digest("v2", apiv1.Version), testManifest),
-			wantErrIs:   ErrAPIVersionDowngrade,
-		},
-		"manifest pins a newer API version": {
-			nonce:     testNonce,
-			versions:  []string{apiv1.Version},
-			resp:      response(digest(apiv1.Version), manifestWithMinAPIVersion("v2")),
+			resp:      response(manifestWithMinAPIVersion("v1")),
 			wantErr:   "older than the minimum",
 			wantErrIs: ErrMinimumAPIVersionUnmet,
 		},
-		"manifest pins an API version, but the legacy endpoint was used": {
-			nonce:     testNonce,
-			resp:      response(nil, manifestWithMinAPIVersion("v1")),
-			wantErr:   "older than the minimum",
-			wantErrIs: ErrMinimumAPIVersionUnmet,
+		"client pins an API version": {
+			nonce:             testNonce,
+			minimumAPIVersion: "v1",
+			resp:              response(testManifest),
+			wantErr:           "older than the minimum",
+			wantErrIs:         ErrMinimumAPIVersionUnmet,
+		},
+		"policy missing": {
+			nonce:   testNonce,
+			resp:    withPolicies(nil, response(testManifest)),
+			wantErr: "missing",
+		},
+		"policy not referenced by any manifest": {
+			nonce:   testNonce,
+			resp:    withPolicies([][]byte{testPolicy, otherPolicy}, response(testManifest)),
+			wantErr: "isn't referenced by any manifest",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -220,23 +197,8 @@ func TestValidateAttestation(t *testing.T) {
 			attestation, err := json.Marshal(tc.resp)
 			require.NoError(err)
 
-			c := New("").WithAPIVersion(tc.offlineVersion)
-			if tc.offlineVersion == "" {
-				srv := httptest.NewServer(coordinatorHandler(tc.versions, nil))
-				t.Cleanup(srv.Close)
-				c = New(srv.URL)
-				// Fetch an attestation to make the Client settle on an API version.
-				_, err = c.GetAttestation(t.Context(), testNonce)
-				require.NoError(err)
-				srv.Close()
-			}
-			if tc.sdkVersions != nil {
-				orig := SupportedAPIVersions
-				SupportedAPIVersions = tc.sdkVersions
-				t.Cleanup(func() { SupportedAPIVersions = orig })
-			}
-
 			validator := &stubValidator{err: tc.validateErr}
+			c := New("").WithMinimumAPIVersion(tc.minimumAPIVersion)
 			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) (validators.Validator, error) {
 				return validator, nil
 			}
@@ -248,61 +210,37 @@ func TestValidateAttestation(t *testing.T) {
 					assert.ErrorIs(err, tc.wantErrIs)
 				}
 				assert.Nil(state)
+				if tc.nonce != nil {
+					assert.Equal(tc.wantUnvalidated, validator.gotReportData == nil, "attestation validated")
+				}
 				return
 			}
-			assert.NoError(err)
+			require.NoError(err)
 
 			transitions := history.BuildTransitionChain(tc.resp.Manifests)
 			latestTransitionHash := transitions[len(transitions)-1].Digest()
-			expected := &CoordinatorState{
-				Manifests: tc.resp.Manifests,
-				Policies:  tc.resp.Policies,
-				RootCA:    tc.resp.RootCA,
-				MeshCA:    tc.resp.MeshCA,
-			}
-
-			assert.Equal(expected, state)
+			assert.Equal(&CoordinatorState{
+				Manifests:            tc.resp.Manifests,
+				Policies:             tc.resp.Policies,
+				RootCA:               tc.resp.RootCA,
+				MeshCA:               tc.resp.MeshCA,
+				LatestTransitionHash: latestTransitionHash[:],
+			}, state)
 
 			wantReportData := apitypesv1.ConstructReportData(tc.nonce, latestTransitionHash[:], &tc.resp.CoordinatorState)
-			if tc.resp.CapabilitiesDigest != nil {
-				wantReportData = apitypesv1.ConstructReportDataWithCapabilities(tc.nonce, latestTransitionHash[:], tc.resp.CapabilitiesDigest, &tc.resp.CoordinatorState)
-			}
 			assert.Equal(wantReportData[:], validator.gotReportData)
 		})
 	}
 }
 
-// TestGetAttestationEndpoint ensures the attestation is fetched from the newest endpoint both sides support.
+// TestGetAttestationEndpoint ensures the attestation is fetched from the unversioned endpoint, unless a minimum API version is pinned.
 func TestGetAttestationEndpoint(t *testing.T) {
 	for name, tc := range map[string]struct {
-		versions          []string
 		minimumAPIVersion string
-
-		wantPath  string
-		wantErrIs error
+		wantErrIs         error
 	}{
-		"coordinator supports v1": {
-			versions: []string{apiv1.Version},
-			wantPath: apitypesv1.AttestPath,
-		},
-		"coordinator predates API versioning": {
-			wantPath: apitypesv1.LegacyAttestPath,
-		},
-		"no common version": {
-			versions: []string{"v99"},
-			wantPath: apitypesv1.LegacyAttestPath,
-		},
-		"minimum met": {
-			versions:          []string{apiv1.Version},
-			minimumAPIVersion: "v1",
-			wantPath:          apitypesv1.AttestPath,
-		},
-		"minimum above all common versions": {
-			versions:          []string{apiv1.Version},
-			minimumAPIVersion: "v2",
-			wantErrIs:         ErrMinimumAPIVersionUnmet,
-		},
-		"minimum pinned, but coordinator predates API versioning": {
+		"no minimum API version": {},
+		"minimum API version pinned": {
 			minimumAPIVersion: "v1",
 			wantErrIs:         ErrMinimumAPIVersionUnmet,
 		},
@@ -311,44 +249,39 @@ func TestGetAttestationEndpoint(t *testing.T) {
 			require := require.New(t)
 
 			var gotPath string
-			srv := httptest.NewServer(coordinatorHandler(tc.versions, &gotPath))
+			mux := http.NewServeMux()
+			mux.Handle(apitypes.CapabilitiesPath, capabilitiesHandler([]string{apitypesv1.Version}))
+			for _, path := range []string{apitypesv1.LegacyAttestPath, apitypesv1.AttestPath} {
+				mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+					gotPath = r.URL.Path
+					attestationHandler(w, r)
+				})
+			}
+			srv := httptest.NewServer(mux)
 			t.Cleanup(srv.Close)
 
-			client := New(srv.URL).WithMinimumAPIVersion(tc.minimumAPIVersion)
-			_, err := client.GetAttestation(t.Context(), make([]byte, 32))
+			_, err := New(srv.URL).WithMinimumAPIVersion(tc.minimumAPIVersion).GetAttestation(t.Context(), make([]byte, 32))
 			if tc.wantErrIs != nil {
 				require.ErrorIs(err, tc.wantErrIs)
 				require.Empty(gotPath, "no attestation must be requested if the minimum API version isn't met")
 				return
 			}
 			require.NoError(err)
-			require.Equal(tc.wantPath, gotPath)
+			require.Equal(apitypesv1.LegacyAttestPath, gotPath)
 		})
 	}
 }
 
-// coordinatorHandler stubs a Coordinator advertising the given API versions.
-// Without versions, it stubs a Coordinator that predates API versioning.
-func coordinatorHandler(versions []string, gotAttestPath *string) http.Handler {
-	mux := http.NewServeMux()
-	if versions != nil {
-		mux.Handle(apitypes.CapabilitiesPath, capabilitiesHandler(versions))
-	}
-	for _, path := range []string{apitypesv1.LegacyAttestPath, apitypesv1.AttestPath} {
-		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-			if gotAttestPath != nil {
-				*gotAttestPath = r.URL.Path
-			}
-			attestationHandler(w, r)
-		})
-	}
-	return mux
-}
+// testPolicy is the policy referenced by testManifest.
+var testPolicy = []byte("version = \"0.1.0\"\nalgorithm = \"sha256\"\n\n[data]\n\"policy.rego\" = \"package agent_policy\"\n")
+
+// otherPolicy is a policy that testManifest doesn't reference.
+var otherPolicy = []byte("version = \"0.1.0\"\nalgorithm = \"sha256\"\n\n[data]\n\"policy.rego\" = \"package other_policy\"\n")
 
 var testManifest = []byte(`
 {
   "Policies": {
-    "ef27c1c91a0ce044c67f0ec10d7c66ea9f178453dc96a233e97f0675578042f2": {
+    "ec432606698641f33d970e8ba0655ec98ee420d10078c18ba13c18c0753d4f5c": {
       "SANs": ["coordinator"],
       "WorkloadSecretID": "apps/v1/StatefulSet/default/coordinator",
       "Role": "coordinator"

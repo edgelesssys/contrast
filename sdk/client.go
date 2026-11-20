@@ -34,11 +34,9 @@ type Client struct {
 
 	// negotiateMu guards negotiatedVersion and negotiatedCapabilities.
 	negotiateMu sync.Mutex
-	// negotiatedVersion caches the API version agreed on with the Coordinator,
-	// empty until negotiated or pinned via [Client.WithAPIVersion].
+	// negotiatedVersion caches the API version agreed on with the Coordinator, empty until negotiated.
 	negotiatedVersion string
-	// negotiatedCapabilities are the capabilities negotiatedVersion was negotiated with,
-	// nil if no version was negotiated, including if it was pinned via [Client.WithAPIVersion].
+	// negotiatedCapabilities are the capabilities negotiatedVersion was negotiated with, nil if no version was negotiated.
 	negotiatedCapabilities *apitypes.CapabilitiesResponse
 
 	// minimumAPIVersion, if set, is the oldest API version the Client accepts.
@@ -64,19 +62,6 @@ func New(baseURL string) *Client {
 		Log:        c.log,
 	}
 	c.fsstore = fsstore.New(afero.NewMemMapFs(), c.log.WithGroup("cert-cache"))
-	return c
-}
-
-// WithAPIVersion pins the API version used by the Client's version-independent methods,
-// skipping negotiation with the Coordinator.
-//
-// Calls fail if the Coordinator doesn't support the pinned version.
-//
-// It also tells [Client.ValidateAttestation] which API version an attestation was fetched with,
-// if it wasn't fetched by this Client.
-func (c *Client) WithAPIVersion(version string) *Client {
-	c.negotiatedVersion = version
-	c.negotiatedCapabilities = nil
 	return c
 }
 
@@ -112,7 +97,7 @@ func (c *Client) WithHTTPClient(httpClient *http.Client) *Client {
 //
 // Callers that know the MinimumAPIVersion of the manifest the Coordinator is supposed to run
 // should set this, so that a downgrade is detected before the Coordinator's own manifest is known.
-// [Client.ValidateAttestation] additionally enforces the pin of the Coordinator's latest manifest.
+// Validating an attestation additionally enforces the pin of the Coordinator's latest manifest.
 func (c *Client) WithMinimumAPIVersion(version string) *Client {
 	c.minimumAPIVersion = version
 	return c

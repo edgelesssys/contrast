@@ -126,62 +126,50 @@ func TestNegotiateAPIVersionErrorNotCached(t *testing.T) {
 	require.Equal(apiv1.Version, version)
 }
 
-// TestWithAPIVersionSkipsNegotiation ensures a pinned version doesn't contact the Coordinator.
-func TestWithAPIVersionSkipsNegotiation(t *testing.T) {
-	require := require.New(t)
-
-	var contacted atomic.Bool
-	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
-		contacted.Store(true)
-	}))
-	t.Cleanup(srv.Close)
-
-	version, err := New(srv.URL).WithAPIVersion(apiv1.Version).NegotiateAPIVersion(t.Context())
-	require.NoError(err)
-	require.Equal(apiv1.Version, version)
-	require.False(contacted.Load(), "Coordinator must not be contacted for a pinned API version")
-}
-
 func TestNegotiateAPIVersionManifestPin(t *testing.T) {
 	for name, tc := range map[string]struct {
 		minimumAPIVersion string
-		pinnedVersion     string
+		// versions are the API versions the Coordinator supports. If nil, it predates API versioning.
+		versions []string
 
 		wantVersion string
 		wantErr     string
 		wantErrIs   error
 	}{
 		"minimum matches the negotiated version": {
+			versions:          []string{apiv1.Version},
 			minimumAPIVersion: "v1",
 			wantVersion:       apiv1.Version,
 		},
 		"minimum above all common versions": {
+			versions:          []string{apiv1.Version},
 			minimumAPIVersion: "v2",
 			wantErr:           "older than the minimum",
 			wantErrIs:         ErrMinimumAPIVersionUnmet,
 		},
-		"pinned version below the minimum": {
-			minimumAPIVersion: "v2",
-			pinnedVersion:     apiv1.Version,
-			wantErr:           "older than the minimum",
-			wantErrIs:         ErrMinimumAPIVersionUnmet,
-		},
-		"pinned version meets the minimum": {
+		"minimum pinned, but no common version": {
+			versions:          []string{"v99"},
 			minimumAPIVersion: "v1",
-			pinnedVersion:     apiv1.Version,
-			wantVersion:       apiv1.Version,
+			wantErr:           "no common API version",
+			wantErrIs:         ErrMinimumAPIVersionUnmet,
+		},
+		"minimum pinned, but coordinator predates API versioning": {
+			minimumAPIVersion: "v1",
+			wantErr:           "getting capabilities",
+			wantErrIs:         ErrMinimumAPIVersionUnmet,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
 
-			srv := httptest.NewServer(capabilitiesHandler([]string{apiv1.Version}))
+			handler := http.NotFoundHandler()
+			if tc.versions != nil {
+				handler = capabilitiesHandler(tc.versions)
+			}
+			srv := httptest.NewServer(handler)
 			t.Cleanup(srv.Close)
 
 			client := New(srv.URL).WithMinimumAPIVersion(tc.minimumAPIVersion)
-			if tc.pinnedVersion != "" {
-				client = client.WithAPIVersion(tc.pinnedVersion)
-			}
 
 			version, err := client.NegotiateAPIVersion(t.Context())
 			if tc.wantErr != "" {
@@ -205,4 +193,13 @@ func capabilitiesHandler(versions []string) http.Handler {
 			panic(err)
 		}
 	})
+}
+
+func TestV1FollowsMinimumAPIVersionPin(t *testing.T) {
+	client := New("http://coordinator.invalid")
+	v1 := client.V1()
+	client.WithMinimumAPIVersion("v2")
+
+	_, err := v1.GetAttestation(t.Context(), make([]byte, 32))
+	require.ErrorIs(t, err, ErrMinimumAPIVersionUnmet)
 }

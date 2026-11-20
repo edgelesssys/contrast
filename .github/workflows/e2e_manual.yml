@@ -9,6 +9,7 @@ on:
         type: choice
         options:
           # keep-sorted start
+          - apiversion
           - atls
           - attestation
           - badaml-sandbox
