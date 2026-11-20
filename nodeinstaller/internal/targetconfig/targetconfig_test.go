@@ -190,13 +190,16 @@ func TestLoadOverridesFromDir(t *testing.T) {
 			targetDir: "some/dir",
 			wantErr:   true,
 		},
-		"unexpected file in target config dir": {
+		"unexpected file in target config dir does not prevent loading from expected files": {
 			fsLayout: map[string]string{
-				"some/dir/unexpected-file": "unexpected content",
+				"some/dir/unexpected-file":        "unexpected content",
+				"some/dir/containerd-config-path": "custom/config.toml",
 			},
 			setupConf: &TargetConfig{},
+			wantConfig: &TargetConfig{
+				containerdConfigPath: "custom/config.toml",
+			},
 			targetDir: "some/dir",
-			wantErr:   true,
 		},
 	}
 
