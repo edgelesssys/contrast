@@ -96,10 +96,12 @@ e2e target=default_deploy_target platform=default_platform set=default_set:
     declare -A required_sets=(
         [badaml-vuln]=badaml+no-aml-sandbox
         [badaml-sandbox]=badaml
+        [systemd-units]=base # The expected units are generated for the base set only.
     )
     declare -A required_debug=(
         [badaml-vuln]=true
         [badaml-sandbox]=true
+        [systemd-units]=true
     )
     RESOLVED_SET="{{ set }}"
     if [[ -v "required_sets[{{ target }}]" ]]; then
