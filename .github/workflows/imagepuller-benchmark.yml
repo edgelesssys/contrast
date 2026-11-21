@@ -27,7 +27,7 @@ jobs:
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          cachixToken: ${{ github.event_name != 'pull_request' && secrets.CACHIX_AUTH_TOKEN || '' }}
       - name: Log in to ghcr.io Container registry
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:

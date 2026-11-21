@@ -1,0 +1,41 @@
+name: Apply generated patch
+description: Validate a generated patch in Git's index before updating the checkout.
+inputs:
+  patch:
+    description: Absolute path to the downloaded patch
+    required: true
+  working-directory:
+    description: Clean target checkout
+    default: '.'
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        PATCH: ${{ inputs.patch }}
+      run: |
+        [[ -s "$PATCH" ]] || exit 0
+        [[ -z "$(git status --porcelain --untracked-files=no)" ]] || {
+          echo '::error::Target checkout must be clean.'
+          exit 1
+        }
+        trap 'git read-tree HEAD' EXIT
+        git apply --cached --whitespace=nowarn "$PATCH"
+        git diff --cached --quiet -- .github tools/ci .gitattributes ':(glob)**/.gitattributes' || {
+          echo '::error::Generated patches must not change workflow or Git configuration.'
+          exit 1
+        }
+        git diff --cached --raw --no-renames | awk '
+          $2 !~ /^(000000|100644|100755)$/ { bad = 1 }
+          END { exit bad }
+        ' || {
+          echo '::error::Generated patches may only write regular files.'
+          exit 1
+        }
+        trap - EXIT
+        git checkout-index --all --force
+        git diff --cached --name-only --diff-filter=D -z |
+          while IFS= read -r -d '' path; do
+            rm -- "$path"
+          done

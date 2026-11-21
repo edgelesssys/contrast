@@ -332,18 +332,22 @@ jobs:
           next_minor: ${{ needs.prepare.outputs.NEXT_MINOR }}
           github_token: ${{ github.token }}
 
-  prepare-post-release-pr:
-    name: Prepare post-release PR to main
+  # Docusaurus executes dependencies from docs/yarn.lock on the runner.
+  build-post-release-update:
+    name: Prepare post-release changes without write credentials
     runs-on: ubuntu-24.04
     needs: [prepare, promote]
     permissions:
-      contents: write
+      contents: read
       actions: read
+    outputs:
+      commit-msg: ${{ steps.prepare.outputs.commit-msg }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/prepare_post_release_pr
+        id: prepare
         with:
           checkout_main_ref: ${{ inputs.checkout_main_ref }}
           version: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
@@ -351,12 +355,55 @@ jobs:
           major_minor_patch: ${{ needs.prepare.outputs.MAJOR_MINOR_PATCH }}
           without_v: ${{ needs.prepare.outputs.WITHOUT_V }}
           next_minor_pre_without_v: ${{ needs.prepare.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
-          pr_branch_suffix: ${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
           kind: ${{ needs.prepare.outputs.KIND }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          nunki_ci_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-          cachix_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
           artifacts_run_id: ${{ needs.prepare.outputs.nightly_run_id }}
+
+  prepare-post-release-pr:
+    name: Publish post-release PR to main
+    runs-on: ubuntu-24.04
+    needs: [prepare, build-post-release-update]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_main_ref }}
+          path: contrast-main
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: post-release-update
+          path: ${{ runner.temp }}/update
+      - name: Check post-release update base
+        working-directory: contrast-main
+        run: |
+          [[ "$(cat "$RUNNER_TEMP/update/post-release-base.sha")" == "$(git rev-parse HEAD)" ]] || {
+            echo '::error::Main advanced since post-release changes were generated. Rerun preparation.'
+            exit 1
+          }
+      - uses: ./.github/actions/apply_generated_patch
+        with:
+          patch: ${{ runner.temp }}/update/post-release.patch
+          working-directory: contrast-main
+      - uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          title: Post ${{ needs.prepare.outputs.WITHOUT_V }} release updates to main
+          body: |
+            Updating main as part of the ${{ needs.prepare.outputs.WITHOUT_V }} release.
+            Only merge after the release is published.
+          commit-message: ${{ needs.build-post-release-update.outputs.commit-msg || 'Update release artifacts and documentation' }}
+          base: main
+          draft: false
+          labels: "no changelog"
+          branch: automated/update-main-after-${{ needs.prepare.outputs.EFFECTIVE_VERSION }}
+          committer: edgelessci <edgelessci@users.noreply.github.com>
+          author: edgelessci <edgelessci@users.noreply.github.com>
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+          path: ./contrast-main
 
   publish:
     name: Publish release
