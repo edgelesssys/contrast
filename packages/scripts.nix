@@ -70,6 +70,8 @@
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.kernelconfig
       echo "Updating vendorHash of policy-test package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.base.policy-test
+      echo "Updating vendorHash of reachable-units package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.base.reachable-units
       echo "Updating src hash of kata.release-tarball" >&2
       ./packages/by-name/kata/release-tarball/update.sh
 
@@ -88,6 +90,9 @@
 
       echo "Updating default kata kernel configuration files" >&2
       nix run .#base.scripts.update-kernel-configurations
+
+      echo "Updating expected systemd units of the podvm image" >&2
+      nix run .#base.scripts.update-systemd-units
 
       gofix
     '';
@@ -589,6 +594,21 @@
     text = # bash
       ''
         update-base ${contrastPkgs.kata.release-tarball.go} "$(git rev-parse --show-toplevel)"
+      '';
+  };
+
+  update-systemd-units = writeShellApplication {
+    name = "update-systemd-units";
+    runtimeInputs = [ pkgs.git ];
+    text = # bash
+      ''
+        dir="$(git rev-parse --show-toplevel)/e2e/systemd-units"
+        install -m 644 ${contrastPkgs.kata.systemd-units} "$dir/expected-units.txt"
+        install -m 644 ${
+          contrastPkgs.kata.systemd-units.override {
+            inherit (contrastPkgs.contrast.node-installer-image.gpu) os-image;
+          }
+        } "$dir/expected-units-gpu.txt"
       '';
   };
 

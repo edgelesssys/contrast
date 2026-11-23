@@ -32,6 +32,7 @@ on:
           - regression
           - release
           - servicemesh
+          - systemd-units
           - vault
           - volumestatefulset
           - workloadsecret

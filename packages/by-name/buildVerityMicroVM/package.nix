@@ -20,6 +20,16 @@ let
       imageFileName = "${oldAttrs.pname}_${oldAttrs.version}.raw";
     };
   });
+
+  # The kernel command line, given the roothash of the image's verity partition.
+  cmdline =
+    roothash:
+    nixos-config.config.boot.kernelParams
+    ++ [
+      "init=${nixos-config.config.system.build.toplevel}/init"
+      "roothash=${roothash}"
+      "cgroup_no_v1=all"
+    ];
 in
 
 lib.throwIf
@@ -45,15 +55,14 @@ lib.throwIf
     postBuild = ''
       roothash=$(jq --exit-status --raw-output '.[0].roothash' <"${image}/repart-output.json")
 
-      echo -n >"$out/cmdline" \
-        ${lib.escapeShellArgs nixos-config.config.boot.kernelParams} \
-        "init=${nixos-config.config.system.build.toplevel}/init" \
-        "roothash=$roothash" \
-        "cgroup_no_v1=all"
+      echo -n >"$out/cmdline" ${lib.escapeShellArgs (cmdline "@roothash@")}
+      substituteInPlace "$out/cmdline" --replace-fail "@roothash@" "$roothash"
     '';
 
     passthru = {
       inherit (image) imageFileName;
+      inherit cmdline;
+      nixosConfig = nixos-config.config;
       inherit (nixos-config.config.system.build)
         image
         kernel

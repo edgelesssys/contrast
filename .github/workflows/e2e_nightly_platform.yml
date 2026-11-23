@@ -60,6 +60,7 @@ jobs:
           - proxy
           - regression
           - servicemesh
+          - systemd-units
           - vault
           - volumestatefulset
           - workloadsecret
@@ -70,6 +71,8 @@ jobs:
             test-name: badaml-vuln
           - debug-shell: false
             test-name: badaml-sandbox
+          - debug-shell: false
+            test-name: systemd-units
           # If the platform is GPU, exclude the (non-existent) sentinel test, otherwise, exclude the (existing) "gpu" test.
           # matrix context is not available here, so instead, this workaround.
           - test-name: ${{ contains(inputs.platform-name, 'GPU') && 'gpu-on-gpu-platform-noop' || 'gpu' }}
