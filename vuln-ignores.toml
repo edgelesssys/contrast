@@ -182,6 +182,13 @@ link = "https://osv.dev/vulnerability/RUSTSEC-2026-0543"
 reason = "The crate is unmaintained, with no known vulnerability. Waiting for kata update"
 drop_when = "once kata's Cargo.lock has no chrono."
 
+[osv.RUSTSEC-2026-0592]
+package = "url"
+title = "Stack overflow in `Url::origin()` on nested `blob:` URLs"
+link = "https://osv.dev/vulnerability/RUSTSEC-2026-0592"
+reason = "Only Url::origin() and url::quirks::origin() are affected. Neither kata's own crates nor any crate that depends on url or reqwest (which re-exports Url) calls them. Waiting for kata update"
+drop_when = "once kata's Cargo.lock has url >= 2.5.9."
+
 [vulnix.libusb.CVE-2026-23679]
 title = "libusb < 1.0.30 NULL Pointer Dereference in parse_interface()"
 link = "https://nvd.nist.gov/vuln/detail/CVE-2026-23679"
