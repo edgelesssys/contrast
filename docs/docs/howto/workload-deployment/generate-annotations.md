@@ -109,7 +109,7 @@ See the [current limitations](../../architecture/features-limitations.md#runtime
 Running `contrast generate` for the first time creates some additional files in the working directory:
 
 - `seedshare-owner.pem` is required for handling the secret seed and recovering the Coordinator (see [Secrets & recovery](../../architecture/secrets.md)).
-- `workload-owner.pem` is required for manifest updates after the initial `contrast set`.
+- `workload-owner.pem` is required for setting the manifest with `contrast set`.
 - `rules.rego` and `settings.json` are the basis for [runtime policies](../../architecture/components/policies.md).
 - `layers-cache.json` caches container image layer information for your deployments to speed up subsequent runs of `contrast generate`.
 

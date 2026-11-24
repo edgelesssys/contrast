@@ -390,16 +390,18 @@ Be aware, though, that older `TCBInfo` numbers are eventually removed from the P
 ## `WorkloadOwnerPubKeys` {#workload-owner-pub-keys}
 
 A list of workload owner public keys.
-Used for authenticating subsequent manifest updates.
+Used for authenticating manifest updates.
 
 By default, the list contains the key that was passed to the Contrast CLI on `contrast generate` via the `--add-workload-owner-key` flag.
 If the flag wasn't used, the workload owner key was generated and stored in the workspace as `workload-owner.pem`.
 
 The Coordinator uses this list to authenticate manifest updates submitted via `contrast set`.
+The initial manifest is authenticated against its own list.
 If multiple workload owner keys are specified, any of the corresponding private keys can be used to set a new manifest.
 
 If the manifest is generated with the `--disable-updates` flag, the `WorkloadOwnerPubKeys` list is empty.
-In this case, updates to the manifest are disabled and the [deployment is immutable](../../howto/immutable-deployments.md).
+In this case, setting the initial manifest doesn't require authentication, and anyone who can reach the uninitialized Coordinator can set it (causing client-side verification to fail, of course).
+Updates to the manifest are disabled and the [deployment is immutable](../../howto/immutable-deployments.md).
 
 ## `SeedshareOwnerPubKeys` {#seedshare-owner-pub-keys}
 

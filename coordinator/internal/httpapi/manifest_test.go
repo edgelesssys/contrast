@@ -105,6 +105,11 @@ func TestSetManifestHandler(t *testing.T) {
 			wantTransition:    (&history.Transition{ManifestHash: history.Digest(manifestWithOwner(nil, ""))}).Digest(),
 			wantSeedSharesDoc: true,
 		},
+		"initial manifest without signature": {
+			req:            &apitypesv1.SetManifestRequest{Nonce: nonce, Manifest: first, PreviousTransitionHash: initialTransition},
+			wantHTTPStatus: http.StatusForbidden,
+			wantCode:       apitypes.ErrorCodeInvalidSignature,
+		},
 		"update": {
 			setup: []*apitypesv1.SetManifestRequest{
 				{Manifest: first, PreviousTransitionHash: initialTransition, Signature: sign(ownerKey, &history.Transition{ManifestHash: history.Digest(first)})},

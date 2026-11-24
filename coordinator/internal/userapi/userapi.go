@@ -95,8 +95,8 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 // SetManifestSigned registers a new manifest at the Coordinator, like [Server.SetManifest], for callers
 // that can't present a client certificate, like those of the HTTP API.
 //
-// Updates must therefore carry a workload owner signature, verified against the WorkloadOwnerPubKeys
-// of the manifest in force. A signature on the initial manifest is verified against its own WorkloadOwnerPubKeys.
+// The request must therefore carry a workload owner signature, verified against the WorkloadOwnerPubKeys
+// of the manifest in force for updates, and against those of the requested manifest for the initial manifest.
 //
 // apiVersion is the version of the API the request was made with. The request is rejected if the manifest in force
 // pins a newer minimum API version. The requested manifest may pin any valid version, as the versioned API is where pins are managed.
@@ -186,8 +186,8 @@ func (s *Server) setManifest(ctx context.Context, req *userapi.SetManifestReques
 		}
 	} else {
 		// First SetManifest call, initialize seed engine.
-		// The initial manifest is trusted on first use, unless the caller asks for it to be checked.
-		if len(req.Signature) != 0 {
+		// The initial manifest must be authorized by one of its own workload owner keys, or carry neither keys nor signatures.
+		if len(m.WorkloadOwnerPubKeys) != 0 || len(req.Signature) != 0 {
 			if err := authorize(ctx, m.WorkloadOwnerPubKeys, [history.HashSize]byte{}, req); err != nil {
 				return nil, nil, err
 			}
