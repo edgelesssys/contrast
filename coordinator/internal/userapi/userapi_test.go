@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -323,9 +324,18 @@ func TestSetManifest(t *testing.T) {
 		req = &userapi.SetManifestRequest{Manifest: m, PreviousTransitionHash: prevTransitionHash[:]}
 		_, err = coordinator.SetManifest(ctx, req)
 		require.NoError(err)
-		req = &userapi.SetManifestRequest{Manifest: m, PreviousTransitionHash: prevTransitionHash[:]}
+		state, err := coordinator.guard.GetState(t.Context())
+		require.NoError(err)
+		// Repeating the request, e.g. after the response got lost, doesn't make another transition.
 		_, err = coordinator.SetManifest(ctx, req)
-		require.Error(err)
+		require.NoError(err)
+		repeatedState, err := coordinator.guard.GetState(t.Context())
+		require.NoError(err)
+		require.Equal(state.LatestTransition().TransitionHash, repeatedState.LatestTransition().TransitionHash)
+		// Another manifest at the outdated transition is rejected.
+		req = &userapi.SetManifestRequest{Manifest: append(m, ' '), PreviousTransitionHash: prevTransitionHash[:]}
+		_, err = coordinator.SetManifest(ctx, req)
+		require.ErrorIs(err, ErrTransitionMismatch)
 	})
 
 	t.Run("signed manifest update", func(t *testing.T) {
@@ -824,6 +834,177 @@ func TestMinimumAPIVersionPin(t *testing.T) {
 
 	_, err = a.GetManifests(t.Context(), &userapi.GetManifestsRequest{})
 	requireTooOld(err)
+}
+
+func TestRepeatedSetManifest(t *testing.T) {
+	ownerKey := testkeys.ECDSA(t)
+	otherKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
+	seedShareOwnerKey := testkeys.RSA(t)
+	manifestBytes, policies := newManifestWithSeedshareOwner(t)
+	var mnfst manifest.Manifest
+	require.NoError(t, json.Unmarshal(manifestBytes, &mnfst))
+	otherPolicy := []byte("=== OTHER REGO ===")
+	otherPolicyHash := history.Digest(otherPolicy)
+	mnfst.Policies[manifest.NewHexString(otherPolicyHash[:])] = manifest.PolicyEntry{SANs: []string{"other"}, WorkloadSecretID: "other"}
+	updateBytes, err := json.Marshal(mnfst)
+	require.NoError(t, err)
+	updatePolicies := append(slices.Clone(policies), otherPolicy)
+
+	initialTransition := (&history.Transition{ManifestHash: history.Digest(manifestBytes)}).Digest()
+	sign := func(key *ecdsa.PrivateKey, manifest []byte, previous [history.HashSize]byte) []byte {
+		digest := (&history.Transition{ManifestHash: history.Digest(manifest), PreviousTransitionHash: previous}).OwnerSigningDigest()
+		sig, err := ecdsa.SignASN1(rand.Reader, key, digest[:])
+		require.NoError(t, err)
+		return sig
+	}
+	initialReq := func() *userapi.SetManifestRequest {
+		return &userapi.SetManifestRequest{
+			Manifest:               manifestBytes,
+			Policies:               policies,
+			PreviousTransitionHash: make([]byte, history.HashSize),
+			Signature:              sign(ownerKey, manifestBytes, [history.HashSize]byte{}),
+		}
+	}
+	updateReq := func() *userapi.SetManifestRequest {
+		return &userapi.SetManifestRequest{
+			Manifest:               updateBytes,
+			Policies:               updatePolicies,
+			PreviousTransitionHash: initialTransition[:],
+			Signature:              sign(ownerKey, updateBytes, initialTransition),
+		}
+	}
+
+	for name, tc := range map[string]struct {
+		// setup are the requests made before, the last one of them is the one that's repeated.
+		setup []*userapi.SetManifestRequest
+		req   *userapi.SetManifestRequest
+
+		wantCode           codes.Code
+		wantSeedShares     bool
+		wantHistoryEntries int
+	}{
+		"repeated initial manifest": {
+			setup:              []*userapi.SetManifestRequest{initialReq()},
+			req:                initialReq(),
+			wantSeedShares:     true,
+			wantHistoryEntries: 1,
+		},
+		"repeated update": {
+			setup:              []*userapi.SetManifestRequest{initialReq(), updateReq()},
+			req:                updateReq(),
+			wantHistoryEntries: 2,
+		},
+		"repeated initial manifest without authorization": {
+			setup: []*userapi.SetManifestRequest{initialReq()},
+			req: &userapi.SetManifestRequest{
+				Manifest:               manifestBytes,
+				Policies:               policies,
+				PreviousTransitionHash: make([]byte, history.HashSize),
+			},
+			wantCode: codes.PermissionDenied,
+		},
+		"repeated update signed by another key": {
+			setup: []*userapi.SetManifestRequest{initialReq(), updateReq()},
+			req: &userapi.SetManifestRequest{
+				Manifest:               updateBytes,
+				Policies:               updatePolicies,
+				PreviousTransitionHash: initialTransition[:],
+				Signature:              sign(otherKey, updateBytes, initialTransition),
+			},
+			wantCode: codes.PermissionDenied,
+		},
+		"repeated update without the policies": {
+			setup: []*userapi.SetManifestRequest{initialReq(), updateReq()},
+			req: &userapi.SetManifestRequest{
+				Manifest:               updateBytes,
+				Policies:               policies,
+				PreviousTransitionHash: initialTransition[:],
+				Signature:              sign(ownerKey, updateBytes, initialTransition),
+			},
+			wantCode: codes.InvalidArgument,
+		},
+		"update repeated after another transition": {
+			setup: []*userapi.SetManifestRequest{initialReq(), updateReq(), {
+				Manifest:               updateBytes,
+				Policies:               updatePolicies,
+				PreviousTransitionHash: nil,
+			}},
+			req:      updateReq(),
+			wantCode: codes.PermissionDenied,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			for api, set := range map[string]func(*Server, context.Context, *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error){
+				"gRPC": func(s *Server, ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
+					return s.SetManifest(ctx, req)
+				},
+				"signed": func(s *Server, ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
+					resp, _, err := s.SetManifestSigned(ctx, 1, req)
+					return resp, err
+				},
+			} {
+				t.Run(api, func(t *testing.T) {
+					require := require.New(t)
+
+					coordinator := newCoordinator()
+					var original *userapi.SetManifestResponse
+					for _, setup := range tc.setup {
+						// Set up via the gRPC API with the owner's client certificate, which authorizes any setup request.
+						var err error
+						original, err = coordinator.SetManifest(rpcContext(t.Context(), ownerKey), setup)
+						require.NoError(err)
+					}
+					before, err := coordinator.guard.GetState(t.Context())
+					require.NoError(err)
+
+					resp, err := set(coordinator, t.Context(), tc.req)
+					after, stateErr := coordinator.guard.GetState(t.Context())
+					require.NoError(stateErr)
+					require.Equal(before.LatestTransition().TransitionHash, after.LatestTransition().TransitionHash, "repetition must not make a transition")
+					if tc.wantCode != codes.OK {
+						require.Equal(tc.wantCode, status.Code(err), "error: %v", err)
+						return
+					}
+					require.NoError(err)
+
+					manifests, _, err := coordinator.guard.GetHistory(t.Context(), after)
+					require.NoError(err)
+					require.Len(manifests, tc.wantHistoryEntries)
+					require.Equal(original.RootCA, resp.RootCA)
+					require.Equal(original.MeshCA, resp.MeshCA)
+					if !tc.wantSeedShares {
+						require.Nil(resp.SeedSharesDoc)
+						return
+					}
+					require.Equal(original.SeedSharesDoc.Salt, resp.SeedSharesDoc.Salt)
+					require.Len(resp.SeedSharesDoc.SeedShares, len(original.SeedSharesDoc.SeedShares))
+					originalSeed, err := manifest.DecryptSeedShare(seedShareOwnerKey, original.SeedSharesDoc.SeedShares[0])
+					require.NoError(err)
+					seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, resp.SeedSharesDoc.SeedShares[0])
+					require.NoError(err)
+					require.Equal(originalSeed, seed)
+				})
+			}
+		})
+	}
+
+	t.Run("gRPC request without previous transition hash makes a new transition", func(t *testing.T) {
+		require := require.New(t)
+
+		coordinator := newCoordinator()
+		ctx := rpcContext(t.Context(), ownerKey)
+		req := &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies}
+		_, err := coordinator.SetManifest(ctx, req)
+		require.NoError(err)
+		_, err = coordinator.SetManifest(ctx, req)
+		require.NoError(err)
+
+		state, err := coordinator.guard.GetState(t.Context())
+		require.NoError(err)
+		manifests, _, err := coordinator.guard.GetHistory(t.Context(), state)
+		require.NoError(err)
+		require.Len(manifests, 2)
+	})
 }
 
 // TestSetManifestSignedMinimumAPIVersion verifies that SetManifestSigned enforces the minimum API version pinned

@@ -26,6 +26,11 @@ type SetManifestRequest struct {
 	// PreviousTransitionHash is the hash of the Coordinator's latest transition, which the manifest is
 	// set after. The manifest is only set if the Coordinator is still at this transition.
 	// It's all zeroes for the initial manifest.
+	//
+	// If the request repeats the one that made the Coordinator's latest transition, with the same manifest and
+	// previous transition hash, the Coordinator doesn't set the manifest again, but instead responds with the state
+	// of that transition, including the seed share document if it set the initial manifest.
+	// This allows clients to retry a request whose response got lost.
 	PreviousTransitionHash []byte `json:"previous_transition_hash"`
 	// Signature is a workload owner's signature over the transition the request makes, in the
 	// scheme of the `contrast sign` command:
