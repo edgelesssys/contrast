@@ -595,7 +595,7 @@ func getPeerPublicKey(ctx context.Context) ([]byte, error) {
 
 var (
 	// ErrNoManifest is returned when a manifest is needed but not present.
-	ErrNoManifest = errors.New("no manifest configured")
+	ErrNoManifest = userapi.ErrNoManifest
 	// ErrAlreadyRecovered is returned if seedEngine initialization was requested but a seed is already set.
 	ErrAlreadyRecovered = errors.New("coordinator is already recovered")
 	// ErrNeedsRecovery is returned if state exists, but no secrets are available, e.g. after restart.

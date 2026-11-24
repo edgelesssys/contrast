@@ -27,6 +27,10 @@ import (
 // ErrBaseURLUnset is returned when a request is attempted without a base URL.
 var ErrBaseURLUnset = errors.New("base URL is empty")
 
+// ErrResponseInterrupted is returned if reading a successful response of the Coordinator failed, e.g. because the
+// connection broke. The Coordinator processed the request, so a request that changes its state may have taken effect.
+var ErrResponseInterrupted = errors.New("reading the response was interrupted")
+
 // Client performs JSON requests against the Coordinator's HTTP API.
 type Client struct {
 	// HTTPClient is used to contact the Coordinator.
@@ -111,7 +115,7 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, reqBody any) (
 
 	resp, err := io.ReadAll(httpResp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("reading HTTP response body: %w", err)
+		return nil, fmt.Errorf("reading HTTP response body: %w: %w", ErrResponseInterrupted, err)
 	}
 	return resp, nil
 }

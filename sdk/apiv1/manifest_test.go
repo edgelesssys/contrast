@@ -195,6 +195,7 @@ func TestSetManifest(t *testing.T) {
 			require := require.New(t)
 
 			coordinator := &fakeManifestCoordinator{
+				t:             t,
 				history:       tc.history,
 				seedSharesDoc: tc.seedSharesDoc,
 				tamper:        tc.tamper,
@@ -281,6 +282,8 @@ func TestSetManifest(t *testing.T) {
 //
 // Its attestation endpoint reports it as uninitialized if the history is empty, and as active with that history otherwise.
 type fakeManifestCoordinator struct {
+	t *testing.T
+
 	history       [][]byte
 	seedSharesDoc []byte
 	tamper        func(*apitypesv1.SetManifestResponse)
@@ -335,9 +338,7 @@ func (f *fakeManifestCoordinator) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	if f.apiErr != nil {
 		w.WriteHeader(f.apiErr.StatusCode)
-		if err := json.NewEncoder(w).Encode(f.apiErr); err != nil {
-			panic(err)
-		}
+		assert.NoError(f.t, json.NewEncoder(w).Encode(f.apiErr))
 		return
 	}
 
@@ -357,9 +358,7 @@ func (f *fakeManifestCoordinator) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		f.tamper(resp)
 	}
 	f.sentResponse = resp
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		panic(err)
-	}
+	assert.NoError(f.t, json.NewEncoder(w).Encode(resp))
 }
 
 // fakeCapabilitiesDigest is the digest of the capabilities the fake Coordinator attests to.

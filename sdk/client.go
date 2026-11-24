@@ -19,6 +19,10 @@ import (
 	"github.com/spf13/afero"
 )
 
+// ErrResponseInterrupted is returned if reading a successful response of the Coordinator failed, e.g. because the
+// connection broke. The Coordinator processed the request, so a request that changes its state may have taken effect.
+var ErrResponseInterrupted = httpapi.ErrResponseInterrupted
+
 // Client is used to interact with a Contrast deployment.
 type Client struct {
 	// httpapi performs the HTTP requests against the Coordinator's API.
