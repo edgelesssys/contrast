@@ -271,6 +271,12 @@ func (t *Transition) Digest() [HashSize]byte {
 	return Digest(t.MarshalBinary())
 }
 
+// OwnerSigningDigest returns the digest a workload owner signs to authorize the Transition.
+func (t *Transition) OwnerSigningDigest() [HashSize]byte {
+	digest := t.Digest()
+	return Digest(hex.AppendEncode(nil, digest[:]))
+}
+
 // LatestTransition is the latest transition signed by the Coordinator.
 type LatestTransition struct {
 	TransitionHash [HashSize]byte
