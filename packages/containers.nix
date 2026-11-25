@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 {
+  lib,
   pkgs,
   contrastPkgs,
   dockerTools,
@@ -199,5 +200,20 @@
         # Compressed image will only be ~20MiB.
         dd if=/dev/zero of=$out/large-file bs=1M count=1000'')
     ];
+  };
+
+  smoke-test = contrastPkgs.buildOciImage {
+    name = "smoke-test";
+    tag = "0.1.0";
+    copyToRoot = with pkgs; [
+      busybox
+      snphost
+      contrastPkgs.smoke-test
+    ];
+    config = {
+      Cmd = [
+        (lib.getExe contrastPkgs.smoke-test)
+      ];
+    };
   };
 }
