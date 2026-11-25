@@ -67,11 +67,19 @@ var testManifest = []byte(`
 
 type stubValidator struct {
 	err           error
+	errFrom       int
 	gotReportData []byte
+	allReportData [][]byte
+	calls         int
 }
 
 func (v *stubValidator) Validate(_ context.Context, _ asn1.ObjectIdentifier, _ []byte, reportData []byte) error {
 	v.gotReportData = reportData
+	v.allReportData = append(v.allReportData, reportData)
+	v.calls++
+	if v.calls < v.errFrom {
+		return nil
+	}
 	return v.err
 }
 
