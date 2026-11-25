@@ -11,8 +11,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
@@ -27,6 +29,13 @@ import (
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/targetconfig"
 )
 
+// installationTimeout is the limit for the entire installation.
+//
+// It should be large enough to allow for even the slowest disk and containerd boot, but still
+// finite such that, for example, a missing containerd.sock is eventually visible in the pod
+// status.
+const installationTimeout = time.Minute * 10
+
 func main() {
 	fmt.Fprintf(os.Stderr, "Contrast node-installer %s\n", constants.Version)
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
@@ -35,13 +44,18 @@ func main() {
 		log.Fatal("Usage: node-installer <platform>")
 	}
 
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+	ctx, cancel = context.WithTimeout(ctx, installationTimeout)
+	defer cancel()
+
 	platform, err := platforms.FromString(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fetcher := asset.NewDefaultFetcher()
-	if err := run(context.Background(), fetcher, platform); err != nil {
+	if err := run(ctx, fetcher, platform); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Installation completed successfully.")
