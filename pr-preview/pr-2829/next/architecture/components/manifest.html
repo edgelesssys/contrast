@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.10.2">
 <title data-rh="true">The manifest | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/pr-preview/pr-2829/next/architecture/components/manifest"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="The manifest | Contrast"><meta data-rh="true" name="description" content="The manifest is the configuration file for the Coordinator, defining your confidential deployment."><meta data-rh="true" property="og:description" content="The manifest is the configuration file for the Coordinator, defining your confidential deployment."><link data-rh="true" rel="icon" href="/contrast/pr-preview/pr-2829/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/pr-preview/pr-2829/next/architecture/components/manifest"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-2829/next/architecture/components/manifest" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-2829/next/architecture/components/manifest" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Manifest","item":"https://docs.edgeless.systems/contrast/pr-preview/pr-2829/next/architecture/components/manifest"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-2829/assets/css/styles.45ce165c.css">
-<script src="/contrast/pr-preview/pr-2829/assets/js/runtime~main.3baa51eb.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-2829/assets/js/runtime~main.6f69828c.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-2829/assets/js/main.48438b1e.js" defer="defer"></script>
 </head>
 <body>
@@ -187,9 +187,11 @@ Used for authenticating manifest updates.</p>
 <p>By default, the list contains the key that was passed to the Contrast CLI on <code>contrast generate</code> via the <code>--add-workload-owner-key</code> flag.
 If the flag wasn&#x27;t used, the workload owner key was generated and stored in the workspace as <code>workload-owner.pem</code>.</p>
 <p>The Coordinator uses this list to authenticate manifest updates submitted via <code>contrast set</code>.
+The initial manifest is authenticated against its own list.
 If multiple workload owner keys are specified, any of the corresponding private keys can be used to set a new manifest.</p>
 <p>If the manifest is generated with the <code>--disable-updates</code> flag, the <code>WorkloadOwnerPubKeys</code> list is empty.
-In this case, updates to the manifest are disabled and the <a class="" href="/contrast/pr-preview/pr-2829/next/howto/immutable-deployments">deployment is immutable</a>.</p>
+In this case, setting the initial manifest doesn&#x27;t require authentication, and anyone who can reach the uninitialized Coordinator can set it (causing client-side verification to fail, of course).
+Updates to the manifest are disabled and the <a class="" href="/contrast/pr-preview/pr-2829/next/howto/immutable-deployments">deployment is immutable</a>.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="seedshare-owner-pub-keys"><code>SeedshareOwnerPubKeys</code><a href="#seedshare-owner-pub-keys" class="hash-link" aria-label="Direct link to seedshare-owner-pub-keys" title="Direct link to seedshare-owner-pub-keys" translate="no">​</a></h2>
 <p>Public keys of seed share owners.
 Used to authenticate user recovery and permission to handle the secret seed.</p>
