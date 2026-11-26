@@ -7,8 +7,8 @@ replace github.com/edgelesssys/contrast => ../
 replace github.com/edgelesssys/contrast/apitypes => ../apitypes
 
 require (
-	github.com/edgelesssys/contrast v1.27.0
-	github.com/edgelesssys/contrast/apitypes v0.27.0
+	github.com/edgelesssys/contrast v1.28.0
+	github.com/edgelesssys/contrast/apitypes v0.28.0
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.12.1
 )
