@@ -58,9 +58,10 @@ func TestSetManifestHTTP(t *testing.T) {
 			wantAttestation: true,
 		},
 		"atomic update signed with key": {
-			req:          &httpSetRequest{workloadOwnerKey: key, atomic: true, previousTransitionHash: previous[:]},
-			versions:     []string{apitypesv1.Version},
-			wantPrevious: previous,
+			req:             &httpSetRequest{workloadOwnerKey: key, atomic: true, previousTransitionHash: previous[:]},
+			versions:        []string{apitypesv1.Version},
+			wantPrevious:    previous,
+			wantAttestation: true,
 		},
 		"detached signature": {
 			req:             &httpSetRequest{workloadOwnerKey: key, signature: []byte("detached")},
@@ -82,7 +83,15 @@ func TestSetManifestHTTP(t *testing.T) {
 			badReport:        true,
 			wantAttestation:  true,
 			wantNoSetRequest: true,
-			wantErr:          "checking the Coordinator before setting the initial manifest",
+			wantErr:          "checking the Coordinator before setting the manifest",
+		},
+		"coordinator fails validation before an atomic update": {
+			req:              &httpSetRequest{workloadOwnerKey: key, atomic: true, previousTransitionHash: previous[:]},
+			versions:         []string{apitypesv1.Version},
+			badReport:        true,
+			wantAttestation:  true,
+			wantNoSetRequest: true,
+			wantErr:          "checking the Coordinator before setting the manifest",
 		},
 		"minimum API version unmet": {
 			req:               &httpSetRequest{workloadOwnerKey: key, atomic: true, previousTransitionHash: previous[:]},
