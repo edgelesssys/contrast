@@ -1,0 +1,84 @@
+# Node installer configuration
+
+The Contrast node installer uses an optional `ConfigMap` to customize the installation process.
+Such a `ConfigMap` must be called `contrast-node-installer-target-config` and reside in the same namespace as the node installer.
+The `ConfigMap` is expected to contain one or more of the entries listed in the following sections.
+If an entry is absent, the documented default value will be used.
+Note that an absent entry may be different from an entry with an empty value.
+
+:::warning
+
+The `ConfigMap` should only contain keys listed below.
+Other keys are reserved for future extensions.
+
+:::
+
+## Applying the configuration
+
+The `contrast-node-installer-target-config` is configured as an optional `ConfigMap` mount in the node installer.
+This means that it must be applied before the runtime, applying it together with the runtime is often not enough.
+
+If you need to modify or add the configuration after applying the runtime, you need to restart the node installer:
+
+```sh
+kubectl rollout restart daemonset/contrast-cc-metal-qemu-snp-deadbeef-nodeinstaller
+kubectl rollout status -w daemonset/contrast-cc-metal-qemu-snp-deadbeef-nodeinstaller
+```
+
+## Configuration values
+
+All of the configuration keys listed below are optional.
+Pass a key with a suitable value to customize the Contrast installation, or leave out the key to apply defaults.
+
+### `containerd-import-dir`
+
+The path to the directory where the node installer should install the containerd config drop-in.
+The node installer writes a file of the form `contrast-cc-metal-qemu-snp-deadbeef.toml` into that directory.
+containerd needs to be configured to load files from this directory.
+If the import directory is `/etc/containerd/config.toml.d/`, the containerd configuration needs to declare:
+
+```toml
+imports = ["/etc/containerd/config.toml.d/*.toml"]
+```
+
+By default, the node installer falls back to [`containerd-config-path`](#containerd-config-path), which is deprecated and unsafe.
+
+### `containerd-socket-path`
+
+The path to the containerd socket serving the Container Runtime Interface (CRI).
+If this is set, the node installer verifies its own installation using the CRI status API.
+It only restarts containerd if its runtime handler isn't registered.
+If left unset, the node installer infers the containerd state from its service launch time.
+
+Setting `containerd-socket-path` is recommended because the default time-based mechanism is prone to race conditions.
+There's a potential trade-off, though: in the default configuration, the node installer eventually succeeds, provided that the configured systemd unit exists on the node.
+If the socket path is set, [`systemd-unit-name`](#systemd-unit-name) isn't empty, and there's an issue with the runtime handler installation, the node installer will crash-loop and restart containerd on each run.
+To avoid such issues, a Contrast installation with changed configuration should be supervised.
+
+If [`systemd-unit-name`](#systemd-unit-name) is empty, the node installer ignores the socket path and doesn't restart containerd.
+
+### `containerd-config-path`
+
+:::warning
+
+The `containerd-config-path` setting is deprecated in favor of [`containerd-import-dir`](#containerd-import-dir).
+Using a drop-in file is safer and cleaner.
+
+:::
+
+The path to the containerd config relative to the node's file system root.
+This configuration will be amended with an entry for the Contrast runtime class handler.
+If the path ends with the `.tmpl` extension, the node installer assumes a [k3s configuration template](https://docs.k3s.io/advanced#configuring-containerd), but overwrites it with the current rendered version.
+
+The default path is `etc/containerd/config.toml`.
+
+### `systemd-unit-name`
+
+A comma-separated list of systemd units to restart.
+The node installer walks through this list until it finds a unit that's present on the node, and then attempts to restart it.
+If none of the units exist, the node installer will fail the installation, exit and retry again in the next pod instance.
+
+If the list is empty, systemd units won't be restarted by the Contrast runtime.
+In this case, an administrator must ensure that containerd picks up the new configuration file.
+
+By default, the node installer attempts to restart `containerd.service`.
