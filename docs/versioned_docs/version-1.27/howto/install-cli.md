@@ -18,14 +18,14 @@ Download the Contrast CLI from the latest release:
 <TabItem value="linux" label="Linux (x86_64)">
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast-x86_64-linux
+curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/download/v1.27.0/contrast-x86_64-linux
 ```
 
 </TabItem>
 <TabItem value="macos" label="macOS (Apple Silicon)">
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast-aarch64-darwin
+curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/download/v1.27.0/contrast-aarch64-darwin
 ```
 
 </TabItem>
@@ -36,7 +36,7 @@ curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/con
 If you got the binary from another source, such as a mirror, check that it matches the release using the [GitHub CLI](https://cli.github.com/):
 
 ```bash
-contrast_release=$(gh release view --repo edgelesssys/contrast --json tagName -q .tagName)
+contrast_release=v1.27.0
 gh release verify-asset "$contrast_release" contrast --repo edgelesssys/contrast
 ```
 

@@ -39,7 +39,7 @@ This requires building the VM images, including the guest firmware and kernel, f
 ### Check out the release
 
 ```bash
-contrast_release=$(gh release view --repo edgelesssys/contrast --json tagName -q .tagName)
+contrast_release=v1.27.0
 git clone --depth 1 --branch "$contrast_release" https://github.com/edgelesssys/contrast contrast-src
 cd contrast-src
 echo -n "${contrast_release#v}" >| version.txt  # the tag carries the next development version
