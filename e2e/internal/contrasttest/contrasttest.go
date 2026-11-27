@@ -358,7 +358,20 @@ func (ct *ContrastTest) ApplyFromYAML(t *testing.T, yaml []byte) {
 func (ct *ContrastTest) RunSet(ctx context.Context, args ...string) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
-	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), append(args, ct.WorkDir)...)
+	return ct.runOnceAgainstCoordinator(ctx, cmd.NewSetCmd(), append(args, ct.WorkDir)...)
+}
+
+// RunSetHTTP runs the contrast set subcommand with the given arguments,
+// pinning the given minimum API version so that the manifest is set through the Coordinator's HTTP API.
+func (ct *ContrastTest) RunSetHTTP(ctx context.Context, minimumAPIVersion string, args ...string) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
+
+	httpEndpointArgs := func(addr string) []string {
+		return []string{"--coordinator-http", "http://" + addr, "--minimum-api-version", minimumAPIVersion}
+	}
+	// Setting a manifest must not be repeated, see [ContrastTest.runOnceAgainstCoordinator].
+	return ct.runAgainstCoordinatorWith(ctx, ct.Kubeclient.WithForwardedPortOnce, apitypes.Port, httpEndpointArgs, cmd.NewSetCmd(), append(args, ct.WorkDir)...)
 }
 
 // Set runs the contrast set subcommand and fails the test if it is not successful.
@@ -459,7 +472,7 @@ func (ct *ContrastTest) AttestViaSDK(ctx context.Context, apiVersion string, con
 	}
 
 	var state *sdk.CoordinatorState
-	err = ct.withForwardedCollateralProxy(ctx, func(proxyBaseURL string) error {
+	err = ct.withForwardedCollateralProxy(ctx, ct.Kubeclient.WithForwardedPort, func(proxyBaseURL string) error {
 		client = client.WithCollateralProxy(proxyBaseURL)
 		switch apiVersion {
 		case "":
@@ -620,17 +633,40 @@ const (
 	collateralProxyRemotePort = "80"
 )
 
-func (ct *ContrastTest) withForwardedCollateralProxy(ctx context.Context, f func(proxyBaseURL string) error) error {
+// portForwarder forwards a port of a pod and invokes the func with the local address, see [kubeclient.Kubeclient.WithForwardedPort].
+type portForwarder func(ctx context.Context, namespace, podName, remotePort string, f func(addr string) error) error
+
+func (ct *ContrastTest) withForwardedCollateralProxy(ctx context.Context, forward portForwarder, f func(proxyBaseURL string) error) error {
 	if ct.DoNotUseCollateralProxy {
 		return f("")
 	}
-	return ct.Kubeclient.WithForwardedPort(ctx, collateralProxyNamespace, collateralProxyPodName, collateralProxyRemotePort, func(proxyAddr string) error {
+	return forward(ctx, collateralProxyNamespace, collateralProxyPodName, collateralProxyRemotePort, func(proxyAddr string) error {
 		return f("http://" + proxyAddr)
 	})
 }
 
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
+//
+// The command is repeated if port-forwarding fails, so it must be safe to repeat, see [ContrastTest.runOnceAgainstCoordinator].
 func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
+	return ct.runAgainstCoordinatorWith(ctx, ct.Kubeclient.WithForwardedPort, userapi.Port, grpcEndpointArgs, cmd, args...)
+}
+
+// runOnceAgainstCoordinator is like [ContrastTest.runAgainstCoordinator], but executes the command at most once.
+// Use it for commands that change the state of the Coordinator and can't be repeated, like `contrast set`.
+func (ct *ContrastTest) runOnceAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
+	return ct.runAgainstCoordinatorWith(ctx, ct.Kubeclient.WithForwardedPortOnce, userapi.Port, grpcEndpointArgs, cmd, args...)
+}
+
+// grpcEndpointArgs returns the arguments that point a command to the Coordinator's gRPC API at addr.
+func grpcEndpointArgs(addr string) []string {
+	// Go never uses a proxy for connections to localhost. To enable proxy tests, replace localhost with 0.0.0.0.
+	return []string{"--coordinator", strings.Replace(addr, "localhost", "0.0.0.0", 1)}
+}
+
+// runAgainstCoordinatorWith forwards the Coordinator's remotePort with forward and executes the command against it.
+// endpointArgs returns the arguments that point the command to the forwarded address.
+func (ct *ContrastTest) runAgainstCoordinatorWith(ctx context.Context, forward portForwarder, remotePort string, endpointArgs func(addr string) []string, cmd *cobra.Command, args ...string) error {
 	if err := ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace); err != nil {
 		return fmt.Errorf("waiting for coordinator: %w", err)
 	}
@@ -644,13 +680,9 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 	cmd.Flags().String("workspace-dir", "", "")
 	cmd.Flags().String("log-level", "debug", "")
 
-	return ct.withForwardedCollateralProxy(ctx, func(proxyBaseURL string) error {
-		return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", userapi.Port, func(addr string) error {
-			// Go never uses a proxy for connections to localhost. To enable proxy tests, we
-			// replace localhost with 0.0.0.0, which can be used as localhost on Linux and BSD.
-			addr = strings.Replace(addr, "localhost", "0.0.0.0", 1)
-
-			cmdArgs := append(ct.commonArgs(), "--coordinator", addr)
+	return ct.withForwardedCollateralProxy(ctx, forward, func(proxyBaseURL string) error {
+		return forward(ctx, ct.Namespace, "port-forwarder-coordinator", remotePort, func(addr string) error {
+			cmdArgs := append(ct.commonArgs(), endpointArgs(addr)...)
 			if proxyBaseURL != "" {
 				cmdArgs = append(cmdArgs, "--collateral-proxy", proxyBaseURL)
 			}
