@@ -6,7 +6,6 @@ package history
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -838,9 +837,9 @@ func fromHex(require *require.Assertions, s string) string {
 	return string(data)
 }
 
-// TestTransitionOwnerSigningDigest pins the digest workload owners sign, which external signing tools reproduce.
-func TestTransitionOwnerSigningDigest(t *testing.T) {
+// TestTransitionOwnerSigningMessage pins the message workload owners sign, which external signing tools reproduce.
+func TestTransitionOwnerSigningMessage(t *testing.T) {
 	tr := &Transition{ManifestHash: Digest([]byte("manifest"))}
 	digest := tr.Digest()
-	assert.Equal(t, sha256.Sum256([]byte(hex.EncodeToString(digest[:]))), tr.OwnerSigningDigest())
+	assert.Equal(t, []byte(hex.EncodeToString(digest[:])), tr.OwnerSigningMessage())
 }

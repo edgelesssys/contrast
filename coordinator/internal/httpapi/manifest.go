@@ -14,7 +14,6 @@ import (
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/userapi"
 )
 
@@ -83,7 +82,6 @@ func (h *SetManifestHandler) setManifest(ctx context.Context, req *apitypesv1.Se
 	}
 
 	resp := &apitypesv1.SetManifestResponse{
-		Version:            constants.Version,
 		AttestationType:    h.Issuer.OID(),
 		CapabilitiesDigest: h.CapabilitiesDigest[:],
 	}

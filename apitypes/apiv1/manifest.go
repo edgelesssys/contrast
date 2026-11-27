@@ -46,8 +46,6 @@ type SetManifestRequest struct {
 // It reports the state the Coordinator is in after setting the manifest, attested under the
 // request's nonce, see [ConstructSetManifestReportData].
 type SetManifestResponse struct {
-	// Version is the Coordinator version.
-	Version string `json:"version"`
 	// RawAttestationDoc is a raw attestation report.
 	RawAttestationDoc []byte `json:"raw_attestation_doc"`
 	// AttestationType is the OID used to identify the type of attestation document.
@@ -73,7 +71,7 @@ const setManifestLabel = "contrast manifest v1"
 // ConstructSetManifestReportData constructs the report data of a [SetManifestResponse].
 //
 //	reportData = sha256(sha256("contrast manifest v1") || nonce || transitionDigest ||
-//	             sha256(rootCA) || sha256(meshCA) || sha256(seedSharesDoc) || capabilitiesDigest)
+//	                    sha256(rootCA) || sha256(meshCA) || sha256(seedSharesDoc) || capabilitiesDigest)
 //
 // The CA certificates, the seed share document and the capabilities digest are taken from resp.
 // transitionDigest is the digest of the transition the manifest was set with.

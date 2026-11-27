@@ -271,10 +271,11 @@ func (t *Transition) Digest() [HashSize]byte {
 	return Digest(t.MarshalBinary())
 }
 
-// OwnerSigningDigest returns the digest a workload owner signs to authorize the Transition.
-func (t *Transition) OwnerSigningDigest() [HashSize]byte {
+// OwnerSigningMessage returns the message a workload owner signs with ECDSA-SHA256 to authorize the Transition,
+// the hex-encoded transition digest.
+func (t *Transition) OwnerSigningMessage() []byte {
 	digest := t.Digest()
-	return Digest(hex.AppendEncode(nil, digest[:]))
+	return hex.AppendEncode(nil, digest[:])
 }
 
 // LatestTransition is the latest transition signed by the Coordinator.

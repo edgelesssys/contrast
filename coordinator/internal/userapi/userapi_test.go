@@ -375,7 +375,7 @@ func TestSetManifestSigned(t *testing.T) {
 
 	sign := func(key *ecdsa.PrivateKey, manifest []byte, previous [history.HashSize]byte) []byte {
 		tr := &history.Transition{ManifestHash: history.Digest(manifest), PreviousTransitionHash: previous}
-		digest := tr.OwnerSigningDigest()
+		digest := history.Digest(tr.OwnerSigningMessage())
 		sig, err := ecdsa.SignASN1(rand.Reader, key, digest[:])
 		require.NoError(t, err)
 		return sig
@@ -793,7 +793,7 @@ func TestSetManifestSignedMinimumAPIVersion(t *testing.T) {
 
 			requested := withPin(t, manifestBytes, tc.requestedPin)
 			tr := &history.Transition{ManifestHash: history.Digest(requested), PreviousTransitionHash: state.LatestTransition().TransitionHash}
-			digest := tr.OwnerSigningDigest()
+			digest := history.Digest(tr.OwnerSigningMessage())
 			sig, err := ecdsa.SignASN1(rand.Reader, testkeys.ECDSA(t), digest[:])
 			require.NoError(err)
 

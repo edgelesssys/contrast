@@ -20,7 +20,6 @@ import (
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	userapiserver "github.com/edgelesssys/contrast/coordinator/internal/userapi"
-	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/history/aferostore"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -55,7 +54,7 @@ func TestSetManifestHandler(t *testing.T) {
 	// initialTransition is the previous transition hash of the initial manifest.
 	initialTransition := make([]byte, history.HashSize)
 	sign := func(key *ecdsa.PrivateKey, tr *history.Transition) []byte {
-		digest := tr.OwnerSigningDigest()
+		digest := history.Digest(tr.OwnerSigningMessage())
 		sig, err := ecdsa.SignASN1(rand.Reader, key, digest[:])
 		require.NoError(t, err)
 		return sig
@@ -229,7 +228,6 @@ func TestSetManifestHandler(t *testing.T) {
 
 			var resp apitypesv1.SetManifestResponse
 			require.NoError(json.NewDecoder(res.Body).Decode(&resp))
-			require.Equal(constants.Version, resp.Version)
 			require.Equal(issuer.oid, resp.AttestationType)
 			require.NotEmpty(resp.RawAttestationDoc)
 			// The capabilities digest must be the one of the capabilities the Coordinator serves.

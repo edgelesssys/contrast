@@ -415,7 +415,7 @@ func validateSignature(keys []manifest.HexString, latestTransitionHash [history.
 		ManifestHash:           history.Digest(req.Manifest),
 		PreviousTransitionHash: latestTransitionHash,
 	}
-	hash := tr.OwnerSigningDigest()
+	hash := history.Digest(tr.OwnerSigningMessage())
 
 	for _, key := range keys {
 		trustedWorkloadOwnerKey, err := manifest.ParseWorkloadOwnerPublicKey(key)
