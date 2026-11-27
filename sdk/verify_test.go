@@ -18,7 +18,6 @@ import (
 	apitypesv1 "github.com/edgelesssys/contrast/apitypes/apiv1"
 	"github.com/edgelesssys/contrast/internal/atls/validators"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
-	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/afero"
@@ -37,9 +36,7 @@ func attestationHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	resp := &apitypesv1.AttestationResponse{
-		Version: constants.Version,
-	}
+	resp := &apitypesv1.AttestationResponse{}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		// Not much we can do here, since headers are already sent and we seem to be unable to
 		// write. Since this is a test, panicking is probably fine. We could ignore the error, but

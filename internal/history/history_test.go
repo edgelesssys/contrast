@@ -836,3 +836,10 @@ func fromHex(require *require.Assertions, s string) string {
 	require.NoError(err)
 	return string(data)
 }
+
+// TestTransitionOwnerSigningMessage pins the message workload owners sign, which external signing tools reproduce.
+func TestTransitionOwnerSigningMessage(t *testing.T) {
+	tr := &Transition{ManifestHash: Digest([]byte("manifest"))}
+	digest := tr.Digest()
+	assert.Equal(t, []byte(hex.EncodeToString(digest[:])), tr.OwnerSigningMessage())
+}

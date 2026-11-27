@@ -94,8 +94,7 @@ func runSign(cmd *cobra.Command, _ []string) error {
 		ManifestHash:           history.Digest(manifestBytes),
 		PreviousTransitionHash: [history.HashSize]byte(previousTransitionHash),
 	}
-	transitionHash := tr.Digest()
-	transitionHashHex := hex.AppendEncode(nil, transitionHash[:])
+	transitionHashHex := tr.OwnerSigningMessage()
 
 	if flags.prepare {
 		if err := os.WriteFile(flags.out, transitionHashHex, 0o644); err != nil {

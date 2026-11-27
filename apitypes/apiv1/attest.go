@@ -69,8 +69,6 @@ func (s Status) digestByte() (byte, error) {
 
 // AttestationResponse contains all fields required for application-level verification.
 type AttestationResponse struct {
-	// Version is the Coordinator version.
-	Version string `json:"version"`
 	// RawAttestationDoc is a raw attestation report.
 	RawAttestationDoc []byte `json:"raw_attestation_doc"`
 	// AttestationType is the OID used to identify the type of attestation document.
@@ -182,6 +180,8 @@ const attestLabel = "contrast attest v1"
 //	reportData = sha256(sha256("contrast attest v1") || nonce || status || transitionDigest ||
 //	                    sha256(transitionSignature) || sha256(rootCA) || sha256(meshCA) ||
 //	                    sha256(hpkePubKey) || capabilitiesDigest)
+//
+// The digest fills the first 32 bytes of the 64-byte report data, the remaining bytes are zero.
 //
 // The status, the transition signature, the CA certificates, the HPKE public key and the capabilities digest are taken from resp.
 // transitionDigest is the digest of the latest transition, and must be empty if the Coordinator isn't

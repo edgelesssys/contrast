@@ -63,7 +63,7 @@ func TestGetAttestation(t *testing.T) {
 					w.WriteHeader(http.StatusBadRequest)
 					return
 				}
-				_, _ = w.Write([]byte(`{"version":"test"}`))
+				_, _ = w.Write([]byte(`{"raw_attestation_doc":"dGVzdA=="}`))
 			}))
 			t.Cleanup(srv.Close)
 
@@ -82,7 +82,7 @@ func TestGetAttestation(t *testing.T) {
 				return
 			}
 			require.NoError(err)
-			assert.JSONEq(`{"version":"test"}`, string(attestation))
+			assert.JSONEq(`{"raw_attestation_doc":"dGVzdA=="}`, string(attestation))
 			require.NotNil(gotRequest)
 			assert.Equal(tc.nonce, gotRequest.Nonce)
 		})
