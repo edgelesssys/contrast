@@ -34,10 +34,10 @@ type SetManifestRequest struct {
 	//	sig = ECDSA-Sign(workloadOwnerKey, sha256(hex(h)))
 	//
 	// latest is the hash of the Coordinator's latest transition, or all zeroes for the initial manifest.
-	// Updates are verified against the WorkloadOwnerPubKeys of the manifest in force, a signed initial manifest
+	// Updates are verified against the WorkloadOwnerPubKeys of the manifest in force, the initial manifest
 	// against its own.
 	//
-	// It may only be empty for the initial manifest, which is then trusted on first use.
+	// It may only be empty for an initial manifest that lists no workload owner keys.
 	Signature []byte `json:"signature,omitempty"`
 }
 

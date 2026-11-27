@@ -187,7 +187,7 @@ func TestSetManifest(t *testing.T) {
 			ctx := rpcContext(t.Context(), tc.workloadOwnerKey)
 			m, err := json.Marshal(manifestWithTrustedKey)
 			require.NoError(err)
-			_, err = coordinator.SetManifest(ctx, &userapi.SetManifestRequest{Manifest: m})
+			_, err = coordinator.SetManifest(rpcContext(t.Context(), trustedKey), &userapi.SetManifestRequest{Manifest: m})
 			require.NoError(err)
 
 			req := &userapi.SetManifestRequest{
@@ -292,7 +292,7 @@ func TestSetManifest(t *testing.T) {
 
 				manifestBytes, err := json.Marshal(tc.manifest(t))
 				require.NoError(err)
-				resp, err := coordinator.SetManifest(t.Context(), &userapi.SetManifestRequest{Manifest: manifestBytes})
+				resp, err := coordinator.SetManifest(ownerContext(t), &userapi.SetManifestRequest{Manifest: manifestBytes})
 				if tc.wantErr == nil {
 					require.NoError(err)
 					require.NotNil(resp)
@@ -365,7 +365,7 @@ func TestSetManifest(t *testing.T) {
 	})
 }
 
-func TestSetManifestSigned(t *testing.T) {
+func TestInitialManifestAuthorization(t *testing.T) {
 	trustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[0])
 	untrustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
 	withKey, err := json.Marshal(manifestWithWorkloadOwnerKey(trustedKey))
@@ -380,6 +380,103 @@ func TestSetManifestSigned(t *testing.T) {
 		require.NoError(t, err)
 		return sig
 	}
+
+	for name, tc := range map[string]struct {
+		manifest   []byte
+		peerKey    *ecdsa.PrivateKey
+		signature  []byte
+		wantGRPC   codes.Code
+		wantSigned codes.Code
+	}{
+		"without keys, unauthenticated": {
+			manifest: withoutKey,
+		},
+		"without keys, signed": {
+			manifest:   withoutKey,
+			signature:  sign(trustedKey, withoutKey, [history.HashSize]byte{}),
+			wantGRPC:   codes.PermissionDenied,
+			wantSigned: codes.PermissionDenied,
+		},
+		"with keys, unauthenticated": {
+			manifest:   withKey,
+			wantGRPC:   codes.PermissionDenied,
+			wantSigned: codes.PermissionDenied,
+		},
+		"with keys, peer with listed key": {
+			manifest:   withKey,
+			peerKey:    trustedKey,
+			wantSigned: codes.PermissionDenied,
+		},
+		"with keys, peer with unlisted key": {
+			manifest:   withKey,
+			peerKey:    untrustedKey,
+			wantGRPC:   codes.PermissionDenied,
+			wantSigned: codes.PermissionDenied,
+		},
+		"with keys, signed by listed key": {
+			manifest:  withKey,
+			signature: sign(trustedKey, withKey, [history.HashSize]byte{}),
+		},
+		"with keys, signed by unlisted key": {
+			manifest:   withKey,
+			signature:  sign(untrustedKey, withKey, [history.HashSize]byte{}),
+			wantGRPC:   codes.PermissionDenied,
+			wantSigned: codes.PermissionDenied,
+		},
+		"with keys, signed by unlisted key, peer with listed key": {
+			manifest:   withKey,
+			peerKey:    trustedKey,
+			signature:  sign(untrustedKey, withKey, [history.HashSize]byte{}),
+			wantGRPC:   codes.PermissionDenied,
+			wantSigned: codes.PermissionDenied,
+		},
+		"with keys, signed over another previous transition": {
+			manifest:   withKey,
+			signature:  sign(trustedKey, withKey, history.Digest([]byte("previous"))),
+			wantGRPC:   codes.PermissionDenied,
+			wantSigned: codes.PermissionDenied,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			for api, set := range map[string]func(*Server, context.Context, *userapi.SetManifestRequest) error{
+				"gRPC": func(s *Server, ctx context.Context, req *userapi.SetManifestRequest) error {
+					_, err := s.SetManifest(ctx, req)
+					return err
+				},
+				"signed": func(s *Server, ctx context.Context, req *userapi.SetManifestRequest) error {
+					_, _, err := s.SetManifestSigned(ctx, 1, req)
+					return err
+				},
+			} {
+				t.Run(api, func(t *testing.T) {
+					want := tc.wantGRPC
+					if api == "signed" {
+						want = tc.wantSigned
+					}
+					err := set(newCoordinator(), rpcContext(t.Context(), tc.peerKey), &userapi.SetManifestRequest{
+						Manifest:  tc.manifest,
+						Signature: tc.signature,
+					})
+					require.Equal(t, want, status.Code(err), "error: %v", err)
+				})
+			}
+		})
+	}
+}
+
+func TestSetManifestSigned(t *testing.T) {
+	trustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[0])
+	untrustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
+	withKey, err := json.Marshal(manifestWithWorkloadOwnerKey(trustedKey))
+	require.NoError(t, err)
+
+	sign := func(key *ecdsa.PrivateKey, manifest []byte, previous [history.HashSize]byte) []byte {
+		tr := &history.Transition{ManifestHash: history.Digest(manifest), PreviousTransitionHash: previous}
+		digest := tr.OwnerSigningDigest()
+		sig, err := ecdsa.SignASN1(rand.Reader, key, digest[:])
+		require.NoError(t, err)
+		return sig
+	}
 	initialTransition := (&history.Transition{ManifestHash: history.Digest(withKey)}).Digest()
 
 	for name, tc := range map[string]struct {
@@ -388,20 +485,6 @@ func TestSetManifestSigned(t *testing.T) {
 		req      *userapi.SetManifestRequest
 		wantCode codes.Code
 	}{
-		"initial manifest without keys needs no signature": {
-			req: &userapi.SetManifestRequest{Manifest: withoutKey},
-		},
-		"initial manifest without keys rejects a signature": {
-			req:      &userapi.SetManifestRequest{Manifest: withoutKey, Signature: sign(trustedKey, withoutKey, [history.HashSize]byte{})},
-			wantCode: codes.PermissionDenied,
-		},
-		"initial manifest signed by its key": {
-			req: &userapi.SetManifestRequest{Manifest: withKey, Signature: sign(trustedKey, withKey, [history.HashSize]byte{})},
-		},
-		"initial manifest signed by another key": {
-			req:      &userapi.SetManifestRequest{Manifest: withKey, Signature: sign(untrustedKey, withKey, [history.HashSize]byte{})},
-			wantCode: codes.PermissionDenied,
-		},
 		"update needs a signature": {
 			initial:  withKey,
 			peerKey:  trustedKey,
@@ -584,7 +667,7 @@ func TestRecovery(t *testing.T) {
 				Manifest: manifestBytes,
 				Policies: policies,
 			}
-			resp, err := a.SetManifest(t.Context(), req)
+			resp, err := a.SetManifest(ownerContext(t), req)
 			require.NoError(err)
 			require.Len(resp.SeedSharesDoc.SeedShares, 1)
 			seedShareOwnerKey := testkeys.RSA(t)
@@ -637,7 +720,7 @@ func TestRecoveryFlow(t *testing.T) {
 		Manifest: manifestBytes,
 		Policies: policies,
 	}
-	resp1, err := a.SetManifest(t.Context(), req)
+	resp1, err := a.SetManifest(ownerContext(t), req)
 	require.NoError(err)
 	require.NotNil(resp1)
 	seedSharesDoc := resp1.GetSeedSharesDoc()
@@ -664,7 +747,7 @@ func TestRecoveryFlow(t *testing.T) {
 	// GetManifests and SetManifest are expected to fail.
 
 	a.guard = stateguard.New(hist, prometheus.NewRegistry(), slog.Default())
-	_, err = a.SetManifest(t.Context(), req)
+	_, err = a.SetManifest(ownerContext(t), req)
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
 
 	_, err = a.GetManifests(t.Context(), &userapi.GetManifestsRequest{})
@@ -712,11 +795,11 @@ func TestMinimumAPIVersionPin(t *testing.T) {
 	}
 
 	// Setting a pin via gRPC would lock out manifest management, neither initially nor as an update.
-	_, err = a.SetManifest(t.Context(), pinnedReq)
+	_, err = a.SetManifest(ownerContext(t), pinnedReq)
 	requireTooOld(err)
-	resp, err := a.SetManifest(t.Context(), &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies})
+	resp, err := a.SetManifest(ownerContext(t), &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies})
 	require.NoError(err)
-	_, err = a.SetManifest(t.Context(), pinnedReq)
+	_, err = a.SetManifest(ownerContext(t), pinnedReq)
 	requireTooOld(err)
 
 	// Pin the manifest bypassing the gRPC API, as a versioned API would.
@@ -725,7 +808,7 @@ func TestMinimumAPIVersionPin(t *testing.T) {
 	_, err = guard.UpdateState(t.Context(), state, state.SeedEngine(), pinnedManifestBytes, policies)
 	require.NoError(err)
 
-	_, err = a.SetManifest(t.Context(), &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies})
+	_, err = a.SetManifest(ownerContext(t), &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies})
 	requireTooOld(err)
 	_, err = a.GetManifests(t.Context(), &userapi.GetManifestsRequest{})
 	requireTooOld(err)
@@ -782,7 +865,7 @@ func TestSetManifestSignedMinimumAPIVersion(t *testing.T) {
 			a := New(logger, guard, &stubDiscovery{})
 			manifestBytes, policies := newManifestWithSeedshareOwner(t)
 
-			_, err := a.SetManifest(rpcContext(t.Context(), testkeys.ECDSA(t)), &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies})
+			_, err := a.SetManifest(ownerContext(t), &userapi.SetManifestRequest{Manifest: manifestBytes, Policies: policies})
 			require.NoError(err)
 			// Pin the manifest in force bypassing the API, as a concurrent update would, after the request
 			// passed the HTTP API's version gate.
@@ -850,7 +933,7 @@ func TestRecoveryManifestSecurityMustMatchCoordinator(t *testing.T) {
 			}
 
 			manifestBytes, policies := tc.manifest(t)
-			resp, err := coordinator.SetManifest(t.Context(), &userapi.SetManifestRequest{
+			resp, err := coordinator.SetManifest(ownerContext(t), &userapi.SetManifestRequest{
 				Manifest: manifestBytes,
 				Policies: policies,
 			})
@@ -960,7 +1043,7 @@ func TestOutOfBandUpdates(t *testing.T) {
 		Manifest: manifestBytes,
 		Policies: policies,
 	}
-	setManifestResp, err := a.SetManifest(t.Context(), req)
+	setManifestResp, err := a.SetManifest(ownerContext(t), req)
 	require.NoError(err)
 
 	// GetManifest should show that the watcher did not mark the state stale.
@@ -1052,7 +1135,7 @@ func TestStoreRaces(t *testing.T) {
 		var seedSharesDoc *userapi.SeedShareDocument
 		for _, coordinator := range coordinators {
 			go func() {
-				resp, err := coordinator.SetManifest(ctx, req)
+				resp, err := coordinator.SetManifest(rpcContext(ctx, workloadOwnerKey), req)
 				errs <- err
 				if err == nil {
 					seedSharesDoc = resp.GetSeedSharesDoc()
@@ -1320,6 +1403,12 @@ func newManifestWithSeedshareOwner(t *testing.T) ([]byte, [][]byte) {
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)
 	return mnfstBytes, [][]byte{policy}
+}
+
+// ownerContext returns a context whose peer presents a client certificate for the key of [testkeys.ECDSA], which the
+// test manifests list as workload owner key.
+func ownerContext(t *testing.T) context.Context {
+	return rpcContext(t.Context(), testkeys.ECDSA(t))
 }
 
 func rpcContext(ctx context.Context, cryptoKey crypto.PrivateKey) context.Context {
