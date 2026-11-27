@@ -153,10 +153,41 @@ func TestSetManifestHandler(t *testing.T) {
 			// The message must not carry the gRPC framing.
 			wantErrNotContains: "rpc error",
 		},
-		"replayed update": {
+		"repeated initial manifest": {
+			setup: []*apitypesv1.SetManifestRequest{
+				{Manifest: first, PreviousTransitionHash: initialTransition, Signature: sign(ownerKey, &history.Transition{ManifestHash: history.Digest(first)})},
+			},
+			req: &apitypesv1.SetManifestRequest{
+				Nonce:                  nonce,
+				Manifest:               first,
+				PreviousTransitionHash: initialTransition,
+				Signature:              sign(ownerKey, &history.Transition{ManifestHash: history.Digest(first)}),
+			},
+			wantHTTPStatus:    http.StatusOK,
+			wantManifests:     [][]byte{first},
+			wantTransition:    firstTransition,
+			wantSeedSharesDoc: true,
+		},
+		"repeated update": {
 			setup: []*apitypesv1.SetManifestRequest{
 				{Manifest: first, PreviousTransitionHash: initialTransition, Signature: sign(ownerKey, &history.Transition{ManifestHash: history.Digest(first)})},
 				{Manifest: second, PreviousTransitionHash: firstTransition[:], Signature: sign(ownerKey, &history.Transition{ManifestHash: history.Digest(second), PreviousTransitionHash: firstTransition})},
+			},
+			req: &apitypesv1.SetManifestRequest{
+				Nonce:                  nonce,
+				Manifest:               second,
+				PreviousTransitionHash: firstTransition[:],
+				Signature:              sign(ownerKey, &history.Transition{ManifestHash: history.Digest(second), PreviousTransitionHash: firstTransition}),
+			},
+			wantHTTPStatus: http.StatusOK,
+			wantManifests:  [][]byte{first, second},
+			wantTransition: secondTransition,
+		},
+		"replayed update after another transition": {
+			setup: []*apitypesv1.SetManifestRequest{
+				{Manifest: first, PreviousTransitionHash: initialTransition, Signature: sign(ownerKey, &history.Transition{ManifestHash: history.Digest(first)})},
+				{Manifest: second, PreviousTransitionHash: firstTransition[:], Signature: sign(ownerKey, &history.Transition{ManifestHash: history.Digest(second), PreviousTransitionHash: firstTransition})},
+				{Manifest: first, PreviousTransitionHash: secondTransition[:], Signature: sign(ownerKey, &history.Transition{ManifestHash: history.Digest(first), PreviousTransitionHash: secondTransition})},
 			},
 			req: &apitypesv1.SetManifestRequest{
 				Nonce:                  nonce,

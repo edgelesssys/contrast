@@ -16,6 +16,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -412,20 +413,55 @@ func setLoop(
 		}
 	}()
 
+	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
+	defer cancel()
+
+	if req.PreviousTransitionHash == nil {
+		fetch := retry.DoerFunc(func(ctx context.Context) error {
+			latest, err := getLatestTransitionGRPC(ctx, client)
+			if err != nil {
+				return err
+			}
+			req.PreviousTransitionHash = latest
+			return nil
+		})
+		if err := retry.NewIntervalRetrier(fetch, time.Second, grpcRetry.ServiceIsUnavailable).Do(ctx); err != nil {
+			return nil, fmt.Errorf("getting latest transition: %w", err)
+		}
+	}
+
 	doer := &setDoer{
 		client: client,
 		req:    req,
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
-	defer cancel()
-
+	// The request is identical in every attempt, meaning the Coordinator answers a repetition with the original response.
 	retrier := retry.NewIntervalRetrier(doer, time.Second, grpcRetry.ServiceIsUnavailable)
 	if err := retrier.Do(ctx); err != nil {
 		return nil, err
 	}
 
 	return doer.resp, nil
+}
+
+// getLatestTransitionGRPC returns the hash of the Coordinator's latest transition, or all zeroes if it has no manifest yet.
+func getLatestTransitionGRPC(ctx context.Context, client userapi.UserAPIClient) ([]byte, error) {
+	resp, err := client.GetManifests(ctx, &userapi.GetManifestsRequest{})
+	if err != nil {
+		if s, ok := status.FromError(err); ok && s.Code() == codes.FailedPrecondition && s.Message() == userapi.ErrNoManifest.Error() {
+			return make([]byte, history.HashSize), nil
+		}
+		return nil, err
+	}
+	if latest := resp.GetLatestTransition().GetTransitionHash(); len(latest) == history.HashSize {
+		return latest, nil
+	}
+	if len(resp.GetManifests()) == 0 {
+		return nil, errors.New("coordinator reported neither its latest transition nor any manifests")
+	}
+	transitions := history.BuildTransitionChain(resp.GetManifests())
+	latest := transitions[len(transitions)-1].Digest()
+	return latest[:], nil
 }
 
 // httpSetRequest holds the inputs of setManifestHTTP.
@@ -484,11 +520,22 @@ func setManifestHTTP(ctx context.Context, out io.Writer, req *httpSetRequest, lo
 			return fmt.Errorf("setting a manifest isn't implemented for API version %q", version)
 		}
 	})
-	// Only retry the preparation if the Coordinator couldn't be reached. The request isn't idempotent, so it's sent once.
+	// The preparation sends nothing that changes the Coordinator's state, so it's retried if the Coordinator can't be reached.
 	if err := retry.NewIntervalRetrier(prepare, time.Second, isDialError).Do(ctx); err != nil {
 		return nil, err
 	}
-	return send(ctx)
+
+	// The prepared request is repeated as is, which the Coordinator answers with its original response if the
+	// first one was lost after the manifest was set.
+	doer := retry.DoerFunc(func(ctx context.Context) error {
+		var err error
+		result, err = send(ctx)
+		return err
+	})
+	if err := retry.NewIntervalRetrier(doer, time.Second, isRetriableSetError).Do(ctx); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // prepareSetManifestV1 builds the request that sets the manifest through version v1 of the Coordinator's HTTP API, and returns a func that sends it.
@@ -541,6 +588,22 @@ func mayAutoSign(req *httpSetRequest, previousTransitionHash []byte) (bool, erro
 		return false, fmt.Errorf("unmarshaling manifest: %w", err)
 	}
 	return slices.Contains(m.WorkloadOwnerPubKeys, manifest.MarshalWorkloadOwnerPubKey(&req.workloadOwnerKey.PublicKey)), nil
+}
+
+// isRetriableSetError reports whether repeating an identical set request may succeed where err failed.
+func isRetriableSetError(err error) bool {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	// The Coordinator processed the request, but its response was lost while it was read.
+	if errors.Is(err, sdk.ErrResponseInterrupted) {
+		return true
+	}
+	if apiErr, ok := errors.AsType[*apitypes.APIError](err); ok {
+		return apiErr.StatusCode >= http.StatusInternalServerError
+	}
+	_, ok := errors.AsType[*url.Error](err)
+	return ok
 }
 
 // getLatestTransitionV1 returns the hash of the Coordinator's latest transition, or all zeroes if it has no manifest yet.

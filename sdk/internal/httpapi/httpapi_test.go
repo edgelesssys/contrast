@@ -177,3 +177,17 @@ func TestDoJSONSendsBody(t *testing.T) {
 	assert.Equal([]byte("nonce"), req.Nonce)
 	assert.JSONEq(`{"api_versions":["v1"]}`, string(resp))
 }
+
+// TestDoJSONResponseInterrupted ensures a successful response whose body can't be read in full is reported as interrupted.
+func TestDoJSONResponseInterrupted(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// Promise more than is sent, so that the client sees the connection break mid-body.
+		w.Header().Set("Content-Length", "100")
+		_, _ = w.Write([]byte(`{"api_versions":`))
+	}))
+	t.Cleanup(srv.Close)
+
+	c := &Client{HTTPClient: srv.Client(), BaseURL: srv.URL, Log: slog.New(slog.DiscardHandler)}
+	_, err := c.DoJSON(t.Context(), http.MethodPost, "/attest", nil)
+	require.ErrorIs(t, err, ErrResponseInterrupted)
+}

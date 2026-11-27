@@ -167,30 +167,32 @@ func (s *Server) setManifest(ctx context.Context, req *userapi.SetManifestReques
 		return nil, nil, err
 	}
 
+	if oldState != nil {
+		base, retried, err := s.findRetriedTransition(ctx, oldState, req)
+		if err != nil {
+			return nil, nil, err
+		}
+		if retried {
+			return s.repeatSetManifest(ctx, oldState, base, m, req, authorize)
+		}
+	}
+
 	var resp userapi.SetManifestResponse
 
 	var se *seedengine.SeedEngine
 	if oldState != nil {
-		oldManifest := oldState.Manifest()
 		// Subsequent SetManifest call, check permissions of caller.
-		if err := authorize(ctx, oldManifest.WorkloadOwnerPubKeys, oldState.LatestTransition().TransitionHash, req); err != nil {
+		if err := s.authorizeTransition(ctx, authorize, &transitionBase{manifest: oldState.Manifest(), hash: oldState.LatestTransition().TransitionHash}, m, req); err != nil {
 			return nil, nil, err
 		}
 		se = oldState.SeedEngine()
-		if slices.Compare(oldManifest.SeedshareOwnerPubKeys, m.SeedshareOwnerPubKeys) != 0 {
-			s.logger.Warn("SetManifest detected attempted seedshare owners change", "from", oldManifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
-			return nil, nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
-		}
 		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(oldState.LatestTransition().TransitionHash[:], req.GetPreviousTransitionHash()) {
 			return nil, nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' does not match latest state '%x'", req.GetPreviousTransitionHash(), oldState.LatestTransition().TransitionHash)
 		}
 	} else {
 		// First SetManifest call, initialize seed engine.
-		// The initial manifest must be authorized by one of its own workload owner keys, or carry neither keys nor signatures.
-		if len(m.WorkloadOwnerPubKeys) != 0 || len(req.Signature) != 0 {
-			if err := authorize(ctx, m.WorkloadOwnerPubKeys, [history.HashSize]byte{}, req); err != nil {
-				return nil, nil, err
-			}
+		if err := s.authorizeTransition(ctx, authorize, nil, m, req); err != nil {
+			return nil, nil, err
 		}
 		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(req.GetPreviousTransitionHash(), make([]byte, history.HashSize)) {
 			return nil, nil, statusErrf(codes.FailedPrecondition, ErrTransitionMismatch, "previous transition hash '%x' requested but manifest history is empty", req.GetPreviousTransitionHash())
@@ -236,6 +238,124 @@ func (s *Server) setManifest(ctx context.Context, req *userapi.SetManifestReques
 
 	s.logger.Info("SetManifest succeeded")
 	return &resp, state, nil
+}
+
+// transitionBase is the state a manifest transition starts from: the manifest in force and the hash of the
+// transition that set it. A nil *transitionBase stands for the empty history the initial manifest is set on.
+type transitionBase struct {
+	manifest *manifest.Manifest
+	hash     [history.HashSize]byte
+}
+
+// authorizeTransition checks that req may set the manifest m on top of base.
+//
+// Updates must be authorized by one of the workload owner keys of the manifest in force, and must not change the seed share owners.
+// The initial manifest must be authorized by one of its own workload owner keys, or carry neither keys nor signatures.
+func (s *Server) authorizeTransition(ctx context.Context, authorize authorizer, base *transitionBase, m *manifest.Manifest, req *userapi.SetManifestRequest) error {
+	if base == nil {
+		if len(m.WorkloadOwnerPubKeys) == 0 && len(req.Signature) == 0 {
+			return nil
+		}
+		return authorize(ctx, m.WorkloadOwnerPubKeys, [history.HashSize]byte{}, req)
+	}
+
+	if err := authorize(ctx, base.manifest.WorkloadOwnerPubKeys, base.hash, req); err != nil {
+		return err
+	}
+	if slices.Compare(base.manifest.SeedshareOwnerPubKeys, m.SeedshareOwnerPubKeys) != 0 {
+		s.logger.Warn("SetManifest detected attempted seedshare owners change", "from", base.manifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
+		return status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
+	}
+	return nil
+}
+
+// findRetriedTransition reports whether req repeats the request that made the latest transition of state.
+// If so, it also returns the base that transition started from, which is nil if it set the initial manifest.
+//
+// Only a request that names the transition it applies to can be recognized as a repetition.
+// Without a previous transition hash, a request to set the manifest in force again asks for a new transition.
+func (s *Server) findRetriedTransition(ctx context.Context, state *stateguard.State, req *userapi.SetManifestRequest) (*transitionBase, bool, error) {
+	latestHash := state.LatestTransition().TransitionHash
+	if req.GetPreviousTransitionHash() == nil ||
+		bytes.Equal(req.GetPreviousTransitionHash(), latestHash[:]) ||
+		!bytes.Equal(req.GetManifest(), state.ManifestBytes()) {
+		return nil, false, nil
+	}
+
+	manifests, _, err := s.guard.GetHistory(ctx, state)
+	if err != nil {
+		return nil, false, status.Errorf(codes.Internal, "getting history: %v", err)
+	}
+	transitions := history.BuildTransitionChain(manifests)
+	if len(transitions) == 0 || transitions[len(transitions)-1].Digest() != latestHash {
+		return nil, false, status.Errorf(codes.Internal, "manifest history doesn't lead to the latest transition %x", latestHash)
+	}
+	latest := transitions[len(transitions)-1]
+	if !bytes.Equal(req.GetPreviousTransitionHash(), latest.PreviousTransitionHash[:]) {
+		return nil, false, nil
+	}
+
+	if len(manifests) == 1 {
+		return nil, true, nil
+	}
+	var previous manifest.Manifest
+	if err := json.Unmarshal(manifests[len(manifests)-2], &previous); err != nil {
+		return nil, false, status.Errorf(codes.Internal, "unmarshaling previous manifest: %v", err)
+	}
+	return &transitionBase{manifest: &previous, hash: latest.PreviousTransitionHash}, true, nil
+}
+
+// repeatSetManifest answers a request that repeats the latest transition of state, without setting the manifest again.
+//
+// The request must pass the checks the original request passed.
+func (s *Server) repeatSetManifest(ctx context.Context, state *stateguard.State, base *transitionBase, m *manifest.Manifest, req *userapi.SetManifestRequest, authorize authorizer) (*userapi.SetManifestResponse, *stateguard.State, error) {
+	if err := s.authorizeTransition(ctx, authorize, base, m, req); err != nil {
+		return nil, nil, err
+	}
+	if err := s.checkManifestSecurity(m); err != nil {
+		s.logger.Warn("SetManifest rejected the manifest", "err", err)
+		return nil, nil, statusErr(codes.InvalidArgument, err)
+	}
+	if err := checkPoliciesProvided(m, req.GetPolicies()); err != nil {
+		return nil, nil, status.Errorf(codes.InvalidArgument, "checking policies: %v", err)
+	}
+
+	resp := &userapi.SetManifestResponse{
+		MeshCA: state.CA().GetMeshCACert(),
+		RootCA: state.CA().GetRootCACert(),
+	}
+	if base == nil {
+		seedEngine := state.SeedEngine()
+		seedShares, err := manifest.EncryptSeedShares(seedEngine.Seed(), m.SeedshareOwnerPubKeys)
+		if err != nil {
+			return nil, nil, status.Errorf(codes.Internal, "encrypting seed shares: %v", err)
+		}
+		resp.SeedSharesDoc = &userapi.SeedShareDocument{
+			Salt:       seedEngine.Salt(),
+			SeedShares: seedShares,
+		}
+	}
+
+	s.logger.Info("SetManifest repeated the latest transition")
+	return resp, state, nil
+}
+
+// checkPoliciesProvided checks that policies contains every policy the manifest references, as setting it requires.
+func checkPoliciesProvided(m *manifest.Manifest, policies [][]byte) error {
+	provided := make(map[[history.HashSize]byte]struct{}, len(policies))
+	for _, policy := range policies {
+		provided[history.Digest(policy)] = struct{}{}
+	}
+	for ref := range m.Policies {
+		refBytes, err := ref.Bytes()
+		if err != nil || len(refBytes) != history.HashSize {
+			return fmt.Errorf("invalid policy hash %q", ref)
+		}
+		if _, ok := provided[[history.HashSize]byte(refBytes)]; !ok {
+			return fmt.Errorf("no policy provided for hash %q", ref)
+		}
+	}
+	return nil
 }
 
 // GetManifests retrieves the current CA certificates, the manifest history and all policies.
@@ -475,7 +595,7 @@ func getPeerPublicKey(ctx context.Context) ([]byte, error) {
 
 var (
 	// ErrNoManifest is returned when a manifest is needed but not present.
-	ErrNoManifest = errors.New("no manifest configured")
+	ErrNoManifest = userapi.ErrNoManifest
 	// ErrAlreadyRecovered is returned if seedEngine initialization was requested but a seed is already set.
 	ErrAlreadyRecovered = errors.New("coordinator is already recovered")
 	// ErrNeedsRecovery is returned if state exists, but no secrets are available, e.g. after restart.
