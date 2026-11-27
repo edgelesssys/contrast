@@ -73,6 +73,8 @@ const setManifestLabel = "contrast manifest v1"
 //	reportData = sha256(sha256("contrast manifest v1") || nonce || transitionDigest ||
 //	                    sha256(rootCA) || sha256(meshCA) || sha256(seedSharesDoc) || capabilitiesDigest)
 //
+// The digest fills the first 32 bytes of the 64-byte report data, the remaining bytes are zero.
+//
 // The CA certificates, the seed share document and the capabilities digest are taken from resp.
 // transitionDigest is the digest of the transition the manifest was set with.
 //
