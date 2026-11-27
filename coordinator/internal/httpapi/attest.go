@@ -38,13 +38,21 @@ type StateGuard interface {
 	GetHistory(ctx context.Context, state *stateguard.State) ([][]byte, map[manifest.HexString][]byte, error)
 }
 
+// legacyAttestationResponse is the response of the unversioned attestation endpoint.
+type legacyAttestationResponse struct {
+	// Version is the release version of the Coordinator, like v1.2.3. Released clients include it in the error when they fail to parse the response, see [apitypesv1.UnmarshalAttestationResponse].
+	Version string `json:"version"`
+
+	*apitypesv1.AttestationResponse
+}
+
 // AttestationHandler handles POST requests to the unversioned attestation endpoint, which predates API versioning.
 type AttestationHandler struct {
 	Issuer     atls.Issuer
 	StateGuard StateGuard
 }
 
-func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*apitypesv1.AttestationResponse, int, error) {
+func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*legacyAttestationResponse, int, error) {
 	// state knows the latest transition
 	state, err := h.StateGuard.GetState(ctx)
 	switch {
@@ -68,11 +76,13 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ap
 		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingAttestation, err)
 	}
 
-	resp := &apitypesv1.AttestationResponse{
-		Version:           constants.Version,
-		AttestationType:   h.Issuer.OID(),
-		RawAttestationDoc: attestation,
-		CoordinatorState:  *coordinatorState,
+	resp := &legacyAttestationResponse{
+		Version: constants.Version,
+		AttestationResponse: &apitypesv1.AttestationResponse{
+			AttestationType:   h.Issuer.OID(),
+			RawAttestationDoc: attestation,
+			CoordinatorState:  *coordinatorState,
+		},
 	}
 
 	return resp, http.StatusOK, nil
@@ -99,7 +109,6 @@ type VersionedAttestationHandler struct {
 
 func (h *VersionedAttestationHandler) getResponse(ctx context.Context, nonce []byte) (*apitypesv1.AttestationResponse, int, error) {
 	resp := &apitypesv1.AttestationResponse{
-		Version:            constants.Version,
 		AttestationType:    h.Issuer.OID(),
 		CapabilitiesDigest: h.CapabilitiesDigest[:],
 	}
@@ -175,7 +184,7 @@ func getCoordinatorState(ctx context.Context, guard StateGuard, state *stateguar
 
 // serveAttestation handles a request to an attestation endpoint. The endpoints share their request format
 // and differ only in the response, which getResponse provides for the nonce of the request.
-func serveAttestation(w http.ResponseWriter, r *http.Request, getResponse func(ctx context.Context, nonce []byte) (*apitypesv1.AttestationResponse, int, error)) {
+func serveAttestation[R any](w http.ResponseWriter, r *http.Request, getResponse func(ctx context.Context, nonce []byte) (*R, int, error)) {
 	var req apitypesv1.AttestationRequest
 	// Limit size to a small value to avoid abuse (nonce only expected).
 	if !decodeJSONRequest(w, r, apitypesv1.AttestMethod, 1024, &req) {

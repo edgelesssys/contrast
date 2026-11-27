@@ -69,8 +69,6 @@ func (s Status) digestByte() (byte, error) {
 
 // AttestationResponse contains all fields required for application-level verification.
 type AttestationResponse struct {
-	// Version is the Coordinator version.
-	Version string `json:"version"`
 	// RawAttestationDoc is a raw attestation report.
 	RawAttestationDoc []byte `json:"raw_attestation_doc"`
 	// AttestationType is the OID used to identify the type of attestation document.

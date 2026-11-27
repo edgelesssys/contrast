@@ -176,7 +176,7 @@ func TestAttestationHandler(t *testing.T) {
 				require.Contains(apiErr.Err, tc.expErr.Error())
 				require.Equal(tc.expStatus, apiErr.StatusCode)
 			} else if res.StatusCode == http.StatusOK {
-				var resp apitypesv1.AttestationResponse
+				var resp legacyAttestationResponse
 				require.NoError(json.NewDecoder(res.Body).Decode(&resp))
 				require.Equal(constants.Version, resp.Version)
 				require.Equal(expectedOID, resp.AttestationType)
@@ -294,7 +294,6 @@ func TestVersionedAttestationHandler(t *testing.T) {
 
 			var resp apitypesv1.AttestationResponse
 			require.NoError(json.NewDecoder(res.Body).Decode(&resp))
-			require.Equal(constants.Version, resp.Version)
 			require.Equal(expectedOID, resp.AttestationType)
 			require.NotEmpty(resp.RawAttestationDoc)
 			require.Equal(tc.wantStatus, resp.Status)
